@@ -161,7 +161,7 @@
 
 /* ═══════════════════════════════════════════════════════════════
    LEFT RULER EDGE - Authentic DE Style
-   Horizontal tick marks extending from right edge inward
+   Horizontal tick marks extending INWARD from right edge of ruler
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-right-ruler {
@@ -169,60 +169,78 @@
     top: 0;
     left: 0;
     right: auto;
-    width: 20px;
+    width: 22px;
     height: 100%;
     z-index: 10000;
     pointer-events: none;
     /* Base cream/beige - matches DE */
     background: linear-gradient(
         to right,
-        #d8d4cc 0%,
-        #e4e0d8 40%,
-        #dcd8d0 100%
+        #c8c4bc 0%,
+        #d8d4cc 30%,
+        #e0dcd4 70%,
+        #d4d0c8 100%
     );
-    box-shadow: inset -3px 0 8px rgba(0, 0, 0, 0.2);
+    box-shadow: inset -2px 0 6px rgba(0, 0, 0, 0.15);
 }
 
-/* Small tick marks - horizontal lines from right edge */
+/* Small tick marks - horizontal lines extending LEFT from right edge */
 .ie-right-ruler::before {
     content: '';
     position: absolute;
     top: 0;
     right: 0;
-    width: 8px;  /* Tick length - extends 8px from right edge */
+    width: 22px;
     height: 100%;
-    background-image: repeating-linear-gradient(
+    /* Creates horizontal lines by using a gradient that goes LEFT from the right edge */
+    background: repeating-linear-gradient(
         to bottom,
         transparent 0px,
-        transparent 9px,
-        rgba(60, 50, 40, 0.5) 9px,
-        rgba(60, 50, 40, 0.5) 10px
+        transparent 14px,
+        transparent 14px,
+        transparent 15px
+    ),
+    repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 14px,
+        rgba(80, 70, 60, 0.4) 14px,
+        rgba(80, 70, 60, 0.4) 15px
     );
-    background-size: 100% 10px;
+    background-size: 10px 15px, 10px 15px;
+    background-position: right top, right top;
     background-repeat: repeat-y;
+    /* Mask to only show ticks on right portion */
+    -webkit-mask-image: linear-gradient(to left, black 0%, black 45%, transparent 45%);
+    mask-image: linear-gradient(to left, black 0%, black 45%, transparent 45%);
 }
 
-/* Larger tick marks every 50px - extend further */
+/* Larger tick marks every ~75px - extend further left */
 .ie-right-ruler::after {
     content: '';
     position: absolute;
     top: 0;
     right: 0;
-    width: 14px;  /* Longer ticks */
+    width: 22px;
     height: 100%;
-    background-image: repeating-linear-gradient(
+    background: repeating-linear-gradient(
         to bottom,
         transparent 0px,
-        transparent 48px,
-        rgba(40, 35, 30, 0.7) 48px,
-        rgba(40, 35, 30, 0.7) 50px
+        transparent 73px,
+        rgba(50, 45, 40, 0.6) 73px,
+        rgba(50, 45, 40, 0.6) 75px
     );
-    background-size: 100% 50px;
+    background-size: 100% 75px;
+    background-position: right top;
     background-repeat: repeat-y;
+    /* Mask to show longer ticks */
+    -webkit-mask-image: linear-gradient(to left, black 0%, black 65%, transparent 65%);
+    mask-image: linear-gradient(to left, black 0%, black 65%, transparent 65%);
 }
 
 /* ═══════════════════════════════════════════════════════════════
    RIGHT FILM STRIP BORDER - Authentic DE Style
+   Grey-green strip with spaced FELD PLAYBACK / FILM text
    ═══════════════════════════════════════════════════════════════ */
 
 .inland-empire-panel::before {
@@ -231,59 +249,48 @@
     top: 0;
     right: 0;
     left: auto;
-    width: 24px;
+    width: 26px;
     height: 100%;
-    /* Darker blue-grey like DE film edge */
-    background: linear-gradient(
-        to left,
-        #3a4550 0%,
-        #4a5560 30%,
-        #3a4550 70%,
-        #2d363f 100%
-    );
+    /* Grey-green like DE */
+    background: #a5afa3;
     z-index: 10000;
-    box-shadow: inset 2px 0 6px rgba(0, 0, 0, 0.4);
+    box-shadow: inset 2px 0 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Film strip vertical text - FELD PLAYBACK style */
+/* Film strip vertical text - FELD PLAYBACK style, single run */
 .inland-empire-panel::after {
-    content: 'FELD    PLAYBACK                    FILM                    FELD    DEVICE                    FILM                    FELD    PLAYBACK                    FILM';
+    content: 'FELD        PLAYBACK';
     position: absolute;
     top: 0;
     right: 0;
     left: auto;
-    width: 24px;
+    width: 26px;
     height: 100%;
     z-index: 10001;
     writing-mode: vertical-rl;
     text-orientation: mixed;
     /* Condensed sans-serif like DE */
-    font-family: 'Arial Narrow', 'Segoe UI', Tahoma, sans-serif;
-    font-size: 9px;
+    font-family: 'Arial Narrow', 'Segoe UI Condensed', Tahoma, sans-serif;
+    font-size: 10px;
     font-weight: 600;
-    font-stretch: condensed;
-    letter-spacing: 3px;
-    color: rgba(200, 195, 185, 0.6);
-    padding: 30px 0;
+    letter-spacing: 2px;
+    color: rgba(60, 65, 55, 0.7);
+    padding-top: 40px;
     overflow: hidden;
     pointer-events: none;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
     text-transform: uppercase;
-    text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
 }
 
 /* Adjust panel content to account for borders */
 .ie-panel-header,
 .ie-tabs {
-    margin-left: 20px;
-    margin-right: 24px;
+    margin-left: 22px;
+    margin-right: 26px;
 }
 
 .ie-tab-content {
-    margin-left: 20px;
-    margin-right: 24px;
+    margin-left: 22px;
+    margin-right: 26px;
     position: relative;
 }
 
