@@ -160,97 +160,71 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════════
-   LEFT RULER EDGE - Authentic DE Style
-   Horizontal tick marks extending INWARD from right edge of ruler
+   LEFT RULER EDGE (using the HTML element)
    ═══════════════════════════════════════════════════════════════ */
 
+/* Ruler on the LEFT - rename class in HTML from ie-right-ruler to ie-left-ruler if you want, but styling works either way */
 .ie-right-ruler {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 22px !important;
-    height: 100% !important;
-    z-index: 10000 !important;
-    pointer-events: none !important;
-    background-color: #d8d4cc !important;
-    box-shadow: inset -2px 0 6px rgba(0, 0, 0, 0.15) !important;
-    overflow: visible !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: auto;
+    width: 20px;
+    height: 100%;
+    z-index: 10000;
+    pointer-events: none;
+    /* Base cream color - lightened */
+    background: linear-gradient(
+        to left,
+        #e0dcd4 0%,
+        #eae6de 50%,
+        #e0dcd4 100%
+    );
+    box-shadow: inset -2px 0 6px rgba(0, 0, 0, 0.25);
 }
 
-/* Small ticks */
+/* Small tick marks every 10px - lightened */
 .ie-right-ruler::before {
-    content: '' !important;
-    display: block !important;
-    position: absolute !important;
-    top: 0 !important;
-    right: 0 !important;
-    width: 8px !important;
-    height: 100% !important;
-    background: repeating-linear-gradient(
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background-image: repeating-linear-gradient(
         to bottom,
-        #000000 0px,
-        #000000 1px,
-        transparent 1px,
-        transparent 15px
-    ) !important;
-    z-index: 1 !important;
+        transparent 0px,
+        transparent 9px,
+        rgba(80, 65, 50, 0.45) 9px,
+        rgba(80, 65, 50, 0.45) 10px
+    );
+    background-size: 8px 10px;
+    background-position: right top;
+    background-repeat: repeat-y;
 }
 
-/* Large ticks */
+/* Larger tick marks every 50px - lightened */
 .ie-right-ruler::after {
-    content: '' !important;
-    display: block !important;
-    position: absolute !important;
-    top: 0 !important;
-    right: 0 !important;
-    width: 14px !important;
-    height: 100% !important;
-    background: repeating-linear-gradient(
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background-image: repeating-linear-gradient(
         to bottom,
-        #000000 0px,
-        #000000 2px,
-        transparent 2px,
-        transparent 75px
-    ) !important;
-    z-index: 2 !important;
-}
-
-/* Fallback: actual child elements for ticks */
-.ie-ruler-small-ticks {
-    position: absolute !important;
-    top: 0 !important;
-    right: 0 !important;
-    width: 8px !important;
-    height: 100% !important;
-    background: repeating-linear-gradient(
-        to bottom,
-        #000000 0px,
-        #000000 1px,
-        transparent 1px,
-        transparent 15px
-    ) !important;
-    z-index: 1 !important;
-}
-
-.ie-ruler-large-ticks {
-    position: absolute !important;
-    top: 0 !important;
-    right: 0 !important;
-    width: 14px !important;
-    height: 100% !important;
-    background: repeating-linear-gradient(
-        to bottom,
-        #000000 0px,
-        #000000 2px,
-        transparent 2px,
-        transparent 75px
-    ) !important;
-    z-index: 2 !important;
+        transparent 0px,
+        transparent 48px,
+        rgba(60, 50, 40, 0.6) 48px,
+        rgba(60, 50, 40, 0.6) 50px
+    );
+    background-size: 14px 50px;
+    background-position: right top;
+    background-repeat: repeat-y;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   RIGHT FILM STRIP BORDER - Authentic DE Style
-   Grey-green strip with spaced FELD PLAYBACK / FILM text
+   RIGHT FILM STRIP BORDER (using panel pseudo-elements)
    ═══════════════════════════════════════════════════════════════ */
 
 .inland-empire-panel::before {
@@ -259,47 +233,83 @@
     top: 0;
     right: 0;
     left: auto;
-    width: 26px;
+    width: 22px;
     height: 100%;
-    /* Grey-green like DE */
-    background: #a5afa3;
+    background: linear-gradient(
+        to left,
+        #d4cfc4 0%,
+        #e8e4dc 30%,
+        #d4cfc4 100%
+    );
     z-index: 10000;
-    box-shadow: inset 2px 0 8px rgba(0, 0, 0, 0.2);
+    /* Sprocket holes using repeating gradient */
+    background-image: 
+        /* Main cream background */
+        linear-gradient(to left, #d4cfc4 0%, #e8e4dc 30%, #d4cfc4 100%),
+        /* Sprocket holes - left column */
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0px,
+            transparent 8px,
+            #1a1a20 8px,
+            #1a1a20 18px,
+            transparent 18px,
+            transparent 32px
+        ),
+        /* Sprocket holes - right column */
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0px,
+            transparent 8px,
+            #1a1a20 8px,
+            #1a1a20 18px,
+            transparent 18px,
+            transparent 32px
+        );
+    background-size: 100% 100%, 6px 32px, 6px 32px;
+    background-position: 0 0, 2px 4px, 14px 4px;
+    background-repeat: no-repeat, repeat-y, repeat-y;
+    /* Subtle inner shadow for depth */
+    box-shadow: inset 2px 0 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Film strip vertical text - FELD PLAYBACK style */
+/* Film strip vertical text overlay - NOW ON RIGHT */
 .inland-empire-panel::after {
-    content: 'FELD     PLAYBACK                                                                                                                                    FILM                                                                                                                                    FELD  MEF  PLUS+   ◦ ➤';
+    content: 'THE  ·  TRIBUNAL  ·  VOICES  ·  PASSING  ·  JUDGMENT  ·  THE  ·  TRIBUNAL  ·  VOICES  ·  PASSING  ·  JUDGMENT  ·';
     position: absolute;
     top: 0;
     right: 0;
     left: auto;
-    width: 26px;
+    width: 22px;
     height: 100%;
     z-index: 10001;
     writing-mode: vertical-rl;
     text-orientation: mixed;
-    font-family: 'Arial Narrow', 'Segoe UI Condensed', Tahoma, sans-serif;
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    color: #4f5263;
-    padding-top: 40px;
+    font-family: 'Courier New', monospace;
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    word-spacing: 2px;
+    color: rgba(80, 70, 60, 0.5);
+    padding: 20px 0;
     overflow: hidden;
     pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
     text-transform: uppercase;
 }
 
-/* Adjust panel content to account for borders */
+/* Adjust panel content to account for borders - NOW margin-left for ruler, margin-right for film strip */
 .ie-panel-header,
 .ie-tabs {
-    margin-left: 22px;
-    margin-right: 26px;
+    margin-left: 20px;
+    margin-right: 22px;
 }
 
 .ie-tab-content {
-    margin-left: 22px;
-    margin-right: 26px;
+    margin-left: 20px;
+    margin-right: 22px;
     position: relative;
 }
 
