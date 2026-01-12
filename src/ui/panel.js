@@ -15,7 +15,10 @@ export function createPsychePanel() {
     panel.className = 'inland-empire-panel';
 
     panel.innerHTML = `
-        <div class="ie-right-ruler"></div>
+        <div class="ie-right-ruler">
+            <div class="ie-ruler-small-ticks"></div>
+            <div class="ie-ruler-large-ticks"></div>
+        </div>
         <div class="ie-panel-header">
             <div class="ie-panel-title">
                 <i class="fa-solid fa-brain"></i>
