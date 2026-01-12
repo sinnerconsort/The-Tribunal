@@ -184,58 +184,38 @@
     box-shadow: inset -2px 0 6px rgba(0, 0, 0, 0.15);
 }
 
-/* Small tick marks - horizontal lines extending LEFT from right edge */
+/* Small tick marks - short horizontal lines from right edge */
 .ie-right-ruler::before {
     content: '';
     position: absolute;
     top: 0;
     right: 0;
-    width: 22px;
+    width: 8px;  /* Ticks extend 8px inward from right edge */
     height: 100%;
-    /* Creates horizontal lines by using a gradient that goes LEFT from the right edge */
     background: repeating-linear-gradient(
         to bottom,
         transparent 0px,
         transparent 14px,
-        transparent 14px,
-        transparent 15px
-    ),
-    repeating-linear-gradient(
-        to bottom,
-        transparent 0px,
-        transparent 14px,
-        rgba(80, 70, 60, 0.4) 14px,
-        rgba(80, 70, 60, 0.4) 15px
+        rgba(70, 60, 50, 0.5) 14px,
+        rgba(70, 60, 50, 0.5) 15px
     );
-    background-size: 10px 15px, 10px 15px;
-    background-position: right top, right top;
-    background-repeat: repeat-y;
-    /* Mask to only show ticks on right portion */
-    -webkit-mask-image: linear-gradient(to left, black 0%, black 45%, transparent 45%);
-    mask-image: linear-gradient(to left, black 0%, black 45%, transparent 45%);
 }
 
-/* Larger tick marks every ~75px - extend further left */
+/* Larger tick marks every ~75px - extend further inward */
 .ie-right-ruler::after {
     content: '';
     position: absolute;
     top: 0;
     right: 0;
-    width: 22px;
+    width: 14px;  /* Longer ticks extend 14px inward */
     height: 100%;
     background: repeating-linear-gradient(
         to bottom,
         transparent 0px,
         transparent 73px,
-        rgba(50, 45, 40, 0.6) 73px,
-        rgba(50, 45, 40, 0.6) 75px
+        rgba(50, 45, 40, 0.7) 73px,
+        rgba(50, 45, 40, 0.7) 75px
     );
-    background-size: 100% 75px;
-    background-position: right top;
-    background-repeat: repeat-y;
-    /* Mask to show longer ticks */
-    -webkit-mask-image: linear-gradient(to left, black 0%, black 65%, transparent 65%);
-    mask-image: linear-gradient(to left, black 0%, black 65%, transparent 65%);
 }
 
 /* ═══════════════════════════════════════════════════════════════
