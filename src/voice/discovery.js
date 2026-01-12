@@ -11,10 +11,10 @@
  */
 
 import { SKILLS } from '../data/skills.js';
-import { extensionSettings, saveState, getEffectiveSkillLevel } from './state.js';
+import { extensionSettings, saveState, getEffectiveSkillLevel } from '../core/state.js';
 import { callAPI } from './generation.js';
-import { rollSkillCheck } from './dice.js';
-import { getResearchPenalties } from './cabinet.js';
+import { rollSkillCheck } from '../systems/dice.js';
+import { getResearchPenalties } from '../systems/cabinet.js';
 
 // ═══════════════════════════════════════════════════════════════
 // NARRATOR CONTEXT WEIGHTS

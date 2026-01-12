@@ -24,9 +24,9 @@ import {
     getSkillLevel,
     getActiveAncientVoices,
     discoveryContext
-} from './state.js';
-import { rollSkillCheck, determineCheckDifficulty } from './dice.js';
-import { getResearchPenalties, hasSpecialEffect } from './cabinet.js';
+} from '../core/state.js';
+import { rollSkillCheck, determineCheckDifficulty } from '../systems/dice.js';
+import { getResearchPenalties, hasSpecialEffect } from '../systems/cabinet.js';
 
 // ═══════════════════════════════════════════════════════════════
 // CONTEXT ANALYSIS
