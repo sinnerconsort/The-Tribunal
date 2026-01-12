@@ -317,18 +317,18 @@ The Tribunal uses pure Disco Elysium mechanics:
 ## File Checklist
 
 ### Files Received
-- [x] generation.js - Voice generation, context analysis
-- [x] discovery.js - Investigation system
+- [x] generation.js - Voice generation, context analysis ✓ imports fixed
+- [x] discovery.js - Investigation system ✓ imports fixed
 - [x] skills.js - 24 skills + 3 ancient voices
 - [x] relationships.js - Cascade rules, rivalries
-- [x] styles.css - THE BEAUTIFUL 3745-line CSS
+- [x] styles.css - THE BEAUTIFUL 3745-line CSS ✓ updated for right-slide + THE TRIBUNAL text
 - [x] state.js - State management, profiles, builds
-- [x] index.js - Entry point, event wiring, global API
+- [x] index.js - Entry point (received, needs restructure)
 - [x] dice.js (RPG Companion) - Generic NdX (reference only)
-- [ ] statuses.js - Status effect definitions
-- [ ] thoughts.js - Thought cabinet content
-- [ ] cabinet.js - Thought research logic
-- [ ] UI component files (panel.js, render.js, toasts.js)
+- [x] statuses.js - Status effects, archetypes, ancient voice triggers
+- [x] thoughts.js - THEMES and THOUGHTS data (46KB of beautiful writing!)
+- [x] cabinet.js - Thought research logic ✓ imports fixed
+- [ ] UI files - panel.js, render.js, toasts.js (NEXT)
 
 ### Files to Create
 - [ ] manifest.json
