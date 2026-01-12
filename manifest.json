@@ -1,0 +1,12 @@
+{
+    "display_name": "The Tribunal",
+    "loading_order": 10,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "styles.css",
+    "author": "Judas",
+    "version": "2.0.0",
+    "description": "A Disco Elysium-inspired internal skill voice system. 24 skills argue in your head, passing judgment on every situation.",
+    "homePage": "https://github.com/your-repo/the-tribunal"
+}
