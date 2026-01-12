@@ -16,8 +16,8 @@ export function createPsychePanel() {
 
     panel.innerHTML = `
         <div class="ie-right-ruler">
-            <div class="ie-ruler-small-ticks"></div>
-            <div class="ie-ruler-large-ticks"></div>
+            <div class="ie-ruler-small-ticks" style="position:absolute;top:0;right:0;width:8px;height:100%;background:repeating-linear-gradient(to bottom,#000 0px,#000 1px,transparent 1px,transparent 15px);"></div>
+            <div class="ie-ruler-large-ticks" style="position:absolute;top:0;right:0;width:14px;height:100%;background:repeating-linear-gradient(to bottom,#000 0px,#000 2px,transparent 2px,transparent 75px);"></div>
         </div>
         <div class="ie-panel-header">
             <div class="ie-panel-title">
