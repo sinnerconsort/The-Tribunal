@@ -165,80 +165,87 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-right-ruler {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 22px;
-    height: 100%;
-    z-index: 10000;
-    pointer-events: none;
-    background-color: #d8d4cc;
-    box-shadow: inset -2px 0 6px rgba(0, 0, 0, 0.15);
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 22px !important;
+    height: 100% !important;
+    z-index: 10000 !important;
+    pointer-events: none !important;
+    background-color: #d8d4cc !important;
+    box-shadow: inset -2px 0 6px rgba(0, 0, 0, 0.15) !important;
+    overflow: visible !important;
 }
 
-/* Small ticks - using a child element approach */
+/* Small ticks */
 .ie-right-ruler::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 8px;
-    height: 100%;
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 8px !important;
+    height: 100% !important;
     background: repeating-linear-gradient(
         to bottom,
-        #5a5248 0px,
-        #5a5248 1px,
+        #000000 0px,
+        #000000 1px,
         transparent 1px,
         transparent 15px
-    );
+    ) !important;
+    z-index: 1 !important;
 }
 
 /* Large ticks */
 .ie-right-ruler::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 14px;
-    height: 100%;
+    content: '' !important;
+    display: block !important;
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 14px !important;
+    height: 100% !important;
     background: repeating-linear-gradient(
         to bottom,
-        #3d3830 0px,
-        #3d3830 2px,
+        #000000 0px,
+        #000000 2px,
         transparent 2px,
         transparent 75px
-    );
+    ) !important;
+    z-index: 2 !important;
 }
 
-/* Fallback: actual child elements for ticks if pseudo-elements fail */
+/* Fallback: actual child elements for ticks */
 .ie-ruler-small-ticks {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 8px;
-    height: 100%;
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 8px !important;
+    height: 100% !important;
     background: repeating-linear-gradient(
         to bottom,
-        #5a5248 0px,
-        #5a5248 1px,
+        #000000 0px,
+        #000000 1px,
         transparent 1px,
         transparent 15px
-    );
+    ) !important;
+    z-index: 1 !important;
 }
 
 .ie-ruler-large-ticks {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 14px;
-    height: 100%;
+    position: absolute !important;
+    top: 0 !important;
+    right: 0 !important;
+    width: 14px !important;
+    height: 100% !important;
     background: repeating-linear-gradient(
         to bottom,
-        #3d3830 0px,
-        #3d3830 2px,
+        #000000 0px,
+        #000000 2px,
         transparent 2px,
         transparent 75px
-    );
+    ) !important;
+    z-index: 2 !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
