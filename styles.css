@@ -160,10 +160,10 @@
    ═══════════════════════════════════════════════════════════════ */
 
 /* ═══════════════════════════════════════════════════════════════
-   LEFT RULER EDGE (using the HTML element)
+   LEFT RULER EDGE - Authentic DE Style
+   Horizontal tick marks extending from right edge inward
    ═══════════════════════════════════════════════════════════════ */
 
-/* Ruler on the LEFT - rename class in HTML from ie-right-ruler to ie-left-ruler if you want, but styling works either way */
 .ie-right-ruler {
     position: absolute;
     top: 0;
@@ -173,58 +173,56 @@
     height: 100%;
     z-index: 10000;
     pointer-events: none;
-    /* Base cream color - lightened */
+    /* Base cream/beige - matches DE */
     background: linear-gradient(
-        to left,
-        #e0dcd4 0%,
-        #eae6de 50%,
-        #e0dcd4 100%
+        to right,
+        #d8d4cc 0%,
+        #e4e0d8 40%,
+        #dcd8d0 100%
     );
-    box-shadow: inset -2px 0 6px rgba(0, 0, 0, 0.25);
+    box-shadow: inset -3px 0 8px rgba(0, 0, 0, 0.2);
 }
 
-/* Small tick marks every 10px - lightened */
+/* Small tick marks - horizontal lines from right edge */
 .ie-right-ruler::before {
     content: '';
     position: absolute;
     top: 0;
     right: 0;
-    width: 100%;
+    width: 8px;  /* Tick length - extends 8px from right edge */
     height: 100%;
     background-image: repeating-linear-gradient(
         to bottom,
         transparent 0px,
         transparent 9px,
-        rgba(80, 65, 50, 0.45) 9px,
-        rgba(80, 65, 50, 0.45) 10px
+        rgba(60, 50, 40, 0.5) 9px,
+        rgba(60, 50, 40, 0.5) 10px
     );
-    background-size: 8px 10px;
-    background-position: right top;
+    background-size: 100% 10px;
     background-repeat: repeat-y;
 }
 
-/* Larger tick marks every 50px - lightened */
+/* Larger tick marks every 50px - extend further */
 .ie-right-ruler::after {
     content: '';
     position: absolute;
     top: 0;
     right: 0;
-    width: 100%;
+    width: 14px;  /* Longer ticks */
     height: 100%;
     background-image: repeating-linear-gradient(
         to bottom,
         transparent 0px,
         transparent 48px,
-        rgba(60, 50, 40, 0.6) 48px,
-        rgba(60, 50, 40, 0.6) 50px
+        rgba(40, 35, 30, 0.7) 48px,
+        rgba(40, 35, 30, 0.7) 50px
     );
-    background-size: 14px 50px;
-    background-position: right top;
+    background-size: 100% 50px;
     background-repeat: repeat-y;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   RIGHT FILM STRIP BORDER (using panel pseudo-elements)
+   RIGHT FILM STRIP BORDER - Authentic DE Style
    ═══════════════════════════════════════════════════════════════ */
 
 .inland-empire-panel::before {
@@ -233,83 +231,59 @@
     top: 0;
     right: 0;
     left: auto;
-    width: 22px;
+    width: 24px;
     height: 100%;
+    /* Darker blue-grey like DE film edge */
     background: linear-gradient(
         to left,
-        #d4cfc4 0%,
-        #e8e4dc 30%,
-        #d4cfc4 100%
+        #3a4550 0%,
+        #4a5560 30%,
+        #3a4550 70%,
+        #2d363f 100%
     );
     z-index: 10000;
-    /* Sprocket holes using repeating gradient */
-    background-image: 
-        /* Main cream background */
-        linear-gradient(to left, #d4cfc4 0%, #e8e4dc 30%, #d4cfc4 100%),
-        /* Sprocket holes - left column */
-        repeating-linear-gradient(
-            to bottom,
-            transparent 0px,
-            transparent 8px,
-            #1a1a20 8px,
-            #1a1a20 18px,
-            transparent 18px,
-            transparent 32px
-        ),
-        /* Sprocket holes - right column */
-        repeating-linear-gradient(
-            to bottom,
-            transparent 0px,
-            transparent 8px,
-            #1a1a20 8px,
-            #1a1a20 18px,
-            transparent 18px,
-            transparent 32px
-        );
-    background-size: 100% 100%, 6px 32px, 6px 32px;
-    background-position: 0 0, 2px 4px, 14px 4px;
-    background-repeat: no-repeat, repeat-y, repeat-y;
-    /* Subtle inner shadow for depth */
-    box-shadow: inset 2px 0 4px rgba(0, 0, 0, 0.3);
+    box-shadow: inset 2px 0 6px rgba(0, 0, 0, 0.4);
 }
 
-/* Film strip vertical text overlay - NOW ON RIGHT */
+/* Film strip vertical text - FELD PLAYBACK style */
 .inland-empire-panel::after {
-    content: 'THE  ·  TRIBUNAL  ·  VOICES  ·  PASSING  ·  JUDGMENT  ·  THE  ·  TRIBUNAL  ·  VOICES  ·  PASSING  ·  JUDGMENT  ·';
+    content: 'FELD    PLAYBACK                    FILM                    FELD    DEVICE                    FILM                    FELD    PLAYBACK                    FILM';
     position: absolute;
     top: 0;
     right: 0;
     left: auto;
-    width: 22px;
+    width: 24px;
     height: 100%;
     z-index: 10001;
     writing-mode: vertical-rl;
     text-orientation: mixed;
-    font-family: 'Courier New', monospace;
-    font-size: 7px;
-    font-weight: 700;
-    letter-spacing: 4px;
-    word-spacing: 2px;
-    color: rgba(80, 70, 60, 0.5);
-    padding: 20px 0;
+    /* Condensed sans-serif like DE */
+    font-family: 'Arial Narrow', 'Segoe UI', Tahoma, sans-serif;
+    font-size: 9px;
+    font-weight: 600;
+    font-stretch: condensed;
+    letter-spacing: 3px;
+    color: rgba(200, 195, 185, 0.6);
+    padding: 30px 0;
     overflow: hidden;
     pointer-events: none;
     display: flex;
     align-items: center;
     justify-content: flex-start;
     text-transform: uppercase;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
 }
 
-/* Adjust panel content to account for borders - NOW margin-left for ruler, margin-right for film strip */
+/* Adjust panel content to account for borders */
 .ie-panel-header,
 .ie-tabs {
     margin-left: 20px;
-    margin-right: 22px;
+    margin-right: 24px;
 }
 
 .ie-tab-content {
     margin-left: 20px;
-    margin-right: 22px;
+    margin-right: 24px;
     position: relative;
 }
 
