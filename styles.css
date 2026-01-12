@@ -172,43 +172,35 @@
     height: 100%;
     z-index: 10000;
     pointer-events: none;
-    /* Base cream/beige */
-    background: #d8d4cc;
+    /* Cream base + tick marks baked into background */
+    background-color: #d8d4cc;
+    background-image: 
+        /* Large ticks every 75px - darker, 14px wide */
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0px,
+            transparent 73px,
+            #3d3830 73px,
+            #3d3830 75px
+        ),
+        /* Small ticks every 15px - lighter, 8px wide */
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0px,
+            transparent 14px,
+            #5a5248 14px,
+            #5a5248 15px
+        );
+    background-size: 14px 75px, 8px 15px;
+    background-position: right top, right top;
+    background-repeat: repeat-y, repeat-y;
     box-shadow: inset -2px 0 6px rgba(0, 0, 0, 0.15);
 }
 
-/* Small tick marks every 15px */
-.ie-right-ruler::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 8px;
-    height: 100%;
-    background-image: repeating-linear-gradient(
-        180deg,
-        transparent,
-        transparent 14px,
-        #5a5248 14px,
-        #5a5248 15px
-    );
-}
-
-/* Large tick marks every 75px */
+/* Remove pseudo-elements - not needed anymore */
+.ie-right-ruler::before,
 .ie-right-ruler::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 14px;
-    height: 100%;
-    background-image: repeating-linear-gradient(
-        180deg,
-        transparent,
-        transparent 73px,
-        #3d3830 73px,
-        #3d3830 75px
-    );
+    display: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -232,7 +224,7 @@
 
 /* Film strip vertical text - FELD PLAYBACK style */
 .inland-empire-panel::after {
-    content: 'FELD     PLAYBACK                                        FILM                                        FELD  MEF  PLUS+   ◦ ➤';
+    content: 'FELD     PLAYBACK                                                                                                                                    FILM                                                                                                                                    FELD  MEF  PLUS+   ◦ ➤';
     position: absolute;
     top: 0;
     right: 0;
