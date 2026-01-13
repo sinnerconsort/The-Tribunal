@@ -76,9 +76,9 @@
 /* Right side marker */
 .ie-panel-marker-right {
     position: absolute;
-    right: 26px;  /* Just before the film strip */
+    right: 24px;  /* Adjusted for thinner strip */
     top: 50%;
-    transform: translateY(-50%);
+    transform: translateY(-50%) rotate(180deg);  /* Flip text */
     writing-mode: vertical-rl;
     text-orientation: mixed;
     font-family: 'Courier New', monospace;
@@ -258,7 +258,7 @@
 .ie-panel-header,
 .ie-tabs {
     margin-left: 32px;  /* 20px ruler + ~12px teal strip */
-    margin-right: 36px;  /* Show teal strip before film strip */
+    margin-right: 30px;  /* Thinner teal strip on right */
 }
 
 /* Tabs bar background */
@@ -268,7 +268,7 @@
 
 .ie-tab-content {
     margin-left: 32px;  /* 20px ruler + ~12px teal strip */
-    margin-right: 36px;  /* Show teal strip before film strip */
+    margin-right: 30px;  /* Thinner teal strip on right */
     position: relative;
 }
 
