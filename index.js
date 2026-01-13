@@ -157,7 +157,7 @@ function updateFABState() {
             // CHANGED: Hide completely instead of just dimming
             fab.style.display = 'none';
             fab.classList.add('ie-fab-disabled');
-            fab.title = 'Inland Empire (Disabled)';
+            fab.title = 'The Tribunal (Disabled)';
         }
     }
     
@@ -738,14 +738,14 @@ async function init() {
         const settingsHtml = `
             <div class="inline-drawer">
                 <div class="inline-drawer-toggle inline-drawer-header">
-                    <b>🧠 Inland Empire</b>
+                    <b><i class="fa-solid fa-address-card"></i> The Tribunal</b>
                     <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
                 </div>
                 <div class="inline-drawer-content">
                     <div class="flex-container">
                         <label class="checkbox_label">
                             <input id="ie-ext-enabled" type="checkbox" ${extensionSettings.enabled ? 'checked' : ''}>
-                            <span>Enable Inland Empire</span>
+                            <span>Enable The Tribunal</span>
                         </label>
                         <small>When disabled, voices won't trigger and the FAB will be hidden.</small>
                     </div>
@@ -762,7 +762,7 @@ async function init() {
             // Sync with the settings panel checkbox too
             const settingsCheckbox = document.getElementById('ie-enabled');
             if (settingsCheckbox) settingsCheckbox.checked = e.target.checked;
-            showToast(e.target.checked ? 'Inland Empire enabled' : 'Inland Empire disabled', 'info');
+            showToast(e.target.checked ? 'The Tribunal enabled' : 'The Tribunal disabled', 'info');
         });
     }
 
