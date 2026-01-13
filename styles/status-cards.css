@@ -36,7 +36,7 @@
 .ie-status-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
+    gap: 6px;
 }
 
 .ie-archetype-grid {
@@ -44,7 +44,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STATUS CARDS - Smaller, FA Icons
+   STATUS CARDS - Smaller, Thinner, FA Icons
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-status-card {
@@ -52,9 +52,9 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 10px 6px;
-    min-height: 70px;
-    background: var(--ie-accent-blue, #0e7989);
+    padding: 8px 4px;
+    min-height: 55px;
+    background: var(--ie-accent-blue, #0e7989) !important;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -62,8 +62,8 @@
 }
 
 .ie-status-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
     filter: brightness(1.1);
 }
 
@@ -71,14 +71,20 @@
     transform: translateY(0);
 }
 
-/* Active state - orange */
-.ie-status-active {
+/* Active state - orange - HIGH SPECIFICITY */
+.ie-status-grid .ie-status-card.ie-status-active,
+.ie-status-card.ie-status-active {
     background: var(--ie-accent-orange, #f3650b) !important;
 }
 
-.ie-status-active .ie-status-icon {
+.ie-status-card.ie-status-active .ie-status-icon {
     color: #fff;
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.ie-status-card.ie-status-active .ie-status-name {
+    color: #fff;
+    font-weight: 600;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -86,8 +92,8 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-status-icon {
-    font-size: 1.4rem;
-    margin-bottom: 6px;
+    font-size: 1.1rem;
+    margin-bottom: 4px;
     color: rgba(255, 255, 255, 0.9);
     display: block;
     line-height: 1;
@@ -98,54 +104,67 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-status-name {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.95);
-    line-height: 1.2;
+    line-height: 1.15;
     max-width: 100%;
     word-wrap: break-word;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ARCHETYPE CARDS - Slightly different styling
+   ARCHETYPE CARDS
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-archetype-card {
-    min-height: 75px;
+    min-height: 60px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ANCIENT VOICES SECTION
+   ANCIENT VOICES SECTION - FA Icons
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-ancient-voice-card {
+.ie-ancient-voices-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ie-ancient-voice-item {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px;
+    padding: 10px 12px;
     background: var(--ie-bg-tertiary, #1a1a16);
     border-radius: 4px;
     border-left: 3px solid var(--ie-accent-orange, #f3650b);
-    margin-bottom: 8px;
 }
 
-.ie-ancient-voice-icon {
-    font-size: 1.5rem;
-    width: 40px;
+.ie-ancient-voice-combo {
+    border-left-color: #f0c419;
+}
+
+i.ie-ancient-icon {
+    font-size: 1.4rem;
+    width: 36px;
     text-align: center;
+    color: var(--ie-text-primary, #e8e8dc);
 }
 
-.ie-ancient-voice-info {
+.ie-ancient-details {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
-.ie-ancient-voice-name {
+.ie-ancient-name {
     font-weight: 600;
     color: var(--ie-text-primary, #e8e8dc);
-    margin-bottom: 2px;
+    font-size: 0.9rem;
 }
 
-.ie-ancient-voice-trigger {
+.ie-ancient-triggers {
     font-size: 0.75rem;
     color: var(--ie-text-secondary, #8b8b7a);
 }
