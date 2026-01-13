@@ -280,7 +280,7 @@ export function renderStatusGrid(container, onToggle) {
     const categories = {
         physical: { name: 'Physical', statuses: [] },
         mental: { name: 'Mental', statuses: [] },
-        archetype: { name: 'Cop Archetypes', statuses: [] }
+        copotype: { name: 'Copotypes', statuses: [] }
     };
 
     Object.entries(STATUS_EFFECTS).forEach(([statusId, status]) => {
@@ -295,7 +295,7 @@ export function renderStatusGrid(container, onToggle) {
 
         html += `<div class="ie-status-category">
             <div class="ie-status-category-header">${category.name}</div>
-            <div class="ie-status-grid ${catId === 'archetype' ? 'ie-archetype-grid' : ''}">`;
+            <div class="ie-status-grid ${catId === 'copotype' ? 'ie-copotype-grid' : ''}">`;
 
         for (const status of category.statuses) {
             const isActive = activeStatuses.has(status.id);
@@ -305,7 +305,7 @@ export function renderStatusGrid(container, onToggle) {
             const iconClass = getStatusIcon(status.id, isActive);
 
             html += `
-                <div class="ie-status-card ${isActive ? 'ie-status-active' : ''} ${catId === 'archetype' ? 'ie-archetype-card' : ''}" 
+                <div class="ie-status-card ${isActive ? 'ie-status-active' : ''} ${catId === 'copotype' ? 'ie-copotype-card' : ''}" 
                      data-status="${status.id}" 
                      title="${status.description}&#10;&#10;↑ ${boostList}&#10;↓ ${debuffList}">
                     <i class="ie-status-icon ${iconClass}"></i>
