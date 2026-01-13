@@ -380,6 +380,12 @@ export async function investigateSurroundings(options = {}) {
 
     isInvestigating = true;
     setInvestigateButtonLoading(true);
+    
+    // Add sparkle animation to FAB
+    const fab = document.getElementById('ie-thought-fab');
+    if (fab) {
+        fab.classList.add('ie-scanning');
+    }
 
     try {
         // Select narrator
@@ -428,6 +434,12 @@ export async function investigateSurroundings(options = {}) {
     } finally {
         isInvestigating = false;
         setInvestigateButtonLoading(false);
+        
+        // Remove sparkle animation
+        const fab = document.getElementById('ie-thought-fab');
+        if (fab) {
+            fab.classList.remove('ie-scanning');
+        }
     }
 }
 
