@@ -8,5 +8,6 @@
     "author": "sinnerconsort",
     "version": "1.0.0",
     "homePage": "https://github.com/sinnerconsort/The-Tribunal",
-    "auto_update": true
+    "auto_update": true,
+    "icon": "fa-solid fa-address-card"
 }
