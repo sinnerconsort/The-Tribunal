@@ -586,6 +586,16 @@ export function loadState(context) {
             // Phase 2+ state
             if (state.vitals) {
                 vitals = { ...vitals, ...state.vitals };
+                
+                // Migration: Convert from 100-scale to 13-scale (DE style)
+                if (vitals.maxHealth === 100) {
+                    vitals.maxHealth = 13;
+                    vitals.health = Math.min(13, Math.round(vitals.health * 13 / 100));
+                }
+                if (vitals.maxMorale === 100) {
+                    vitals.maxMorale = 13;
+                    vitals.morale = Math.min(13, Math.round(vitals.morale * 13 / 100));
+                }
             }
             if (state.ledger) {
                 ledger = { ...ledger, ...state.ledger };
