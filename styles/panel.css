@@ -168,14 +168,14 @@
     content: 'FELD  PLAYBACK  FILM';
     position: absolute;
     top: 60px;
-    right: 0;
+    right: 4px;
     left: auto;
     width: 22px;
     z-index: 10001;
     writing-mode: vertical-rl;
     text-orientation: mixed;
     font-family: 'Courier New', monospace;
-    font-size: 7px;
+    font-size: 9px;
     font-weight: 700;
     letter-spacing: 4px;
     color: #606270;
@@ -184,42 +184,29 @@
     white-space: pre;
 }
 
-/* Film strip vertical text - BOTTOM (FELD MEF PLUS+ with symbols) */
+/* Film strip vertical text - BOTTOM (FELD MEF PLUS+ ○ ▼) */
 .ie-film-bottom-text {
     position: absolute;
-    bottom: 90px;
-    right: 0;
+    bottom: 70px;
+    right: 4px;
     left: auto;
     width: 22px;
     z-index: 10001;
     writing-mode: vertical-rl;
     text-orientation: mixed;
-    pointer-events: none;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-}
-
-/* The text part */
-.ie-film-bottom-text::before {
-    content: 'FELD  MEF  PLUS+';
     font-family: 'Courier New', monospace;
-    font-size: 7px;
+    font-size: 9px;
     font-weight: 700;
     letter-spacing: 4px;
     color: #606270;
+    pointer-events: none;
     text-transform: uppercase;
+    white-space: pre;
 }
 
-/* The symbols - bigger circle and down arrow */
-.ie-film-bottom-text::after {
-    content: '○    ▼';
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 6px;
-    color: #606270;
+/* All text and symbols in one flow */
+.ie-film-bottom-text::before {
+    content: 'FELD  MEF  PLUS+  ○  ▼';
 }
 
 /* Adjust panel content to account for borders - NOW margin-left for ruler, margin-right for film strip */
