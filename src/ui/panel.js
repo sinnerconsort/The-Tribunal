@@ -1,9 +1,24 @@
 /**
- * Inland Empire - Psyche Panel
+ * The Tribunal - Psyche Panel
  * Main panel structure and tab switching
+ * Phase 1 Restructure: Header + Vitals, New Tabs, Bottom Buttons
  */
 
 import { extensionSettings, saveState } from '../core/state.js';
+
+// ═══════════════════════════════════════════════════════════════
+// DISCO BALL SVG ICON
+// ═══════════════════════════════════════════════════════════════
+
+const DISCO_BALL_SVG = `
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="8"/>
+    <ellipse cx="12" cy="12" rx="8" ry="3"/>
+    <ellipse cx="12" cy="12" rx="8" ry="3" transform="rotate(60 12 12)"/>
+    <ellipse cx="12" cy="12" rx="8" ry="3" transform="rotate(120 12 12)"/>
+    <line x1="12" y1="4" x2="12" y2="1"/>
+    <line x1="10" y1="1" x2="14" y2="1"/>
+</svg>`;
 
 // ═══════════════════════════════════════════════════════════════
 // PANEL CREATION
@@ -20,21 +35,42 @@ export function createPsychePanel() {
         <span class="ie-panel-marker ie-panel-marker-top">01A15</span>
         <span class="ie-panel-marker ie-panel-marker-mid">01A13</span>
         <span class="ie-panel-marker-right">FELD  ▼  DEVICE</span>
+        
+        <!-- Header with Case File Title + Vitals -->
         <div class="ie-panel-header">
-            <div class="ie-panel-title">
-                <i class="fa-solid fa-address-card"></i>
-                <span>Psyche</span>
+            <div class="ie-header-top">
+                <div class="ie-panel-title">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <span class="ie-case-title">CASE FILE</span>
+                </div>
+                <div class="ie-panel-controls">
+                    <button class="ie-btn ie-btn-close-panel" title="Close">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
             </div>
-            <div class="ie-panel-controls">
-                <button class="ie-btn ie-btn-close-panel" title="Close">
-                    <i class="fa-solid fa-times"></i>
-                </button>
+            <div class="ie-vitals-row">
+                <div class="ie-vital-bar ie-vital-health">
+                    <span class="ie-vital-label">Health</span>
+                    <div class="ie-vital-track">
+                        <div class="ie-vital-fill" id="ie-health-fill" style="width: 100%;"></div>
+                    </div>
+                    <span class="ie-vital-value" id="ie-health-value">100</span>
+                </div>
+                <div class="ie-vital-bar ie-vital-morale">
+                    <span class="ie-vital-label">Morale</span>
+                    <div class="ie-vital-track">
+                        <div class="ie-vital-fill" id="ie-morale-fill" style="width: 100%;"></div>
+                    </div>
+                    <span class="ie-vital-value" id="ie-morale-value">100</span>
+                </div>
             </div>
         </div>
 
+        <!-- Main Tabs: Voices, Cabinet, Status, Ledger, Inventory -->
         <div class="ie-tabs">
-            <button class="ie-tab ie-tab-active" data-tab="skills" title="Skills">
-                <i class="fa-solid fa-chart-bar"></i>
+            <button class="ie-tab ie-tab-active" data-tab="voices" title="Inner Voices">
+                <i class="fa-solid fa-masks-theater"></i>
             </button>
             <button class="ie-tab" data-tab="cabinet" title="Thought Cabinet">
                 <i class="fa-solid fa-box-archive"></i>
@@ -42,17 +78,17 @@ export function createPsychePanel() {
             <button class="ie-tab" data-tab="status" title="Status">
                 <i class="fa-solid fa-heart-pulse"></i>
             </button>
-            <button class="ie-tab" data-tab="settings" title="Settings">
-                <i class="fa-solid fa-gear"></i>
+            <button class="ie-tab" data-tab="ledger" title="Ledger">
+                <i class="fa-solid fa-file-lines"></i>
             </button>
-            <button class="ie-tab" data-tab="profiles" title="Profiles">
-                <i class="fa-solid fa-user-circle"></i>
+            <button class="ie-tab" data-tab="inventory" title="Inventory">
+                <i class="fa-solid fa-briefcase"></i>
             </button>
         </div>
 
         <div class="ie-panel-content">
-            <!-- Skills Tab -->
-            <div class="ie-tab-content ie-tab-content-active" data-tab-content="skills">
+            <!-- Voices Tab (formerly Skills) -->
+            <div class="ie-tab-content ie-tab-content-active" data-tab-content="voices">
                 <div class="ie-section ie-skills-overview">
                     <div class="ie-section-header"><span>Attributes</span></div>
                     <div class="ie-attributes-grid" id="ie-attributes-display"></div>
@@ -84,6 +120,29 @@ export function createPsychePanel() {
 
             <!-- Status Tab -->
             <div class="ie-tab-content" data-tab-content="status">
+                <div class="ie-section">
+                    <div class="ie-section-header"><span>Vitals Detail</span></div>
+                    <div class="ie-vitals-detail">
+                        <div class="ie-vital-detail-row ie-health">
+                            <div class="ie-vital-detail-header">
+                                <span class="ie-vital-detail-label">Health</span>
+                                <span class="ie-vital-detail-value" id="ie-health-detail-value">100 / 100</span>
+                            </div>
+                            <div class="ie-vital-detail-track">
+                                <div class="ie-vital-detail-fill" id="ie-health-detail-fill" style="width: 100%; background: #f3650b;"></div>
+                            </div>
+                        </div>
+                        <div class="ie-vital-detail-row ie-morale">
+                            <div class="ie-vital-detail-header">
+                                <span class="ie-vital-detail-label">Morale</span>
+                                <span class="ie-vital-detail-value" id="ie-morale-detail-value">100 / 100</span>
+                            </div>
+                            <div class="ie-vital-detail-track">
+                                <div class="ie-vital-detail-fill" id="ie-morale-detail-fill" style="width: 100%; background: #0e7989;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="ie-section">
                     <div class="ie-section-header"><span>Active Effects</span></div>
                     <div class="ie-active-effects-summary" id="ie-active-effects-summary">
@@ -122,7 +181,69 @@ export function createPsychePanel() {
                 </div>
             </div>
 
-            <!-- Settings Tab -->
+            <!-- Ledger Tab (NEW) -->
+            <div class="ie-tab-content" data-tab-content="ledger">
+                <div class="ie-section">
+                    <div class="ie-section-header"><span>Active Cases</span></div>
+                    <div class="ie-ledger-empty" id="ie-active-cases">
+                        <i class="fa-solid fa-folder-open"></i>
+                        <span>No active cases</span>
+                    </div>
+                </div>
+                <div class="ie-section">
+                    <div class="ie-section-header"><span>Case Notes</span></div>
+                    <div class="ie-ledger-empty" id="ie-case-notes">
+                        <i class="fa-solid fa-note-sticky"></i>
+                        <span>No notes recorded</span>
+                    </div>
+                </div>
+                <div class="ie-section">
+                    <div class="ie-section-header"><span>Weather</span></div>
+                    <div class="ie-weather-display" id="ie-weather-display">
+                        <div class="ie-weather-current">
+                            <i class="fa-solid fa-cloud-sun"></i>
+                            <span>Conditions unknown</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Tab (NEW) -->
+            <div class="ie-tab-content" data-tab-content="inventory">
+                <div class="ie-section">
+                    <div class="ie-section-header">
+                        <span>Carried Items</span>
+                        <span class="ie-section-count" id="ie-carried-count">0</span>
+                    </div>
+                    <div class="ie-inventory-grid" id="ie-carried-items">
+                        <div class="ie-inventory-empty">
+                            <i class="fa-solid fa-hand-holding"></i>
+                            <span>Nothing in hand</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="ie-section">
+                    <div class="ie-section-header">
+                        <span>Worn / Equipped</span>
+                        <span class="ie-section-count" id="ie-worn-count">0</span>
+                    </div>
+                    <div class="ie-inventory-grid" id="ie-worn-items">
+                        <div class="ie-inventory-empty">
+                            <i class="fa-solid fa-shirt"></i>
+                            <span>Nothing equipped</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="ie-section ie-money-section">
+                    <div class="ie-section-header"><span>Currency</span></div>
+                    <div class="ie-money-display">
+                        <span class="ie-money-amount" id="ie-money-amount">0</span>
+                        <span class="ie-money-unit">Réal</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Panel (accessed via bottom button) -->
             <div class="ie-tab-content" data-tab-content="settings">
                 <div class="ie-section">
                     <div class="ie-section-header"><span>API Configuration</span></div>
@@ -247,7 +368,7 @@ export function createPsychePanel() {
                 </div>
             </div>
 
-            <!-- Profiles Tab -->
+            <!-- Profiles Panel (accessed via bottom button) -->
             <div class="ie-tab-content" data-tab-content="profiles">
                 <div class="ie-section">
                     <div class="ie-section-header"><span>Persona Profiles</span></div>
@@ -276,6 +397,18 @@ export function createPsychePanel() {
                     </button>
                 </div>
             </div>
+        </div>
+
+        <!-- Bottom Buttons: Settings & Profiles -->
+        <div class="ie-bottom-buttons">
+            <button class="ie-bottom-btn" data-panel="settings" title="Settings">
+                <i class="fa-solid fa-gear"></i>
+                <span>Settings</span>
+            </button>
+            <button class="ie-bottom-btn" data-panel="profiles" title="Profiles">
+                <span class="ie-disco-ball-icon">${DISCO_BALL_SVG}</span>
+                <span>Profiles</span>
+            </button>
         </div>
     `;
 
@@ -350,6 +483,74 @@ export function createToggleFAB(getContext) {
     return fab;
 }
 
+/**
+ * Create the Suggestions FAB (lightbulb icon)
+ * Hidden by default, toggleable in settings
+ */
+export function createSuggestionsFAB(getContext) {
+    const fab = document.createElement('div');
+    fab.id = 'ie-suggestions-fab';
+    fab.className = 'ie-fab ie-fab-suggestions';
+    fab.title = 'Get Suggestions';
+    fab.innerHTML = '<span class="ie-fab-icon"><i class="fa-solid fa-lightbulb"></i></span>';
+    fab.style.display = extensionSettings.showSuggestionsFab ? 'flex' : 'none';
+    fab.style.top = `${extensionSettings.suggestionsFabTop ?? 200}px`;
+    fab.style.left = `${extensionSettings.suggestionsFabLeft ?? 10}px`;
+
+    // Reuse same drag logic pattern
+    let isDragging = false;
+    let dragStartX, dragStartY, fabStartX, fabStartY;
+    let hasMoved = false;
+
+    function startDrag(e) {
+        isDragging = true;
+        hasMoved = false;
+        const touch = e.touches ? e.touches[0] : e;
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+        fabStartX = fab.offsetLeft;
+        fabStartY = fab.offsetTop;
+        fab.style.transition = 'none';
+        document.addEventListener('mousemove', doDrag);
+        document.addEventListener('touchmove', doDrag, { passive: false });
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+    }
+
+    function doDrag(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const touch = e.touches ? e.touches[0] : e;
+        const deltaX = touch.clientX - dragStartX;
+        const deltaY = touch.clientY - dragStartY;
+        if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved = true;
+        fab.style.left = `${Math.max(0, Math.min(window.innerWidth - fab.offsetWidth, fabStartX + deltaX))}px`;
+        fab.style.top = `${Math.max(0, Math.min(window.innerHeight - fab.offsetHeight, fabStartY + deltaY))}px`;
+    }
+
+    function endDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        fab.style.transition = 'all 0.3s ease';
+        document.removeEventListener('mousemove', doDrag);
+        document.removeEventListener('touchmove', doDrag);
+        document.removeEventListener('mouseup', endDrag);
+        document.removeEventListener('touchend', endDrag);
+
+        if (hasMoved) {
+            fab.dataset.justDragged = 'true';
+            extensionSettings.suggestionsFabTop = fab.offsetTop;
+            extensionSettings.suggestionsFabLeft = fab.offsetLeft;
+            if (getContext) saveState(getContext());
+        }
+    }
+
+    fab.addEventListener('mousedown', startDrag);
+    fab.addEventListener('touchstart', startDrag, { passive: false });
+
+    return fab;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // PANEL CONTROLS
 // ═══════════════════════════════════════════════════════════════
@@ -388,14 +589,60 @@ export function triggerFabLoading() {
     }, 800);
 }
 
+/**
+ * Toggle suggestions FAB active state (lightbulb on/off)
+ */
+export function setSuggestionsFabActive(active) {
+    const fab = document.getElementById('ie-suggestions-fab');
+    if (!fab) return;
+    
+    fab.classList.toggle('ie-fab-active', active);
+    const icon = fab.querySelector('i');
+    if (icon) {
+        icon.className = active ? 'fa-solid fa-lightbulb' : 'fa-regular fa-lightbulb';
+    }
+}
+
+/**
+ * Show/hide the suggestions FAB
+ */
+export function setSuggestionsFabVisible(visible) {
+    const fab = document.getElementById('ie-suggestions-fab');
+    if (fab) {
+        fab.style.display = visible ? 'flex' : 'none';
+    }
+}
+
 export function switchTab(tabName, callbacks = {}) {
+    // Handle main tabs
     document.querySelectorAll('.ie-tab').forEach(tab =>
         tab.classList.toggle('ie-tab-active', tab.dataset.tab === tabName)
     );
 
+    // Handle bottom buttons (settings/profiles)
+    document.querySelectorAll('.ie-bottom-btn').forEach(btn =>
+        btn.classList.toggle('ie-bottom-btn-active', btn.dataset.panel === tabName)
+    );
+
+    // Show/hide tab content
     document.querySelectorAll('.ie-tab-content').forEach(content =>
         content.classList.toggle('ie-tab-content-active', content.dataset.tabContent === tabName)
     );
+
+    // Clear active state from main tabs if switching to bottom panel
+    if (tabName === 'settings' || tabName === 'profiles') {
+        document.querySelectorAll('.ie-tab').forEach(tab =>
+            tab.classList.remove('ie-tab-active')
+        );
+    }
+
+    // Clear active state from bottom buttons if switching to main tab
+    const mainTabs = ['voices', 'cabinet', 'status', 'ledger', 'inventory'];
+    if (mainTabs.includes(tabName)) {
+        document.querySelectorAll('.ie-bottom-btn').forEach(btn =>
+            btn.classList.remove('ie-bottom-btn-active')
+        );
+    }
 
     // Tab-specific callbacks
     if (tabName === 'profiles' && callbacks.onProfiles) {
@@ -409,5 +656,99 @@ export function switchTab(tabName, callbacks = {}) {
     }
     if (tabName === 'cabinet' && callbacks.onCabinet) {
         callbacks.onCabinet();
+    }
+    if (tabName === 'voices' && callbacks.onVoices) {
+        callbacks.onVoices();
+    }
+    if (tabName === 'ledger' && callbacks.onLedger) {
+        callbacks.onLedger();
+    }
+    if (tabName === 'inventory' && callbacks.onInventory) {
+        callbacks.onInventory();
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VITALS HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Update health display in header and status tab
+ * @param {number} current - Current health value (0-100)
+ * @param {number} max - Max health value (default 100)
+ */
+export function updateHealth(current, max = 100) {
+    const percent = Math.max(0, Math.min(100, (current / max) * 100));
+    
+    // Header bar
+    const headerFill = document.getElementById('ie-health-fill');
+    const headerValue = document.getElementById('ie-health-value');
+    if (headerFill) headerFill.style.width = `${percent}%`;
+    if (headerValue) headerValue.textContent = Math.round(current);
+    
+    // Status tab detail
+    const detailFill = document.getElementById('ie-health-detail-fill');
+    const detailValue = document.getElementById('ie-health-detail-value');
+    if (detailFill) detailFill.style.width = `${percent}%`;
+    if (detailValue) detailValue.textContent = `${Math.round(current)} / ${max}`;
+}
+
+/**
+ * Update morale display in header and status tab
+ * @param {number} current - Current morale value (0-100)
+ * @param {number} max - Max morale value (default 100)
+ */
+export function updateMorale(current, max = 100) {
+    const percent = Math.max(0, Math.min(100, (current / max) * 100));
+    
+    // Header bar
+    const headerFill = document.getElementById('ie-morale-fill');
+    const headerValue = document.getElementById('ie-morale-value');
+    if (headerFill) headerFill.style.width = `${percent}%`;
+    if (headerValue) headerValue.textContent = Math.round(current);
+    
+    // Status tab detail
+    const detailFill = document.getElementById('ie-morale-detail-fill');
+    const detailValue = document.getElementById('ie-morale-detail-value');
+    if (detailFill) detailFill.style.width = `${percent}%`;
+    if (detailValue) detailValue.textContent = `${Math.round(current)} / ${max}`;
+}
+
+/**
+ * Update the case file title in header
+ * @param {string} name - Character/persona name
+ */
+export function updateCaseTitle(name) {
+    const titleEl = document.querySelector('.ie-case-title');
+    if (titleEl) {
+        titleEl.textContent = name ? `CASE FILE: ${name}` : 'CASE FILE';
+    }
+}
+
+/**
+ * Update money display in inventory tab
+ * @param {number} amount - Currency amount
+ */
+export function updateMoney(amount) {
+    const moneyEl = document.getElementById('ie-money-amount');
+    if (moneyEl) {
+        moneyEl.textContent = amount.toLocaleString();
+    }
+}
+
+/**
+ * Update weather display in ledger tab
+ * @param {string} icon - FontAwesome icon class (e.g., 'fa-cloud-rain')
+ * @param {string} description - Weather description text
+ */
+export function updateWeather(icon, description) {
+    const weatherEl = document.getElementById('ie-weather-display');
+    if (weatherEl) {
+        weatherEl.innerHTML = `
+            <div class="ie-weather-current">
+                <i class="fa-solid ${icon}"></i>
+                <span>${description}</span>
+            </div>
+        `;
     }
 }
