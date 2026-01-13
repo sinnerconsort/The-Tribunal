@@ -84,14 +84,31 @@
     box-shadow: 0 0 20px var(--ie-accent-orange-glow);
 }
 
-/* Main FAB card index emoji styling */
+/* Main FAB card icon styling */
 .ie-fab-icon {
-    font-size: 24px;
+    font-size: 22px;
     line-height: 1;
     transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Peek-up animation for card index */
+.ie-fab-icon i {
+    color: var(--ie-accent-orange);
+    transition: transform 0.3s ease, color 0.2s ease;
+}
+
+.ie-fab:hover .ie-fab-icon i {
+    color: var(--ie-accent-orange);
+    transform: scale(1.1);
+}
+
+.ie-fab.ie-fab-active .ie-fab-icon i {
+    color: var(--ie-bg-primary);
+}
+
+/* Peek-up animation for card icon */
 @keyframes ie-card-peek {
     0% { transform: translateY(0); }
     25% { transform: translateY(-6px); }
@@ -171,7 +188,7 @@
 .inland-empire-panel {
     position: fixed;
     top: 0;
-    right: -420px;
+    right: 0;
     width: 400px;
     height: 100vh;
     background: var(--ie-bg-panel);
@@ -179,10 +196,12 @@
     z-index: 9999;
     display: flex;
     flex-direction: column;
-    transition: right 0.3s ease;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: var(--ie-shadow);
     font-family: var(--ie-font-body);
     color: var(--ie-text-primary);
+    will-change: transform;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -344,7 +363,7 @@
 }
 
 .ie-panel-open {
-    right: 0;
+    transform: translateX(0);
 }
 
 .ie-panel-header {
@@ -2978,11 +2997,12 @@
 @media (max-width: 768px) {
     .inland-empire-panel {
         width: 100%;
-        left: -100%;
+        right: 0;
+        transform: translateX(100%);
     }
 
     .ie-panel-open {
-        left: 0;
+        transform: translateX(0);
     }
 
     .ie-attributes-grid {
