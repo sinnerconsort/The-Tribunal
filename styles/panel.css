@@ -184,10 +184,10 @@
     white-space: pre;
 }
 
-/* Film strip vertical text - BOTTOM (FELD MEF PLUS+ ○) */
+/* Film strip vertical text - BOTTOM text */
 .ie-film-bottom-text {
     position: absolute;
-    bottom: 70px;
+    bottom: 55px;
     right: 4px;
     left: auto;
     width: 22px;
@@ -204,19 +204,9 @@
     white-space: pre;
 }
 
-/* Text with circle */
+/* Text + circle + arrow all in vertical flow */
 .ie-film-bottom-text::before {
-    content: 'FELD  MEF  PLUS+  ○';
-}
-
-/* Arrow positioned directly below the circle */
-.ie-film-bottom-text::after {
-    content: '▼';
-    position: absolute;
-    bottom: -18px;
-    right: 6px;
-    font-size: 9px;
-    letter-spacing: 0;
+    content: 'FELD  MEF  PLUS+    ◯    ▼';
 }
 
 /* Adjust panel content to account for borders - NOW margin-left for ruler, margin-right for film strip */
