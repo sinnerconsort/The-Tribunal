@@ -734,9 +734,6 @@ export function createThoughtBubbleFAB(getContext) {
     
     fab.innerHTML = `
         <span class="ie-thought-fab-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
-        <button class="ie-quick-scan-btn" id="ie-quick-scan" title="Quick Investigate">
-            <i class="fa-solid fa-rotate"></i>
-        </button>
     `;
 
     fab.style.top = `${(extensionSettings.discoveryFabTop ?? extensionSettings.fabPositionTop ?? 140) + 60}px`;
@@ -744,19 +741,11 @@ export function createThoughtBubbleFAB(getContext) {
 
     // Main FAB click opens modal
     fab.addEventListener('click', (e) => {
-        if (e.target.closest('.ie-quick-scan-btn')) return;
         if (fab.dataset.justDragged === 'true') {
             fab.dataset.justDragged = 'false';
             return;
         }
         toggleDiscoveryModal();
-    });
-
-    // Quick scan button - investigate immediately
-    const quickScanBtn = fab.querySelector('#ie-quick-scan');
-    quickScanBtn?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        investigateSurroundings({ silent: false, source: 'quick' });
     });
 
     setupFabDragging(fab);
