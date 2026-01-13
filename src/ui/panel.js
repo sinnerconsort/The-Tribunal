@@ -16,6 +16,7 @@ export function createPsychePanel() {
 
     panel.innerHTML = `
         <div class="ie-right-ruler"></div>
+        <div class="ie-film-bottom-text"></div>
         <div class="ie-panel-header">
             <div class="ie-panel-title">
                 <i class="fa-solid fa-address-card"></i>
@@ -180,121 +181,56 @@ export function createPsychePanel() {
                     </div>
                     <div class="ie-form-group">
                         <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-show-in-chat" checked />
-                            <span>Show voices in chat (after messages)</span>
-                        </label>
-                    </div>
-                    <div class="ie-form-group">
-                        <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-auto-trigger" />
-                            <span>Auto-trigger on AI messages</span>
-                        </label>
-                    </div>
-                    <div class="ie-form-group">
-                        <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-auto-detect-status" />
-                            <span>Auto-detect status from narrative</span>
+                            <input type="checkbox" id="ie-auto-trigger" checked />
+                            <span>Auto-trigger on new messages</span>
                         </label>
                     </div>
                 </div>
 
                 <div class="ie-section">
-                    <div class="ie-section-header"><span>Investigation</span></div>
+                    <div class="ie-section-header"><span>Investigation Mode</span></div>
                     <div class="ie-form-group">
                         <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-show-investigation-fab" checked />
-                            <span>Show Investigation button</span>
+                            <input type="checkbox" id="ie-investigation-enabled" />
+                            <span>Enable Investigation System</span>
                         </label>
-                        <small class="ie-form-hint">Toggle the 🔍 Investigation FAB visibility</small>
+                        <small class="ie-form-hint">Track clues, discoveries, and case progress</small>
                     </div>
-                    <div class="ie-form-group">
-                        <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-auto-scan-enabled" />
-                            <span>Auto-investigate on new messages</span>
-                        </label>
-                    </div>
-                    <small class="ie-form-hint">Automatically investigates the environment when AI responds. Objects and intrusive thoughts appear as part of investigation results. Use the 🔍 button to manually investigate.</small>
                 </div>
 
                 <div class="ie-section">
-                    <div class="ie-section-header"><span>Thought Cabinet</span></div>
+                    <div class="ie-section-header"><span>Context & Memory</span></div>
                     <div class="ie-form-group">
-                        <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-thought-discovery-enabled" checked />
-                            <span>Enable thought discovery</span>
-                        </label>
+                        <label>Context Messages</label>
+                        <input type="number" id="ie-context-messages" min="1" max="20" value="5" />
+                        <small class="ie-form-hint">How many recent messages to include for voice context</small>
                     </div>
                     <div class="ie-form-group">
                         <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-show-theme-tracker" checked />
-                            <span>Show theme tracker</span>
-                        </label>
-                    </div>
-                    <div class="ie-form-group">
-                        <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-auto-discover-thoughts" checked />
-                            <span>Auto-generate custom thoughts</span>
+                            <input type="checkbox" id="ie-include-thoughts" checked />
+                            <span>Include thought cabinet in context</span>
                         </label>
                     </div>
                 </div>
 
                 <div class="ie-section">
-                    <div class="ie-section-header"><span>Intrusive Thoughts</span></div>
+                    <div class="ie-section-header"><span>Character Integration</span></div>
                     <div class="ie-form-group">
-                        <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-intrusive-enabled" checked />
-                            <span>Enable intrusive voices</span>
-                        </label>
-                    </div>
-                    <div class="ie-form-group">
-                        <label>Intrusive Chance (%)</label>
-                        <input type="number" id="ie-intrusive-chance" min="0" max="100" value="15" />
+                        <label>Player Name Override</label>
+                        <input type="text" id="ie-player-name" placeholder="Leave empty to use ST persona" />
+                        <small class="ie-form-hint">Name used when voices address the player</small>
                     </div>
                     <div class="ie-form-group">
                         <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-intrusive-in-chat" checked />
-                            <span>Show intrusive voices in chat</span>
+                            <input type="checkbox" id="ie-use-char-persona" checked />
+                            <span>Include character persona in prompts</span>
                         </label>
                     </div>
-                </div>
-
-                <div class="ie-section">
-                    <div class="ie-section-header"><span>Character Context</span></div>
                     <div class="ie-form-group">
                         <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-enabled" checked />
-                            <span>Extension Enabled</span>
+                            <input type="checkbox" id="ie-second-person" />
+                            <span>Second-person narration mode</span>
                         </label>
-                    </div>
-                    <div class="ie-form-group">
-                        <label>POV Style</label>
-                        <select id="ie-pov-style">
-                            <option value="second">Second Person (you/your)</option>
-                            <option value="first">First Person (I/me)</option>
-                            <option value="third">Third Person (they/their)</option>
-                        </select>
-                    </div>
-                    <div class="ie-form-group">
-                        <label>Character Name</label>
-                        <input type="text" id="ie-character-name" placeholder="Harry Du Bois" />
-                    </div>
-                    <div class="ie-form-group">
-                        <label>Pronouns</label>
-                        <select id="ie-character-pronouns">
-                            <option value="they">They/Them</option>
-                            <option value="he">He/Him</option>
-                            <option value="she">She/Her</option>
-                            <option value="it">It/Its</option>
-                        </select>
-                    </div>
-                    <div class="ie-form-group">
-                        <label>Character Context</label>
-                        <textarea id="ie-character-context" rows="3" placeholder="Describe who YOU are (the character whose head these voices are in). Example: 'I am Julie, trapped at a club.'"></textarea>
-                        <small class="ie-form-hint">Who is "you" - the character whose head these voices are in.</small>
-                    </div>
-                    <div class="ie-form-group">
-                        <label>Scene Perspective Notes</label>
-                        <textarea id="ie-scene-perspective" rows="3" placeholder="e.g. 'Scene is written from Kim's external POV watching Harry. Harry = you/your. Kim = he/him. When scene says him referring to Harry, convert to your.'"></textarea>
                         <small class="ie-form-hint">Help voices convert third-person scene text to correct POV.</small>
                     </div>
                     <button class="ie-btn ie-btn-primary ie-btn-save-settings" style="width: 100%; margin-top: 10px;">
