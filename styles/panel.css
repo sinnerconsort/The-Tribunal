@@ -51,11 +51,12 @@
 
 .ie-panel-marker {
     position: absolute;
-    left: 24px;  /* Just after the ruler */
-    writing-mode: vertical-rl;  /* Faces inward */
+    left: 45px;  /* More inward, centered in teal area */
+    writing-mode: vertical-rl;
     text-orientation: mixed;
+    transform: rotate(180deg);  /* Flip text */
     font-family: 'Courier New', monospace;
-    font-size: 8px;
+    font-size: 11px;  /* Larger */
     font-weight: 600;
     letter-spacing: 1px;
     color: var(--ie-film-marker, #9ca19d);
@@ -64,7 +65,7 @@
 }
 
 .ie-panel-marker-top {
-    top: 130px;  /* Moved down to avoid clipping */
+    top: 130px;
 }
 
 .ie-panel-marker-mid {
@@ -241,6 +242,11 @@
 .ie-tabs {
     margin-left: 20px;
     margin-right: 22px;
+}
+
+/* Tabs bar background */
+.ie-tabs {
+    background: var(--ie-bg-panel);  /* Match teal panel background */
 }
 
 .ie-tab-content {
