@@ -51,7 +51,7 @@
 
 .ie-panel-marker {
     position: absolute;
-    left: 30px;  /* Closer to the ruler edge */
+    left: 21px;  /* Just past ruler edge, in thin teal strip */
     writing-mode: vertical-rl;
     text-orientation: mixed;
     transform: rotate(180deg);  /* Flip text */
@@ -240,7 +240,7 @@
 /* Adjust panel content to account for borders */
 .ie-panel-header,
 .ie-tabs {
-    margin-left: 20px;
+    margin-left: 32px;  /* 20px ruler + ~12px teal strip */
     margin-right: 22px;
 }
 
@@ -250,7 +250,7 @@
 }
 
 .ie-tab-content {
-    margin-left: 20px;
+    margin-left: 32px;  /* 20px ruler + ~12px teal strip */
     margin-right: 22px;
     position: relative;
 }
@@ -294,7 +294,7 @@
    HEADER - CASE FILE TITLE + VITALS BARS (from additions)
    ═══════════════════════════════════════════════════════════════ */
 .ie-panel-header {
-    padding: 12px 16px 8px 28px; /* Left padding for ruler */
+    padding: 12px 16px 8px 8px;  /* Reduced left padding */
     border-bottom: 1px solid var(--ie-border);
     background: var(--ie-bg-panel);  /* Match teal panel background */
     flex-shrink: 0;
@@ -395,7 +395,7 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 0 16px 16px 28px; /* Left padding for ruler */
+    padding: 0 16px 16px 8px;  /* Reduced left padding */
 }
 
 /* Ensure sections have proper spacing */
