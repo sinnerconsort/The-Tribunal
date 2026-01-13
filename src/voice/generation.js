@@ -9,6 +9,7 @@
  */
 
 import { SKILLS, ANCIENT_VOICES } from '../data/skills.js';
+import { STATUS_EFFECTS, COPOTYPE_IDS } from '../data/statuses.js';
 import {
     SKILL_DYNAMICS,
     CASCADE_RULES,
@@ -31,6 +32,26 @@ import { getResearchPenalties, hasSpecialEffect } from '../systems/cabinet.js';
 // ═══════════════════════════════════════════════════════════════
 // CONTEXT ANALYSIS
 // ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get the active copotype (if any) and its voice style
+ * Only one copotype can be active at a time due to mutual exclusivity
+ */
+function getActiveCopotype() {
+    for (const statusId of activeStatuses) {
+        if (COPOTYPE_IDS.includes(statusId)) {
+            const copotype = STATUS_EFFECTS[statusId];
+            if (copotype && copotype.voiceStyle) {
+                return {
+                    id: statusId,
+                    name: copotype.name,
+                    voiceStyle: copotype.voiceStyle
+                };
+            }
+        }
+    }
+    return null;
+}
 
 export function analyzeContext(message) {
     const emotionalIndicators = [
@@ -382,6 +403,17 @@ ${scenePerspective}
         statusContext = `\nCurrent state: ${statusNames}.`;
     }
 
+    // Copotype voice flavor - influences HOW all voices speak
+    let copotypeSection = '';
+    const activeCopotype = getActiveCopotype();
+    if (activeCopotype) {
+        copotypeSection = `
+
+COPOTYPE ACTIVE: ${activeCopotype.name}
+This colors HOW all voices speak. Voice style flavor: ${activeCopotype.voiceStyle}
+All skills should lean into this vibe while keeping their individual personalities.`;
+    }
+
     // ═══════════════════════════════════════════════════════════
     // Build relationship context
     // ═══════════════════════════════════════════════════════════
@@ -443,7 +475,7 @@ CRITICAL RULES:
 9. CASCADE voices are RESPONDING to another voice - make this clear!
 10. Let skills interrupt and talk over each other
 11. Total: 4-12 voice lines, with back-and-forth exchanges
-${contextSection}${perspectiveSection}${statusContext}
+${contextSection}${perspectiveSection}${statusContext}${copotypeSection}
 
 Output ONLY voice dialogue. No narration or explanation. Make them ARGUE and REACT.`;
 
