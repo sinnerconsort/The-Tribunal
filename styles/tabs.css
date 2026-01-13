@@ -9,7 +9,7 @@
 
 .ie-tabs {
     display: flex;
-    background: var(--ie-bg-secondary);
+    background: var(--ie-bg-panel);  /* Match teal panel background */
     border-bottom: 1px solid var(--ie-border);
 }
 
@@ -29,12 +29,12 @@
 }
 
 .ie-tab:hover {
-    background: var(--ie-bg-tertiary);
+    background: rgba(255, 255, 255, 0.1);  /* Subtle light overlay on teal */
     color: var(--ie-text-secondary);
 }
 
 .ie-tab-active {
-    background: var(--ie-bg-primary);
+    background: rgba(0, 0, 0, 0.3);  /* Darker overlay for active */
     color: var(--ie-accent-orange);
     border-bottom: 3px solid var(--ie-accent-orange);
 }
