@@ -2,6 +2,7 @@
  * The Tribunal - Psyche Panel
  * Main panel structure and tab switching
  * Phase 1 Restructure: Header + Vitals, New Tabs, Bottom Buttons
+ * Phase 2: Manual vitals controls + Detection settings
  */
 
 import { extensionSettings, saveState } from '../core/state.js';
@@ -123,19 +124,37 @@ export function createPsychePanel() {
                 <div class="ie-section">
                     <div class="ie-section-header"><span>Vitals Detail</span></div>
                     <div class="ie-vitals-detail">
+                        <!-- ═══ PHASE 2: Health with +/- controls ═══ -->
                         <div class="ie-vital-detail-row ie-health">
                             <div class="ie-vital-detail-header">
                                 <span class="ie-vital-detail-label">Health</span>
-                                <span class="ie-vital-detail-value" id="ie-health-detail-value">100 / 100</span>
+                                <div class="ie-vital-controls">
+                                    <button class="ie-vital-btn ie-vital-btn-minus" id="ie-health-minus" title="Decrease Health">
+                                        <i class="fa-solid fa-minus"></i>
+                                    </button>
+                                    <span class="ie-vital-detail-value" id="ie-health-detail-value">100 / 100</span>
+                                    <button class="ie-vital-btn ie-vital-btn-plus" id="ie-health-plus" title="Increase Health">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="ie-vital-detail-track">
                                 <div class="ie-vital-detail-fill" id="ie-health-detail-fill" style="width: 100%; background: #f3650b;"></div>
                             </div>
                         </div>
+                        <!-- ═══ PHASE 2: Morale with +/- controls ═══ -->
                         <div class="ie-vital-detail-row ie-morale">
                             <div class="ie-vital-detail-header">
                                 <span class="ie-vital-detail-label">Morale</span>
-                                <span class="ie-vital-detail-value" id="ie-morale-detail-value">100 / 100</span>
+                                <div class="ie-vital-controls">
+                                    <button class="ie-vital-btn ie-vital-btn-minus" id="ie-morale-minus" title="Decrease Morale">
+                                        <i class="fa-solid fa-minus"></i>
+                                    </button>
+                                    <span class="ie-vital-detail-value" id="ie-morale-detail-value">100 / 100</span>
+                                    <button class="ie-vital-btn ie-vital-btn-plus" id="ie-morale-plus" title="Increase Morale">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="ie-vital-detail-track">
                                 <div class="ie-vital-detail-fill" id="ie-morale-detail-fill" style="width: 100%; background: #0e7989;"></div>
@@ -181,7 +200,7 @@ export function createPsychePanel() {
                 </div>
             </div>
 
-            <!-- Ledger Tab (NEW) -->
+            <!-- Ledger Tab -->
             <div class="ie-tab-content" data-tab-content="ledger">
                 <div class="ie-section">
                     <div class="ie-section-header"><span>Active Cases</span></div>
@@ -208,7 +227,7 @@ export function createPsychePanel() {
                 </div>
             </div>
 
-            <!-- Inventory Tab (NEW) -->
+            <!-- Inventory Tab -->
             <div class="ie-tab-content" data-tab-content="inventory">
                 <div class="ie-section">
                     <div class="ie-section-header">
@@ -315,11 +334,47 @@ export function createPsychePanel() {
                     <div class="ie-section-header"><span>Investigation Mode</span></div>
                     <div class="ie-form-group">
                         <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-investigation-enabled" />
-                            <span>Enable Investigation System</span>
+                            <input type="checkbox" id="ie-show-investigation-fab" checked />
+                            <span>Show Investigation FAB</span>
                         </label>
-                        <small class="ie-form-hint">Track clues, discoveries, and case progress</small>
+                        <small class="ie-form-hint">Toggle the investigation bubble button</small>
                     </div>
+                </div>
+
+                <!-- ═══════════════════════════════════════════════════════════════ -->
+                <!-- PHASE 2: Vitals Detection Settings -->
+                <!-- ═══════════════════════════════════════════════════════════════ -->
+                <div class="ie-section">
+                    <div class="ie-section-header">
+                        <span>Vitals Detection</span>
+                        <i class="fa-solid fa-heart-pulse" style="opacity: 0.5; margin-left: 6px;"></i>
+                    </div>
+                    <div class="ie-form-group">
+                        <label class="ie-checkbox">
+                            <input type="checkbox" id="ie-auto-detect-vitals" />
+                            <span>Auto-detect vitals from narrative</span>
+                        </label>
+                        <small class="ie-form-hint">Automatically adjust health/morale based on story events</small>
+                    </div>
+                    <div class="ie-form-group">
+                        <label>Detection Sensitivity</label>
+                        <select id="ie-vitals-sensitivity" class="ie-select">
+                            <option value="low">Low (explicit damage only)</option>
+                            <option value="medium" selected>Medium (balanced)</option>
+                            <option value="high">High (catch subtle impacts)</option>
+                        </select>
+                        <small class="ie-form-hint">How aggressively to detect health/morale changes</small>
+                    </div>
+                    <div class="ie-form-group">
+                        <label class="ie-checkbox">
+                            <input type="checkbox" id="ie-vitals-notifications" checked />
+                            <span>Show notifications on change</span>
+                        </label>
+                    </div>
+                    <button class="ie-btn ie-btn-secondary" id="ie-test-vitals-btn" style="width: 100%; margin-top: 8px;">
+                        <i class="fa-solid fa-vial"></i>
+                        <span>Test Detection on Last Message</span>
+                    </button>
                 </div>
 
                 <div class="ie-section">
@@ -340,28 +395,38 @@ export function createPsychePanel() {
                 <div class="ie-section">
                     <div class="ie-section-header"><span>Character Integration</span></div>
                     <div class="ie-form-group">
-                        <label>Player Name Override</label>
-                        <input type="text" id="ie-player-name" placeholder="Leave empty to use ST persona" />
-                        <small class="ie-form-hint">Name used when voices address the player</small>
+                        <label>Character Name</label>
+                        <input type="text" id="ie-character-name" placeholder="e.g. Harry Du Bois" />
+                        <small class="ie-form-hint">Used for vitals detection and voice addressing</small>
                     </div>
                     <div class="ie-form-group">
-                        <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-use-char-persona" checked />
-                            <span>Include character persona in prompts</span>
-                        </label>
+                        <label>Pronouns</label>
+                        <select id="ie-character-pronouns" class="ie-select">
+                            <option value="they">They/Them</option>
+                            <option value="he">He/Him</option>
+                            <option value="she">She/Her</option>
+                        </select>
                     </div>
                     <div class="ie-form-group">
-                        <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-second-person" />
-                            <span>Second-person narration mode</span>
-                        </label>
-                        <small class="ie-form-hint">Help voices convert third-person scene text to correct POV.</small>
+                        <label>Character Context</label>
+                        <textarea id="ie-character-context" rows="3" placeholder="Brief description for voice context..."></textarea>
                     </div>
-                    <button class="ie-btn ie-btn-primary ie-btn-save-settings" style="width: 100%; margin-top: 10px;">
+                    <div class="ie-form-group">
+                        <label>POV Style</label>
+                        <select id="ie-pov-style" class="ie-select">
+                            <option value="second">Second Person (you)</option>
+                            <option value="first">First Person (I)</option>
+                            <option value="third">Third Person (they)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="ie-section ie-settings-actions">
+                    <button class="ie-btn ie-btn-primary ie-btn-save-settings" style="width: 100%;">
                         <i class="fa-solid fa-save"></i>
                         <span>Save Settings</span>
                     </button>
-                    <button class="ie-btn ie-btn-reset-fab" style="width: 100%; margin-top: 8px;">
+                    <button class="ie-btn ie-btn-secondary ie-btn-reset-fab" style="width: 100%; margin-top: 8px;">
                         <i class="fa-solid fa-arrows-to-dot"></i>
                         <span>Reset Icon Positions</span>
                     </button>
@@ -455,93 +520,37 @@ export function createToggleFAB(getContext) {
         const touch = e.touches ? e.touches[0] : e;
         const deltaX = touch.clientX - dragStartX;
         const deltaY = touch.clientY - dragStartY;
-        if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved = true;
-        fab.style.left = `${Math.max(0, Math.min(window.innerWidth - fab.offsetWidth, fabStartX + deltaX))}px`;
-        fab.style.top = `${Math.max(0, Math.min(window.innerHeight - fab.offsetHeight, fabStartY + deltaY))}px`;
+        
+        if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+            hasMoved = true;
+        }
+        
+        const newLeft = Math.max(0, Math.min(window.innerWidth - fab.offsetWidth, fabStartX + deltaX));
+        const newTop = Math.max(0, Math.min(window.innerHeight - fab.offsetHeight, fabStartY + deltaY));
+        
+        fab.style.left = `${newLeft}px`;
+        fab.style.top = `${newTop}px`;
     }
 
     function endDrag() {
-        if (!isDragging) return;
         isDragging = false;
-        fab.style.transition = 'all 0.3s ease';
+        fab.style.transition = '';
         document.removeEventListener('mousemove', doDrag);
         document.removeEventListener('touchmove', doDrag);
         document.removeEventListener('mouseup', endDrag);
         document.removeEventListener('touchend', endDrag);
-
+        
         if (hasMoved) {
             fab.dataset.justDragged = 'true';
             extensionSettings.fabPositionTop = fab.offsetTop;
             extensionSettings.fabPositionLeft = fab.offsetLeft;
-            if (getContext) saveState(getContext());
-        }
-    }
-
-    fab.addEventListener('mousedown', startDrag);
-    fab.addEventListener('touchstart', startDrag, { passive: false });
-
-    return fab;
-}
-
-/**
- * Create the Suggestions FAB (lightbulb icon)
- * Hidden by default, toggleable in settings
- */
-export function createSuggestionsFAB(getContext) {
-    const fab = document.createElement('div');
-    fab.id = 'ie-suggestions-fab';
-    fab.className = 'ie-fab ie-fab-suggestions';
-    fab.title = 'Get Suggestions';
-    fab.innerHTML = '<span class="ie-fab-icon"><i class="fa-solid fa-lightbulb"></i></span>';
-    fab.style.display = extensionSettings.showSuggestionsFab ? 'flex' : 'none';
-    fab.style.top = `${extensionSettings.suggestionsFabTop ?? 200}px`;
-    fab.style.left = `${extensionSettings.suggestionsFabLeft ?? 10}px`;
-
-    // Reuse same drag logic pattern
-    let isDragging = false;
-    let dragStartX, dragStartY, fabStartX, fabStartY;
-    let hasMoved = false;
-
-    function startDrag(e) {
-        isDragging = true;
-        hasMoved = false;
-        const touch = e.touches ? e.touches[0] : e;
-        dragStartX = touch.clientX;
-        dragStartY = touch.clientY;
-        fabStartX = fab.offsetLeft;
-        fabStartY = fab.offsetTop;
-        fab.style.transition = 'none';
-        document.addEventListener('mousemove', doDrag);
-        document.addEventListener('touchmove', doDrag, { passive: false });
-        document.addEventListener('mouseup', endDrag);
-        document.addEventListener('touchend', endDrag);
-    }
-
-    function doDrag(e) {
-        if (!isDragging) return;
-        e.preventDefault();
-        const touch = e.touches ? e.touches[0] : e;
-        const deltaX = touch.clientX - dragStartX;
-        const deltaY = touch.clientY - dragStartY;
-        if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved = true;
-        fab.style.left = `${Math.max(0, Math.min(window.innerWidth - fab.offsetWidth, fabStartX + deltaX))}px`;
-        fab.style.top = `${Math.max(0, Math.min(window.innerHeight - fab.offsetHeight, fabStartY + deltaY))}px`;
-    }
-
-    function endDrag() {
-        if (!isDragging) return;
-        isDragging = false;
-        fab.style.transition = 'all 0.3s ease';
-        document.removeEventListener('mousemove', doDrag);
-        document.removeEventListener('touchmove', doDrag);
-        document.removeEventListener('mouseup', endDrag);
-        document.removeEventListener('touchend', endDrag);
-
-        if (hasMoved) {
-            fab.dataset.justDragged = 'true';
-            extensionSettings.suggestionsFabTop = fab.offsetTop;
-            extensionSettings.suggestionsFabLeft = fab.offsetLeft;
-            if (getContext) saveState(getContext());
+            
+            const ctx = typeof getContext === 'function' ? getContext() : null;
+            if (ctx) {
+                import('../core/state.js').then(module => {
+                    module.saveState(ctx);
+                });
+            }
         }
     }
 
@@ -552,66 +561,25 @@ export function createSuggestionsFAB(getContext) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PANEL CONTROLS
+// PANEL TOGGLE
 // ═══════════════════════════════════════════════════════════════
 
 export function togglePanel() {
     const panel = document.getElementById('inland-empire-panel');
-    const fab = document.getElementById('inland-empire-fab');
-
     if (!panel) return;
-
-    const isOpen = panel.classList.contains('ie-panel-open');
-
-    if (isOpen) {
-        panel.classList.remove('ie-panel-open');
-        fab?.classList.remove('ie-fab-active');
-    } else {
-        panel.classList.add('ie-panel-open');
-        fab?.classList.add('ie-fab-active');
-        // Trigger peek animation when opening
-        triggerFabLoading();
-    }
-}
-
-/**
- * Trigger the "peek-up" loading animation on the main FAB
- * Call this when voices are being generated
- */
-export function triggerFabLoading() {
+    
+    panel.classList.toggle('ie-panel-open');
+    
+    // Animate FAB
     const fab = document.getElementById('inland-empire-fab');
-    if (!fab) return;
-    
-    fab.classList.add('ie-fab-loading');
-    // Remove after animation completes
-    setTimeout(() => {
-        fab.classList.remove('ie-fab-loading');
-    }, 800);
-}
-
-/**
- * Toggle suggestions FAB active state (lightbulb on/off)
- */
-export function setSuggestionsFabActive(active) {
-    const fab = document.getElementById('ie-suggestions-fab');
-    if (!fab) return;
-    
-    fab.classList.toggle('ie-fab-active', active);
-    const icon = fab.querySelector('i');
-    if (icon) {
-        icon.className = active ? 'fa-solid fa-lightbulb' : 'fa-regular fa-lightbulb';
-    }
-}
-
-/**
- * Show/hide the suggestions FAB
- */
-export function setSuggestionsFabVisible(visible) {
-    const fab = document.getElementById('ie-suggestions-fab');
     if (fab) {
-        fab.style.display = visible ? 'flex' : 'none';
+        fab.classList.toggle('ie-fab-active', panel.classList.contains('ie-panel-open'));
     }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════
 
 export function switchTab(tabName, callbacks = {}) {
     // Handle main tabs
@@ -701,17 +669,17 @@ export function updateHealth(current, max = 100) {
     // Status tab detail
     const detailFill = document.getElementById('ie-health-detail-fill');
     const detailValue = document.getElementById('ie-health-detail-value');
-    const detailBar = detailFill?.closest('.ie-vital-bar');
+    const detailRow = detailFill?.closest('.ie-vital-detail-row');
     
     if (detailFill) detailFill.style.width = `${percent}%`;
     if (detailValue) detailValue.textContent = `${Math.round(current)} / ${max}`;
     
-    if (detailBar) {
-        detailBar.classList.remove('ie-vital-low', 'ie-vital-critical');
+    if (detailRow) {
+        detailRow.classList.remove('ie-vital-low', 'ie-vital-critical');
         if (percent <= 15) {
-            detailBar.classList.add('ie-vital-critical');
+            detailRow.classList.add('ie-vital-critical');
         } else if (percent <= 30) {
-            detailBar.classList.add('ie-vital-low');
+            detailRow.classList.add('ie-vital-low');
         }
     }
 }
@@ -745,17 +713,17 @@ export function updateMorale(current, max = 100) {
     // Status tab detail
     const detailFill = document.getElementById('ie-morale-detail-fill');
     const detailValue = document.getElementById('ie-morale-detail-value');
-    const detailBar = detailFill?.closest('.ie-vital-bar');
+    const detailRow = detailFill?.closest('.ie-vital-detail-row');
     
     if (detailFill) detailFill.style.width = `${percent}%`;
     if (detailValue) detailValue.textContent = `${Math.round(current)} / ${max}`;
     
-    if (detailBar) {
-        detailBar.classList.remove('ie-vital-low', 'ie-vital-critical');
+    if (detailRow) {
+        detailRow.classList.remove('ie-vital-low', 'ie-vital-critical');
         if (percent <= 15) {
-            detailBar.classList.add('ie-vital-critical');
+            detailRow.classList.add('ie-vital-critical');
         } else if (percent <= 30) {
-            detailBar.classList.add('ie-vital-low');
+            detailRow.classList.add('ie-vital-low');
         }
     }
 }
