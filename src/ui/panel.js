@@ -176,21 +176,21 @@ export function createPsychePanel() {
                     <div class="ie-section-header"><span>Ancient Voices</span></div>
                     <div class="ie-ancient-voices-info" id="ie-ancient-voices-info">
                         <div class="ie-ancient-voice-item">
-                            <span class="ie-ancient-icon">🦎</span>
+                            <i class="ie-ancient-icon fa-solid fa-frog"></i>
                             <div class="ie-ancient-details">
                                 <span class="ie-ancient-name">Ancient Reptilian Brain</span>
                                 <span class="ie-ancient-triggers">Triggers: The Pale</span>
                             </div>
                         </div>
                         <div class="ie-ancient-voice-item">
-                            <span class="ie-ancient-icon">❤️‍🔥</span>
+                            <i class="ie-ancient-icon fa-solid fa-fire-flame-curved"></i>
                             <div class="ie-ancient-details">
                                 <span class="ie-ancient-name">Limbic System</span>
                                 <span class="ie-ancient-triggers">Triggers: The Pale</span>
                             </div>
                         </div>
                         <div class="ie-ancient-voice-item ie-ancient-voice-combo">
-                            <span class="ie-ancient-icon">🦴</span>
+                            <i class="ie-ancient-icon fa-solid fa-bone"></i>
                             <div class="ie-ancient-details">
                                 <span class="ie-ancient-name">Spinal Cord</span>
                                 <span class="ie-ancient-triggers">Triggers: Tequila Sunset + Revacholian Courage</span>
