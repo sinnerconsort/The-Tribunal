@@ -13,7 +13,7 @@
  */
 
 import { ATTRIBUTES, SKILLS } from '../data/skills.js';
-import { STATUS_EFFECTS } from '../data/statuses.js';
+import { STATUS_EFFECTS, getStatusDisplayName, getStatusIcon } from '../data/statuses.js';
 import { THEMES, THOUGHTS } from '../data/thoughts.js';
 import {
     activeStatuses,
@@ -301,13 +301,15 @@ export function renderStatusGrid(container, onToggle) {
             const isActive = activeStatuses.has(status.id);
             const boostList = status.boosts.map(s => SKILLS[s]?.signature || s).join(', ');
             const debuffList = status.debuffs.map(s => SKILLS[s]?.signature || s).join(', ');
+            const displayName = getStatusDisplayName(status.id, isActive);
+            const iconClass = getStatusIcon(status.id, isActive);
 
             html += `
                 <div class="ie-status-card ${isActive ? 'ie-status-active' : ''} ${catId === 'archetype' ? 'ie-archetype-card' : ''}" 
                      data-status="${status.id}" 
                      title="${status.description}&#10;&#10;↑ ${boostList}&#10;↓ ${debuffList}">
-                    <span class="ie-status-icon">${status.icon}</span>
-                    <span class="ie-status-name">${status.name}</span>
+                    <i class="ie-status-icon ${iconClass}"></i>
+                    <span class="ie-status-name">${displayName}</span>
                 </div>
             `;
         }
