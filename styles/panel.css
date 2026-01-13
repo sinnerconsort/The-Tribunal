@@ -73,6 +73,23 @@
     transform: translateY(-50%) rotate(180deg);  /* Combine both transforms */
 }
 
+/* Right side marker */
+.ie-panel-marker-right {
+    position: absolute;
+    right: 26px;  /* Just before the film strip */
+    top: 50%;
+    transform: translateY(-50%);
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--ie-film-marker, #9ca19d);
+    pointer-events: none;
+    z-index: 50;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    LEFT RULER EDGE (using the HTML element)
    ═══════════════════════════════════════════════════════════════ */
@@ -241,7 +258,7 @@
 .ie-panel-header,
 .ie-tabs {
     margin-left: 32px;  /* 20px ruler + ~12px teal strip */
-    margin-right: 22px;
+    margin-right: 36px;  /* Show teal strip before film strip */
 }
 
 /* Tabs bar background */
@@ -251,7 +268,7 @@
 
 .ie-tab-content {
     margin-left: 32px;  /* 20px ruler + ~12px teal strip */
-    margin-right: 22px;
+    margin-right: 36px;  /* Show teal strip before film strip */
     position: relative;
 }
 
