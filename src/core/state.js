@@ -38,12 +38,12 @@ export let thoughtCabinet = {
     dismissed: []
 };
 
-// Vitals state (Phase 2)
+// Vitals state (Phase 2) - DE caps at 13
 export let vitals = {
-    health: 100,
-    maxHealth: 100,
-    morale: 100,
-    maxMorale: 100
+    health: 13,
+    maxHealth: 13,
+    morale: 13,
+    maxMorale: 13
 };
 
 // Ledger state (Phase 3)
@@ -122,6 +122,8 @@ export const DEFAULT_SETTINGS = {
     // Vitals system (Phase 2)
     vitalsEnabled: true,
     autoDetectVitals: false,
+    vitalsSensitivity: 'medium',
+    vitalsShowNotifications: true,
     
     // Weather system (Phase 3)
     weatherEnabled: true,
