@@ -17,6 +17,10 @@ export function createPsychePanel() {
     panel.innerHTML = `
         <div class="ie-right-ruler"></div>
         <div class="ie-film-bottom-text"></div>
+        <div class="ie-film-frame-left">
+            <span class="ie-film-marker ie-film-marker-top">01A15</span>
+            <span class="ie-film-marker ie-film-marker-mid">01A13</span>
+        </div>
         <div class="ie-panel-header">
             <div class="ie-panel-title">
                 <i class="fa-solid fa-address-card"></i>
