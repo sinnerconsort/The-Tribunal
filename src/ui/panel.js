@@ -79,7 +79,7 @@ export function createPsychePanel() {
                 <i class="fa-solid fa-heart-pulse"></i>
             </button>
             <button class="ie-tab" data-tab="ledger" title="Ledger">
-                <i class="fa-solid fa-file-lines"></i>
+                <i class="fa-solid fa-clipboard-list"></i>
             </button>
             <button class="ie-tab" data-tab="inventory" title="Inventory">
                 <i class="fa-solid fa-briefcase"></i>
@@ -683,14 +683,37 @@ export function updateHealth(current, max = 100) {
     // Header bar
     const headerFill = document.getElementById('ie-health-fill');
     const headerValue = document.getElementById('ie-health-value');
+    const headerBar = headerFill?.closest('.ie-vital-bar');
+    
     if (headerFill) headerFill.style.width = `${percent}%`;
     if (headerValue) headerValue.textContent = Math.round(current);
+    
+    // Add low/critical state classes
+    if (headerBar) {
+        headerBar.classList.remove('ie-vital-low', 'ie-vital-critical');
+        if (percent <= 15) {
+            headerBar.classList.add('ie-vital-critical');
+        } else if (percent <= 30) {
+            headerBar.classList.add('ie-vital-low');
+        }
+    }
     
     // Status tab detail
     const detailFill = document.getElementById('ie-health-detail-fill');
     const detailValue = document.getElementById('ie-health-detail-value');
+    const detailBar = detailFill?.closest('.ie-vital-bar');
+    
     if (detailFill) detailFill.style.width = `${percent}%`;
     if (detailValue) detailValue.textContent = `${Math.round(current)} / ${max}`;
+    
+    if (detailBar) {
+        detailBar.classList.remove('ie-vital-low', 'ie-vital-critical');
+        if (percent <= 15) {
+            detailBar.classList.add('ie-vital-critical');
+        } else if (percent <= 30) {
+            detailBar.classList.add('ie-vital-low');
+        }
+    }
 }
 
 /**
@@ -704,14 +727,37 @@ export function updateMorale(current, max = 100) {
     // Header bar
     const headerFill = document.getElementById('ie-morale-fill');
     const headerValue = document.getElementById('ie-morale-value');
+    const headerBar = headerFill?.closest('.ie-vital-bar');
+    
     if (headerFill) headerFill.style.width = `${percent}%`;
     if (headerValue) headerValue.textContent = Math.round(current);
+    
+    // Add low/critical state classes
+    if (headerBar) {
+        headerBar.classList.remove('ie-vital-low', 'ie-vital-critical');
+        if (percent <= 15) {
+            headerBar.classList.add('ie-vital-critical');
+        } else if (percent <= 30) {
+            headerBar.classList.add('ie-vital-low');
+        }
+    }
     
     // Status tab detail
     const detailFill = document.getElementById('ie-morale-detail-fill');
     const detailValue = document.getElementById('ie-morale-detail-value');
+    const detailBar = detailFill?.closest('.ie-vital-bar');
+    
     if (detailFill) detailFill.style.width = `${percent}%`;
     if (detailValue) detailValue.textContent = `${Math.round(current)} / ${max}`;
+    
+    if (detailBar) {
+        detailBar.classList.remove('ie-vital-low', 'ie-vital-critical');
+        if (percent <= 15) {
+            detailBar.classList.add('ie-vital-critical');
+        } else if (percent <= 30) {
+            detailBar.classList.add('ie-vital-low');
+        }
+    }
 }
 
 /**
