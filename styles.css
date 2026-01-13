@@ -275,7 +275,7 @@
 
 /* Film strip vertical text overlay - NOW ON RIGHT */
 .inland-empire-panel::after {
-    content: 'FELD PLAYBACK FILM                                                                                                                                                                                                              FELD MEF PLUS+  ◯  ➤';
+    content: 'FELD PLAYBACK FILM                                        FELD MEF PLUS+  ◯  ➤';
     position: absolute;
     top: 0;
     right: 0;
