@@ -14,6 +14,10 @@
     --ie-bg-tertiary: #1a1a20;
     --ie-bg-panel: rgba(13, 13, 18, 0.95);
     
+    /* Film frame - DE teal border */
+    --ie-film-frame: #293647;
+    --ie-film-marker: #9ca19d;
+    
     /* Text */
     --ie-text-primary: #e8e4de;
     --ie-text-secondary: #9a958c;
