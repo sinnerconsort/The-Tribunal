@@ -63,9 +63,17 @@
 .ie-vital-detail-value {
     font-family: var(--ie-font-mono, 'Courier New', monospace);
     font-size: 12px;
-    color: var(--ie-text, #d4d4c4);
     min-width: 60px;
     text-align: center;
+}
+
+/* Value colors match their bars */
+.ie-vital-detail-row.ie-health .ie-vital-detail-value {
+    color: #f3650b;
+}
+
+.ie-vital-detail-row.ie-morale .ie-vital-detail-value {
+    color: #0e7989;
 }
 
 /* ═══════════════════════════════════════════════════════════════
