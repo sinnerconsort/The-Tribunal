@@ -51,7 +51,7 @@
 
 .ie-panel-marker {
     position: absolute;
-    left: 55px;  /* More centered in teal area */
+    left: 30px;  /* Closer to the ruler edge */
     writing-mode: vertical-rl;
     text-orientation: mixed;
     transform: rotate(180deg);  /* Flip text */
