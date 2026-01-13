@@ -18,7 +18,7 @@ export function createPsychePanel() {
         <div class="ie-right-ruler"></div>
         <div class="ie-panel-header">
             <div class="ie-panel-title">
-                <i class="fa-solid fa-brain"></i>
+                <span style="font-size: 20px;">📇</span>
                 <span>Psyche</span>
             </div>
             <div class="ie-panel-controls">
@@ -352,7 +352,7 @@ export function createToggleFAB(getContext) {
     fab.id = 'inland-empire-fab';
     fab.className = 'ie-fab';
     fab.title = 'Toggle Psyche Panel';
-    fab.innerHTML = '<i class="fa-solid fa-brain"></i>';
+    fab.innerHTML = '<span class="ie-fab-icon">📇</span>';
     fab.style.display = 'flex';
     fab.style.top = `${extensionSettings.fabPositionTop ?? 140}px`;
     fab.style.left = `${extensionSettings.fabPositionLeft ?? 10}px`;
@@ -429,7 +429,24 @@ export function togglePanel() {
     } else {
         panel.classList.add('ie-panel-open');
         fab?.classList.add('ie-fab-active');
+        // Trigger peek animation when opening
+        triggerFabLoading();
     }
+}
+
+/**
+ * Trigger the "peek-up" loading animation on the main FAB
+ * Call this when voices are being generated
+ */
+export function triggerFabLoading() {
+    const fab = document.getElementById('inland-empire-fab');
+    if (!fab) return;
+    
+    fab.classList.add('ie-fab-loading');
+    // Remove after animation completes
+    setTimeout(() => {
+        fab.classList.remove('ie-fab-loading');
+    }, 800);
 }
 
 export function switchTab(tabName, callbacks = {}) {
