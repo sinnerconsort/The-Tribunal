@@ -1,8 +1,9 @@
 /**
- * Inland Empire - SillyTavern Extension
+ * The Tribunal - SillyTavern Extension
  * Main entry point - brings together all modular components
  * 
  * A Disco Elysium-inspired internal skill voice system for roleplay
+ * Phase 2: Vitals Auto-Detection
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -75,7 +76,6 @@ import {
     generateVoices
 } from './src/voice/generation.js';
 
-// UPDATED: Added autoScan import
 import {
     createThoughtBubbleFAB,
     createDiscoveryModal,
@@ -83,6 +83,17 @@ import {
     toggleDiscoveryModal,
     autoScan
 } from './src/voice/discovery.js';
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 2: Vitals Detection Imports
+// ═══════════════════════════════════════════════════════════════
+
+import {
+    initVitalsHooks,
+    processMessageForVitals,
+    getVitalsAPI,
+    analyzeTextForVitals
+} from './src/systems/vitals/hooks.js';
 
 // UI
 import {
@@ -315,7 +326,7 @@ async function triggerVoices(messageText = null) {
         hideToast(loadingToast);
 
     } catch (error) {
-        console.error('[Inland Empire] Voice generation failed:', error);
+        console.error('[The Tribunal] Voice generation failed:', error);
         hideToast(loadingToast);
         showToast(`Error: ${error.message}`, 'error', 5000);
     }
@@ -389,7 +400,7 @@ async function autoGenerateThought(contextText) {
             refreshCabinetTab();
         }
     } catch (error) {
-        console.error('[Inland Empire] Auto thought generation failed:', error);
+        console.error('[The Tribunal] Auto thought generation failed:', error);
     } finally {
         isAutoGenerating = false;
     }
@@ -527,7 +538,11 @@ function populateSettingsForm() {
         'ie-character-pronouns': extensionSettings.characterPronouns,
         'ie-character-context': extensionSettings.characterContext,
         'ie-scene-perspective': extensionSettings.scenePerspective,
-        'ie-show-investigation-fab': extensionSettings.showInvestigationFab !== false // NEW
+        'ie-show-investigation-fab': extensionSettings.showInvestigationFab !== false,
+        // Phase 2 - Vitals detection
+        'ie-auto-detect-vitals': extensionSettings.autoDetectVitals,
+        'ie-vitals-sensitivity': extensionSettings.vitalsSensitivity || 'medium',
+        'ie-vitals-notifications': extensionSettings.vitalsShowNotifications !== false
     };
     
     for (const [id, value] of Object.entries(fields)) {
@@ -690,7 +705,11 @@ function bindEvents() {
             characterPronouns: document.getElementById('ie-character-pronouns')?.value || 'they',
             characterContext: document.getElementById('ie-character-context')?.value || '',
             scenePerspective: document.getElementById('ie-scene-perspective')?.value || '',
-            showInvestigationFab: document.getElementById('ie-show-investigation-fab')?.checked ?? true // NEW
+            showInvestigationFab: document.getElementById('ie-show-investigation-fab')?.checked ?? true,
+            // Phase 2 - Vitals detection
+            autoDetectVitals: document.getElementById('ie-auto-detect-vitals')?.checked ?? false,
+            vitalsSensitivity: document.getElementById('ie-vitals-sensitivity')?.value || 'medium',
+            vitalsShowNotifications: document.getElementById('ie-vitals-notifications')?.checked ?? true
         };
 
         updateSettings(newSettings);
@@ -765,22 +784,101 @@ function bindEvents() {
         }
     });
 
-    // Investigation FAB toggle in settings - NEW
+    // Investigation FAB toggle in settings
     document.getElementById('ie-show-investigation-fab')?.addEventListener('change', (e) => {
         extensionSettings.showInvestigationFab = e.target.checked;
         updateInvestigationFABVisibility();
         saveState(getContext());
     });
+    
+    // ═══════════════════════════════════════════════════════════════
+    // PHASE 2: Vitals Detection Settings Bindings
+    // ═══════════════════════════════════════════════════════════════
+    
+    document.getElementById('ie-auto-detect-vitals')?.addEventListener('change', (e) => {
+        extensionSettings.autoDetectVitals = e.target.checked;
+        saveState(getContext());
+        showToast(e.target.checked ? 'Vitals auto-detection enabled' : 'Vitals auto-detection disabled', 'info');
+    });
+    
+    document.getElementById('ie-vitals-sensitivity')?.addEventListener('change', (e) => {
+        extensionSettings.vitalsSensitivity = e.target.value;
+        saveState(getContext());
+    });
+    
+    document.getElementById('ie-vitals-notifications')?.addEventListener('change', (e) => {
+        extensionSettings.vitalsShowNotifications = e.target.checked;
+        saveState(getContext());
+    });
+    
+    // Test vitals detection button
+    document.getElementById('ie-test-vitals-btn')?.addEventListener('click', () => {
+        const lastMsg = getLastMessage();
+        if (!lastMsg?.mes) {
+            showToast('No message to analyze', 'error');
+            return;
+        }
+        
+        const result = analyzeTextForVitals(lastMsg.mes, {
+            protagonistName: extensionSettings.characterName,
+            sensitivity: extensionSettings.vitalsSensitivity || 'medium'
+        });
+        
+        if (result.detected) {
+            const parts = [];
+            if (result.healthDelta !== 0) {
+                const sign = result.healthDelta > 0 ? '+' : '';
+                parts.push(`Health ${sign}${result.healthDelta}`);
+            }
+            if (result.moraleDelta !== 0) {
+                const sign = result.moraleDelta > 0 ? '+' : '';
+                parts.push(`Morale ${sign}${result.moraleDelta}`);
+            }
+            showToast(`Detected: ${parts.join(', ')} [${result.severity}]`, 'info', 5000);
+        } else {
+            showToast('No vitals changes detected in last message', 'info');
+        }
+    });
+    
+    // ═══════════════════════════════════════════════════════════════
+    // PHASE 2: Manual Vitals Adjustment Buttons
+    // ═══════════════════════════════════════════════════════════════
+    
+    // Health adjustment buttons
+    document.getElementById('ie-health-minus')?.addEventListener('click', () => {
+        modifyHealth(-5, getContext());
+        refreshVitals();
+        showToast('Health -5', 'warning', 1500);
+    });
+    
+    document.getElementById('ie-health-plus')?.addEventListener('click', () => {
+        modifyHealth(5, getContext());
+        refreshVitals();
+        showToast('Health +5', 'success', 1500);
+    });
+    
+    // Morale adjustment buttons
+    document.getElementById('ie-morale-minus')?.addEventListener('click', () => {
+        modifyMorale(-5, getContext());
+        refreshVitals();
+        showToast('Morale -5', 'warning', 1500);
+    });
+    
+    document.getElementById('ie-morale-plus')?.addEventListener('click', () => {
+        modifyMorale(5, getContext());
+        refreshVitals();
+        showToast('Morale +5', 'success', 1500);
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════
-// AUTO TRIGGER SETUP
+// AUTO TRIGGER SETUP (with Phase 2 vitals detection)
 // ═══════════════════════════════════════════════════════════════
 
 function setupAutoTrigger() {
     const context = getContext();
     if (!context?.eventSource) {
-        console.warn('[Inland Empire] Event source not available');
+        console.warn('[The Tribunal] Event source not available');
         return;
     }
 
@@ -797,6 +895,11 @@ function setupAutoTrigger() {
         const lastMsg = getLastMessage();
         if (lastMsg?.mes) {
             autoScan(lastMsg.mes);
+            
+            // ═══ PHASE 2: Auto-detect vitals changes ═══
+            if (extensionSettings.autoDetectVitals) {
+                processMessageForVitals(lastMsg.mes, lastMsg.send_date);
+            }
         }
     });
 }
@@ -806,12 +909,29 @@ function setupAutoTrigger() {
 // ═══════════════════════════════════════════════════════════════
 
 async function init() {
-    console.log('[Inland Empire] Initializing...');
+    console.log('[The Tribunal] Initializing...');
 
     // Initialize state
     await loadState(getContext);
     initializeThemeCounters(THEMES);
     initializeDefaultBuild(ATTRIBUTES, SKILLS);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // PHASE 2: Initialize Vitals Detection Hooks
+    // ═══════════════════════════════════════════════════════════════
+    
+    initVitalsHooks({
+        modifyHealth: (delta, ctx) => {
+            modifyHealth(delta, ctx);
+        },
+        modifyMorale: (delta, ctx) => {
+            modifyMorale(delta, ctx);
+        },
+        getSettings: () => extensionSettings,
+        getContext: getContext,
+        showToast: showToast,
+        refreshVitals: refreshVitals
+    });
 
     // Create extension settings panel entry
     const extensionSettingsContainer = document.getElementById('extensions_settings');
@@ -854,7 +974,7 @@ async function init() {
     document.body.appendChild(panel);
     document.body.appendChild(fab);
 
-    // Create Discovery UI (Thought Bubble) - UPDATED: pass getContext
+    // Create Discovery UI (Thought Bubble)
     const thoughtFab = createThoughtBubbleFAB(getContext);
     const discoveryModal = createDiscoveryModal();
 
@@ -889,7 +1009,7 @@ async function init() {
     // Setup auto-trigger
     setupAutoTrigger();
 
-    console.log('[Inland Empire] Ready!');
+    console.log('[The Tribunal] Ready!');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -901,11 +1021,11 @@ jQuery(async () => {
         await init();
         
         // ═══════════════════════════════════════════════════════════
-        // GLOBAL API - For other extensions to interact with Inland Empire
+        // GLOBAL API - For other extensions to interact with The Tribunal
         // ═══════════════════════════════════════════════════════════
         window.InlandEmpire = {
             // Version for compatibility checks
-            version: '1.0.0',
+            version: '2.0.0',
             
             // ─────────────────────────────────────────────────────────
             // READ: Skill & State Queries
@@ -950,7 +1070,7 @@ jQuery(async () => {
                 api._modifierSources[sourceId][skillId] = value;
                 api._externalModifiers[skillId] = (api._externalModifiers[skillId] || 0) + value;
                 
-                console.log(`[Inland Empire API] Modifier registered: ${sourceId} → ${skillId} ${value >= 0 ? '+' : ''}${value}`);
+                console.log(`[The Tribunal API] Modifier registered: ${sourceId} → ${skillId} ${value >= 0 ? '+' : ''}${value}`);
                 
                 // Dispatch event for UI updates
                 document.dispatchEvent(new CustomEvent('ie:modifier-changed', {
@@ -977,7 +1097,7 @@ jQuery(async () => {
                 }
                 
                 delete api._modifierSources[sourceId];
-                console.log(`[Inland Empire API] Modifier source removed: ${sourceId}`);
+                console.log(`[The Tribunal API] Modifier source removed: ${sourceId}`);
                 
                 document.dispatchEvent(new CustomEvent('ie:modifier-changed', {
                     detail: { sourceId, removed: true, totals: { ...api._externalModifiers } }
@@ -1081,10 +1201,54 @@ jQuery(async () => {
             modifyMorale: (delta) => {
                 modifyMorale(delta, getContext());
                 refreshVitals();
+            },
+            
+            // ─────────────────────────────────────────────────────────
+            // PHASE 2: Vitals Detection API
+            // ─────────────────────────────────────────────────────────
+            
+            /**
+             * Analyze text for vitals impacts without applying
+             * @param {string} text - Text to analyze
+             * @returns {Object} Detection result
+             */
+            analyzeVitals: (text) => {
+                return analyzeTextForVitals(text, {
+                    protagonistName: extensionSettings.characterName,
+                    sensitivity: extensionSettings.vitalsSensitivity || 'medium'
+                });
+            },
+            
+            /**
+             * Manually trigger vitals change with reason
+             * @param {number} healthDelta - Health change
+             * @param {number} moraleDelta - Morale change  
+             * @param {string} reason - Reason string for notifications
+             */
+            applyVitalsChange: (healthDelta, moraleDelta, reason = 'manual') => {
+                if (healthDelta !== 0) {
+                    modifyHealth(healthDelta, getContext());
+                }
+                if (moraleDelta !== 0) {
+                    modifyMorale(moraleDelta, getContext());
+                }
+                refreshVitals();
+                
+                if (extensionSettings.vitalsShowNotifications) {
+                    const parts = [];
+                    if (healthDelta !== 0) parts.push(`Health ${healthDelta > 0 ? '+' : ''}${healthDelta}`);
+                    if (moraleDelta !== 0) parts.push(`Morale ${moraleDelta > 0 ? '+' : ''}${moraleDelta}`);
+                    showToast(`${parts.join(', ')} (${reason})`, healthDelta < 0 || moraleDelta < 0 ? 'warning' : 'success');
+                }
+                
+                // Dispatch event
+                document.dispatchEvent(new CustomEvent('ie:vitals-changed', {
+                    detail: { healthDelta, moraleDelta, reason }
+                }));
             }
         };
         
-        console.log('[Inland Empire] Global API ready: window.InlandEmpire');
+        console.log('[The Tribunal] Global API ready: window.InlandEmpire');
         
         // Dispatch ready event so other extensions know we're loaded
         document.dispatchEvent(new CustomEvent('ie:ready', { 
@@ -1092,7 +1256,7 @@ jQuery(async () => {
         }));
         
     } catch (error) {
-        console.error('[Inland Empire] Failed to initialize:', error);
+        console.error('[The Tribunal] Failed to initialize:', error);
     }
 });
 
