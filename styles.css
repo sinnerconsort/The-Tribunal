@@ -1,0 +1,21 @@
+/**
+ * The Tribunal - Style Loader
+ * Imports all modular stylesheets
+ * 
+ * This replaces the old 4000+ line monolith!
+ */
+
+@import url('./styles/base.css');
+@import url('./styles/fab.css');
+@import url('./styles/panel.css');
+@import url('./styles/tabs.css');
+@import url('./styles/sections.css');
+@import url('./styles/forms.css');
+@import url('./styles/voices.css');
+@import url('./styles/cabinet.css');
+@import url('./styles/profiles.css');
+@import url('./styles/toasts.css');
+@import url('./styles/chat.css');
+@import url('./styles/discovery.css');
+@import url('./styles/investigation.css');
+@import url('./styles/responsive.css');
