@@ -12,10 +12,9 @@
     --ie-bg-primary: #0d0d12;
     --ie-bg-secondary: #151519;
     --ie-bg-tertiary: #1a1a20;
-    --ie-bg-panel: rgba(13, 13, 18, 0.95);
+    --ie-bg-panel: #293647;  /* DE teal panel background */
     
-    /* Film frame - DE teal border */
-    --ie-film-frame: #293647;
+    /* Film marker text color */
     --ie-film-marker: #9ca19d;
     
     /* Text */

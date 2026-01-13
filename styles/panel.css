@@ -32,7 +32,7 @@
     right: 0;
     width: 400px;
     height: 100vh;
-    background: var(--ie-bg-panel);
+    background: var(--ie-bg-panel);  /* Now the teal color #293647 */
     border-left: none;
     z-index: 9999;
     display: flex;
@@ -46,42 +46,30 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   FILM FRAME - Left Teal Border with Markers (DE Style)
+   PANEL MARKERS - 01A15 style text on panel background
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-film-frame-left {
+.ie-panel-marker {
     position: absolute;
-    top: 0;
-    left: 20px;  /* After the ruler */
-    width: 18px;
-    height: 100%;
-    background: var(--ie-film-frame, #293647);
-    z-index: 9998;
-    pointer-events: none;
-}
-
-/* Film markers - vertical text */
-.ie-film-marker {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    writing-mode: vertical-rl;
+    left: 24px;  /* Just after the ruler */
+    writing-mode: vertical-lr;  /* Faces inward */
     text-orientation: mixed;
     font-family: 'Courier New', monospace;
     font-size: 8px;
     font-weight: 600;
     letter-spacing: 1px;
     color: var(--ie-film-marker, #9ca19d);
-    white-space: nowrap;
+    pointer-events: none;
+    z-index: 50;
 }
 
-.ie-film-marker-top {
+.ie-panel-marker-top {
     top: 80px;
 }
 
-.ie-film-marker-mid {
+.ie-panel-marker-mid {
     top: 50%;
-    transform: translateX(-50%) translateY(-50%);
+    transform: translateY(-50%);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -239,24 +227,24 @@
     white-space: pre;
 }
 
-/* Text + circle + arrow - tighter spacing between circle and arrow */
+/* Text + circle + arrow */
 .ie-film-bottom-text::before {
     content: 'FELD  MEF  PLUS+    ◯ ▼';
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   PANEL CONTENT MARGINS - Account for ruler + film frame
+   PANEL CONTENT MARGINS
    ═══════════════════════════════════════════════════════════════ */
 
 /* Adjust panel content to account for borders */
 .ie-panel-header,
 .ie-tabs {
-    margin-left: 38px;  /* 20px ruler + 18px film frame */
+    margin-left: 20px;
     margin-right: 22px;
 }
 
 .ie-tab-content {
-    margin-left: 38px;  /* 20px ruler + 18px film frame */
+    margin-left: 20px;
     margin-right: 22px;
     position: relative;
 }
@@ -300,7 +288,7 @@
    HEADER - CASE FILE TITLE + VITALS BARS (from additions)
    ═══════════════════════════════════════════════════════════════ */
 .ie-panel-header {
-    padding: 12px 16px 8px 16px;
+    padding: 12px 16px 8px 28px; /* Left padding for ruler */
     border-bottom: 1px solid var(--ie-border);
     background: linear-gradient(180deg, var(--ie-bg-secondary) 0%, var(--ie-bg-primary) 100%);
     flex-shrink: 0;
@@ -401,7 +389,7 @@
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 0 16px 16px 16px;
+    padding: 0 16px 16px 28px; /* Left padding for ruler */
 }
 
 /* Ensure sections have proper spacing */
