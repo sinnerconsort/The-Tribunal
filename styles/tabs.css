@@ -979,3 +979,142 @@
 .ie-vital-detail-row.ie-morale .ie-vital-detail-value {
     color: var(--ie-accent-purple);
 }
+/**
+ * The Tribunal - Tab Icon Animations
+ * Icons animate when their tab is active
+ * ADD to end of tabs.css or panel.css
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB ICON ANIMATIONS - Active State
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Base transition for all tab icons */
+.ie-tab i {
+    transition: transform 0.3s ease, color 0.2s ease;
+}
+
+/* Voices Tab (Masks) - Subtle theatrical wobble */
+.ie-tab-active[data-tab="voices"] i {
+    animation: ie-masks-drama 3s ease-in-out infinite;
+}
+
+@keyframes ie-masks-drama {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(-5deg) scale(1.05); }
+    75% { transform: rotate(5deg) scale(1.05); }
+}
+
+/* Cabinet Tab (Archive) - Drawer peek */
+.ie-tab-active[data-tab="cabinet"] i {
+    animation: ie-cabinet-peek 2.5s ease-in-out infinite;
+}
+
+@keyframes ie-cabinet-peek {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+/* Status Tab (Heart Pulse) - Heartbeat */
+.ie-tab-active[data-tab="status"] i {
+    animation: ie-heartbeat 1.5s ease-in-out infinite;
+}
+
+@keyframes ie-heartbeat {
+    0%, 100% { transform: scale(1); }
+    14% { transform: scale(1.15); }
+    28% { transform: scale(1); }
+    42% { transform: scale(1.1); }
+    56% { transform: scale(1); }
+}
+
+/* Ledger Tab (File) - Page rustle */
+.ie-tab-active[data-tab="ledger"] i {
+    animation: ie-page-rustle 2s ease-in-out infinite;
+}
+
+@keyframes ie-page-rustle {
+    0%, 100% { transform: rotate(0deg); }
+    25% { transform: rotate(2deg); }
+    75% { transform: rotate(-2deg); }
+}
+
+/* Inventory Tab (Briefcase) - Subtle bounce like carrying */
+.ie-tab-active[data-tab="inventory"] i {
+    animation: ie-briefcase-carry 1.8s ease-in-out infinite;
+}
+
+@keyframes ie-briefcase-carry {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-2px) rotate(1deg); }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   BOTTOM BUTTON ANIMATIONS - Active State
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Settings (Gear) - Slow rotate when active */
+.ie-bottom-btn-active[data-panel="settings"] i {
+    animation: ie-gear-rotate 4s linear infinite;
+}
+
+@keyframes ie-gear-rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Profiles (Disco Ball) - Already has spin animation in fab.css */
+/* .ie-bottom-btn-active[data-panel="profiles"] .ie-disco-ball-icon svg */
+
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Case File folder - Subtle "breathing" when panel is open */
+.ie-panel-open .ie-panel-title i {
+    animation: ie-folder-breathe 3s ease-in-out infinite;
+}
+
+@keyframes ie-folder-breathe {
+    0%, 100% { 
+        transform: scale(1); 
+        filter: drop-shadow(0 0 0 transparent);
+    }
+    50% { 
+        transform: scale(1.05); 
+        filter: drop-shadow(0 0 4px rgba(243, 101, 11, 0.3));
+    }
+}
+
+/* Case File folder - Open/close on hover */
+.ie-panel-title:hover i {
+    transform: scale(1.1);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   VITALS BAR ANIMATIONS (Bonus)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Health label pulses gently */
+.ie-vital-health .ie-vital-label {
+    animation: ie-health-glow 4s ease-in-out infinite;
+}
+
+@keyframes ie-health-glow {
+    0%, 100% { text-shadow: 0 0 0 transparent; }
+    50% { text-shadow: 0 0 6px rgba(243, 101, 11, 0.4); }
+}
+
+/* Morale label pulses gently */
+.ie-vital-morale .ie-vital-label {
+    animation: ie-morale-glow 4s ease-in-out infinite;
+    animation-delay: 2s; /* Offset from health */
+}
+
+@keyframes ie-morale-glow {
+    0%, 100% { text-shadow: 0 0 0 transparent; }
+    50% { text-shadow: 0 0 6px rgba(14, 121, 137, 0.4); }
+}
