@@ -34,7 +34,21 @@ import {
     saveProfile,
     loadProfile,
     deleteProfile,
-    initializeDefaultBuild
+    initializeDefaultBuild,
+    // Phase 1 additions - Vitals
+    vitals,
+    getVitals,
+    setHealth,
+    setMorale,
+    modifyHealth,
+    modifyMorale,
+    // Phase 1 additions - Ledger
+    ledger,
+    getLedger,
+    // Phase 1 additions - Inventory
+    inventory,
+    getInventory,
+    setMoney as setMoneyState
 } from './src/core/state.js';
 
 import { rollSkillCheck } from './src/systems/dice.js';
@@ -75,7 +89,13 @@ import {
     createPsychePanel,
     createToggleFAB,
     togglePanel,
-    switchTab
+    switchTab,
+    // Phase 1 additions
+    updateHealth,
+    updateMorale,
+    updateCaseTitle,
+    updateMoney,
+    updateWeather
 } from './src/ui/panel.js';
 
 import {
@@ -424,6 +444,41 @@ function refreshCabinetTab() {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// PHASE 1: VITALS, LEDGER, INVENTORY REFRESH
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Sync vitals display with current state
+ * Call this when panel opens, profile loads, or vitals change
+ */
+function refreshVitals() {
+    const v = getVitals();
+    updateHealth(v.health, v.maxHealth);
+    updateMorale(v.morale, v.maxMorale);
+    
+    // Update case title from character name
+    updateCaseTitle(extensionSettings.characterName);
+}
+
+/**
+ * Refresh ledger display (weather, cases, notes)
+ */
+function refreshLedgerDisplay() {
+    const l = getLedger();
+    updateWeather(l.weather.icon, l.weather.description);
+    // TODO: Render cases/notes when Phase 3 is fully implemented
+}
+
+/**
+ * Refresh inventory display (items, money)
+ */
+function refreshInventoryDisplay() {
+    const inv = getInventory();
+    updateMoney(inv.money);
+    // TODO: Render carried/worn items when Phase 4 is fully implemented
+}
+
 function refreshProfilesTab() {
     const container = document.getElementById('ie-profiles-list');
     const editor = document.getElementById('ie-attributes-editor');
@@ -434,6 +489,7 @@ function refreshProfilesTab() {
             saveState(getContext());
             refreshProfilesTab();
             refreshAttributesDisplay();
+            refreshVitals();  // Phase 1: sync vitals on profile load
             showToast(`Loaded profile: ${savedProfiles[profileId]?.name || profileId}`, 'info');
         }, (profileId) => {
             deleteProfile(profileId);
@@ -510,19 +566,44 @@ function bindEvents() {
             return;
         }
         togglePanel();
+        
+        // Refresh vitals display when opening - Phase 1
+        const panel = document.getElementById('inland-empire-panel');
+        if (panel?.classList.contains('ie-panel-open')) {
+            refreshVitals();
+        }
     });
 
     // Close panel button
     document.querySelector('.ie-btn-close-panel')?.addEventListener('click', togglePanel);
 
-    // Tab switching
+    // Tab switching (main 5 tabs)
     document.querySelectorAll('.ie-tab').forEach(tab => {
         tab.addEventListener('click', () => {
             switchTab(tab.dataset.tab, {
                 onProfiles: refreshProfilesTab,
                 onSettings: populateSettingsForm,
                 onStatus: refreshStatusTab,
-                onCabinet: refreshCabinetTab
+                onCabinet: refreshCabinetTab,
+                onVoices: refreshAttributesDisplay,
+                onLedger: refreshLedgerDisplay,
+                onInventory: refreshInventoryDisplay
+            });
+        });
+    });
+
+    // Bottom buttons (Settings/Profiles) - Phase 1
+    document.querySelectorAll('.ie-bottom-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const panel = btn.dataset.panel;
+            switchTab(panel, {
+                onProfiles: refreshProfilesTab,
+                onSettings: populateSettingsForm,
+                onStatus: refreshStatusTab,
+                onCabinet: refreshCabinetTab,
+                onVoices: refreshAttributesDisplay,
+                onLedger: refreshLedgerDisplay,
+                onInventory: refreshInventoryDisplay
             });
         });
     });
@@ -787,6 +868,7 @@ async function init() {
     refreshAttributesDisplay();
     refreshStatusTab();
     refreshCabinetTab();
+    refreshVitals();  // Phase 1
 
     // Bind events
     bindEvents();
@@ -953,7 +1035,53 @@ jQuery(async () => {
             /**
              * Update FAB visibility (useful for external control)
              */
-            updateFABState: () => updateFABState()
+            updateFABState: () => updateFABState(),
+            
+            // ─────────────────────────────────────────────────────────
+            // PHASE 1: Vitals API
+            // ─────────────────────────────────────────────────────────
+            
+            /**
+             * Get current vitals state
+             * @returns {object} { health, maxHealth, morale, maxMorale }
+             */
+            getVitals: () => getVitals(),
+            
+            /**
+             * Set health value (0 to maxHealth)
+             * @param {number} value - New health value
+             */
+            setHealth: (value) => {
+                setHealth(value, getContext());
+                refreshVitals();
+            },
+            
+            /**
+             * Set morale value (0 to maxMorale)
+             * @param {number} value - New morale value
+             */
+            setMorale: (value) => {
+                setMorale(value, getContext());
+                refreshVitals();
+            },
+            
+            /**
+             * Modify health by delta (positive or negative)
+             * @param {number} delta - Amount to change health by
+             */
+            modifyHealth: (delta) => {
+                modifyHealth(delta, getContext());
+                refreshVitals();
+            },
+            
+            /**
+             * Modify morale by delta (positive or negative)
+             * @param {number} delta - Amount to change morale by
+             */
+            modifyMorale: (delta) => {
+                modifyMorale(delta, getContext());
+                refreshVitals();
+            }
         };
         
         console.log('[Inland Empire] Global API ready: window.InlandEmpire');
