@@ -165,7 +165,7 @@
 
 /* Film strip vertical text overlay - NOW ON RIGHT */
 .inland-empire-panel::after {
-    content: 'FELD  ○  PLAYBACK  ○  FILM  ○  FELD  ○  PLAYBACK  ○  FILM  ○  FELD  ○  PLAYBACK  ○  FILM  ○';
+    content: 'FELD  PLAYBACK  FILM                                                                                                                                                                                    FELD  MEF  PLUS+  ○  ▶';
     position: absolute;
     top: 0;
     right: 0;
@@ -179,7 +179,6 @@
     font-size: 7px;
     font-weight: 700;
     letter-spacing: 4px;
-    word-spacing: 2px;
     color: #606270;
     padding: 20px 0;
     overflow: hidden;
@@ -188,6 +187,7 @@
     align-items: center;
     justify-content: flex-start;
     text-transform: uppercase;
+    white-space: pre;
 }
 
 /* Adjust panel content to account for borders - NOW margin-left for ruler, margin-right for film strip */
@@ -334,7 +334,8 @@
 }
 
 
-/* Panel Content Adjustments (from additions) */
+/* ═══════════════════════════════════════════════════════════════
+   Panel Content Adjustments (from additions)
    ═══════════════════════════════════════════════════════════════ */
 
 /* Make panel content fill available space */
