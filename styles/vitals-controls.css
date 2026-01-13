@@ -1,0 +1,182 @@
+/**
+ * The Tribunal - Phase 2 Styles
+ * Vitals manual controls and detection settings
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   VITALS CONTROLS (+/- Buttons)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-vital-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ie-vital-btn {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--ie-text-muted, #8b8b83);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    font-size: 10px;
+}
+
+.ie-vital-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--ie-text, #d4d4c4);
+}
+
+.ie-vital-btn:active {
+    transform: scale(0.9);
+}
+
+/* Health buttons */
+.ie-vital-detail-row.ie-health .ie-vital-btn-minus:hover {
+    background: rgba(243, 101, 11, 0.3);
+    color: #f3650b;
+}
+
+.ie-vital-detail-row.ie-health .ie-vital-btn-plus:hover {
+    background: rgba(76, 175, 80, 0.3);
+    color: #4caf50;
+}
+
+/* Morale buttons */
+.ie-vital-detail-row.ie-morale .ie-vital-btn-minus:hover {
+    background: rgba(14, 121, 137, 0.3);
+    color: #0e7989;
+}
+
+.ie-vital-detail-row.ie-morale .ie-vital-btn-plus:hover {
+    background: rgba(76, 175, 80, 0.3);
+    color: #4caf50;
+}
+
+/* Adjust header layout for controls */
+.ie-vital-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.ie-vital-detail-value {
+    font-family: var(--ie-font-mono, 'Courier New', monospace);
+    font-size: 12px;
+    color: var(--ie-text, #d4d4c4);
+    min-width: 70px;
+    text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SETTINGS: Vitals Detection Section
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--ie-border, #3d3d35);
+    border-radius: 4px;
+    background: var(--ie-bg-input, #1a1a16);
+    color: var(--ie-text, #d4d4c4);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.ie-select:focus {
+    outline: none;
+    border-color: var(--ie-accent, #f3650b);
+}
+
+.ie-select option {
+    background: var(--ie-bg-dark, #0d0d0a);
+    color: var(--ie-text, #d4d4c4);
+}
+
+/* Secondary button style */
+.ie-btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--ie-border, #3d3d35);
+    color: var(--ie-text-muted, #8b8b83);
+}
+
+.ie-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--ie-text, #d4d4c4);
+    border-color: var(--ie-text-muted, #8b8b83);
+}
+
+/* Test button styling */
+#ie-test-vitals-btn {
+    margin-top: 8px;
+}
+
+#ie-test-vitals-btn i {
+    color: var(--ie-morale, #0e7989);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VITALS FLASH ANIMATIONS (damage/heal feedback)
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes ie-vital-damage-flash {
+    0%, 100% { 
+        box-shadow: none;
+    }
+    50% { 
+        box-shadow: inset 0 0 20px rgba(255, 50, 50, 0.5);
+    }
+}
+
+@keyframes ie-vital-heal-flash {
+    0%, 100% { 
+        box-shadow: none;
+    }
+    50% { 
+        box-shadow: inset 0 0 20px rgba(50, 255, 50, 0.5);
+    }
+}
+
+.ie-vital-damage {
+    animation: ie-vital-damage-flash 0.4s ease-out;
+}
+
+.ie-vital-heal {
+    animation: ie-vital-heal-flash 0.4s ease-out;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOW/CRITICAL STATE REFINEMENTS (Phase 2)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-vital-detail-row.ie-vital-low .ie-vital-detail-label,
+.ie-vital-detail-row.ie-vital-low .ie-vital-detail-value {
+    animation: ie-pulse-gentle 1.5s ease-in-out infinite;
+}
+
+.ie-vital-detail-row.ie-vital-critical .ie-vital-detail-label,
+.ie-vital-detail-row.ie-vital-critical .ie-vital-detail-value {
+    animation: ie-pulse-critical 0.8s ease-in-out infinite;
+    color: #ff6b6b;
+}
+
+.ie-vital-detail-row.ie-vital-critical .ie-vital-detail-fill {
+    box-shadow: 0 0 10px currentColor;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SETTINGS ACTIONS SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-settings-actions {
+    padding-top: 16px;
+    border-top: 1px solid var(--ie-border, #3d3d35);
+    margin-top: 8px;
+}
