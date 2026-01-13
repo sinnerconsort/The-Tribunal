@@ -39,26 +39,27 @@
     gap: 6px;
 }
 
-.ie-archetype-grid {
+.ie-copotype-grid {
     grid-template-columns: repeat(2, 1fr);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STATUS CARDS - Smaller, Thinner, FA Icons
+   STATUS CARDS - Horizontal, Flat, FA Icons
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-status-card {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
-    padding: 8px 4px;
-    min-height: 55px;
+    justify-content: flex-start;
+    padding: 6px 10px;
+    min-height: 36px;
     background: var(--ie-accent-blue, #0e7989) !important;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
-    text-align: center;
+    text-align: left;
+    gap: 8px;
 }
 
 .ie-status-card:hover {
@@ -88,36 +89,35 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STATUS ICON - FontAwesome
+   STATUS ICON - FontAwesome (horizontal layout)
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-status-icon {
-    font-size: 1.1rem;
-    margin-bottom: 4px;
+    font-size: 1rem;
     color: rgba(255, 255, 255, 0.9);
-    display: block;
-    line-height: 1;
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STATUS NAME
+   STATUS NAME (horizontal layout)
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-status-name {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.95);
-    line-height: 1.15;
-    max-width: 100%;
-    word-wrap: break-word;
+    line-height: 1.2;
+    flex: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ARCHETYPE CARDS
+   COPOTYPE CARDS - Same horizontal but maybe slightly taller
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-archetype-card {
-    min-height: 60px;
+.ie-copotype-card {
+    min-height: 38px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
