@@ -1,0 +1,151 @@
+/**
+ * The Tribunal - Status Cards
+ * FA icon support + smaller cards
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   STATUS CATEGORY HEADERS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-status-category {
+    margin-bottom: 16px;
+}
+
+.ie-status-category-header {
+    font-family: var(--ie-font-header, 'IBM Plex Mono', monospace);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--ie-text-secondary, #8b8b7a);
+    margin-bottom: 8px;
+    padding-left: 4px;
+}
+
+.ie-status-category-header::before {
+    content: '◆';
+    color: var(--ie-accent-orange, #f3650b);
+    margin-right: 6px;
+    font-size: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STATUS GRID
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-status-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.ie-archetype-grid {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STATUS CARDS - Smaller, FA Icons
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-status-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 6px;
+    min-height: 70px;
+    background: var(--ie-accent-blue, #0e7989);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.ie-status-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    filter: brightness(1.1);
+}
+
+.ie-status-card:active {
+    transform: translateY(0);
+}
+
+/* Active state - orange */
+.ie-status-active {
+    background: var(--ie-accent-orange, #f3650b) !important;
+}
+
+.ie-status-active .ie-status-icon {
+    color: #fff;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STATUS ICON - FontAwesome
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-status-icon {
+    font-size: 1.4rem;
+    margin-bottom: 6px;
+    color: rgba(255, 255, 255, 0.9);
+    display: block;
+    line-height: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STATUS NAME
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-status-name {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.2;
+    max-width: 100%;
+    word-wrap: break-word;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ARCHETYPE CARDS - Slightly different styling
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-archetype-card {
+    min-height: 75px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANCIENT VOICES SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-ancient-voice-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--ie-bg-tertiary, #1a1a16);
+    border-radius: 4px;
+    border-left: 3px solid var(--ie-accent-orange, #f3650b);
+    margin-bottom: 8px;
+}
+
+.ie-ancient-voice-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    text-align: center;
+}
+
+.ie-ancient-voice-info {
+    flex: 1;
+}
+
+.ie-ancient-voice-name {
+    font-weight: 600;
+    color: var(--ie-text-primary, #e8e8dc);
+    margin-bottom: 2px;
+}
+
+.ie-ancient-voice-trigger {
+    font-size: 0.75rem;
+    color: var(--ie-text-secondary, #8b8b7a);
+}
