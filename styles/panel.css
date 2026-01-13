@@ -163,15 +163,14 @@
     box-shadow: inset 2px 0 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Film strip vertical text overlay - NOW ON RIGHT */
+/* Film strip vertical text - TOP (FELD PLAYBACK FILM) */
 .inland-empire-panel::after {
-    content: 'FELD  PLAYBACK  FILM                                                                                FELD  MEF  PLUS+  ○  ▶';
+    content: 'FELD  PLAYBACK  FILM';
     position: absolute;
-    top: 0;
+    top: 60px;
     right: 0;
     left: auto;
     width: 22px;
-    height: 100%;
     z-index: 10001;
     writing-mode: vertical-rl;
     text-orientation: mixed;
@@ -180,14 +179,33 @@
     font-weight: 700;
     letter-spacing: 4px;
     color: #606270;
-    padding: 60px 0 20px 0;
-    overflow: hidden;
     pointer-events: none;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
     text-transform: uppercase;
     white-space: pre;
+}
+
+/* Film strip vertical text - BOTTOM (FELD MEF PLUS+) */
+.ie-film-bottom-text {
+    position: absolute;
+    bottom: 40px;
+    right: 0;
+    left: auto;
+    width: 22px;
+    z-index: 10001;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-family: 'Courier New', monospace;
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: #606270;
+    pointer-events: none;
+    text-transform: uppercase;
+    white-space: pre;
+}
+
+.ie-film-bottom-text::before {
+    content: 'FELD  MEF  PLUS+  ○  ▶';
 }
 
 /* Adjust panel content to account for borders - NOW margin-left for ruler, margin-right for film strip */
