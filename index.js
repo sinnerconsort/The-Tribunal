@@ -844,30 +844,30 @@ function bindEvents() {
     // PHASE 2: Manual Vitals Adjustment Buttons
     // ═══════════════════════════════════════════════════════════════
     
-    // Health adjustment buttons
+    // Health adjustment buttons (±1 to match DE's 1-13 scale)
     document.getElementById('ie-health-minus')?.addEventListener('click', () => {
-        modifyHealth(-5, getContext());
+        modifyHealth(-1, getContext());
         refreshVitals();
-        showToast('Health -5', 'warning', 1500);
+        showToast('Health -1', 'warning', 1500);
     });
     
     document.getElementById('ie-health-plus')?.addEventListener('click', () => {
-        modifyHealth(5, getContext());
+        modifyHealth(1, getContext());
         refreshVitals();
-        showToast('Health +5', 'success', 1500);
+        showToast('Health +1', 'success', 1500);
     });
     
     // Morale adjustment buttons
     document.getElementById('ie-morale-minus')?.addEventListener('click', () => {
-        modifyMorale(-5, getContext());
+        modifyMorale(-1, getContext());
         refreshVitals();
-        showToast('Morale -5', 'warning', 1500);
+        showToast('Morale -1', 'warning', 1500);
     });
     
     document.getElementById('ie-morale-plus')?.addEventListener('click', () => {
-        modifyMorale(5, getContext());
+        modifyMorale(1, getContext());
         refreshVitals();
-        showToast('Morale +5', 'success', 1500);
+        showToast('Morale +1', 'success', 1500);
     });
 }
 
