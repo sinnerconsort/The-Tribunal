@@ -128,11 +128,12 @@ export const MORALE_RESTORE_KEYWORDS = {
 // SEVERITY MAPPINGS
 // ═══════════════════════════════════════════════════════════════
 
+// Scaled for DE's 1-13 vitals system
 export const SEVERITY_VALUES = {
-    minor: 5,
-    moderate: 15,
-    major: 30,
-    critical: 50
+    minor: 1,      // Scratched, embarrassed
+    moderate: 2,   // Hurt, humiliated  
+    major: 4,      // Severely wounded, crushed
+    critical: 6    // Dying, hopeless
 };
 
 // Sensitivity multipliers - adjust detection thresholds
