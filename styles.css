@@ -173,12 +173,12 @@
     height: 100%;
     z-index: 10000;
     pointer-events: none;
-    /* Base cream color - lightened */
+    /* Cool gray base */
     background: linear-gradient(
         to left,
-        #e0dcd4 0%,
-        #eae6de 50%,
-        #e0dcd4 100%
+        #a8afb2 0%,
+        #b6bdc0 50%,
+        #a8afb2 100%
     );
     box-shadow: inset -2px 0 6px rgba(0, 0, 0, 0.25);
 }
@@ -195,8 +195,8 @@
         to bottom,
         transparent 0px,
         transparent 9px,
-        rgba(80, 65, 50, 0.45) 9px,
-        rgba(80, 65, 50, 0.45) 10px
+        #606270 9px,
+        #606270 10px
     );
     background-size: 8px 10px;
     background-position: left top;
@@ -215,8 +215,8 @@
         to bottom,
         transparent 0px,
         transparent 48px,
-        rgba(60, 50, 40, 0.6) 48px,
-        rgba(60, 50, 40, 0.6) 50px
+        #606270 48px,
+        #606270 50px
     );
     background-size: 14px 50px;
     background-position: left top;
