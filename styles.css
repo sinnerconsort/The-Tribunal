@@ -237,15 +237,15 @@
     height: 100%;
     background: linear-gradient(
         to left,
-        #d4cfc4 0%,
-        #e8e4dc 30%,
-        #d4cfc4 100%
+        #a8afb2 0%,
+        #b6bdc0 30%,
+        #a8afb2 100%
     );
     z-index: 10000;
     /* Sprocket holes using repeating gradient */
     background-image: 
-        /* Main cream background */
-        linear-gradient(to left, #d4cfc4 0%, #e8e4dc 30%, #d4cfc4 100%),
+        /* Main gray background */
+        linear-gradient(to left, #a8afb2 0%, #b6bdc0 30%, #a8afb2 100%),
         /* Sprocket holes - left column */
         repeating-linear-gradient(
             to bottom,
@@ -275,7 +275,7 @@
 
 /* Film strip vertical text overlay - NOW ON RIGHT */
 .inland-empire-panel::after {
-    content: 'THE  ·  TRIBUNAL  ·  VOICES  ·  PASSING  ·  JUDGMENT  ·  THE  ·  TRIBUNAL  ·  VOICES  ·  PASSING  ·  JUDGMENT  ·';
+    content: 'FELD  ○  PLAYBACK  ○  FILM  ○  FELD  ○  PLAYBACK  ○  FILM  ○  FELD  ○  PLAYBACK  ○  FILM  ○';
     position: absolute;
     top: 0;
     right: 0;
@@ -290,7 +290,7 @@
     font-weight: 700;
     letter-spacing: 4px;
     word-spacing: 2px;
-    color: rgba(80, 70, 60, 0.5);
+    color: #606270;
     padding: 20px 0;
     overflow: hidden;
     pointer-events: none;
