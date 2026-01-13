@@ -422,7 +422,7 @@ function refreshStatusTab() {
     const effectsSummary = document.getElementById('ie-active-effects-summary');
     
     if (statusGrid) {
-        renderStatusGrid(statusGrid, STATUS_EFFECTS, activeStatuses, (statusId) => {
+        renderStatusGrid(statusGrid, (statusId) => {
             toggleStatus(statusId);
             saveState(getContext());
             refreshStatusTab();
@@ -431,7 +431,7 @@ function refreshStatusTab() {
     }
     
     if (effectsSummary) {
-        renderActiveEffectsSummary(effectsSummary, activeStatuses, STATUS_EFFECTS);
+        renderActiveEffectsSummary(effectsSummary);
     }
 }
 
