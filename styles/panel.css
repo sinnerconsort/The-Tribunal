@@ -204,9 +204,9 @@
     white-space: pre;
 }
 
-/* Text + circle + arrow all in vertical flow */
+/* Text + circle + arrow - tighter spacing between circle and arrow */
 .ie-film-bottom-text::before {
-    content: 'FELD  MEF  PLUS+    ◯    ▼';
+    content: 'FELD  MEF  PLUS+    ◯ ▼';
 }
 
 /* Adjust panel content to account for borders - NOW margin-left for ruler, margin-right for film strip */
