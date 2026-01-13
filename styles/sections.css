@@ -181,6 +181,7 @@
     display: flex;
     gap: 8px;
     padding: 10px 16px 12px 28px; /* Left padding for ruler */
+    margin-right: 22px; /* Right margin for film strip border */
     background: var(--ie-bg-secondary);
     border-top: 1px solid var(--ie-border);
     flex-shrink: 0;

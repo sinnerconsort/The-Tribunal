@@ -329,19 +329,31 @@
    DISCO BALL SVG ICON (from additions)
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-disco-icon {
+.ie-disco-icon,
+.ie-disco-ball-icon {
     width: 18px;
     height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ie-disco-icon svg,
+.ie-disco-ball-icon svg {
+    width: 100%;
+    height: 100%;
     stroke: currentColor;
     fill: none;
     transition: transform 0.3s ease;
 }
 
-.ie-bottom-btn:hover .ie-disco-icon {
+.ie-bottom-btn:hover .ie-disco-icon,
+.ie-bottom-btn:hover .ie-disco-ball-icon svg {
     transform: rotate(15deg);
 }
 
-.ie-bottom-btn.ie-bottom-btn-active .ie-disco-icon {
+.ie-bottom-btn.ie-bottom-btn-active .ie-disco-icon,
+.ie-bottom-btn.ie-bottom-btn-active .ie-disco-ball-icon svg {
     animation: ie-disco-spin 3s linear infinite;
 }
 
