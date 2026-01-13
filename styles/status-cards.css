@@ -30,46 +30,45 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STATUS GRID
+   STATUS GRID - Flex wrap for pills
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-status-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 6px;
 }
 
 .ie-copotype-grid {
-    grid-template-columns: repeat(2, 1fr);
+    /* Same flex wrap */
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STATUS CARDS - Horizontal, Flat, FA Icons
+   STATUS CARDS - Pill-shaped like theme tags
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-status-card {
-    display: flex;
+    display: inline-flex;
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
-    padding: 6px 10px;
-    min-height: 36px;
+    padding: 6px 12px;
+    height: 32px;
     background: var(--ie-accent-blue, #0e7989) !important;
-    border-radius: 4px;
+    border-radius: 16px;
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: left;
-    gap: 8px;
+    gap: 6px;
 }
 
 .ie-status-card:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
-    filter: brightness(1.1);
+    filter: brightness(1.15);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .ie-status-card:active {
-    transform: translateY(0);
+    transform: scale(0.98);
 }
 
 /* Active state - orange - HIGH SPECIFICITY */
@@ -80,7 +79,6 @@
 
 .ie-status-card.ie-status-active .ie-status-icon {
     color: #fff;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
 .ie-status-card.ie-status-active .ie-status-name {
@@ -89,35 +87,33 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STATUS ICON - FontAwesome (horizontal layout)
+   STATUS ICON - FontAwesome (pill layout)
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-status-icon {
-    font-size: 1rem;
+    font-size: 0.85rem;
     color: rgba(255, 255, 255, 0.9);
     flex-shrink: 0;
-    width: 20px;
-    text-align: center;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STATUS NAME (horizontal layout)
+   STATUS NAME (pill layout)
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-status-name {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.95);
-    line-height: 1.2;
-    flex: 1;
+    line-height: 1;
+    white-space: nowrap;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   COPOTYPE CARDS - Same horizontal but maybe slightly taller
+   COPOTYPE CARDS - Same pill style
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-copotype-card {
-    min-height: 38px;
+    /* Same as regular status cards */
 }
 
 /* ═══════════════════════════════════════════════════════════════
