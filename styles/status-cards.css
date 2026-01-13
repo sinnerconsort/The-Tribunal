@@ -48,18 +48,18 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-status-card {
-    display: inline-flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 6px 12px;
-    height: 32px;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    padding: 6px 12px !important;
+    height: 32px !important;
     background: var(--ie-accent-blue, #0e7989) !important;
-    border-radius: 16px;
+    border-radius: 16px !important;
     cursor: pointer;
     transition: all 0.2s ease;
     text-align: left;
-    gap: 6px;
+    gap: 6px !important;
 }
 
 .ie-status-card:hover {
@@ -87,25 +87,28 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STATUS ICON - FontAwesome (pill layout)
+   STATUS ICON - FontAwesome (pill layout) - FORCE INLINE
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-status-icon {
-    font-size: 0.85rem;
+.ie-status-card .ie-status-icon {
+    font-size: 0.85rem !important;
     color: rgba(255, 255, 255, 0.9);
     flex-shrink: 0;
+    display: inline !important;
+    margin-bottom: 0 !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STATUS NAME (pill layout)
+   STATUS NAME (pill layout) - FORCE INLINE
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-status-name {
-    font-size: 0.75rem;
+.ie-status-card .ie-status-name {
+    font-size: 0.75rem !important;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.95);
     line-height: 1;
     white-space: nowrap;
+    display: inline !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
