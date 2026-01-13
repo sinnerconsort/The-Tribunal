@@ -11,7 +11,8 @@
  */
 
 import { SKILLS } from '../data/skills.js';
-import { extensionSettings, saveState, getEffectiveSkillLevel } from '../core/state.js';
+import { STATUS_EFFECTS, COPOTYPE_IDS } from '../data/statuses.js';
+import { extensionSettings, saveState, getEffectiveSkillLevel, activeStatuses } from '../core/state.js';
 import { callAPI } from './generation.js';
 import { rollSkillCheck } from '../systems/dice.js';
 import { getResearchPenalties } from '../systems/cabinet.js';
@@ -20,6 +21,26 @@ import { getResearchPenalties } from '../systems/cabinet.js';
 // NARRATOR CONTEXT WEIGHTS
 // Which skills narrate best in which environments?
 // ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get the active copotype (if any) and its voice style
+ * Used to flavor investigation narratives
+ */
+function getActiveCopotype() {
+    for (const statusId of activeStatuses) {
+        if (COPOTYPE_IDS && COPOTYPE_IDS.includes(statusId)) {
+            const copotype = STATUS_EFFECTS[statusId];
+            if (copotype && copotype.voiceStyle) {
+                return {
+                    id: statusId,
+                    name: copotype.name,
+                    voiceStyle: copotype.voiceStyle
+                };
+            }
+        }
+    }
+    return null;
+}
 
 const NARRATOR_CONTEXTS = {
     bar_club: {
@@ -483,6 +504,19 @@ async function generateInvestigation(sceneText, narrator, checkResult, reactors,
     ).join('\n');
     
     // ═══════════════════════════════════════════════════════════════
+    // COPOTYPE FLAVOR (influences narrative style)
+    // ═══════════════════════════════════════════════════════════════
+    let copotypeInstructions = '';
+    const activeCopotype = getActiveCopotype();
+    if (activeCopotype) {
+        copotypeInstructions = `
+
+NARRATIVE FLAVOR - ${activeCopotype.name}:
+The entire investigation should lean into this style: ${activeCopotype.voiceStyle}
+This colors the narrator's prose and how reactors comment. Everything feels filtered through this lens.`;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
     // OBJECT VOICE INSTRUCTIONS (RNG-gated)
     // ═══════════════════════════════════════════════════════════════
     const objectInstructions = includeObject ? `
@@ -529,7 +563,7 @@ CRITICAL SUCCESS: Narrator perceives something PROFOUND - a deep truth about thi
 
 SKILL REACTORS:
 ${skillDescriptions}
-${objectInstructions}
+${objectInstructions}${copotypeInstructions}
 
 RULES:
 - Respect POV setting: ${povStyle} person${charName ? `, character is "${charName}"` : ''}
