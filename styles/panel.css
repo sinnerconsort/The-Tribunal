@@ -278,8 +278,7 @@
 
 .ie-panel-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;  /* Stack header-top and vitals-row vertically */
     padding: 16px 20px;
     background: var(--ie-bg-panel);  /* Match teal panel background */
     border-bottom: 2px solid var(--ie-accent-orange);
@@ -311,6 +310,8 @@
    HEADER - CASE FILE TITLE + VITALS BARS (from additions)
    ═══════════════════════════════════════════════════════════════ */
 .ie-panel-header {
+    display: flex;
+    flex-direction: column;  /* Stack header-top and vitals-row vertically */
     padding: 12px 16px 8px 8px;  /* Reduced left padding */
     border-bottom: 1px solid var(--ie-border);
     background: var(--ie-bg-panel);  /* Match teal panel background */
