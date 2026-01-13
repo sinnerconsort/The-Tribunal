@@ -18,7 +18,7 @@ export function createPsychePanel() {
         <div class="ie-right-ruler"></div>
         <div class="ie-panel-header">
             <div class="ie-panel-title">
-                <span style="font-size: 20px;">📇</span>
+                <i class="fa-solid fa-address-card"></i>
                 <span>Psyche</span>
             </div>
             <div class="ie-panel-controls">
@@ -352,7 +352,7 @@ export function createToggleFAB(getContext) {
     fab.id = 'inland-empire-fab';
     fab.className = 'ie-fab';
     fab.title = 'Toggle Psyche Panel';
-    fab.innerHTML = '<span class="ie-fab-icon">📇</span>';
+    fab.innerHTML = '<span class="ie-fab-icon"><i class="fa-solid fa-address-card"></i></span>';
     fab.style.display = 'flex';
     fab.style.top = `${extensionSettings.fabPositionTop ?? 140}px`;
     fab.style.left = `${extensionSettings.fabPositionLeft ?? 10}px`;
