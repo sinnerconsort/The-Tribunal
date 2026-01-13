@@ -1,0 +1,394 @@
+/**
+ * The Tribunal - FAB Styles
+ * Floating Action Buttons - DE Style
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   FAB (Floating Action Button) - DE Style
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-fab {
+    position: fixed;
+    z-index: 9998;
+    width: 52px;
+    height: 52px;
+    border-radius: 4px;
+    background: var(--ie-bg-secondary);
+    border: 2px solid var(--ie-border-light);
+    color: var(--ie-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--ie-shadow);
+    transition: all 0.2s ease;
+    font-size: 22px;
+}
+
+.ie-fab::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+    background: var(--ie-border-light);
+}
+
+.ie-fab:hover {
+    border-color: var(--ie-accent-orange);
+    color: var(--ie-accent-orange);
+    box-shadow: 0 0 20px var(--ie-accent-orange-glow);
+}
+
+/* Main FAB card icon styling */
+.ie-fab-icon {
+    font-size: 22px;
+    line-height: 1;
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ie-fab-icon i {
+    color: var(--ie-accent-orange);
+    transition: transform 0.3s ease, color 0.2s ease;
+}
+
+.ie-fab:hover .ie-fab-icon i {
+    color: var(--ie-accent-orange);
+    transform: scale(1.1);
+}
+
+.ie-fab.ie-fab-active .ie-fab-icon i {
+    color: var(--ie-bg-primary);
+}
+
+/* Peek-up animation for card icon */
+@keyframes ie-card-peek {
+    0% { transform: translateY(0); }
+    25% { transform: translateY(-6px); }
+    50% { transform: translateY(-3px); }
+    75% { transform: translateY(-5px); }
+    100% { transform: translateY(0); }
+}
+
+.ie-fab.ie-fab-loading .ie-fab-icon {
+    animation: ie-card-peek 0.8s ease-in-out;
+}
+
+/* Continuous subtle idle animation when panel is open */
+.ie-fab.ie-fab-active .ie-fab-icon {
+    animation: ie-card-idle 3s ease-in-out infinite;
+}
+
+@keyframes ie-card-idle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+}
+
+.ie-fab-active {
+    background: var(--ie-accent-orange);
+    border-color: var(--ie-accent-orange);
+    color: var(--ie-bg-primary);
+}
+
+.ie-fab-disabled {
+    opacity: 0.4;
+    border-color: var(--ie-border);
+    color: var(--ie-text-muted);
+}
+
+.ie-fab-disabled:hover {
+    transform: none;
+    border-color: var(--ie-border);
+    color: var(--ie-text-muted);
+    box-shadow: var(--ie-shadow);
+}
+
+/* Investigation FAB disabled state */
+.ie-thought-fab-disabled {
+    opacity: 0.4;
+    border-color: var(--ie-border);
+    pointer-events: none;
+}
+
+.ie-thought-fab-disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+
+/* Thought Bubble FAB - Environmental Awareness */
+   THOUGHT BUBBLE FAB - Environmental Awareness
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-thought-fab {
+    position: fixed;
+    z-index: 9997;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #5bc48a 0%, #47b67c 50%, #3a9468 100%);
+    border: 3px solid #d0bd61;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: all 0.2s ease;
+    font-size: 20px;
+}
+
+.ie-thought-fab:hover {
+    transform: scale(1.1);
+    box-shadow: 
+        0 6px 20px rgba(71, 182, 124, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    border-color: #e0d080;
+}
+
+.ie-thought-fab:active {
+    transform: scale(0.95);
+}
+
+/* Notification badge */
+.ie-thought-fab-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    background: #d0bd61;
+    border-radius: 50%;
+    color: #1a1a20;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    animation: ie-badge-pulse 2s infinite;
+}
+
+.ie-thought-fab-badge:empty,
+.ie-thought-fab-badge[data-count="0"] {
+    display: none;
+}
+
+@keyframes ie-badge-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+/* Pulse animation when new discoveries */
+.ie-thought-fab-pulse {
+    animation: ie-fab-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes ie-fab-glow {
+    0%, 100% { 
+        box-shadow: 
+            0 4px 12px rgba(0, 0, 0, 0.4),
+            0 0 0 0 rgba(208, 189, 97, 0);
+    }
+    50% { 
+        box-shadow: 
+            0 4px 12px rgba(0, 0, 0, 0.4),
+            0 0 0 8px rgba(208, 189, 97, 0.3);
+    }
+}
+
+
+/* Thought/Discovery FAB - Restyled for DE Aesthetic */
+/* ═══════════════════════════════════════════════════════════════
+   THOUGHT/DISCOVERY FAB - Restyled for DE Aesthetic
+   Replace the existing .ie-thought-fab section with this
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-thought-fab {
+    position: fixed;
+    z-index: 9997;
+    width: 52px;
+    height: 52px;
+    border-radius: 4px; /* More angular like the brain FAB */
+    background: var(--ie-bg-secondary);
+    border: 2px solid var(--ie-border-light);
+    color: var(--ie-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--ie-shadow);
+    transition: all 0.2s ease;
+}
+
+/* Top accent bar like the brain FAB */
+.ie-thought-fab::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+    background: var(--ie-border-light);
+    transition: background 0.2s ease;
+}
+
+.ie-thought-fab:hover {
+    border-color: #d0bd61; /* Gold accent for discovery */
+    color: #d0bd61;
+    box-shadow: 0 0 20px rgba(208, 189, 97, 0.3);
+}
+
+.ie-thought-fab:hover::before {
+    background: #d0bd61;
+}
+
+.ie-thought-fab-icon {
+    font-size: 22px;
+    transition: transform 0.2s ease;
+    position: relative;
+}
+
+.ie-thought-fab:hover .ie-thought-fab-icon {
+    transform: scale(1.1);
+}
+
+
+/* Discovery FAB - Font Awesome Icon Enhancements */
+/* ═══════════════════════════════════════════════════════════════
+   DISCOVERY FAB - Font Awesome Icon Enhancements
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Enhanced icon styling for FA icons */
+.ie-thought-fab-icon i {
+    color: var(--ie-psyche-accent, #e8a87c);
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+/* Hover state - brighter */
+.ie-thought-fab:hover .ie-thought-fab-icon i {
+    color: #f0c090;
+    transform: scale(1.1);
+}
+
+/* Scanning state - animated */
+.ie-thought-fab.ie-scanning .ie-thought-fab-icon i {
+    color: #4fc3f7;
+    animation: ie-icon-scan-pulse 1s ease-in-out infinite;
+}
+
+/* Success flash for icon */
+.ie-thought-fab.ie-scan-success .ie-thought-fab-icon i {
+    color: #81c784;
+    animation: ie-icon-success-flash 0.5s ease-out;
+}
+
+/* Has discoveries - icon pulsing */
+.ie-thought-fab-pulse .ie-thought-fab-icon i {
+    animation: ie-discovery-glow 2s ease-in-out infinite;
+}
+
+@keyframes ie-icon-scan-pulse {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes ie-icon-success-flash {
+    0% { color: #81c784; transform: scale(1.2); }
+    100% { color: var(--ie-psyche-accent, #e8a87c); transform: scale(1); }
+}
+
+@keyframes ie-discovery-glow {
+    0%, 100% { color: var(--ie-psyche-accent, #e8a87c); }
+    50% { color: #ffd54f; filter: drop-shadow(0 0 6px #ffd54f80); }
+}
+
+/* Modal header icon */
+.ie-discovery-title-icon i {
+    color: var(--ie-psyche-accent, #e8a87c);
+}
+
+/* Empty state icon enhancement */
+.ie-discovery-empty i.fa-search {
+    font-size: 2rem;
+    opacity: 0.5;
+    margin-bottom: 8px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   DISCO BALL SVG ICON (from additions)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-disco-icon {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    fill: none;
+    transition: transform 0.3s ease;
+}
+
+.ie-bottom-btn:hover .ie-disco-icon {
+    transform: rotate(15deg);
+}
+
+.ie-bottom-btn.ie-bottom-btn-active .ie-disco-icon {
+    animation: ie-disco-spin 3s linear infinite;
+}
+
+@keyframes ie-disco-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SUGGESTIONS FAB (from additions)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-suggestions-fab {
+    /* Inherits base .ie-fab styles */
+}
+
+.ie-suggestions-fab .ie-fab-icon i {
+    color: #FFC107; /* Warm yellow for lightbulb */
+    transition: all 0.3s ease;
+}
+
+.ie-suggestions-fab:hover .ie-fab-icon i {
+    color: #FFD54F;
+    text-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+    transform: scale(1.1);
+}
+
+/* Lightbulb "on" state when active */
+.ie-suggestions-fab.ie-fab-active .ie-fab-icon i {
+    color: #FFEB3B;
+    text-shadow: 0 0 15px rgba(255, 235, 59, 0.8);
+    animation: ie-bulb-glow 2s ease-in-out infinite;
+}
+
+@keyframes ie-bulb-glow {
+    0%, 100% { text-shadow: 0 0 10px rgba(255, 235, 59, 0.5); }
+    50% { text-shadow: 0 0 20px rgba(255, 235, 59, 0.9); }
+}
+
+/* Generating state */
+.ie-suggestions-fab.ie-generating .ie-fab-icon i {
+    animation: ie-bulb-pulse 0.8s ease-in-out infinite;
+}
+
+@keyframes ie-bulb-pulse {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.15); }
+}
+

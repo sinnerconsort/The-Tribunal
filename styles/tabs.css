@@ -1,0 +1,906 @@
+/**
+ * The Tribunal - Tab Styles
+ * All tab themes: Skills, Settings, Thought Cabinet, Profiles, Status
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   TABS - DE Style with Orange Accent
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-tabs {
+    display: flex;
+    background: var(--ie-bg-secondary);
+    border-bottom: 1px solid var(--ie-border);
+}
+
+.ie-tab {
+    flex: 1;
+    padding: 12px 8px;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--ie-text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 15px;
+    font-family: var(--ie-font-header);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ie-tab:hover {
+    background: var(--ie-bg-tertiary);
+    color: var(--ie-text-secondary);
+}
+
+.ie-tab-active {
+    background: var(--ie-bg-primary);
+    color: var(--ie-accent-orange);
+    border-bottom: 3px solid var(--ie-accent-orange);
+}
+
+.ie-tab-content {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+}
+
+.ie-tab-content-active {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SKILLS TAB - DE Character Screen Style
+   ═══════════════════════════════════════════════════════════════ */
+
+[data-tab-content="skills"] {
+    background: linear-gradient(
+        to right,
+        #053a5a 0%,
+        #051f2e 33%,
+        #0b2f23 66%,
+        #172532 100%
+    );
+    position: relative;
+}
+
+/* Content needs to be above any overlays */
+[data-tab-content="skills"] > * {
+    position: relative;
+    z-index: 2;
+}
+
+/* Adjust attribute cards for the new background */
+[data-tab-content="skills"] .ie-attribute-card {
+    background: rgba(13, 13, 18, 0.5);
+    backdrop-filter: blur(2px);
+}
+
+/* Inner voices section in skills tab */
+[data-tab-content="skills"] .ie-section {
+    background: rgba(13, 13, 18, 0.4);
+    border-left-color: rgba(155, 158, 153, 0.5);
+}
+
+/* Section headers in skills tab */
+[data-tab-content="skills"] .ie-section-header span::before {
+    color: rgba(155, 158, 153, 0.6);
+}
+
+/* Skills tab button when active - teal accent */
+.ie-tab[data-tab="skills"].ie-tab-active {
+    color: #53a4b5;
+    border-bottom-color: #53a4b5;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SETTINGS TAB - DE Main Menu Style
+   ═══════════════════════════════════════════════════════════════ */
+
+[data-tab-content="settings"] {
+    background: linear-gradient(
+        to bottom,
+        #99673f 0%,
+        #7c4618 33%,
+        #412710 66%,
+        #432912 100%
+    );
+}
+
+[data-tab-content="settings"] .ie-section {
+    background: rgba(29, 38, 51, 0.6);
+    border-left: 3px solid #6b6e6a;
+    backdrop-filter: blur(4px);
+}
+
+[data-tab-content="settings"] .ie-section-header {
+    color: #e8e4de;
+    border-bottom-color: rgba(157, 161, 160, 0.3);
+}
+
+[data-tab-content="settings"] .ie-section-header span::before {
+    color: #1c2630;
+}
+
+[data-tab-content="settings"] .ie-form-group label {
+    color: #7a7d7c;
+}
+
+[data-tab-content="settings"] .ie-form-group input,
+[data-tab-content="settings"] .ie-form-group select,
+[data-tab-content="settings"] .ie-form-group textarea {
+    background: rgba(13, 13, 18, 0.8);
+    border-color: #1d2633;
+    color: #e8e4de;
+}
+
+[data-tab-content="settings"] .ie-form-group input:focus,
+[data-tab-content="settings"] .ie-form-group select:focus,
+[data-tab-content="settings"] .ie-form-group textarea:focus {
+    border-color: #90511d;
+    box-shadow: 0 0 0 1px rgba(144, 81, 29, 0.3);
+}
+
+[data-tab-content="settings"] .ie-checkbox {
+    color: #7a7d7c;
+}
+
+[data-tab-content="settings"] .ie-checkbox input {
+    accent-color: #6b6e6a;
+}
+
+[data-tab-content="settings"] .ie-btn {
+    background: rgba(13, 13, 18, 0.8);
+    border-color: #1d2633;
+    color: #7a7d7c;
+}
+
+[data-tab-content="settings"] .ie-btn:hover:not(:disabled) {
+    background: #1d2633;
+    border-color: #90511d;
+    color: #e8e4de;
+}
+
+[data-tab-content="settings"] .ie-btn-primary {
+    background: #a8a49d;
+    border-color: #a8a49d;
+    color: #0d0d12;
+}
+
+[data-tab-content="settings"] .ie-btn-primary:hover:not(:disabled) {
+    background: #b8b4ad;
+    border-color: #b8b4ad;
+    color: #0d0d12;
+}
+
+[data-tab-content="settings"] .ie-form-hint {
+    color: #6a6a6a;
+}
+
+[data-tab-content="settings"] .ie-btn-test-api {
+    background: transparent;
+    border: 1px dashed #6b6e6a;
+    color: #7a7d7c;
+}
+
+[data-tab-content="settings"] .ie-btn-test-api:hover {
+    background: #1d2633;
+    border-style: solid;
+    border-color: #90511d;
+    color: #e8e4de;
+}
+
+/* Settings tab button when active - match the gradient vibe */
+.ie-tab[data-tab="settings"].ie-tab-active {
+    color: #90511d;
+    border-bottom-color: #90511d;
+}
+
+/* Range/slider inputs in settings */
+[data-tab-content="settings"] input[type="range"] {
+    accent-color: #6b6e6a;
+    background: #1c2630;
+}
+
+[data-tab-content="settings"] input[type="range"]::-webkit-slider-runnable-track {
+    background: #1c2630;
+}
+
+[data-tab-content="settings"] input[type="range"]::-webkit-slider-thumb {
+    background: #6b6e6a;
+}
+
+/* Override any remaining attribute colors in settings */
+[data-tab-content="settings"] .ie-attribute-card,
+[data-tab-content="settings"] .ie-attribute-block {
+    border-left-color: #1c2630;
+}
+
+[data-tab-content="settings"] [style*="border-left-color"],
+[data-tab-content="settings"] [style*="border-color"] {
+    border-left-color: #6b6e6a !important;
+}
+
+/* Nested/sub-options in settings - override purple borders */
+[data-tab-content="settings"] .ie-auto-gen-options {
+    border-left-color: #6b6e6a;
+}
+
+/* Force checkbox styling in settings - override ST theme */
+[data-tab-content="settings"] input[type="checkbox"],
+[data-tab-content="settings"] .ie-checkbox input,
+[data-tab-content="settings"] .checkbox_label input,
+.inland-empire-panel [data-tab-content="settings"] input[type="checkbox"] {
+    accent-color: #6b6e6a !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+    border: 2px solid #6b6e6a !important;
+    border-radius: 4px !important;
+    background: rgba(13, 13, 18, 0.8) !important;
+    cursor: pointer !important;
+    position: relative !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+}
+
+[data-tab-content="settings"] input[type="checkbox"]:checked,
+[data-tab-content="settings"] .ie-checkbox input:checked,
+[data-tab-content="settings"] .checkbox_label input:checked,
+.inland-empire-panel [data-tab-content="settings"] input[type="checkbox"]:checked {
+    background: #6b6e6a !important;
+    border-color: #6b6e6a !important;
+}
+
+[data-tab-content="settings"] input[type="checkbox"]:checked::after,
+[data-tab-content="settings"] .ie-checkbox input:checked::after,
+[data-tab-content="settings"] .checkbox_label input:checked::after,
+.inland-empire-panel [data-tab-content="settings"] input[type="checkbox"]:checked::after {
+    content: '✓' !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    color: #0d0d12 !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+}
+
+/* Hide any ST theme pseudo-elements on checkboxes */
+[data-tab-content="settings"] input[type="checkbox"]::before,
+[data-tab-content="settings"] .ie-checkbox input::before,
+.inland-empire-panel [data-tab-content="settings"] input[type="checkbox"]::before {
+    display: none !important;
+    content: none !important;
+}
+
+/* Override ST's label-based toggle styling */
+[data-tab-content="settings"] label.checkbox_label,
+[data-tab-content="settings"] .toggle,
+[data-tab-content="settings"] .toggle-input {
+    background: transparent !important;
+}
+
+[data-tab-content="settings"] label.checkbox_label::before,
+[data-tab-content="settings"] label.checkbox_label::after,
+[data-tab-content="settings"] .toggle::before,
+[data-tab-content="settings"] .toggle::after {
+    display: none !important;
+}
+
+/* Textarea focus in settings */
+[data-tab-content="settings"] textarea:focus {
+    border-color: #90511d !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THOUGHT CABINET TAB - Warm Golden to Dark Teal
+   ═══════════════════════════════════════════════════════════════ */
+
+[data-tab-content="cabinet"] {
+    background: linear-gradient(
+        to bottom,
+        #182223 0%,
+        #27322e 33%,
+        #795d36 66%,
+        #94935a 100%
+    );
+}
+
+[data-tab-content="cabinet"] .ie-section {
+    background: rgba(38, 48, 50, 0.7);
+    border-left: 3px solid #b69a59;
+    backdrop-filter: blur(4px);
+}
+
+[data-tab-content="cabinet"] .ie-section-header {
+    color: #e8e4de;
+    border-bottom-color: rgba(182, 154, 89, 0.3);
+}
+
+[data-tab-content="cabinet"] .ie-section-header span::before {
+    color: #b69a59;
+}
+
+[data-tab-content="cabinet"] .ie-thought-card {
+    background: rgba(38, 48, 50, 0.8);
+    border-color: rgba(182, 154, 89, 0.3);
+}
+
+[data-tab-content="cabinet"] .ie-thought-name {
+    color: #b69a59;
+}
+
+[data-tab-content="cabinet"] .ie-btn {
+    background: rgba(38, 48, 50, 0.8);
+    border-color: rgba(182, 154, 89, 0.4);
+    color: #e8e4de;
+}
+
+[data-tab-content="cabinet"] .ie-btn:hover:not(:disabled) {
+    background: rgba(182, 154, 89, 0.3);
+    border-color: #b69a59;
+}
+
+[data-tab-content="cabinet"] .ie-btn-primary {
+    background: #254750;
+    border-color: #254750;
+    color: #ffffff;
+}
+
+[data-tab-content="cabinet"] .ie-btn-primary:hover:not(:disabled) {
+    background: #2d5660;
+    border-color: #2d5660;
+    color: #ffffff;
+}
+
+/* Research button - same teal as Generate */
+[data-tab-content="cabinet"] .ie-btn-research {
+    background: #254750;
+    border-color: #254750;
+    color: #ffffff;
+}
+
+[data-tab-content="cabinet"] .ie-btn-research:hover:not(:disabled) {
+    background: #2d5660;
+    border-color: #2d5660;
+    color: #ffffff;
+}
+
+/* Cabinet tab button when active */
+.ie-tab[data-tab="cabinet"].ie-tab-active {
+    color: #b69a59;
+    border-bottom-color: #b69a59;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PROFILES TAB - Dark Teal to Olive Brown
+   ═══════════════════════════════════════════════════════════════ */
+
+[data-tab-content="profiles"] {
+    background: linear-gradient(
+        to bottom,
+        #192229 0%,
+        #283a3e 25%,
+        #42311f 50%,
+        #4a3c21 75%,
+        #181714 100%
+    );
+}
+
+[data-tab-content="profiles"] .ie-section {
+    background: rgba(24, 34, 36, 0.6);
+    border-left: 3px solid #402e1d;
+    backdrop-filter: blur(4px);
+}
+
+[data-tab-content="profiles"] .ie-section-header {
+    color: #e8e4de;
+    border-bottom-color: rgba(64, 46, 29, 0.4);
+}
+
+[data-tab-content="profiles"] .ie-section-header span::before {
+    color: #402e1d;
+}
+
+/* Save Profile and Apply Build buttons */
+[data-tab-content="profiles"] .ie-btn-primary,
+[data-tab-content="profiles"] #ie-save-profile-btn,
+[data-tab-content="profiles"] .ie-btn-apply-build {
+    background: #912910;
+    border-color: #912910;
+    color: #ffffff;
+}
+
+[data-tab-content="profiles"] .ie-btn-primary:hover:not(:disabled),
+[data-tab-content="profiles"] #ie-save-profile-btn:hover:not(:disabled),
+[data-tab-content="profiles"] .ie-btn-apply-build:hover:not(:disabled) {
+    background: #a63212;
+    border-color: #a63212;
+    color: #ffffff;
+}
+
+[data-tab-content="profiles"] .ie-form-group input {
+    background: rgba(13, 13, 18, 0.7);
+    border-color: rgba(64, 46, 29, 0.5);
+    color: #e8e4de;
+}
+
+[data-tab-content="profiles"] .ie-form-group input:focus {
+    border-color: #402e1d;
+}
+
+[data-tab-content="profiles"] .ie-profile-card {
+    background: rgba(24, 34, 36, 0.5);
+    border: 1px solid rgba(64, 46, 29, 0.3);
+}
+
+[data-tab-content="profiles"] .ie-attr-editor-row {
+    background: rgba(24, 34, 36, 0.5);
+}
+
+/* Profiles tab button when active */
+.ie-tab[data-tab="profiles"].ie-tab-active {
+    color: #402e1d;
+    border-bottom-color: #402e1d;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STATUS TAB - Harry's Portrait Style (Yellow-Blue-Yellow)
+   ═══════════════════════════════════════════════════════════════ */
+
+[data-tab-content="status"] {
+    background: linear-gradient(
+        to bottom,
+        #cb8b31 0%,
+        #cb8b31 15%,
+        #50808d 35%,
+        #50808d 65%,
+        #cb8b31 85%,
+        #cb8b31 100%
+    );
+}
+
+[data-tab-content="status"] .ie-section {
+    background: rgba(13, 13, 18, 0.6);
+    border-left: 3px solid #cb8b31;
+    backdrop-filter: blur(4px);
+}
+
+[data-tab-content="status"] .ie-section-header {
+    color: #e8e4de;
+    border-bottom-color: rgba(203, 139, 49, 0.4);
+}
+
+[data-tab-content="status"] .ie-section-header span::before {
+    color: #cb8b31;
+}
+
+/* Status toggle cards - OFF state (teal) */
+[data-tab-content="status"] .ie-status-card {
+    background: #1f7981;
+    border-color: #1f7981;
+    color: #ffffff;
+}
+
+[data-tab-content="status"] .ie-status-card:hover {
+    background: #267a82;
+    border-color: #267a82;
+}
+
+[data-tab-content="status"] .ie-status-card .ie-status-name {
+    color: #ffffff;
+}
+
+/* Status toggle cards - ON state (orange) */
+[data-tab-content="status"] .ie-status-card.ie-status-active {
+    background: #f2610e;
+    border-color: #f2610e;
+    color: #ffffff;
+}
+
+[data-tab-content="status"] .ie-status-card.ie-status-active:hover {
+    background: #ff7020;
+    border-color: #ff7020;
+}
+
+[data-tab-content="status"] .ie-status-card.ie-status-active .ie-status-name {
+    color: #ffffff;
+}
+
+/* Archetype cards same treatment */
+[data-tab-content="status"] .ie-archetype-card {
+    background: #1f7981;
+    border-color: #1f7981;
+}
+
+[data-tab-content="status"] .ie-archetype-card.ie-status-active {
+    background: #f2610e;
+    border-color: #f2610e;
+    box-shadow: 0 0 10px rgba(242, 97, 14, 0.4);
+}
+
+/* Status tab button when active */
+.ie-tab[data-tab="status"].ie-tab-active {
+    color: #cb8b31;
+    border-bottom-color: #cb8b31;
+}
+
+[data-tab-content="cabinet"] .ie-theme-tag {
+    background: rgba(182, 154, 89, 0.2);
+    border: 1px solid rgba(182, 154, 89, 0.3);
+}
+
+[data-tab-content="cabinet"] .ie-progress-bar {
+    background: linear-gradient(90deg, #b69a59, #c9ab64);
+}
+
+/* Abandon button - DE rust red */
+[data-tab-content="cabinet"] .ie-btn-abandon,
+[data-tab-content="cabinet"] .ie-btn-dismiss-thought {
+    background: #8c3116;
+    border-color: #8c3116;
+    color: #ffffff;
+}
+
+[data-tab-content="cabinet"] .ie-btn-abandon:hover:not(:disabled),
+[data-tab-content="cabinet"] .ie-btn-dismiss-thought:hover:not(:disabled) {
+    background: #a33a1a;
+    border-color: #a33a1a;
+    color: #ffffff;
+}
+
+/* Thought name header - DE orange label style */
+[data-tab-content="cabinet"] .ie-thought-name {
+    background: #b16201;
+    color: #fbd69b;
+    padding: 4px 10px;
+    display: inline-block;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 12px;
+}
+
+[data-tab-content="cabinet"] .ie-thought-header {
+    align-items: flex-start;
+}
+
+/* Observer/Participant toggle buttons */
+[data-tab-content="cabinet"] .ie-perspective-btn {
+    background: rgba(100, 176, 130, 0.3);
+    color: #e8e4de;
+}
+
+[data-tab-content="cabinet"] .ie-perspective-btn:hover {
+    background: rgba(100, 176, 130, 0.5);
+    color: #ffffff;
+}
+
+[data-tab-content="cabinet"] .ie-perspective-btn.ie-perspective-active {
+    background: #64b082;
+    color: #ffffff;
+}
+
+/* Panel content wrapper */
+.ie-panel-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   LEDGER TAB CONTENT (from additions)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-ledger-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px;
+    color: var(--ie-text-muted);
+    font-style: italic;
+}
+
+.ie-ledger-empty i {
+    font-size: 24px;
+    opacity: 0.5;
+}
+
+/* Quest/Case Items */
+.ie-quest-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--ie-bg-tertiary);
+    border-left: 3px solid var(--ie-accent-orange);
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 8px;
+}
+
+.ie-quest-item.ie-quest-main {
+    border-left-color: var(--ie-accent-orange);
+}
+
+.ie-quest-item.ie-quest-optional {
+    border-left-color: var(--ie-text-muted);
+}
+
+.ie-quest-item.ie-quest-complete {
+    opacity: 0.6;
+    border-left-color: var(--ie-success);
+}
+
+.ie-quest-checkbox {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.ie-quest-content {
+    flex: 1;
+}
+
+.ie-quest-title {
+    font-weight: 600;
+    color: var(--ie-text-primary);
+    font-size: 13px;
+}
+
+.ie-quest-desc {
+    font-size: 11px;
+    color: var(--ie-text-secondary);
+    margin-top: 4px;
+}
+
+/* Event Log */
+.ie-event-item {
+    display: flex;
+    gap: 8px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--ie-border);
+    font-size: 12px;
+}
+
+.ie-event-time {
+    color: var(--ie-text-muted);
+    font-size: 10px;
+    flex-shrink: 0;
+}
+
+.ie-event-text {
+    color: var(--ie-text-secondary);
+}
+
+/* Weather Display */
+.ie-weather-display {
+    padding: 12px;
+    background: var(--ie-bg-tertiary);
+    border-radius: 4px;
+}
+
+.ie-weather-current {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ie-text-secondary);
+}
+
+.ie-weather-current i {
+    font-size: 20px;
+    color: var(--ie-accent-blue);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   INVENTORY TAB CONTENT (from additions)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-inventory-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px;
+    color: var(--ie-text-muted);
+    font-style: italic;
+}
+
+.ie-inventory-empty i {
+    font-size: 24px;
+    opacity: 0.5;
+}
+
+.ie-section-count {
+    font-size: 11px;
+    color: var(--ie-text-muted);
+    background: var(--ie-bg-tertiary);
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: auto;
+}
+
+.ie-inventory-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Inventory Item */
+.ie-item-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--ie-bg-tertiary);
+    border: 1px solid var(--ie-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ie-item-card:hover {
+    border-color: var(--ie-accent-orange-dim);
+    background: var(--ie-bg-secondary);
+}
+
+.ie-item-card.ie-item-equipped {
+    border-color: var(--ie-accent-blue);
+    background: rgba(83, 164, 181, 0.1);
+}
+
+.ie-item-icon {
+    font-size: 20px;
+    width: 28px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.ie-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.ie-item-name {
+    font-weight: 600;
+    color: var(--ie-text-primary);
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ie-item-desc {
+    font-size: 11px;
+    color: var(--ie-text-muted);
+    margin-top: 2px;
+}
+
+.ie-item-modifiers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.ie-item-mod {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.ie-item-mod.ie-mod-boost {
+    background: rgba(76, 175, 80, 0.2);
+    color: #81c784;
+}
+
+.ie-item-mod.ie-mod-debuff {
+    background: rgba(244, 67, 54, 0.2);
+    color: #e57373;
+}
+
+/* Money Section */
+.ie-money-section {
+    margin-top: auto;
+}
+
+.ie-money-display {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 12px;
+    background: linear-gradient(135deg, rgba(191, 161, 39, 0.15) 0%, rgba(191, 161, 39, 0.05) 100%);
+    border: 1px solid rgba(191, 161, 39, 0.3);
+    border-radius: 4px;
+}
+
+.ie-money-amount {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ie-accent-yellow);
+}
+
+.ie-money-unit {
+    font-size: 12px;
+    color: var(--ie-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   VITALS DETAIL in Status tab (from additions)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-vitals-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ie-vital-detail-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ie-vital-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ie-vital-detail-label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ie-vital-detail-value {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.ie-vital-detail-track {
+    height: 12px;
+    background: var(--ie-bg-primary);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--ie-border);
+}
+
+.ie-vital-detail-fill {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.4s ease, background 0.4s ease;
+}
+
+.ie-vital-detail-row.ie-health .ie-vital-detail-label,
+.ie-vital-detail-row.ie-health .ie-vital-detail-value {
+    color: var(--ie-accent-red);
+}
+
+.ie-vital-detail-row.ie-morale .ie-vital-detail-label,
+.ie-vital-detail-row.ie-morale .ie-vital-detail-value {
+    color: var(--ie-accent-purple);
+}

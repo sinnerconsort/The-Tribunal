@@ -1,0 +1,363 @@
+/**
+ * The Tribunal - Panel Styles
+ * Main panel, film strip borders, ruler
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   EXTENSION SETTINGS (in ST's extension panel)
+   ═══════════════════════════════════════════════════════════════ */
+
+#ie-extension-settings .ie-ext-setting {
+    padding: 8px 0;
+}
+
+#ie-extension-settings .ie-ext-setting small {
+    display: block;
+    margin-top: 4px;
+    opacity: 0.7;
+}
+
+#ie-extension-settings .ie-ext-info {
+    padding: 8px 0;
+    text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN PANEL - DE Film Strip Edge Style
+   ═══════════════════════════════════════════════════════════════ */
+
+.inland-empire-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 400px;
+    height: 100vh;
+    background: var(--ie-bg-panel);
+    border-left: none;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--ie-shadow);
+    font-family: var(--ie-font-body);
+    color: var(--ie-text-primary);
+    will-change: transform;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FILM STRIP BORDER - Left Edge
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════
+   LEFT RULER EDGE (using the HTML element)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Ruler on the LEFT */
+.ie-right-ruler {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: auto;
+    width: 20px;
+    height: 100%;
+    z-index: 10000;
+    pointer-events: none;
+    /* Cool gray base */
+    background: linear-gradient(
+        to left,
+        #a8afb2 0%,
+        #b6bdc0 50%,
+        #a8afb2 100%
+    );
+    box-shadow: inset -2px 0 6px rgba(0, 0, 0, 0.25);
+}
+
+/* Small tick marks every 10px - FLIPPED to point inward */
+.ie-right-ruler::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 9px,
+        #606270 9px,
+        #606270 10px
+    );
+    background-size: 8px 10px;
+    background-position: left top;
+    background-repeat: repeat-y;
+}
+
+/* Larger tick marks every 50px - FLIPPED to point inward */
+.ie-right-ruler::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 48px,
+        #606270 48px,
+        #606270 50px
+    );
+    background-size: 14px 50px;
+    background-position: left top;
+    background-repeat: repeat-y;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RIGHT FILM STRIP BORDER (using panel pseudo-elements)
+   ═══════════════════════════════════════════════════════════════ */
+
+.inland-empire-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: auto;
+    width: 22px;
+    height: 100%;
+    background: linear-gradient(
+        to left,
+        #a8afb2 0%,
+        #b6bdc0 30%,
+        #a8afb2 100%
+    );
+    z-index: 10000;
+    /* Sprocket holes using repeating gradient */
+    background-image: 
+        /* Main gray background */
+        linear-gradient(to left, #a8afb2 0%, #b6bdc0 30%, #a8afb2 100%),
+        /* Sprocket holes - left column */
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0px,
+            transparent 8px,
+            #1a1a20 8px,
+            #1a1a20 18px,
+            transparent 18px,
+            transparent 32px
+        ),
+        /* Sprocket holes - right column */
+        repeating-linear-gradient(
+            to bottom,
+            transparent 0px,
+            transparent 8px,
+            #1a1a20 8px,
+            #1a1a20 18px,
+            transparent 18px,
+            transparent 32px
+        );
+    background-size: 100% 100%, 6px 32px, 6px 32px;
+    background-position: 0 0, 2px 4px, 14px 4px;
+    background-repeat: no-repeat, repeat-y, repeat-y;
+    /* Subtle inner shadow for depth */
+    box-shadow: inset 2px 0 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Film strip vertical text overlay - NOW ON RIGHT */
+.inland-empire-panel::after {
+    content: 'FELD  ○  PLAYBACK  ○  FILM  ○  FELD  ○  PLAYBACK  ○  FILM  ○  FELD  ○  PLAYBACK  ○  FILM  ○';
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: auto;
+    width: 22px;
+    height: 100%;
+    z-index: 10001;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-family: 'Courier New', monospace;
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    word-spacing: 2px;
+    color: #606270;
+    padding: 20px 0;
+    overflow: hidden;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-transform: uppercase;
+}
+
+/* Adjust panel content to account for borders - NOW margin-left for ruler, margin-right for film strip */
+.ie-panel-header,
+.ie-tabs {
+    margin-left: 20px;
+    margin-right: 22px;
+}
+
+.ie-tab-content {
+    margin-left: 20px;
+    margin-right: 22px;
+    position: relative;
+}
+
+.ie-panel-open {
+    transform: translateX(0);
+}
+
+.ie-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: linear-gradient(180deg, var(--ie-bg-tertiary) 0%, var(--ie-bg-secondary) 100%);
+    border-bottom: 2px solid var(--ie-accent-orange);
+}
+
+.ie-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--ie-font-header);
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ie-text-primary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.ie-panel-title i {
+    color: var(--ie-accent-orange);
+}
+
+.ie-panel-controls {
+    display: flex;
+    gap: 8px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER - CASE FILE TITLE + VITALS BARS (from additions)
+   ═══════════════════════════════════════════════════════════════ */
+.ie-panel-header {
+    padding: 12px 16px 8px 28px; /* Left padding for ruler */
+    border-bottom: 1px solid var(--ie-border);
+    background: linear-gradient(180deg, var(--ie-bg-secondary) 0%, var(--ie-bg-primary) 100%);
+    flex-shrink: 0;
+}
+
+.ie-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.ie-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ie-panel-title i {
+    color: var(--ie-accent-orange);
+    font-size: 18px;
+}
+
+.ie-case-title {
+    font-family: var(--ie-font-header);
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--ie-text-primary);
+}
+
+/* Vitals Row */
+.ie-vitals-row {
+    display: flex;
+    gap: 12px;
+}
+
+.ie-vital-bar {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ie-vital-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--ie-text-muted);
+    width: 50px;
+    flex-shrink: 0;
+}
+
+.ie-vital-track {
+    flex: 1;
+    height: 8px;
+    background: var(--ie-bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--ie-border);
+}
+
+.ie-vital-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50 0%, #8BC34A 100%);
+    border-radius: 3px;
+    transition: width 0.4s ease, background 0.4s ease;
+}
+
+.ie-vital-value {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ie-text-secondary);
+    width: 28px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* Health-specific (inherits hue from JS) */
+.ie-vital-health .ie-vital-label {
+    color: var(--ie-accent-red);
+}
+
+/* Morale-specific */
+.ie-vital-morale .ie-vital-label {
+    color: var(--ie-accent-purple);
+}
+
+
+/* Panel Content Adjustments (from additions) */
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Make panel content fill available space */
+.ie-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 16px 16px 28px; /* Left padding for ruler */
+}
+
+/* Ensure sections have proper spacing */
+.ie-section {
+    margin-bottom: 16px;
+}
+
+.ie-section:last-child {
+    margin-bottom: 0;
+}
+
+/* Section header with count badge */
+.ie-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}

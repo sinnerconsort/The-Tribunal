@@ -1,0 +1,46 @@
+/**
+ * Inland Empire - Styles
+ * Disco Elysium inspired psyche panel aesthetics
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   CSS VARIABLES - DISCO ELYSIUM PALETTE
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+    /* Backgrounds - darker, more noir */
+    --ie-bg-primary: #0d0d12;
+    --ie-bg-secondary: #151519;
+    --ie-bg-tertiary: #1a1a20;
+    --ie-bg-panel: rgba(13, 13, 18, 0.95);
+    
+    /* Text */
+    --ie-text-primary: #e8e4de;
+    --ie-text-secondary: #9a958c;
+    --ie-text-muted: #5a564e;
+    
+    /* Primary accent - DE orange/rust */
+    --ie-accent-orange: #d4763b;
+    --ie-accent-orange-dim: #a35a2a;
+    --ie-accent-orange-glow: rgba(212, 118, 59, 0.3);
+    
+    /* Attribute colors - true to DE */
+    --ie-accent-blue: #53a4b5;      /* INT - cool blue */
+    --ie-accent-purple: #6449af;    /* PSY - deep purple */
+    --ie-accent-red: #ad3d5b;       /* FYS - magenta red */
+    --ie-accent-yellow: #bfa127;    /* MOT - gold */
+    
+    /* Status colors */
+    --ie-success: #6b9c5a;
+    --ie-warning: #c4a94e;
+    --ie-error: #c45c5c;
+    
+    /* Borders & effects */
+    --ie-border: #2a2a32;
+    --ie-border-light: #3a3a44;
+    --ie-shadow: 0 4px 24px rgba(0, 0, 0, 0.7);
+    
+    /* Typography */
+    --ie-font-header: 'Segoe UI', 'Arial Narrow', sans-serif;
+    --ie-font-body: 'Segoe UI', Tahoma, sans-serif;
+}
