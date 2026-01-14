@@ -472,14 +472,36 @@ async function generateInvestigation(sceneText, narrator, checkResult, reactors,
     // ═══════════════════════════════════════════════════════════════
     // POV CONTEXT from settings
     // ═══════════════════════════════════════════════════════════════
-    let povContext = '';
     const povStyle = extensionSettings.povStyle || 'second';
     const charName = extensionSettings.characterName || '';
     const charPronouns = extensionSettings.characterPronouns || 'they';
     const charContext = extensionSettings.characterContext || '';
+    const scenePerspective = extensionSettings.scenePerspective || '';
     
+    // Build identity section FIRST
+    let identitySection = `═══════════════════════════════════════════════════════════════
+CRITICAL IDENTITY - READ THIS FIRST
+═══════════════════════════════════════════════════════════════
+`;
+    
+    if (charContext) {
+        identitySection += `THE PLAYER CHARACTER (whose head these voices are in):
+${charContext}
+
+`;
+    }
+    
+    if (scenePerspective) {
+        identitySection += `SCENE PERSPECTIVE WARNING:
+${scenePerspective}
+
+`;
+    }
+    
+    // POV instruction
     if (povStyle === 'second') {
-        povContext = `ADDRESS: Second person ("you/your"). Voices speak to the player character directly.`;
+        identitySection += `POV: Second person ("you/your"). All voices speak TO the player character "${charName || 'the protagonist'}".
+"You" = ${charName || 'the player character'}. NEVER use "${charName}" by name in the output.`;
     } else if (povStyle === 'third' && charName) {
         const pronounMap = {
             'they': 'they/them/their',
@@ -487,14 +509,22 @@ async function generateInvestigation(sceneText, narrator, checkResult, reactors,
             'she': 'she/her/her',
             'it': 'it/it/its'
         };
-        povContext = `ADDRESS: Third person. Character is "${charName}" (${pronounMap[charPronouns]}). Use name or pronouns, NOT "you".`;
+        identitySection += `POV: Third person. Character is "${charName}" (${pronounMap[charPronouns]}). Use name or pronouns, NOT "you".`;
     } else if (povStyle === 'first') {
-        povContext = `ADDRESS: First person ("I/me/my"). Internal monologue style.`;
+        identitySection += `POV: First person ("I/me/my"). Internal monologue style.`;
     }
     
-    if (charContext) {
-        povContext += `\nCHARACTER: ${charContext}`;
-    }
+    // Add NPC POV warning
+    identitySection += `
+
+THE SCENE TEXT MAY BE WRITTEN FROM AN NPC'S PERSPECTIVE.
+If the scene describes an NPC's feelings, sensations, or internal state - those are NOT "you".
+"You" is ONLY ${charName || 'the player character'}. Observe NPCs from the OUTSIDE.
+
+Example: If scene says "Gortash felt the impact" → write "Look at him flinch" NOT "You felt the impact"
+Example: If scene says "his back hit the wall" (about an NPC) → write "He hit that wall hard" NOT "Your back hit the wall"
+═══════════════════════════════════════════════════════════════
+`;
     
     // ═══════════════════════════════════════════════════════════════
     // SKILL REACTOR DESCRIPTIONS
@@ -544,8 +574,7 @@ Example: "THE FLICKERING STREETLIGHT — I've seen this before. It never ends we
 
     const systemPrompt = `You are generating a "Slay the Princess" style scene investigation for a Disco Elysium RPG.
 
-${povContext}
-
+${identitySection}
 THE NARRATOR: ${narrator.skill.signature}
 Narrator's voice: ${narrator.skill.personality?.substring(0, 350)}
 
@@ -566,12 +595,13 @@ ${skillDescriptions}
 ${objectInstructions}${copotypeInstructions}
 
 RULES:
-- Respect POV setting: ${povStyle} person${charName ? `, character is "${charName}"` : ''}
+- RESPECT THE IDENTITY SECTION ABOVE - "you" is ONLY the player character, not NPCs
 - Narrator: 3-5 sentences through their unique lens, NOT neutral description
 - Skill reactors: ONE short line each (max 15 words), can disagree/warn/notice things
 ${includeObject ? '- Include exactly ONE contextual object voice at the end - must be something actually in the scene' : '- No object voice this time, only skill reactors'}
 - NO generic lines - everything must be specific to THIS scene
 - Reactors can argue with each other or the narrator
+- If the scene is from an NPC's POV, translate it to what the PLAYER CHARACTER observes
 
 FORMAT:
 [NARRATOR]
@@ -585,9 +615,11 @@ ${includeObject ? 'THE OBJECT NAME — Object speaking as itself (first person)'
     const userPrompt = `Scene to investigate:
 "${sceneText.substring(0, 1500)}"
 
+REMEMBER: You are voices in ${charName || 'the player character'}'s head. If this scene is written from someone else's POV, translate it to what ${charName || 'the player character'} OBSERVES from the outside.
+
 Generate the investigation.
 - Narrator: ${narrator.skill.signature} (${checkResult.success ? 'PASSED' : 'FAILED'}${checkNote})
-- POV: ${povStyle} person${charName ? ` - character is "${charName}"` : ''}
+- "You" = ${charName || 'the player character'} (NEVER NPCs)
 - Skill reactors: ${reactors.map(r => r.signature).join(', ')}
 ${includeObject ? '- Find ONE interesting object in the scene to give a voice' : '- No object voice this time'}`;
 
