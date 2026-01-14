@@ -1,285 +1,247 @@
 /**
- * The Tribunal - Vitals Controls CSS
- * Styles for the +/- buttons and vitals display
- * 
- * ADD THIS TO YOUR EXISTING vitals-controls.css OR styles.css
+ * The Tribunal - Phase 2 Styles
+ * Vitals manual controls and detection settings
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   VITALS DETAIL WITH CONTROLS
+   VITALS CONTROLS (+/- Buttons)
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-vitals-detail {
+.ie-vital-controls {
     display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.ie-vital-detail-row {
-    display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: 6px;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.3);
-    border-left: 3px solid var(--ie-health-color, #f3650b);
-    border-radius: 0 4px 4px 0;
 }
 
-.ie-vital-detail-row.ie-morale {
-    border-left-color: var(--ie-morale-color, #0e7989);
+.ie-vital-btn {
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    font-size: 10px;
+    padding: 0;
 }
 
+.ie-vital-btn:active {
+    transform: scale(0.85);
+}
+
+/* Minus button - red */
+.ie-vital-btn-minus {
+    color: #c44;
+}
+
+.ie-vital-btn-minus:hover {
+    color: #ff5555;
+    text-shadow: 0 0 6px rgba(255, 85, 85, 0.5);
+}
+
+/* Plus button - green */
+.ie-vital-btn-plus {
+    color: #4a4;
+}
+
+.ie-vital-btn-plus:hover {
+    color: #55ff55;
+    text-shadow: 0 0 6px rgba(85, 255, 85, 0.5);
+}
+
+/* Adjust header layout for controls */
 .ie-vital-detail-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.ie-vital-detail-label {
-    font-family: var(--ie-font-mono, 'IBM Plex Mono', monospace);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    color: var(--ie-text-secondary, #a0a0a0);
-}
-
-.ie-vital-detail-row.ie-health .ie-vital-detail-label {
-    color: var(--ie-health-color, #f3650b);
-}
-
-.ie-vital-detail-row.ie-morale .ie-vital-detail-label {
-    color: var(--ie-morale-color, #0e7989);
+    margin-bottom: 6px;
 }
 
 .ie-vital-detail-value {
-    font-family: var(--ie-font-mono, 'IBM Plex Mono', monospace);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--ie-text-primary, #e0e0e0);
+    font-family: var(--ie-font-mono, 'Courier New', monospace);
+    font-size: 12px;
+    min-width: 60px;
+    text-align: center;
 }
 
-/* Controls row with +/- buttons flanking the bar */
-.ie-vital-detail-controls {
+/* Value colors match their bars */
+.ie-vital-detail-row.ie-health .ie-vital-detail-value {
+    color: #f3650b;
+}
+
+.ie-vital-detail-row.ie-morale .ie-vital-detail-value {
+    color: #0e7989;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VITALS LABELS - Match bar colors
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-vital-detail-row.ie-health .ie-vital-detail-label {
+    color: #f3650b;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+}
+
+.ie-vital-detail-row.ie-morale .ie-vital-detail-label {
+    color: #0e7989;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SETTINGS: Vitals Detection Section
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--ie-border, #3d3d35);
+    border-radius: 4px;
+    background: var(--ie-bg-input, #1a1a16);
+    color: var(--ie-text, #d4d4c4);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.ie-select:focus {
+    outline: none;
+    border-color: var(--ie-accent, #f3650b);
+}
+
+.ie-select option {
+    background: var(--ie-bg-dark, #0d0d0a);
+    color: var(--ie-text, #d4d4c4);
+}
+
+/* Secondary button style */
+.ie-btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--ie-border, #3d3d35);
+    color: var(--ie-text-muted, #8b8b83);
+}
+
+.ie-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--ie-text, #d4d4c4);
+    border-color: var(--ie-text-muted, #8b8b83);
+}
+
+/* Test button styling */
+#ie-test-vitals-btn {
+    margin-top: 8px;
+}
+
+#ie-test-vitals-btn i {
+    color: var(--ie-morale, #0e7989);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VITALS FLASH ANIMATIONS (damage/heal feedback)
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes ie-vital-damage-flash {
+    0%, 100% { 
+        box-shadow: none;
+    }
+    50% { 
+        box-shadow: inset 0 0 20px rgba(255, 50, 50, 0.5);
+    }
+}
+
+@keyframes ie-vital-heal-flash {
+    0%, 100% { 
+        box-shadow: none;
+    }
+    50% { 
+        box-shadow: inset 0 0 20px rgba(50, 255, 50, 0.5);
+    }
+}
+
+.ie-vital-damage {
+    animation: ie-vital-damage-flash 0.4s ease-out;
+}
+
+.ie-vital-heal {
+    animation: ie-vital-heal-flash 0.4s ease-out;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOW/CRITICAL STATE REFINEMENTS (Phase 2)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-vital-detail-row.ie-vital-low .ie-vital-detail-label,
+.ie-vital-detail-row.ie-vital-low .ie-vital-detail-value {
+    animation: ie-pulse-gentle 1.5s ease-in-out infinite;
+}
+
+.ie-vital-detail-row.ie-vital-critical .ie-vital-detail-label,
+.ie-vital-detail-row.ie-vital-critical .ie-vital-detail-value {
+    animation: ie-pulse-critical 0.8s ease-in-out infinite;
+}
+
+.ie-vital-detail-row.ie-vital-critical .ie-vital-detail-fill {
+    box-shadow: 0 0 10px currentColor;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SETTINGS ACTIONS SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-settings-actions {
+    padding-top: 16px;
+    border-top: 1px solid var(--ie-border, #3d3d35);
+    margin-top: 8px;
+}
+/* ═══════════════════════════════════════════════════════════════
+   ADD TO: styles/vitals-controls.css
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Vital Controls with +/- buttons */
+.ie-vital-controls {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
+.ie-btn-xs {
+    padding: 2px 8px;
+    font-size: 14px;
+    min-width: 24px;
+    line-height: 1;
+    height: 24px;
+}
+
 .ie-vital-btn {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: var(--ie-text-secondary, #999);
     border-radius: 4px;
-    color: var(--ie-text-secondary, #a0a0a0);
     cursor: pointer;
+    font-weight: bold;
     transition: all 0.15s ease;
-    flex-shrink: 0;
 }
 
 .ie-vital-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
-    color: var(--ie-text-primary, #e0e0e0);
+    background: rgba(255,255,255,0.2);
+    color: var(--ie-text-primary, #fff);
 }
 
 .ie-vital-btn:active {
     transform: scale(0.95);
 }
 
-/* Health buttons */
-.ie-vital-detail-row.ie-health .ie-vital-btn:hover {
-    border-color: var(--ie-health-color, #f3650b);
-    color: var(--ie-health-color, #f3650b);
-}
-
-/* Morale buttons */
-.ie-vital-detail-row.ie-morale .ie-vital-btn:hover {
-    border-color: var(--ie-morale-color, #0e7989);
-    color: var(--ie-morale-color, #0e7989);
-}
-
-.ie-vital-btn i {
-    font-size: 10px;
-}
-
-/* Track takes remaining space */
-.ie-vital-detail-controls .ie-vital-detail-track {
-    flex: 1;
-    height: 8px;
-    background: rgba(0, 0, 0, 0.4);
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.ie-vital-detail-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.3s ease;
-}
-
-/* Low/Critical states */
-.ie-vital-detail-row.ie-vital-low .ie-vital-detail-fill {
-    animation: pulse-warning 1.5s ease-in-out infinite;
-}
-
-.ie-vital-detail-row.ie-vital-critical .ie-vital-detail-fill {
-    animation: pulse-critical 0.8s ease-in-out infinite;
-}
-
-@keyframes pulse-warning {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-}
-
-@keyframes pulse-critical {
-    0%, 100% { opacity: 1; filter: brightness(1); }
-    50% { opacity: 0.6; filter: brightness(1.3); }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   STATUS GRID OVERFLOW FIX
-   ═══════════════════════════════════════════════════════════════ */
-
-.ie-status-grid-scrollable {
-    max-height: 400px;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding-right: 4px;
-    margin-right: -4px;
-}
-
-/* Status effect categories */
-#ie-status-grid .ie-status-category {
-    margin-bottom: 12px;
-}
-
-#ie-status-grid .ie-status-category-title {
-    font-family: var(--ie-font-mono, 'IBM Plex Mono', monospace);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--ie-text-muted, #666);
-    margin-bottom: 8px;
-    padding-bottom: 4px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+/* Fix vitals detail header layout */
+.ie-vital-detail-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 6px;
-}
-
-#ie-status-grid .ie-status-category-title i {
-    font-size: 9px;
-    opacity: 0.6;
-}
-
-/* Status toggle grid - improved wrapping */
-#ie-status-grid .ie-status-toggles {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-/* Individual status toggle buttons */
-#ie-status-grid .ie-status-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 4px;
-    color: var(--ie-text-secondary, #a0a0a0);
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-    max-width: calc(50% - 3px); /* Two columns max */
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-#ie-status-grid .ie-status-toggle:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.15);
-}
-
-#ie-status-grid .ie-status-toggle.ie-status-active {
-    background: rgba(var(--ie-accent-rgb, 243, 101, 11), 0.15);
-    border-color: var(--ie-accent, #f3650b);
-    color: var(--ie-text-primary, #e0e0e0);
-}
-
-#ie-status-grid .ie-status-toggle .ie-status-icon {
-    font-size: 12px;
-    opacity: 0.7;
-}
-
-#ie-status-grid .ie-status-toggle.ie-status-active .ie-status-icon {
-    opacity: 1;
-}
-
-#ie-status-grid .ie-status-toggle .ie-status-name {
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Scrollbar styling for status grid */
-.ie-status-grid-scrollable::-webkit-scrollbar {
-    width: 4px;
-}
-
-.ie-status-grid-scrollable::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 2px;
-}
-
-.ie-status-grid-scrollable::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 2px;
-}
-
-.ie-status-grid-scrollable::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.25);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   ACTIVE EFFECTS SUMMARY - Better wrapping
-   ═══════════════════════════════════════════════════════════════ */
-
-.ie-active-effects-summary {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 8px;
-    max-height: 200px;
-    overflow-y: auto;
-    padding: 8px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-}
-
-.ie-active-effects-summary .ie-effect-pill {
-    display: inline-flex;
-    align-items: center;
-    padding: 2px 6px;
-    border-radius: 3px;
-    font-size: 10px;
-    font-family: var(--ie-font-mono, 'IBM Plex Mono', monospace);
-    white-space: nowrap;
-}
-
-.ie-active-effects-summary .ie-effect-pill.ie-effect-boost {
-    background: rgba(76, 175, 80, 0.2);
-    color: #81c784;
-}
-
-.ie-active-effects-summary .ie-effect-pill.ie-effect-debuff {
-    background: rgba(244, 67, 54, 0.2);
-    color: #e57373;
+    margin-bottom: 4px;
 }
