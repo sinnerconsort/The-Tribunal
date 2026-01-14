@@ -1,7 +1,106 @@
 /**
- * The Tribunal - Phase 2 Styles
- * Vitals manual controls and detection settings
+ * The Tribunal - Vitals Controls
+ * Health/Morale detail view, +/- buttons, animations
+ * 
+ * CANONICAL OWNER of all vitals detail styling
+ * Header vitals bars remain in panel.css
+ * 
+ * CLEANED: Removed duplicate .ie-select (use forms.css)
+ * CLEANED: Removed duplicate "ADD TO" block
+ * ADDED: Missing .ie-vital-detail-track and .ie-vital-detail-fill
  */
+
+/* ═══════════════════════════════════════════════════════════════
+   VITALS DETAIL CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-vitals-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    background: var(--ie-bg-tertiary, #1a1a16);
+    border-radius: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VITALS DETAIL ROW (each vital: Health or Morale)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-vital-detail-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VITALS DETAIL HEADER (label + value + controls)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-vital-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.ie-vital-detail-label {
+    font-family: var(--ie-font-header, 'IBM Plex Mono', monospace);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ie-vital-detail-value {
+    font-family: var(--ie-font-mono, 'Courier New', monospace);
+    font-size: 12px;
+    min-width: 60px;
+    text-align: center;
+}
+
+/* Label & Value colors match their bars */
+.ie-vital-detail-row.ie-health .ie-vital-detail-label,
+.ie-vital-detail-row.ie-health .ie-vital-detail-value {
+    color: #f3650b;
+}
+
+.ie-vital-detail-row.ie-morale .ie-vital-detail-label,
+.ie-vital-detail-row.ie-morale .ie-vital-detail-value {
+    color: #0e7989;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VITALS PROGRESS BAR TRACK & FILL
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-vital-detail-track {
+    height: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ie-vital-detail-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease-out;
+    position: relative;
+}
+
+/* Health fill - orange */
+.ie-vital-detail-row.ie-health .ie-vital-detail-fill {
+    background: linear-gradient(180deg, #f3650b 0%, #d45509 100%);
+    box-shadow: 0 0 6px rgba(243, 101, 11, 0.4);
+}
+
+/* Morale fill - teal/cyan */
+.ie-vital-detail-row.ie-morale .ie-vital-detail-fill {
+    background: linear-gradient(180deg, #0e7989 0%, #0a5d6a 100%);
+    box-shadow: 0 0 6px rgba(14, 121, 137, 0.4);
+}
 
 /* ═══════════════════════════════════════════════════════════════
    VITALS CONTROLS (+/- Buttons)
@@ -52,97 +151,6 @@
     text-shadow: 0 0 6px rgba(85, 255, 85, 0.5);
 }
 
-/* Adjust header layout for controls */
-.ie-vital-detail-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 6px;
-}
-
-.ie-vital-detail-value {
-    font-family: var(--ie-font-mono, 'Courier New', monospace);
-    font-size: 12px;
-    min-width: 60px;
-    text-align: center;
-}
-
-/* Value colors match their bars */
-.ie-vital-detail-row.ie-health .ie-vital-detail-value {
-    color: #f3650b;
-}
-
-.ie-vital-detail-row.ie-morale .ie-vital-detail-value {
-    color: #0e7989;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   VITALS LABELS - Match bar colors
-   ═══════════════════════════════════════════════════════════════ */
-
-.ie-vital-detail-row.ie-health .ie-vital-detail-label {
-    color: #f3650b;
-    text-transform: uppercase;
-    font-weight: 600;
-    font-size: 12px;
-    letter-spacing: 0.5px;
-}
-
-.ie-vital-detail-row.ie-morale .ie-vital-detail-label {
-    color: #0e7989;
-    text-transform: uppercase;
-    font-weight: 600;
-    font-size: 12px;
-    letter-spacing: 0.5px;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   SETTINGS: Vitals Detection Section
-   ═══════════════════════════════════════════════════════════════ */
-
-.ie-select {
-    width: 100%;
-    padding: 8px 10px;
-    border: 1px solid var(--ie-border, #3d3d35);
-    border-radius: 4px;
-    background: var(--ie-bg-input, #1a1a16);
-    color: var(--ie-text, #d4d4c4);
-    font-size: 13px;
-    cursor: pointer;
-}
-
-.ie-select:focus {
-    outline: none;
-    border-color: var(--ie-accent, #f3650b);
-}
-
-.ie-select option {
-    background: var(--ie-bg-dark, #0d0d0a);
-    color: var(--ie-text, #d4d4c4);
-}
-
-/* Secondary button style */
-.ie-btn-secondary {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--ie-border, #3d3d35);
-    color: var(--ie-text-muted, #8b8b83);
-}
-
-.ie-btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--ie-text, #d4d4c4);
-    border-color: var(--ie-text-muted, #8b8b83);
-}
-
-/* Test button styling */
-#ie-test-vitals-btn {
-    margin-top: 8px;
-}
-
-#ie-test-vitals-btn i {
-    color: var(--ie-morale, #0e7989);
-}
-
 /* ═══════════════════════════════════════════════════════════════
    VITALS FLASH ANIMATIONS (damage/heal feedback)
    ═══════════════════════════════════════════════════════════════ */
@@ -174,8 +182,24 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   LOW/CRITICAL STATE REFINEMENTS (Phase 2)
+   LOW/CRITICAL STATE ANIMATIONS
    ═══════════════════════════════════════════════════════════════ */
+
+@keyframes ie-pulse-gentle {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes ie-pulse-critical {
+    0%, 100% { 
+        opacity: 1;
+        text-shadow: none;
+    }
+    50% { 
+        opacity: 0.6;
+        text-shadow: 0 0 8px currentColor;
+    }
+}
 
 .ie-vital-detail-row.ie-vital-low .ie-vital-detail-label,
 .ie-vital-detail-row.ie-vital-low .ie-vital-detail-value {
@@ -192,6 +216,31 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   SECONDARY BUTTON STYLE (for Test button in Settings)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--ie-border, #3d3d35);
+    color: var(--ie-text-muted, #8b8b83);
+}
+
+.ie-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--ie-text, #d4d4c4);
+    border-color: var(--ie-text-muted, #8b8b83);
+}
+
+/* Test button styling */
+#ie-test-vitals-btn {
+    margin-top: 8px;
+}
+
+#ie-test-vitals-btn i {
+    color: var(--ie-morale, #0e7989);
+}
+
+/* ═══════════════════════════════════════════════════════════════
    SETTINGS ACTIONS SECTION
    ═══════════════════════════════════════════════════════════════ */
 
@@ -199,49 +248,4 @@
     padding-top: 16px;
     border-top: 1px solid var(--ie-border, #3d3d35);
     margin-top: 8px;
-}
-/* ═══════════════════════════════════════════════════════════════
-   ADD TO: styles/vitals-controls.css
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Vital Controls with +/- buttons */
-.ie-vital-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.ie-btn-xs {
-    padding: 2px 8px;
-    font-size: 14px;
-    min-width: 24px;
-    line-height: 1;
-    height: 24px;
-}
-
-.ie-vital-btn {
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
-    color: var(--ie-text-secondary, #999);
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: all 0.15s ease;
-}
-
-.ie-vital-btn:hover {
-    background: rgba(255,255,255,0.2);
-    color: var(--ie-text-primary, #fff);
-}
-
-.ie-vital-btn:active {
-    transform: scale(0.95);
-}
-
-/* Fix vitals detail header layout */
-.ie-vital-detail-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4px;
 }
