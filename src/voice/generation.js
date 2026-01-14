@@ -4,6 +4,9 @@
  * 
  * Now with CASCADE SYSTEM - skills react to each other!
  * 
+ * UPDATED: Uses SillyTavern's ConnectionManagerRequestService for API calls
+ * instead of direct fetch (which gets blocked by CORS)
+ * 
  * NOTE: Intrusive thoughts and object voices are now handled by
  * the discovery system (discovery.js v3) - objects are AI-generated
  */
@@ -28,6 +31,51 @@ import {
 } from '../core/state.js';
 import { rollSkillCheck, determineCheckDifficulty } from '../systems/dice.js';
 import { getResearchPenalties, hasSpecialEffect } from '../systems/cabinet.js';
+
+// ═══════════════════════════════════════════════════════════════
+// SILLYTAVERN CONNECTION HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get SillyTavern context
+ */
+function getContext() {
+    if (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) {
+        return SillyTavern.getContext();
+    }
+    return null;
+}
+
+/**
+ * Get profile ID by name from connection manager
+ */
+function getProfileIdByName(profileName) {
+    const ctx = getContext();
+    if (!ctx?.extensionSettings?.connectionManager) return null;
+    
+    const connectionManager = ctx.extensionSettings.connectionManager;
+    
+    // "current" = currently active profile
+    if (profileName === 'current' || !profileName) {
+        return connectionManager.selectedProfile;
+    }
+    
+    // Find by name
+    const profile = connectionManager.profiles?.find(p => p.name === profileName);
+    return profile ? profile.id : connectionManager.selectedProfile;
+}
+
+/**
+ * Get profile object by ID
+ */
+function getProfileById(profileId) {
+    if (!profileId) return null;
+    
+    const ctx = getContext();
+    if (!ctx?.extensionSettings?.connectionManager) return null;
+    
+    return ctx.extensionSettings.connectionManager.profiles?.find(p => p.id === profileId) || null;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // CONTEXT ANALYSIS
@@ -486,24 +534,117 @@ Output ONLY voice dialogue. No narration or explanation. Make them ARGUE and REA
 }
 
 // ═══════════════════════════════════════════════════════════════
-// API CALLS
+// API CALLS - Using SillyTavern's Connection Manager
 // ═══════════════════════════════════════════════════════════════
 
+/**
+ * Make API call using SillyTavern's ConnectionManagerRequestService
+ * This routes through ST's backend, avoiding CORS issues
+ */
 export async function callAPI(systemPrompt, userPrompt) {
+    const ctx = getContext();
+    
+    // Try ConnectionManagerRequestService first (preferred method)
+    if (ctx?.ConnectionManagerRequestService) {
+        return await callAPIViaConnectionManager(ctx, systemPrompt, userPrompt);
+    }
+    
+    // Fallback to generateRaw if available
+    if (typeof window !== 'undefined' && window.generateRaw) {
+        console.log('[The Tribunal] Using generateRaw fallback');
+        return await callAPIViaGenerateRaw(systemPrompt, userPrompt);
+    }
+    
+    // Last resort: try direct fetch (will fail with CORS for most APIs)
+    console.warn('[The Tribunal] No ST connection methods available, trying direct fetch (may fail due to CORS)');
+    return await callAPIDirectFetch(systemPrompt, userPrompt);
+}
+
+/**
+ * Call API via SillyTavern's ConnectionManagerRequestService
+ */
+async function callAPIViaConnectionManager(ctx, systemPrompt, userPrompt) {
+    // Get profile - use extension setting or current
+    const profileName = extensionSettings.connectionProfile || 'current';
+    const profileId = getProfileIdByName(profileName);
+    
+    if (!profileId) {
+        throw new Error('No connection profile available. Please set up a connection in SillyTavern.');
+    }
+    
+    console.log('[The Tribunal] Using ConnectionManagerRequestService with profile:', profileName);
+    
+    try {
+        const response = await ctx.ConnectionManagerRequestService.sendRequest(
+            profileId,
+            [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+            ],
+            extensionSettings.maxTokens || 600,
+            {
+                extractData: true,
+                includePreset: true,
+                includeInstruct: false  // Skip instruct templates for clean prompts
+            },
+            {
+                temperature: extensionSettings.temperature || 0.9
+            }
+        );
+        
+        if (!response?.content) {
+            throw new Error('Empty response from ConnectionManagerRequestService');
+        }
+        
+        return response.content;
+    } catch (error) {
+        console.error('[The Tribunal] ConnectionManagerRequestService failed:', error);
+        throw new Error(`API call failed: ${error.message}`);
+    }
+}
+
+/**
+ * Fallback: Call API via SillyTavern's generateRaw
+ * This uses the main chat connection
+ */
+async function callAPIViaGenerateRaw(systemPrompt, userPrompt) {
+    const combinedPrompt = `${systemPrompt}\n\n---\n\n${userPrompt}`;
+    
+    try {
+        const result = await window.generateRaw(
+            combinedPrompt,
+            null,
+            false,
+            false,
+            '',
+            extensionSettings.maxTokens || 600
+        );
+        
+        return result || '';
+    } catch (error) {
+        console.error('[The Tribunal] generateRaw failed:', error);
+        throw error;
+    }
+}
+
+/**
+ * Last resort: Direct fetch (will fail with CORS for most external APIs)
+ * Only works if the API has permissive CORS headers
+ */
+async function callAPIDirectFetch(systemPrompt, userPrompt) {
     let { apiEndpoint, apiKey, model, maxTokens, temperature } = extensionSettings;
 
     if (!apiEndpoint || !apiKey) {
-        throw new Error('API not configured - check settings');
+        throw new Error('API not configured - check settings or use SillyTavern connection profiles');
     }
 
     // Strip trailing slashes and append the correct path
     apiEndpoint = apiEndpoint.replace(/\/+$/, '');
 
-    console.log('[Inland Empire] Calling API:', apiEndpoint, 'Model:', model);
+    console.log('[The Tribunal] Direct fetch to:', apiEndpoint, 'Model:', model);
 
     let response;
     try {
-        // FIX: Append /chat/completions to match what the test button does
         response = await fetch(apiEndpoint + '/chat/completions', {
             method: 'POST',
             headers: {
@@ -516,12 +657,12 @@ export async function callAPI(systemPrompt, userPrompt) {
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt }
                 ],
-                max_tokens: maxTokens || 300,
+                max_tokens: maxTokens || 600,
                 temperature: temperature || 0.9
             })
         });
     } catch (fetchError) {
-        throw new Error(`Network error: ${fetchError.message}`);
+        throw new Error(`Network error (likely CORS): ${fetchError.message}. Consider using SillyTavern connection profiles instead.`);
     }
 
     if (!response.ok) {
@@ -613,7 +754,7 @@ export function parseChorusResponse(response, voiceData) {
 
 export async function generateVoices(selectedSkills, context) {
     if (!selectedSkills || selectedSkills.length === 0) {
-        console.error('[Inland Empire] generateVoices called with no skills');
+        console.error('[The Tribunal] generateVoices called with no skills');
         return [];
     }
 
@@ -644,7 +785,7 @@ export async function generateVoices(selectedSkills, context) {
             SKILLS[selected.skillId];
 
         if (!skill) {
-            console.error('[Inland Empire] Could not find skill:', selected.skillId);
+            console.error('[The Tribunal] Could not find skill:', selected.skillId);
         }
 
         return {
@@ -659,17 +800,17 @@ export async function generateVoices(selectedSkills, context) {
     const chorusPrompt = buildChorusPrompt(voiceData, context);
 
     // Debug: Log the prompt relationships
-    console.log('[Inland Empire] Chorus prompt relationships:', 
+    console.log('[The Tribunal] Chorus prompt relationships:', 
         voiceData.filter(v => v.isCascade).map(v => `${v.skillId} -> ${v.respondingTo}`)
     );
 
     try {
         const response = await callAPI(chorusPrompt.system, chorusPrompt.user);
         const parsed = parseChorusResponse(response, voiceData);
-        console.log('[Inland Empire] Generated', parsed.length, 'voice responses');
+        console.log('[The Tribunal] Generated', parsed.length, 'voice responses');
         return parsed;
     } catch (error) {
-        console.error('[Inland Empire] Chorus generation failed:', error);
+        console.error('[The Tribunal] Chorus generation failed:', error);
         throw error;
     }
 }
