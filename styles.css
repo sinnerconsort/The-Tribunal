@@ -3,12 +3,15 @@
  * Imports all modular stylesheets
  * 
  * This replaces the old 4000+ line monolith!
+ * Updated: Added ledger.css and inventory.css (extracted from tabs.css)
  */
 
 @import url('./styles/base.css');
 @import url('./styles/fab.css');
 @import url('./styles/panel.css');
 @import url('./styles/tabs.css');
+@import url('./styles/ledger.css');
+@import url('./styles/inventory.css');
 @import url('./styles/sections.css');
 @import url('./styles/status-cards.css');
 @import url('./styles/forms.css');
