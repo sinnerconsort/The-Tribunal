@@ -384,7 +384,7 @@ export function createPsychePanel() {
                     <div class="ie-form-group">
                         <label>Character Context</label>
                         <textarea id="ie-char-context" class="ie-textarea" rows="3" 
-                            placeholder="Describe who YOU are (the character whose head these voices are in). Example: 'I am Julie, trapped at a club.'"></textarea>
+                            placeholder="Describe who YOU are (the character whose head these voices are in). Example: 'Harry Du Bois, amnesiac detective. Kim Kitsuragi is my partner.'"></textarea>
                         <small class="ie-form-hint">Who is "you" - the character whose head these voices are in.</small>
                     </div>
                     
