@@ -6,6 +6,9 @@
  * 
  * UPDATED: Uses SillyTavern's ConnectionManagerRequestService for API calls
  * with proper response handling and fallback support
+ * 
+ * FIX: Added stripThinkingTags() to handle thinking model responses
+ * (removes <think>...</think> blocks before parsing)
  */
 
 import { SKILLS, ANCIENT_VOICES } from '../data/skills.js';
@@ -88,55 +91,75 @@ function getProfileIdByName(profileName) {
 }
 
 /**
+ * Strip thinking model tags from response
+ * Handles <think>, <thinking>, and similar patterns
+ */
+function stripThinkingTags(text) {
+    if (!text || typeof text !== 'string') return text;
+    
+    // Remove <think>...</think> and <thinking>...</thinking> blocks (case-insensitive, multiline)
+    let cleaned = text.replace(/<think(?:ing)?[\s\S]*?<\/think(?:ing)?>/gi, '');
+    
+    // Also handle unclosed thinking tags at the start (model cut off mid-think)
+    cleaned = cleaned.replace(/^[\s\S]*?<\/think(?:ing)?>/gi, '');
+    
+    // Remove any remaining opening tags without closing (incomplete thinking)
+    cleaned = cleaned.replace(/<think(?:ing)?>/gi, '');
+    
+    return cleaned.trim();
+}
+
+/**
  * Extract text content from various response formats
+ * Handles thinking model output by stripping <think> tags
  */
 function extractResponseContent(response) {
     if (!response) return null;
     
-    // If it's already a string, return it
+    // If it's already a string, strip thinking tags and return
     if (typeof response === 'string') {
-        return response;
+        return stripThinkingTags(response);
     }
     
     // Try various known response formats
     // Format 1: { content: "..." }
     if (response.content && typeof response.content === 'string') {
-        return response.content;
+        return stripThinkingTags(response.content);
     }
     
     // Format 2: { text: "..." }
     if (response.text && typeof response.text === 'string') {
-        return response.text;
+        return stripThinkingTags(response.text);
     }
     
     // Format 3: { message: "..." }
     if (response.message && typeof response.message === 'string') {
-        return response.message;
+        return stripThinkingTags(response.message);
     }
     
     // Format 4: { message: { content: "..." } }
     if (response.message?.content) {
-        return response.message.content;
+        return stripThinkingTags(response.message.content);
     }
     
     // Format 5: OpenAI-style { choices: [{ message: { content: "..." } }] }
     if (response.choices?.[0]?.message?.content) {
-        return response.choices[0].message.content;
+        return stripThinkingTags(response.choices[0].message.content);
     }
     
     // Format 6: { choices: [{ text: "..." }] }
     if (response.choices?.[0]?.text) {
-        return response.choices[0].text;
+        return stripThinkingTags(response.choices[0].text);
     }
     
     // Format 7: { data: { content: "..." } }
     if (response.data?.content) {
-        return response.data.content;
+        return stripThinkingTags(response.data.content);
     }
     
     // Format 8: { response: "..." }
     if (response.response && typeof response.response === 'string') {
-        return response.response;
+        return stripThinkingTags(response.response);
     }
     
     // Last resort: stringify and log for debugging
