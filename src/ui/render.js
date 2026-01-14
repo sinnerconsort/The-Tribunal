@@ -347,15 +347,15 @@ export function renderActiveEffectsSummary(container) {
 
     const boostHtml = Object.entries(boosts)
         .map(([s, c]) => `<span class="ie-effect-boost">+${c} ${SKILLS[s]?.signature || s}</span>`)
-        .join(' ');
+        .join('');
 
     const debuffHtml = Object.entries(debuffs)
         .map(([s, c]) => `<span class="ie-effect-debuff">-${c} ${SKILLS[s]?.signature || s}</span>`)
-        .join(' ');
+        .join('');
 
     container.innerHTML = `
-        <div class="ie-effects-row">${boostHtml || '<em>No boosts</em>'}</div>
-        <div class="ie-effects-row">${debuffHtml || '<em>No debuffs</em>'}</div>
+        <div class="ie-effects-row ie-effects-boosts">${boostHtml || '<em>No boosts</em>'}</div>
+        <div class="ie-effects-row ie-effects-debuffs">${debuffHtml || '<em>No debuffs</em>'}</div>
     `;
 }
 
@@ -363,7 +363,7 @@ export function renderActiveEffectsSummary(container) {
 // PROFILES LIST
 // ═══════════════════════════════════════════════════════════════
 
-export function renderProfilesList(container, onLoad, onDelete) {
+export function renderProfilesList(container, onLoad, onDelete, onUpdate) {
     if (!container) return;
 
     const profiles = Object.values(savedProfiles);
@@ -383,6 +383,9 @@ export function renderProfilesList(container, onLoad, onDelete) {
                 <button class="ie-btn ie-btn-sm ie-btn-load-profile" data-profile="${profile.id}" title="Load">
                     <i class="fa-solid fa-upload"></i>
                 </button>
+                <button class="ie-btn ie-btn-sm ie-btn-update-profile" data-profile="${profile.id}" title="Update with current settings">
+                    <i class="fa-solid fa-save"></i>
+                </button>
                 <button class="ie-btn ie-btn-sm ie-btn-delete-profile" data-profile="${profile.id}" title="Delete">
                     <i class="fa-solid fa-trash"></i>
                 </button>
@@ -393,6 +396,12 @@ export function renderProfilesList(container, onLoad, onDelete) {
     container.querySelectorAll('.ie-btn-load-profile').forEach(btn => {
         btn.addEventListener('click', () => {
             if (onLoad) onLoad(btn.dataset.profile);
+        });
+    });
+
+    container.querySelectorAll('.ie-btn-update-profile').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (onUpdate) onUpdate(btn.dataset.profile);
         });
     });
 
@@ -878,15 +887,17 @@ export function clearVoices() {
  * @param {HTMLElement} container - #ie-vitals-detail element
  * @param {Object} vitals - { health: number, morale: number }
  */
-export function renderVitalsDetail(container, vitals = {}) {
+export function renderVitalsDetail(container, vitals = {}, callbacks = {}) {
     if (!container) return;
 
     const health = Math.max(0, Math.min(100, vitals.health ?? 100));
     const morale = Math.max(0, Math.min(100, vitals.morale ?? 100));
+    const maxHealth = vitals.maxHealth ?? 100;
+    const maxMorale = vitals.maxMorale ?? 100;
 
     // Calculate colors (red to green gradient)
-    const healthHue = (health / 100) * 120;
-    const moraleHue = (morale / 100) * 120;
+    const healthHue = (health / maxHealth) * 120;
+    const moraleHue = (morale / maxMorale) * 120;
 
     container.innerHTML = `
         <div class="ie-vital-detail-row ie-health">
@@ -894,10 +905,14 @@ export function renderVitalsDetail(container, vitals = {}) {
                 <span class="ie-vital-detail-label">
                     <i class="fa-solid fa-heart"></i> Health
                 </span>
-                <span class="ie-vital-detail-value">${Math.round(health)} / 100</span>
+                <div class="ie-vital-controls">
+                    <button class="ie-btn ie-btn-xs ie-vital-btn" id="ie-health-minus" title="−1 Health">−</button>
+                    <span class="ie-vital-detail-value">${Math.round(health)} / ${maxHealth}</span>
+                    <button class="ie-btn ie-btn-xs ie-vital-btn" id="ie-health-plus" title="+1 Health">+</button>
+                </div>
             </div>
             <div class="ie-vital-detail-track">
-                <div class="ie-vital-detail-fill" style="width: ${health}%; background: hsl(${healthHue}, 65%, 45%)"></div>
+                <div class="ie-vital-detail-fill" style="width: ${(health/maxHealth)*100}%; background: hsl(${healthHue}, 65%, 45%)"></div>
             </div>
         </div>
         <div class="ie-vital-detail-row ie-morale">
@@ -905,13 +920,31 @@ export function renderVitalsDetail(container, vitals = {}) {
                 <span class="ie-vital-detail-label">
                     <i class="fa-solid fa-brain"></i> Morale
                 </span>
-                <span class="ie-vital-detail-value">${Math.round(morale)} / 100</span>
+                <div class="ie-vital-controls">
+                    <button class="ie-btn ie-btn-xs ie-vital-btn" id="ie-morale-minus" title="−1 Morale">−</button>
+                    <span class="ie-vital-detail-value">${Math.round(morale)} / ${maxMorale}</span>
+                    <button class="ie-btn ie-btn-xs ie-vital-btn" id="ie-morale-plus" title="+1 Morale">+</button>
+                </div>
             </div>
             <div class="ie-vital-detail-track">
-                <div class="ie-vital-detail-fill" style="width: ${morale}%; background: hsl(${moraleHue}, 65%, 45%)"></div>
+                <div class="ie-vital-detail-fill" style="width: ${(morale/maxMorale)*100}%; background: hsl(${moraleHue}, 65%, 45%)"></div>
             </div>
         </div>
     `;
+
+    // Attach event listeners
+    container.querySelector('#ie-health-minus')?.addEventListener('click', () => {
+        if (callbacks.onHealthChange) callbacks.onHealthChange(-1);
+    });
+    container.querySelector('#ie-health-plus')?.addEventListener('click', () => {
+        if (callbacks.onHealthChange) callbacks.onHealthChange(1);
+    });
+    container.querySelector('#ie-morale-minus')?.addEventListener('click', () => {
+        if (callbacks.onMoraleChange) callbacks.onMoraleChange(-1);
+    });
+    container.querySelector('#ie-morale-plus')?.addEventListener('click', () => {
+        if (callbacks.onMoraleChange) callbacks.onMoraleChange(1);
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════
