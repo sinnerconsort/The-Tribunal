@@ -35,6 +35,7 @@ import {
     saveProfile,
     loadProfile,
     deleteProfile,
+    updateProfile,
     initializeDefaultBuild,
     // Phase 1 additions - Vitals
     vitals,
@@ -489,17 +490,24 @@ function refreshProfilesTab() {
     
     if (container) {
         renderProfilesList(container, (profileId) => {
+            // Load profile
             loadProfile(profileId);
             saveState(getContext());
             refreshProfilesTab();
             refreshAttributesDisplay();
-            refreshVitals();  // Phase 1: sync vitals on profile load
+            refreshVitals();
             showToast(`Loaded profile: ${savedProfiles[profileId]?.name || profileId}`, 'info');
         }, (profileId) => {
+            // Delete profile
             deleteProfile(profileId);
             saveState(getContext());
             refreshProfilesTab();
             showToast('Profile deleted', 'info');
+        }, (profileId) => {
+            // Update profile with current settings
+            updateProfile(profileId, getContext());
+            refreshProfilesTab();
+            showToast(`Updated profile: ${savedProfiles[profileId]?.name || profileId}`, 'success');
         });
     }
     
