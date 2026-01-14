@@ -338,26 +338,8 @@ export function createPsychePanel() {
                 </div>
 
                 <div class="ie-section">
-                    <div class="ie-section-header"><span>Character Integration</span></div>
-                    <div class="ie-form-group">
-                        <label>Player Name Override</label>
-                        <input type="text" id="ie-player-name" placeholder="Leave empty to use ST persona" />
-                        <small class="ie-form-hint">Name used when voices address the player</small>
-                    </div>
-                    <div class="ie-form-group">
-                        <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-use-char-persona" checked />
-                            <span>Include character persona in prompts</span>
-                        </label>
-                    </div>
-                    <div class="ie-form-group">
-                        <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-second-person" />
-                            <span>Second-person narration mode</span>
-                        </label>
-                        <small class="ie-form-hint">Help voices convert third-person scene text to correct POV.</small>
-                    </div>
-                    <button class="ie-btn ie-btn-primary ie-btn-save-settings" style="width: 100%; margin-top: 10px;">
+                    <div class="ie-section-header"><span>Actions</span></div>
+                    <button class="ie-btn ie-btn-primary ie-btn-save-settings" style="width: 100%;">
                         <i class="fa-solid fa-save"></i>
                         <span>Save Settings</span>
                     </button>
@@ -374,6 +356,57 @@ export function createPsychePanel() {
                     <div class="ie-section-header"><span>Persona Profiles</span></div>
                     <div class="ie-profiles-list" id="ie-profiles-list"></div>
                 </div>
+
+                <div class="ie-section">
+                    <div class="ie-section-header"><span>// CHARACTER CONTEXT</span></div>
+                    
+                    <div class="ie-form-group">
+                        <label>POV Style</label>
+                        <select id="ie-pov-style" class="ie-select">
+                            <option value="second">Second Person (you/your)</option>
+                            <option value="third">Third Person (name/pronouns)</option>
+                            <option value="first">First Person (I/me/my)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="ie-form-group">
+                        <label>Character Name</label>
+                        <input type="text" id="ie-char-name" placeholder="e.g. Harry Du Bois" />
+                        <small class="ie-form-hint">Name used when voices address the player</small>
+                    </div>
+                    
+                    <div class="ie-form-group">
+                        <label>Pronouns</label>
+                        <select id="ie-pronouns" class="ie-select">
+                            <option value="they">They/Them</option>
+                            <option value="she">She/Her</option>
+                            <option value="he">He/Him</option>
+                            <option value="it">It/Its</option>
+                        </select>
+                    </div>
+                    
+                    <div class="ie-form-group">
+                        <label>Character Context</label>
+                        <textarea id="ie-char-context" class="ie-textarea" rows="3" 
+                            placeholder="Describe who YOU are (the character whose head these voices are in). Example: 'I am Julie, trapped at a club.'"></textarea>
+                        <small class="ie-form-hint">Who is "you" - the character whose head these voices are in.</small>
+                    </div>
+                    
+                    <div class="ie-form-group">
+                        <label>Scene Perspective Notes</label>
+                        <textarea id="ie-scene-notes" class="ie-textarea" rows="3"
+                            placeholder="e.g. 'Scene is written from Kim's external POV watching Harry. Harry = you/your. Kim = he/him.'"></textarea>
+                        <small class="ie-form-hint">Help voices convert third-person scene text to correct POV.</small>
+                    </div>
+                    
+                    <div class="ie-form-group">
+                        <label class="ie-checkbox">
+                            <input type="checkbox" id="ie-include-persona" checked />
+                            <span>Include character persona in prompts</span>
+                        </label>
+                    </div>
+                </div>
+
                 <div class="ie-section">
                     <div class="ie-section-header"><span>Save Current as Profile</span></div>
                     <div class="ie-form-group">
