@@ -246,32 +246,28 @@ export function createPsychePanel() {
             <!-- Settings Panel (accessed via bottom button) -->
             <div class="ie-tab-content" data-tab-content="settings">
                 <div class="ie-section">
-                    <div class="ie-section-header"><span>API Configuration</span></div>
+                    <div class="ie-section-header"><span>// CONNECTION</span></div>
                     <div class="ie-form-group">
-                        <label>API Endpoint</label>
-                        <input type="text" id="ie-api-endpoint" placeholder="https://api.example.com/v1" />
-                    </div>
-                    <div class="ie-form-group">
-                        <label>API Key</label>
-                        <input type="password" id="ie-api-key" placeholder="Your API key" />
-                    </div>
-                    <div class="ie-form-group">
-                        <label>Model</label>
-                        <input type="text" id="ie-model" placeholder="glm-4-plus" />
+                        <label>Connection Profile</label>
+                        <select id="ie-connection-profile" class="ie-select">
+                            <option value="current">Use Current ST Profile</option>
+                            <!-- Populated dynamically -->
+                        </select>
+                        <small class="ie-form-hint">Select a ST connection profile for voice generation. Create a cheap API profile in ST's Connection Manager.</small>
                     </div>
                     <div class="ie-form-row">
                         <div class="ie-form-group">
                             <label>Temperature</label>
-                            <input type="number" id="ie-temperature" min="0" max="2" step="0.1" value="0.9" />
+                            <input type="number" id="ie-temperature" min="0" max="2" step="0.1" value="0.8" />
                         </div>
                         <div class="ie-form-group">
                             <label>Max Tokens</label>
-                            <input type="number" id="ie-max-tokens" min="50" max="1000" value="300" />
+                            <input type="number" id="ie-max-tokens" min="50" max="1000" value="600" />
                         </div>
                     </div>
                     <button class="ie-btn ie-btn-test-api" id="ie-test-api-btn">
                         <i class="fa-solid fa-plug"></i>
-                        <span>Test API Connection</span>
+                        <span>Test Connection</span>
                     </button>
                 </div>
 
@@ -829,5 +825,33 @@ export function updateWeather(icon, description) {
                 <span>${description}</span>
             </div>
         `;
+    }
+}
+
+/**
+ * Populate the connection profile dropdown with available ST profiles
+ * @param {Array} profiles - Array of { id, name } objects from getAvailableProfiles()
+ * @param {string} selectedProfile - Currently selected profile name
+ */
+export function populateConnectionProfiles(profiles, selectedProfile) {
+    const select = document.getElementById('ie-connection-profile');
+    if (!select) return;
+    
+    // Clear existing options except "current"
+    select.innerHTML = '<option value="current">Use Current ST Profile</option>';
+    
+    // Add available profiles
+    if (profiles && profiles.length > 0) {
+        profiles.forEach(profile => {
+            const option = document.createElement('option');
+            option.value = profile.name;
+            option.textContent = profile.name;
+            select.appendChild(option);
+        });
+    }
+    
+    // Set selected value
+    if (selectedProfile) {
+        select.value = selectedProfile;
     }
 }
