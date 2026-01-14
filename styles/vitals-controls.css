@@ -1,6 +1,9 @@
 /**
  * The Tribunal - Phase 2 Styles
  * Vitals manual controls and detection settings
+ * 
+ * CLEANED: Removed duplicate "ADD TO" section (lines 203-248)
+ * See OVERLAP-MAP-COMPLETE.md for details
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -199,49 +202,4 @@
     padding-top: 16px;
     border-top: 1px solid var(--ie-border, #3d3d35);
     margin-top: 8px;
-}
-/* ═══════════════════════════════════════════════════════════════
-   ADD TO: styles/vitals-controls.css
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Vital Controls with +/- buttons */
-.ie-vital-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.ie-btn-xs {
-    padding: 2px 8px;
-    font-size: 14px;
-    min-width: 24px;
-    line-height: 1;
-    height: 24px;
-}
-
-.ie-vital-btn {
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
-    color: var(--ie-text-secondary, #999);
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: all 0.15s ease;
-}
-
-.ie-vital-btn:hover {
-    background: rgba(255,255,255,0.2);
-    color: var(--ie-text-primary, #fff);
-}
-
-.ie-vital-btn:active {
-    transform: scale(0.95);
-}
-
-/* Fix vitals detail header layout */
-.ie-vital-detail-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 4px;
 }

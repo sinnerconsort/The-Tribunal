@@ -1,6 +1,9 @@
 /**
  * The Tribunal - Profiles & Build Editor
  * Character profiles and build configuration
+ * 
+ * CLEANED: Removed duplicate .ie-profile-actions
+ * See OVERLAP-MAP-COMPLETE.md for details
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -37,6 +40,16 @@
     font-style: italic;
     padding: 10px;
     text-align: center;
+}
+
+/* Profile card update button */
+.ie-btn-update-profile {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+.ie-btn-update-profile:hover {
+    background: rgba(59, 130, 246, 0.4);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -76,24 +89,4 @@
     font-weight: bold;
     width: 20px;
     text-align: center;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   ADD TO: styles/profiles.css
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Profile card update button */
-.ie-btn-update-profile {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(59, 130, 246, 0.4);
-}
-
-.ie-btn-update-profile:hover {
-    background: rgba(59, 130, 246, 0.4);
-}
-
-/* Profile actions spacing */
-.ie-profile-actions {
-    display: flex;
-    gap: 4px;
 }
