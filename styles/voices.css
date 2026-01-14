@@ -1,15 +1,33 @@
 /**
  * The Tribunal - Voices Output
  * Voice display styling
+ * 
+ * FIX #5: Fixed voice cards being cut off at end of panel
+ * - Removed hardcoded max-height (let parent control)
+ * - Added padding-bottom for last item visibility
+ * - Improved scroll behavior
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   VOICES OUTPUT
+   VOICES OUTPUT - FIXED OVERFLOW
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-voices-container {
-    max-height: 300px;
+    /* FIX: Remove hardcoded max-height - let it be controlled by parent
+       or use a more flexible approach */
+    max-height: none; /* Was 300px - too restrictive */
+    overflow-y: visible; /* Parent handles scrolling */
+    /* FIX: Add padding-bottom so last voice card isn't cut off */
+    padding-bottom: 16px;
+}
+
+/* Alternative: If you want the voices section to scroll independently */
+.ie-voices-container.ie-scrollable {
+    max-height: 400px; /* More generous than 300px */
     overflow-y: auto;
+    padding-bottom: 20px;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
 }
 
 .ie-voices-empty {
@@ -33,6 +51,12 @@
     position: relative;
 }
 
+/* FIX: Last voice card needs no margin-bottom but needs to be fully visible */
+.ie-voice-line:last-child,
+.ie-voice-item:last-child {
+    margin-bottom: 0;
+}
+
 .ie-voice-line::before,
 .ie-voice-item::before {
     content: '';
@@ -50,6 +74,9 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
+    /* FIX: Prevent header from wrapping awkwardly */
+    flex-wrap: wrap;
+    gap: 6px;
 }
 
 .ie-voice-signature {
@@ -64,6 +91,9 @@
     font-size: 13px;
     line-height: 1.6;
     color: var(--ie-text-primary);
+    /* FIX: Ensure content doesn't overflow */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .ie-check-badge {
@@ -137,3 +167,23 @@
     background: linear-gradient(135deg, var(--ie-bg-tertiary), #28281a);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   NARRATOR VOICE (Investigation) - Ensure visibility
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-voice-line.ie-narrator-voice {
+    background: linear-gradient(135deg, var(--ie-bg-tertiary), #1a1a28);
+    border-left-width: 6px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VOICE TAB CONTENT - Parent scroll container
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Ensure the Voices tab content area scrolls properly */
+.ie-tab-content[data-tab-content="voices"] {
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* FIX: Add bottom padding so last voice isn't cut off by panel edge */
+    padding-bottom: 24px;
+}
