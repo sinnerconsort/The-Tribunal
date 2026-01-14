@@ -78,3 +78,22 @@
     text-align: center;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   ADD TO: styles/profiles.css
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Profile card update button */
+.ie-btn-update-profile {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+.ie-btn-update-profile:hover {
+    background: rgba(59, 130, 246, 0.4);
+}
+
+/* Profile actions spacing */
+.ie-profile-actions {
+    display: flex;
+    gap: 4px;
+}
