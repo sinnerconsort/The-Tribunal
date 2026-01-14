@@ -1,11 +1,6 @@
 /**
  * The Tribunal - Phase 2 Styles
  * Vitals manual controls and detection settings
- * 
- * CLEANED: 
- *   - Removed .ie-select (use forms.css - was TRIPLICATE!)
- *   - Removed duplicate "ADD TO" section
- * See OVERLAP-MAP-COMPLETE.md for details
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -102,8 +97,29 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   SETTINGS: Button Styles
+   SETTINGS: Vitals Detection Section
    ═══════════════════════════════════════════════════════════════ */
+
+.ie-select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--ie-border, #3d3d35);
+    border-radius: 4px;
+    background: var(--ie-bg-input, #1a1a16);
+    color: var(--ie-text, #d4d4c4);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.ie-select:focus {
+    outline: none;
+    border-color: var(--ie-accent, #f3650b);
+}
+
+.ie-select option {
+    background: var(--ie-bg-dark, #0d0d0a);
+    color: var(--ie-text, #d4d4c4);
+}
 
 /* Secondary button style */
 .ie-btn-secondary {
@@ -183,4 +199,49 @@
     padding-top: 16px;
     border-top: 1px solid var(--ie-border, #3d3d35);
     margin-top: 8px;
+}
+/* ═══════════════════════════════════════════════════════════════
+   ADD TO: styles/vitals-controls.css
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Vital Controls with +/- buttons */
+.ie-vital-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ie-btn-xs {
+    padding: 2px 8px;
+    font-size: 14px;
+    min-width: 24px;
+    line-height: 1;
+    height: 24px;
+}
+
+.ie-vital-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: var(--ie-text-secondary, #999);
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.15s ease;
+}
+
+.ie-vital-btn:hover {
+    background: rgba(255,255,255,0.2);
+    color: var(--ie-text-primary, #fff);
+}
+
+.ie-vital-btn:active {
+    transform: scale(0.95);
+}
+
+/* Fix vitals detail header layout */
+.ie-vital-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
 }
