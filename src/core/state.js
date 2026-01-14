@@ -483,6 +483,21 @@ export function saveProfile(name, context = null) {
     return profile;
 }
 
+export function updateProfile(profileId, context = null) {
+    const existing = savedProfiles[profileId];
+    if (!existing) return false;
+    
+    // Keep the original name and id, update everything else
+    const updated = createProfile(existing.name);
+    updated.id = existing.id;
+    updated.createdAt = existing.createdAt;
+    updated.updatedAt = Date.now();
+    
+    savedProfiles[profileId] = updated;
+    if (context) saveState(context);
+    return updated;
+}
+
 export function loadProfile(profileId, context = null) {
     const profile = savedProfiles[profileId];
     if (!profile) return false;
