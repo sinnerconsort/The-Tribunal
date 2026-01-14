@@ -148,13 +148,18 @@ export function showDiscoveryToast(thought, onResearch, onDismiss) {
     const toast = document.createElement('div');
     toast.className = 'ie-toast ie-toast-discovery';
 
+    // Get short description from problemText (first sentence) or fallback to description
+    const shortDesc = thought.problemText 
+        ? thought.problemText.split('\n')[0].substring(0, 100) + '...'
+        : thought.description || 'A new thought emerges...';
+
     toast.innerHTML = `
         <div class="ie-discovery-header">
             <span class="ie-discovery-icon">💭</span>
             <span class="ie-discovery-label">THOUGHT DISCOVERED</span>
         </div>
         <div class="ie-discovery-name">${thought.icon} ${thought.name}</div>
-        <div class="ie-discovery-desc">${thought.description}</div>
+        <div class="ie-discovery-desc">${shortDesc}</div>
         <div class="ie-discovery-actions">
             <button class="ie-btn ie-btn-research" data-thought="${thought.id}">RESEARCH</button>
             <button class="ie-btn ie-btn-dismiss-thought" data-thought="${thought.id}">DISMISS</button>
@@ -194,7 +199,10 @@ export function showInternalizedToast(thought, skills = {}) {
 
     const bonusText = thought.internalizedBonus ?
         Object.entries(thought.internalizedBonus)
-            .map(([s, v]) => `+${v} ${skills[s]?.signature || s}`)
+            .map(([s, v]) => {
+                const value = typeof v === 'object' ? v.value : v;
+                return `+${value} ${skills[s]?.signature || s}`;
+            })
             .join(' ') : '';
 
     const capText = thought.capModifier ?
@@ -202,13 +210,18 @@ export function showInternalizedToast(thought, skills = {}) {
             .map(([s, v]) => `+${v} ${skills[s]?.signature || s} cap`)
             .join(' ') : '';
 
+    // Use solutionText (first line) or flavorText as fallback
+    const flavorLine = thought.solutionText 
+        ? thought.solutionText.split('\n')[0].substring(0, 120)
+        : thought.flavorText || 'The thought has crystallized.';
+
     toast.innerHTML = `
         <div class="ie-internalized-header">
             <span class="ie-internalized-icon">✨</span>
             <span class="ie-internalized-label">THOUGHT INTERNALIZED</span>
         </div>
         <div class="ie-internalized-name">${thought.icon} ${thought.name}</div>
-        <div class="ie-internalized-flavor">${thought.flavorText}</div>
+        <div class="ie-internalized-flavor">${flavorLine}</div>
         ${bonusText ? `<div class="ie-internalized-bonuses">${bonusText}</div>` : ''}
         ${capText ? `<div class="ie-internalized-caps">${capText}</div>` : ''}
     `;
