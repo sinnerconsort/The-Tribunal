@@ -2,6 +2,12 @@
  * The Tribunal - Tab Styles
  * All tab themes: Voices, Settings, Thought Cabinet, Profiles, Status, Ledger, Inventory
  * Phase 1 Update: Renamed skills→voices, added ledger/inventory tab themes
+ * 
+ * CLEANED: Removed duplicates:
+ *   - .ie-panel-content (duplicated panel.css)
+ *   - Vitals detail section (duplicated vitals-controls.css)
+ *   - Vitals glow animations (duplicated panel.css)
+ * See OVERLAP-MAP-COMPLETE.md for details
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -664,18 +670,6 @@
 }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   PANEL CONTENT WRAPPER
-   ═══════════════════════════════════════════════════════════════ */
-
-.ie-panel-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-height: 0;
-}
-
 
 /* ═══════════════════════════════════════════════════════════════
    LEDGER TAB CONTENT
@@ -921,64 +915,6 @@
     letter-spacing: 1px;
 }
 
-
-/* ═══════════════════════════════════════════════════════════════
-   VITALS DETAIL in Status tab
-   ═══════════════════════════════════════════════════════════════ */
-
-.ie-vitals-detail {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.ie-vital-detail-row {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.ie-vital-detail-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.ie-vital-detail-label {
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.ie-vital-detail-value {
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.ie-vital-detail-track {
-    height: 12px;
-    background: var(--ie-bg-primary);
-    border-radius: 6px;
-    overflow: hidden;
-    border: 1px solid var(--ie-border);
-}
-
-.ie-vital-detail-fill {
-    height: 100%;
-    border-radius: 5px;
-    transition: width 0.4s ease, background 0.4s ease;
-}
-
-.ie-vital-detail-row.ie-health .ie-vital-detail-label,
-.ie-vital-detail-row.ie-health .ie-vital-detail-value {
-    color: var(--ie-accent-red);
-}
-
-.ie-vital-detail-row.ie-morale .ie-vital-detail-label,
-.ie-vital-detail-row.ie-morale .ie-vital-detail-value {
-    color: var(--ie-accent-purple);
-}
 /**
  * The Tribunal - Tab Icon Animations
  * Icons animate when their tab is active
@@ -1123,27 +1059,3 @@
 }
 
 
-/* ═══════════════════════════════════════════════════════════════
-   VITALS BAR ANIMATIONS (Bonus)
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Health label pulses gently */
-.ie-vital-health .ie-vital-label {
-    animation: ie-health-glow 4s ease-in-out infinite;
-}
-
-@keyframes ie-health-glow {
-    0%, 100% { text-shadow: 0 0 0 transparent; }
-    50% { text-shadow: 0 0 6px rgba(243, 101, 11, 0.4); }
-}
-
-/* Morale label pulses gently */
-.ie-vital-morale .ie-vital-label {
-    animation: ie-morale-glow 4s ease-in-out infinite;
-    animation-delay: 2s; /* Offset from health */
-}
-
-@keyframes ie-morale-glow {
-    0%, 100% { text-shadow: 0 0 0 transparent; }
-    50% { text-shadow: 0 0 6px rgba(14, 121, 137, 0.4); }
-}
