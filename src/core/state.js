@@ -1,6 +1,7 @@
 /**
- * Inland Empire - State Management
+ * The Tribunal - State Management
  * Handles saves, loads, profiles, and build management
+ * Phase 1 Update: Added vitals, suggestions FAB, ledger, inventory state
  */
 
 import { ATTRIBUTES, SKILLS } from '../data/skills.js';
@@ -37,43 +38,102 @@ export let thoughtCabinet = {
     dismissed: []
 };
 
+// Vitals state (Phase 2) - DE caps at 13
+export let vitals = {
+    health: 13,
+    maxHealth: 13,
+    morale: 13,
+    maxMorale: 13
+};
+
+// Ledger state (Phase 3)
+export let ledger = {
+    activeCases: [],
+    completedCases: [],
+    notes: [],
+    weather: {
+        condition: 'unknown',
+        description: 'Conditions unknown',
+        icon: 'fa-cloud-sun'
+    }
+};
+
+// Inventory state (Phase 4)
+export let inventory = {
+    carried: [],
+    worn: [],
+    stored: [],
+    money: 0
+};
+
 // Default settings
 export const DEFAULT_SETTINGS = {
     enabled: true,
     showDiceRolls: true,
     showFailedChecks: true,
     voicesPerMessage: { min: 1, max: 4 },
-    connectionProfile: 'current',
-    maxTokens: 600,
-    temperature: 0.8,
+    apiEndpoint: '',
+    apiKey: '',
+    model: 'glm-4-plus',
+    maxTokens: 300,
+    temperature: 0.9,
     povStyle: 'second',
     characterName: '',
     characterPronouns: 'they',
     characterContext: '',
     scenePerspective: '',
-    includePersona: true,
     autoDetectStatus: false,
     autoTrigger: false,
     triggerDelay: 1000,
+    contextMessages: 5,
+    includeThoughts: true,
+    useCharPersona: true,
+    
     // Main FAB position
     fabPositionTop: 140,
     fabPositionLeft: 10,
+    
     // Investigation FAB position and visibility
     discoveryFabTop: 200,
     discoveryFabLeft: 10,
-    showInvestigationFab: true, // NEW: Toggle Investigation FAB visibility
-    autoScanEnabled: false,     // Auto-investigate on new messages
+    showInvestigationFab: true,
+    autoScanEnabled: false,
+    
+    // Suggestions FAB (Phase 1)
+    suggestionsFabTop: 260,
+    suggestionsFabLeft: 10,
+    showSuggestionsFab: false, // Hidden by default per spec
+    autoSuggestions: false,
+    suggestionsPrompt: '',
+    
     // Intrusive thoughts
     intrusiveEnabled: true,
     intrusiveChance: 0.15,
     intrusiveInChat: true,
+    
     // Object voices
     objectVoicesEnabled: true,
     objectVoiceChance: 0.4,
+    
     // Thought cabinet
     thoughtDiscoveryEnabled: true,
     showThemeTracker: true,
-    autoDiscoverThoughts: true
+    autoDiscoverThoughts: true,
+    
+    // Vitals system (Phase 2)
+    vitalsEnabled: true,
+    autoDetectVitals: false,
+    vitalsSensitivity: 'medium',
+    vitalsShowNotifications: true,
+    
+    // Weather system (Phase 3)
+    weatherEnabled: true,
+    injectWeatherContext: true,
+    
+    // Inventory system (Phase 4)
+    inventoryEnabled: true,
+    autoParseInventory: false,
+    aiGenerateItems: false
 };
 
 export let extensionSettings = { ...DEFAULT_SETTINGS };
@@ -244,6 +304,154 @@ export function getBoostedIntrusiveSkills() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// VITALS MANAGEMENT (Phase 2)
+// ═══════════════════════════════════════════════════════════════
+
+export function setHealth(value, context = null) {
+    vitals.health = Math.max(0, Math.min(vitals.maxHealth, value));
+    if (context) saveState(context);
+    return vitals.health;
+}
+
+export function setMorale(value, context = null) {
+    vitals.morale = Math.max(0, Math.min(vitals.maxMorale, value));
+    if (context) saveState(context);
+    return vitals.morale;
+}
+
+export function modifyHealth(delta, context = null) {
+    return setHealth(vitals.health + delta, context);
+}
+
+export function modifyMorale(delta, context = null) {
+    return setMorale(vitals.morale + delta, context);
+}
+
+export function getVitals() {
+    return { ...vitals };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LEDGER MANAGEMENT (Phase 3)
+// ═══════════════════════════════════════════════════════════════
+
+export function addCase(caseData, context = null) {
+    const newCase = {
+        id: `case_${Date.now()}`,
+        title: caseData.title,
+        description: caseData.description || '',
+        isMain: caseData.isMain || false,
+        complete: false,
+        createdAt: Date.now()
+    };
+    ledger.activeCases.push(newCase);
+    if (context) saveState(context);
+    return newCase;
+}
+
+export function completeCase(caseId, context = null) {
+    const idx = ledger.activeCases.findIndex(c => c.id === caseId);
+    if (idx !== -1) {
+        const completed = ledger.activeCases.splice(idx, 1)[0];
+        completed.complete = true;
+        completed.completedAt = Date.now();
+        ledger.completedCases.push(completed);
+        if (context) saveState(context);
+        return completed;
+    }
+    return null;
+}
+
+export function addNote(text, context = null) {
+    const note = {
+        id: `note_${Date.now()}`,
+        text,
+        timestamp: Date.now()
+    };
+    ledger.notes.unshift(note);
+    if (context) saveState(context);
+    return note;
+}
+
+export function setWeather(condition, description, icon, context = null) {
+    ledger.weather = { condition, description, icon };
+    if (context) saveState(context);
+}
+
+export function getLedger() {
+    return { ...ledger };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INVENTORY MANAGEMENT (Phase 4)
+// ═══════════════════════════════════════════════════════════════
+
+export function addItem(item, location = 'carried', context = null) {
+    const newItem = {
+        id: `item_${Date.now()}`,
+        name: item.name,
+        description: item.description || '',
+        icon: item.icon || '📦',
+        modifiers: item.modifiers || [],
+        ...item
+    };
+    
+    if (location === 'carried') inventory.carried.push(newItem);
+    else if (location === 'worn') inventory.worn.push(newItem);
+    else if (location === 'stored') inventory.stored.push(newItem);
+    
+    if (context) saveState(context);
+    return newItem;
+}
+
+export function removeItem(itemId, context = null) {
+    for (const loc of ['carried', 'worn', 'stored']) {
+        const idx = inventory[loc].findIndex(i => i.id === itemId);
+        if (idx !== -1) {
+            const removed = inventory[loc].splice(idx, 1)[0];
+            if (context) saveState(context);
+            return removed;
+        }
+    }
+    return null;
+}
+
+export function equipItem(itemId, context = null) {
+    const item = removeItem(itemId);
+    if (item) {
+        inventory.worn.push(item);
+        if (context) saveState(context);
+        return item;
+    }
+    return null;
+}
+
+export function unequipItem(itemId, context = null) {
+    const idx = inventory.worn.findIndex(i => i.id === itemId);
+    if (idx !== -1) {
+        const item = inventory.worn.splice(idx, 1)[0];
+        inventory.carried.push(item);
+        if (context) saveState(context);
+        return item;
+    }
+    return null;
+}
+
+export function setMoney(amount, context = null) {
+    inventory.money = Math.max(0, amount);
+    if (context) saveState(context);
+    return inventory.money;
+}
+
+export function modifyMoney(delta, context = null) {
+    return setMoney(inventory.money + delta, context);
+}
+
+export function getInventory() {
+    return { ...inventory };
+}
+
+// ═══════════════════════════════════════════════════════════════
 // PROFILE MANAGEMENT
 // ═══════════════════════════════════════════════════════════════
 
@@ -258,10 +466,13 @@ export function createProfile(name) {
         characterPronouns: extensionSettings.characterPronouns,
         characterContext: extensionSettings.characterContext,
         scenePerspective: extensionSettings.scenePerspective,
-        includePersona: extensionSettings.includePersona,
         activeStatuses: Array.from(activeStatuses),
         thoughtCabinet: JSON.parse(JSON.stringify(thoughtCabinet)),
-        themeCounters: { ...themeCounters }
+        themeCounters: { ...themeCounters },
+        // Phase 2+ state
+        vitals: { ...vitals },
+        ledger: JSON.parse(JSON.stringify(ledger)),
+        inventory: JSON.parse(JSON.stringify(inventory))
     };
 }
 
@@ -282,7 +493,6 @@ export function loadProfile(profileId, context = null) {
     extensionSettings.characterPronouns = profile.characterPronouns || 'they';
     extensionSettings.characterContext = profile.characterContext || '';
     extensionSettings.scenePerspective = profile.scenePerspective || '';
-    extensionSettings.includePersona = profile.includePersona ?? true;
     activeStatuses = new Set(profile.activeStatuses || []);
 
     if (profile.thoughtCabinet) {
@@ -290,6 +500,17 @@ export function loadProfile(profileId, context = null) {
     }
     if (profile.themeCounters) {
         themeCounters = { ...profile.themeCounters };
+    }
+    
+    // Phase 2+ state
+    if (profile.vitals) {
+        vitals = { ...vitals, ...profile.vitals };
+    }
+    if (profile.ledger) {
+        ledger = JSON.parse(JSON.stringify(profile.ledger));
+    }
+    if (profile.inventory) {
+        inventory = JSON.parse(JSON.stringify(profile.inventory));
     }
 
     if (context) saveState(context);
@@ -320,7 +541,11 @@ export function saveState(context) {
         discoveryContext: {
             ...discoveryContext,
             objectsSeen: Array.from(discoveryContext.objectsSeen)
-        }
+        },
+        // Phase 2+ state
+        vitals,
+        ledger,
+        inventory
     };
 
     try {
@@ -330,7 +555,7 @@ export function saveState(context) {
         }
         localStorage.setItem('inland_empire_state', JSON.stringify(state));
     } catch (e) {
-        console.error('[Inland Empire] Failed to save state:', e);
+        console.error('[The Tribunal] Failed to save state:', e);
     }
 }
 
@@ -360,11 +585,32 @@ export function loadState(context) {
                     objectsSeen: new Set(state.discoveryContext.objectsSeen || [])
                 };
             }
+            
+            // Phase 2+ state
+            if (state.vitals) {
+                vitals = { ...vitals, ...state.vitals };
+                
+                // Migration: Convert from 100-scale to 13-scale (DE style)
+                if (vitals.maxHealth === 100) {
+                    vitals.maxHealth = 13;
+                    vitals.health = Math.min(13, Math.round(vitals.health * 13 / 100));
+                }
+                if (vitals.maxMorale === 100) {
+                    vitals.maxMorale = 13;
+                    vitals.morale = Math.min(13, Math.round(vitals.morale * 13 / 100));
+                }
+            }
+            if (state.ledger) {
+                ledger = { ...ledger, ...state.ledger };
+            }
+            if (state.inventory) {
+                inventory = { ...inventory, ...state.inventory };
+            }
         } else {
             initializeDefaultBuild();
         }
     } catch (e) {
-        console.error('[Inland Empire] Failed to load state:', e);
+        console.error('[The Tribunal] Failed to load state:', e);
         initializeDefaultBuild();
     }
 }
@@ -387,6 +633,18 @@ export function setThoughtCabinet(cabinet) {
 
 export function setDiscoveryContext(ctx) {
     discoveryContext = ctx;
+}
+
+export function setVitals(newVitals) {
+    vitals = { ...vitals, ...newVitals };
+}
+
+export function setLedger(newLedger) {
+    ledger = { ...ledger, ...newLedger };
+}
+
+export function setInventory(newInventory) {
+    inventory = { ...inventory, ...newInventory };
 }
 
 export function updateSettings(newSettings) {
