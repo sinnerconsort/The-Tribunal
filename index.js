@@ -4,6 +4,13 @@
  * 
  * A Disco Elysium-inspired internal skill voice system for roleplay
  * Phase 2: Vitals Auto-Detection
+ * 
+ * FIXES APPLIED (2026-01-14):
+ * - Connection profiles now use ST Connection Manager instead of direct API
+ * - Apply Build button uses try/catch (was broken with result.valid check)
+ * - populateConnectionProfiles import added from panel.js
+ * - Test Connection button replaces Test API button
+ * - Settings save/load updated for connectionProfile
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -35,7 +42,6 @@ import {
     saveProfile,
     loadProfile,
     deleteProfile,
-    updateProfile,
     initializeDefaultBuild,
     // Phase 1 additions - Vitals
     vitals,
@@ -107,7 +113,9 @@ import {
     updateMorale,
     updateCaseTitle,
     updateMoney,
-    updateWeather
+    updateWeather,
+    // FIX: Added connection profile helper
+    populateConnectionProfiles
 } from './src/ui/panel.js';
 
 import {
@@ -439,13 +447,20 @@ function refreshStatusTab() {
 function refreshCabinetTab() {
     const container = document.getElementById('ie-cabinet-content');
     if (container) {
-        renderThoughtCabinet(container, {
-            onResearch: handleStartResearch,
-            onAbandon: handleAbandonResearch,
-            onDismiss: handleDismissThought,
-            onForget: handleForgetThought,
-            showThemeTracker: extensionSettings.showThemeTracker
-        });
+        renderThoughtCabinet(
+            container,
+            thoughtCabinet,
+            THOUGHTS,
+            THEMES,
+            themeCounters,
+            SKILLS,
+            {
+                onStartResearch: handleStartResearch,
+                onAbandonResearch: handleAbandonResearch,
+                onForget: handleForgetThought,
+                showThemeTracker: extensionSettings.showThemeTracker
+            }
+        );
     }
 }
 
@@ -489,25 +504,18 @@ function refreshProfilesTab() {
     const editor = document.getElementById('ie-attributes-editor');
     
     if (container) {
-        renderProfilesList(container, (profileId) => {
-            // Load profile
+        renderProfilesList(container, savedProfiles, currentBuild, (profileId) => {
             loadProfile(profileId);
             saveState(getContext());
             refreshProfilesTab();
             refreshAttributesDisplay();
-            refreshVitals();
+            refreshVitals();  // Phase 1: sync vitals on profile load
             showToast(`Loaded profile: ${savedProfiles[profileId]?.name || profileId}`, 'info');
         }, (profileId) => {
-            // Delete profile
             deleteProfile(profileId);
             saveState(getContext());
             refreshProfilesTab();
             showToast('Profile deleted', 'info');
-        }, (profileId) => {
-            // Update profile with current settings
-            updateProfile(profileId, getContext());
-            refreshProfilesTab();
-            showToast(`Updated profile: ${savedProfiles[profileId]?.name || profileId}`, 'success');
         });
     }
     
@@ -517,11 +525,17 @@ function refreshProfilesTab() {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// FIX: Updated to use Connection Profiles instead of direct API
+// ═══════════════════════════════════════════════════════════════
+
 function populateSettingsForm() {
+    // FIX: Populate connection profiles dropdown first
+    populateConnectionProfiles(getContext());
+    
     const fields = {
-        'ie-api-endpoint': extensionSettings.apiEndpoint,
-        'ie-api-key': extensionSettings.apiKey,
-        'ie-model': extensionSettings.model,
+        // FIX: Now using connection profile instead of direct API fields
+        'ie-connection-profile': extensionSettings.connectionProfile || 'current',
         'ie-temperature': extensionSettings.temperature,
         'ie-max-tokens': extensionSettings.maxTokens,
         'ie-min-voices': extensionSettings.voicesPerMessage?.min,
@@ -535,10 +549,10 @@ function populateSettingsForm() {
         'ie-intrusive-chance': (extensionSettings.intrusiveChance * 100).toFixed(0),
         'ie-intrusive-in-chat': extensionSettings.intrusiveInChat,
         'ie-pov-style': extensionSettings.povStyle,
-        'ie-character-name': extensionSettings.characterName,
-        'ie-character-pronouns': extensionSettings.characterPronouns,
-        'ie-character-context': extensionSettings.characterContext,
-        'ie-scene-perspective': extensionSettings.scenePerspective,
+        'ie-char-name': extensionSettings.characterName,
+        'ie-pronouns': extensionSettings.characterPronouns,
+        'ie-char-context': extensionSettings.characterContext,
+        'ie-scene-notes': extensionSettings.scenePerspective,
         'ie-show-investigation-fab': extensionSettings.showInvestigationFab !== false,
         // Phase 2 - Vitals detection
         'ie-auto-detect-vitals': extensionSettings.autoDetectVitals,
@@ -640,73 +654,105 @@ function bindEvents() {
         }
     });
 
-    // Test API
-    document.getElementById('ie-test-api-btn')?.addEventListener('click', async () => {
-        const endpoint = document.getElementById('ie-api-endpoint')?.value;
-        const apiKey = document.getElementById('ie-api-key')?.value;
-        const model = document.getElementById('ie-model')?.value;
-
-        if (!endpoint || !apiKey) {
-            showToast('Please fill in API endpoint and key', 'error');
-            return;
-        }
-
-        const loadingToast = showToast('Testing API connection...', 'loading');
-
+    // ═══════════════════════════════════════════════════════════════
+    // FIX: Test Connection button (replaces Test API button)
+    // Now uses ST Connection Manager instead of direct API test
+    // ═══════════════════════════════════════════════════════════════
+    
+    document.getElementById('ie-test-connection-btn')?.addEventListener('click', async () => {
+        const profileSelect = document.getElementById('ie-connection-profile');
+        const profileSetting = profileSelect?.value || 'current';
+        
+        const loadingToast = showToast('Testing connection...', 'loading');
+        
         try {
-            const response = await fetch(endpoint + '/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: model || 'glm-4-plus',
-                    messages: [{ role: 'user', content: 'Say "connection successful" in exactly those words.' }],
-                    max_tokens: 20
-                })
-            });
-
-            hideToast(loadingToast);
-
-            if (response.ok) {
-                showToast('API connection successful!', 'success');
-            } else {
-                const error = await response.json().catch(() => ({}));
-                showToast(`API error: ${error.error?.message || response.statusText}`, 'error');
+            const ctx = getContext();
+            
+            if (!ctx?.ConnectionManagerRequestService) {
+                hideToast(loadingToast);
+                showToast('ConnectionManager not available - update SillyTavern', 'error');
+                return;
             }
+            
+            // Get profile ID
+            const connectionManager = ctx.extensionSettings?.connectionManager;
+            let profileId;
+            
+            if (profileSetting === 'current') {
+                profileId = connectionManager?.selectedProfile;
+            } else {
+                const profile = connectionManager?.profiles?.find(p => 
+                    p.id === profileSetting || p.name === profileSetting
+                );
+                profileId = profile?.id;
+            }
+            
+            if (!profileId) {
+                hideToast(loadingToast);
+                showToast('Connection profile not found', 'error');
+                return;
+            }
+            
+            // Test with a simple request
+            const response = await ctx.ConnectionManagerRequestService.sendRequest(
+                profileId,
+                [{ role: 'user', content: 'Say "connection successful" in exactly those words.' }],
+                20,
+                { extractData: true, includePreset: false, includeInstruct: false },
+                {}
+            );
+            
+            hideToast(loadingToast);
+            
+            if (response?.content) {
+                showToast('Connection successful!', 'success');
+            } else {
+                showToast('Connection returned empty response', 'warning');
+            }
+            
         } catch (error) {
             hideToast(loadingToast);
             showToast(`Connection failed: ${error.message}`, 'error');
         }
     });
 
-    // Save settings
+    // ═══════════════════════════════════════════════════════════════
+    // FIX: Save settings - updated for connection profile
+    // ═══════════════════════════════════════════════════════════════
+    
     document.querySelector('.ie-btn-save-settings')?.addEventListener('click', () => {
         const newSettings = {
-            apiEndpoint: document.getElementById('ie-api-endpoint')?.value || '',
-            apiKey: document.getElementById('ie-api-key')?.value || '',
-            model: document.getElementById('ie-model')?.value || 'glm-4-plus',
-            temperature: parseFloat(document.getElementById('ie-temperature')?.value) || 0.9,
-            maxTokens: parseInt(document.getElementById('ie-max-tokens')?.value) || 300,
+            // FIX: Connection profile instead of direct API
+            connectionProfile: document.getElementById('ie-connection-profile')?.value || 'current',
+            temperature: parseFloat(document.getElementById('ie-temperature')?.value) || 0.8,
+            maxTokens: parseInt(document.getElementById('ie-max-tokens')?.value) || 600,
+            
+            // Voice behavior
             voicesPerMessage: {
-                min: parseInt(document.getElementById('ie-min-voices')?.value) || 1,
-                max: parseInt(document.getElementById('ie-max-voices')?.value) || 4
+                min: parseInt(document.getElementById('ie-min-voices')?.value) || 4,
+                max: parseInt(document.getElementById('ie-max-voices')?.value) || 8
             },
             triggerDelay: parseInt(document.getElementById('ie-trigger-delay')?.value) || 1000,
             enabled: document.getElementById('ie-enabled')?.checked ?? true,
             showDiceRolls: document.getElementById('ie-show-dice-rolls')?.checked ?? true,
             showFailedChecks: document.getElementById('ie-show-failed-checks')?.checked ?? true,
             autoTrigger: document.getElementById('ie-auto-trigger')?.checked ?? false,
+            
+            // Intrusive thoughts
             intrusiveEnabled: document.getElementById('ie-intrusive-enabled')?.checked ?? true,
             intrusiveChance: (parseInt(document.getElementById('ie-intrusive-chance')?.value) || 15) / 100,
             intrusiveInChat: document.getElementById('ie-intrusive-in-chat')?.checked ?? true,
+            
+            // Character context
             povStyle: document.getElementById('ie-pov-style')?.value || 'second',
-            characterName: document.getElementById('ie-character-name')?.value || '',
-            characterPronouns: document.getElementById('ie-character-pronouns')?.value || 'they',
-            characterContext: document.getElementById('ie-character-context')?.value || '',
-            scenePerspective: document.getElementById('ie-scene-perspective')?.value || '',
+            characterName: document.getElementById('ie-char-name')?.value || '',
+            characterPronouns: document.getElementById('ie-pronouns')?.value || 'they',
+            characterContext: document.getElementById('ie-char-context')?.value || '',
+            scenePerspective: document.getElementById('ie-scene-notes')?.value || '',
+            
+            // Investigation
             showInvestigationFab: document.getElementById('ie-show-investigation-fab')?.checked ?? true,
+            
             // Phase 2 - Vitals detection
             autoDetectVitals: document.getElementById('ie-auto-detect-vitals')?.checked ?? false,
             vitalsSensitivity: document.getElementById('ie-vitals-sensitivity')?.value || 'medium',
@@ -715,7 +761,7 @@ function bindEvents() {
 
         updateSettings(newSettings);
         saveState(getContext());
-        updateFABState(); // Update FAB visibility after settings change
+        updateFABState();
         
         // Sync extension panel checkbox
         const extCheckbox = document.getElementById('ie-ext-enabled');
@@ -764,7 +810,11 @@ function bindEvents() {
         showToast(`Profile saved: ${name}`, 'success');
     });
 
-    // Apply build
+    // ═══════════════════════════════════════════════════════════════
+    // FIX: Apply build - use try/catch instead of result.valid
+    // applyAttributeAllocation throws on error, doesn't return {valid}
+    // ═══════════════════════════════════════════════════════════════
+    
     document.querySelector('.ie-btn-apply-build')?.addEventListener('click', () => {
         const editorInputs = document.querySelectorAll('.ie-attr-input');
         const allocation = {};
@@ -773,15 +823,14 @@ function bindEvents() {
             allocation[input.dataset.attr] = parseInt(input.value) || 1;
         });
         
-        const result = applyAttributeAllocation(allocation);
-        
-        if (result.valid) {
+        try {
+            applyAttributeAllocation(allocation);
             saveState(getContext());
             refreshAttributesDisplay();
             refreshProfilesTab();
             showToast('Build applied!', 'success');
-        } else {
-            showToast(`Invalid build: ${result.reason}`, 'error');
+        } catch (error) {
+            showToast(`Invalid build: ${error.message}`, 'error');
         }
     });
 
@@ -1026,7 +1075,7 @@ jQuery(async () => {
         // ═══════════════════════════════════════════════════════════
         window.InlandEmpire = {
             // Version for compatibility checks
-            version: '2.0.0',
+            version: '2.1.0', // Bumped for Connection Manager fix
             
             // ─────────────────────────────────────────────────────────
             // READ: Skill & State Queries
