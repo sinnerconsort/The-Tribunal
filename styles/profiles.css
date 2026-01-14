@@ -3,7 +3,6 @@
  * Character profiles and build configuration
  * 
  * CLEANED: Removed duplicate .ie-profile-actions
- * See OVERLAP-MAP-COMPLETE.md for details
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -32,7 +31,7 @@
 
 .ie-profile-actions {
     display: flex;
-    gap: 6px;
+    gap: 4px;
 }
 
 .ie-profiles-empty {
@@ -40,16 +39,6 @@
     font-style: italic;
     padding: 10px;
     text-align: center;
-}
-
-/* Profile card update button */
-.ie-btn-update-profile {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(59, 130, 246, 0.4);
-}
-
-.ie-btn-update-profile:hover {
-    background: rgba(59, 130, 246, 0.4);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -89,4 +78,18 @@
     font-weight: bold;
     width: 20px;
     text-align: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PROFILE UPDATE BUTTON
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Profile card update button */
+.ie-btn-update-profile {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.4);
+}
+
+.ie-btn-update-profile:hover {
+    background: rgba(59, 130, 246, 0.4);
 }

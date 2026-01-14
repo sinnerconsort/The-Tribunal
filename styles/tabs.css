@@ -2,12 +2,6 @@
  * The Tribunal - Tab Styles
  * All tab themes: Voices, Settings, Thought Cabinet, Profiles, Status, Ledger, Inventory
  * Phase 1 Update: Renamed skills→voices, added ledger/inventory tab themes
- * 
- * CLEANED: Removed duplicates:
- *   - .ie-panel-content (duplicated panel.css)
- *   - Vitals detail section (duplicated vitals-controls.css)
- *   - Vitals glow animations (duplicated panel.css)
- * See OVERLAP-MAP-COMPLETE.md for details
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -669,8 +663,6 @@
     border-bottom-color: #bf9f5f;
 }
 
-
-
 /* ═══════════════════════════════════════════════════════════════
    LEDGER TAB CONTENT
    ═══════════════════════════════════════════════════════════════ */
@@ -1057,5 +1049,4 @@
 .ie-panel-title:hover i {
     transform: scale(1.1);
 }
-
 

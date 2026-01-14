@@ -249,3 +249,28 @@
     border-top: 1px solid var(--ie-border, #3d3d35);
     margin-top: 8px;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER VITALS LABEL GLOW (for panel header bars)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Health label pulses gently */
+.ie-vital-health .ie-vital-label {
+    animation: ie-health-glow 4s ease-in-out infinite;
+}
+
+@keyframes ie-health-glow {
+    0%, 100% { text-shadow: 0 0 0 transparent; }
+    50% { text-shadow: 0 0 6px rgba(243, 101, 11, 0.4); }
+}
+
+/* Morale label pulses gently */
+.ie-vital-morale .ie-vital-label {
+    animation: ie-morale-glow 4s ease-in-out infinite;
+    animation-delay: 2s; /* Offset from health */
+}
+
+@keyframes ie-morale-glow {
+    0%, 100% { text-shadow: 0 0 0 transparent; }
+    50% { text-shadow: 0 0 6px rgba(14, 121, 137, 0.4); }
+}
