@@ -167,3 +167,101 @@
     font-size: 0.65rem;
     color: var(--ie-text-secondary, #8b8b7a);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   CHARACTER CONTEXT FORM ELEMENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-select {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--ie-bg-tertiary, #1a1a16);
+    border: 1px solid var(--ie-border, #3d3d32);
+    border-radius: 4px;
+    color: var(--ie-text-primary, #e8e8dc);
+    font-family: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b8b7a' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+}
+
+.ie-select:hover {
+    border-color: var(--ie-accent-orange, #f3650b);
+}
+
+.ie-select:focus {
+    outline: none;
+    border-color: var(--ie-accent-orange, #f3650b);
+    box-shadow: 0 0 0 2px rgba(243, 101, 11, 0.2);
+}
+
+.ie-select option {
+    background: var(--ie-bg-secondary, #1e1e1a);
+    color: var(--ie-text-primary, #e8e8dc);
+    padding: 8px;
+}
+
+.ie-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    background: var(--ie-bg-tertiary, #1a1a16);
+    border: 1px solid var(--ie-border, #3d3d32);
+    border-radius: 4px;
+    color: var(--ie-text-primary, #e8e8dc);
+    font-family: inherit;
+    font-size: 0.85rem;
+    resize: vertical;
+    min-height: 60px;
+    line-height: 1.4;
+}
+
+.ie-textarea::placeholder {
+    color: var(--ie-text-secondary, #8b8b7a);
+    opacity: 0.7;
+}
+
+.ie-textarea:hover {
+    border-color: var(--ie-accent-orange, #f3650b);
+}
+
+.ie-textarea:focus {
+    outline: none;
+    border-color: var(--ie-accent-orange, #f3650b);
+    box-shadow: 0 0 0 2px rgba(243, 101, 11, 0.2);
+}
+
+/* Character Context section styling */
+.ie-section-header span {
+    /* Style for // PREFIX headers */
+}
+
+/* Ensure form groups have proper spacing in Character Context */
+.ie-tab-content[data-tab-content="profiles"] .ie-form-group {
+    margin-bottom: 12px;
+}
+
+.ie-tab-content[data-tab-content="profiles"] .ie-form-group:last-child {
+    margin-bottom: 0;
+}
+
+.ie-tab-content[data-tab-content="profiles"] .ie-form-group label:not(.ie-checkbox) {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--ie-text-secondary, #8b8b7a);
+    margin-bottom: 6px;
+}
+
+.ie-tab-content[data-tab-content="profiles"] .ie-form-hint {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--ie-text-secondary, #8b8b7a);
+    opacity: 0.8;
+    margin-top: 4px;
+    font-style: italic;
+}
