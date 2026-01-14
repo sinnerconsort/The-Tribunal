@@ -458,7 +458,13 @@ IDENTITY RULES (READ CAREFULLY):
 - ${charIdentity}'s pronouns (${charPronouns.subject}/${charPronouns.object}) are provided for context only - since this is second person, ${charIdentity} is ALWAYS "you"
 - These voices are INSIDE ${charIdentity}'s head, so ${charIdentity} = "you"
 
-CRITICAL - SCENE TEXT CONVERSION:
+CRITICAL - NEVER REFER TO THE PLAYER CHARACTER BY NAME:
+- WRONG: "This 'Ristel' is dangerous" or "Look at ${charIdentity}" 
+- RIGHT: "You are dangerous" or "Look at yourself"
+- The character name "${charIdentity}" is ONLY for your context - NEVER use it in your output
+- You ARE ${charIdentity}. Talking about "${charIdentity}" in third person is ALWAYS wrong.
+
+SCENE TEXT CONVERSION:
 - The scene text may be written from ANY perspective (narrator, NPC POV, etc.)
 - If the scene says "he watched her kick" where "her" = ${charIdentity}, you MUST convert to "you kicked" or "your kick"
 - ALWAYS translate third-person references to ${charIdentity} into second person ("you/your")
@@ -548,6 +554,12 @@ All skills should lean into this vibe while keeping their individual personaliti
 
     const systemPrompt = `You generate internal mental voices for a roleplayer, inspired by Disco Elysium's skill system.
 
+PERSPECTIVE: These voices exist INSIDE the player character's head. They can ONLY observe:
+- What the player character sees, hears, feels, smells
+- The EXTERNAL actions and words of NPCs
+- The player character's own body sensations and impulses
+They CANNOT know: NPC internal thoughts, NPC motivations (only guess), anything the player character hasn't perceived.
+
 THE VOICES SPEAKING THIS ROUND:
 ${voiceDescriptions}
 ${relationshipSection}${reactionExamples}
@@ -562,6 +574,7 @@ CRITICAL RULES:
 8. Ancient/Primal voices speak in fragments, poetically
 9. CASCADE voices are RESPONDING to another voice - make this clear!
 10. Let skills interrupt and talk over each other
+11. OBSERVE NPCs from the outside - comment on what you SEE them do, not what they think
 11. Total: 4-12 voice lines, with back-and-forth exchanges
 ${contextSection}${perspectiveSection}${statusContext}${copotypeSection}
 
@@ -626,7 +639,7 @@ async function callAPIViaConnectionManager(ctx, systemPrompt, userPrompt) {
         extensionSettings.maxTokens || 600,
         {
             extractData: true,
-            includePreset: true,
+            includePreset: false,  // Don't inherit RP preset - we provide our own system prompt
             includeInstruct: false
         },
         {
