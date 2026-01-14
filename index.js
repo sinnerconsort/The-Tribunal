@@ -73,8 +73,7 @@ import {
 import {
     analyzeContext,
     selectSpeakingSkills,
-    generateVoices,
-    getAvailableProfiles
+    generateVoices
 } from './src/voice/generation.js';
 
 import {
@@ -107,8 +106,7 @@ import {
     updateMorale,
     updateCaseTitle,
     updateMoney,
-    updateWeather,
-    populateConnectionProfiles
+    updateWeather
 } from './src/ui/panel.js';
 
 import {
@@ -513,7 +511,9 @@ function refreshProfilesTab() {
 
 function populateSettingsForm() {
     const fields = {
-        'ie-connection-profile': extensionSettings.connectionProfile || 'current',
+        'ie-api-endpoint': extensionSettings.apiEndpoint,
+        'ie-api-key': extensionSettings.apiKey,
+        'ie-model': extensionSettings.model,
         'ie-temperature': extensionSettings.temperature,
         'ie-max-tokens': extensionSettings.maxTokens,
         'ie-min-voices': extensionSettings.voicesPerMessage?.min,
@@ -537,10 +537,6 @@ function populateSettingsForm() {
         'ie-vitals-sensitivity': extensionSettings.vitalsSensitivity || 'medium',
         'ie-vitals-notifications': extensionSettings.vitalsShowNotifications !== false
     };
-    
-    // Populate connection profiles dropdown
-    const profiles = getAvailableProfiles();
-    populateConnectionProfiles(profiles, extensionSettings.connectionProfile || 'current');
     
     for (const [id, value] of Object.entries(fields)) {
         const el = document.getElementById(id);
@@ -638,58 +634,38 @@ function bindEvents() {
 
     // Test API
     document.getElementById('ie-test-api-btn')?.addEventListener('click', async () => {
-        const connectionProfile = document.getElementById('ie-connection-profile')?.value || 'current';
-        
-        const loadingToast = showToast('Testing connection...', 'loading');
+        const endpoint = document.getElementById('ie-api-endpoint')?.value;
+        const apiKey = document.getElementById('ie-api-key')?.value;
+        const model = document.getElementById('ie-model')?.value;
+
+        if (!endpoint || !apiKey) {
+            showToast('Please fill in API endpoint and key', 'error');
+            return;
+        }
+
+        const loadingToast = showToast('Testing API connection...', 'loading');
 
         try {
-            const ctx = getContext();
-            
-            if (!ctx?.ConnectionManagerRequestService) {
-                hideToast(loadingToast);
-                showToast('ConnectionManagerRequestService not available', 'error');
-                return;
-            }
-            
-            // Get profile ID
-            const connectionManager = ctx.extensionSettings?.connectionManager;
-            let profileId;
-            
-            if (connectionProfile === 'current') {
-                profileId = connectionManager?.selectedProfile;
-            } else {
-                const profile = connectionManager?.profiles?.find(p => p.name === connectionProfile);
-                profileId = profile?.id || connectionManager?.selectedProfile;
-            }
-            
-            if (!profileId) {
-                hideToast(loadingToast);
-                showToast('No connection profile found', 'error');
-                return;
-            }
-            
-            const response = await ctx.ConnectionManagerRequestService.sendRequest(
-                profileId,
-                [{ role: 'user', content: 'Say "connection successful" in exactly those words.' }],
-                20,
-                {
-                    extractData: true,
-                    includePreset: true,
-                    includeInstruct: false
+            const response = await fetch(endpoint + '/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`
                 },
-                {}
-            );
+                body: JSON.stringify({
+                    model: model || 'glm-4-plus',
+                    messages: [{ role: 'user', content: 'Say "connection successful" in exactly those words.' }],
+                    max_tokens: 20
+                })
+            });
 
             hideToast(loadingToast);
-            
-            // Check if we got any response
-            const content = response?.content || response?.text || response?.message?.content || 
-                           response?.choices?.[0]?.message?.content || response?.choices?.[0]?.text;
-            
-            if (content) {
-                showToast('Connection successful!', 'success');
+
+            if (response.ok) {
+                showToast('API connection successful!', 'success');
             } else {
-                showToast('Connected but empty response', 'warning');
+                const error = await response.json().catch(() => ({}));
+                showToast(`API error: ${error.error?.message || response.statusText}`, 'error');
             }
         } catch (error) {
             hideToast(loadingToast);
@@ -700,9 +676,11 @@ function bindEvents() {
     // Save settings
     document.querySelector('.ie-btn-save-settings')?.addEventListener('click', () => {
         const newSettings = {
-            connectionProfile: document.getElementById('ie-connection-profile')?.value || 'current',
-            temperature: parseFloat(document.getElementById('ie-temperature')?.value) || 0.8,
-            maxTokens: parseInt(document.getElementById('ie-max-tokens')?.value) || 600,
+            apiEndpoint: document.getElementById('ie-api-endpoint')?.value || '',
+            apiKey: document.getElementById('ie-api-key')?.value || '',
+            model: document.getElementById('ie-model')?.value || 'glm-4-plus',
+            temperature: parseFloat(document.getElementById('ie-temperature')?.value) || 0.9,
+            maxTokens: parseInt(document.getElementById('ie-max-tokens')?.value) || 300,
             voicesPerMessage: {
                 min: parseInt(document.getElementById('ie-min-voices')?.value) || 1,
                 max: parseInt(document.getElementById('ie-max-voices')?.value) || 4
