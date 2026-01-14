@@ -496,13 +496,15 @@ export async function callAPI(systemPrompt, userPrompt) {
         throw new Error('API not configured - check settings');
     }
 
+    // Strip trailing slashes and append the correct path
     apiEndpoint = apiEndpoint.replace(/\/+$/, '');
 
     console.log('[Inland Empire] Calling API:', apiEndpoint, 'Model:', model);
 
     let response;
     try {
-        response = await fetch(apiEndpoint, {
+        // FIX: Append /chat/completions to match what the test button does
+        response = await fetch(apiEndpoint + '/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
