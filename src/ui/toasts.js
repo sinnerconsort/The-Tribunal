@@ -1,6 +1,9 @@
 /**
  * Inland Empire - Toast Notifications
  * All toast display functions
+ * 
+ * UPDATED: Renamed .ie-discovery-* to .ie-toast-discovery-* 
+ * in showDiscoveryToast() to match CSS changes
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -141,6 +144,7 @@ export function showObjectToast(objectVoice, duration = 6000) {
 
 // ═══════════════════════════════════════════════════════════════
 // THOUGHT DISCOVERY TOAST
+// UPDATED: Renamed classes .ie-discovery-* → .ie-toast-discovery-*
 // ═══════════════════════════════════════════════════════════════
 
 export function showDiscoveryToast(thought, onResearch, onDismiss) {
@@ -154,13 +158,13 @@ export function showDiscoveryToast(thought, onResearch, onDismiss) {
         : thought.description || 'A new thought emerges...';
 
     toast.innerHTML = `
-        <div class="ie-discovery-header">
-            <span class="ie-discovery-icon">💭</span>
-            <span class="ie-discovery-label">THOUGHT DISCOVERED</span>
+        <div class="ie-toast-discovery-header">
+            <span class="ie-toast-discovery-icon">💭</span>
+            <span class="ie-toast-discovery-label">THOUGHT DISCOVERED</span>
         </div>
-        <div class="ie-discovery-name">${thought.icon} ${thought.name}</div>
-        <div class="ie-discovery-desc">${shortDesc}</div>
-        <div class="ie-discovery-actions">
+        <div class="ie-toast-discovery-name">${thought.icon} ${thought.name}</div>
+        <div class="ie-toast-discovery-desc">${shortDesc}</div>
+        <div class="ie-toast-discovery-actions">
             <button class="ie-btn ie-btn-research" data-thought="${thought.id}">RESEARCH</button>
             <button class="ie-btn ie-btn-dismiss-thought" data-thought="${thought.id}">DISMISS</button>
         </div>
