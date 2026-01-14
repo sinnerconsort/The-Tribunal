@@ -1,0 +1,121 @@
+/**
+ * The Tribunal - Ledger Tab Content
+ * Quests/cases, event log, weather display
+ * 
+ * Extracted from tabs.css for better organization
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   LEDGER EMPTY STATE
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-ledger-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px;
+    color: var(--ie-text-muted);
+    font-style: italic;
+}
+
+.ie-ledger-empty i {
+    font-size: 24px;
+    opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   QUEST/CASE ITEMS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-quest-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--ie-bg-tertiary);
+    border-left: 3px solid var(--ie-accent-orange);
+    border-radius: 0 4px 4px 0;
+    margin-bottom: 8px;
+}
+
+.ie-quest-item.ie-quest-main {
+    border-left-color: var(--ie-accent-orange);
+}
+
+.ie-quest-item.ie-quest-optional {
+    border-left-color: var(--ie-text-muted);
+}
+
+.ie-quest-item.ie-quest-complete {
+    opacity: 0.6;
+    border-left-color: var(--ie-success);
+}
+
+.ie-quest-checkbox {
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.ie-quest-content {
+    flex: 1;
+}
+
+.ie-quest-title {
+    font-weight: 600;
+    color: var(--ie-text-primary);
+    font-size: 13px;
+}
+
+.ie-quest-desc {
+    font-size: 11px;
+    color: var(--ie-text-secondary);
+    margin-top: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EVENT LOG
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-event-item {
+    display: flex;
+    gap: 8px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--ie-border);
+    font-size: 12px;
+}
+
+.ie-event-time {
+    color: var(--ie-text-muted);
+    font-size: 10px;
+    flex-shrink: 0;
+}
+
+.ie-event-text {
+    color: var(--ie-text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   WEATHER DISPLAY
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-weather-display {
+    padding: 12px;
+    background: var(--ie-bg-tertiary);
+    border-radius: 4px;
+}
+
+.ie-weather-current {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--ie-text-secondary);
+}
+
+.ie-weather-current i {
+    font-size: 20px;
+    color: var(--ie-accent-blue);
+}
