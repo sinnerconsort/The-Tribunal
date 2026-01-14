@@ -7,6 +7,8 @@
  * - Investigation FAB (Magnifying Glass): Morale teal #0e7989 at rest
  * - Discovery pulse: DE yellow #dac66c
  * - Scanning/Success: DE green #45bb7e
+ * 
+ * UPDATED: Added sparkle animations (moved from discovery.css)
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -327,6 +329,134 @@
     font-size: 2rem;
     opacity: 0.5;
     margin-bottom: 8px;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   SPARKLE/TWINKLE ANIMATION FOR SCANNING
+   (Moved from discovery.css - belongs with FAB styles)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Sparkle pseudo-elements */
+.ie-thought-fab.ie-scanning::after {
+    content: '✦';
+    position: absolute;
+    font-size: 10px;
+    color: #ffd54f;
+    animation: ie-sparkle-1 0.6s ease-in-out infinite;
+    top: 8px;
+    right: 8px;
+    pointer-events: none;
+}
+
+.ie-thought-fab.ie-scanning .ie-thought-fab-icon::before {
+    content: '✦';
+    position: absolute;
+    font-size: 8px;
+    color: #ffd54f;
+    animation: ie-sparkle-2 0.6s ease-in-out 0.2s infinite;
+    bottom: -2px;
+    left: -4px;
+    pointer-events: none;
+}
+
+.ie-thought-fab.ie-scanning .ie-thought-fab-icon::after {
+    content: '✦';
+    position: absolute;
+    font-size: 6px;
+    color: #fff;
+    animation: ie-sparkle-3 0.6s ease-in-out 0.4s infinite;
+    top: -2px;
+    left: 50%;
+    pointer-events: none;
+}
+
+@keyframes ie-sparkle-1 {
+    0%, 100% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes ie-sparkle-2 {
+    0%, 100% { opacity: 0; transform: scale(0.5) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1) rotate(20deg); }
+}
+
+@keyframes ie-sparkle-3 {
+    0%, 100% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 0.8; transform: scale(1.1); }
+}
+
+/* Icon glow during scanning */
+.ie-thought-fab.ie-scanning .ie-thought-fab-icon i {
+    color: #ffd54f;
+    filter: drop-shadow(0 0 4px #ffd54f80);
+    animation: ie-sparkle-icon-glow 0.8s ease-in-out infinite;
+}
+
+@keyframes ie-sparkle-icon-glow {
+    0%, 100% { filter: drop-shadow(0 0 4px #ffd54f40); }
+    50% { filter: drop-shadow(0 0 8px #ffd54f80); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   QUICK SCAN BUTTON (Mini magnifier in corner)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-quick-scan-btn {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #d0bd61;
+    border: 2px solid var(--ie-bg-secondary);
+    color: var(--ie-bg-primary);
+    font-size: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    opacity: 0;
+    transform: scale(0.8);
+}
+
+.ie-thought-fab:hover .ie-quick-scan-btn {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.ie-quick-scan-btn:hover {
+    background: #e8d48a;
+    transform: scale(1.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SUCCESS BADGE (Shows after successful scan)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-scan-success-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--ie-success);
+    color: white;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: ie-success-pop 0.4s ease-out;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes ie-success-pop {
+    0% { transform: scale(0); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
 }
 
 

@@ -1,10 +1,13 @@
 /**
  * The Tribunal - Toasts
  * Notification toasts
+ * 
+ * UPDATED: Renamed .ie-discovery-* to .ie-toast-discovery-* 
+ * to avoid conflict with discovery.css modal classes
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   TOASTS
+   TOAST CONTAINER
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-toast-container {
@@ -17,6 +20,10 @@
     gap: 10px;
     max-width: 350px;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   BASE TOAST
+   ═══════════════════════════════════════════════════════════════ */
 
 .ie-toast {
     background: var(--ie-bg-secondary);
@@ -43,6 +50,10 @@
     opacity: 0;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   TOAST VARIANTS
+   ═══════════════════════════════════════════════════════════════ */
+
 .ie-toast-success {
     border-left-color: var(--ie-success);
 }
@@ -54,6 +65,10 @@
 .ie-toast-info {
     border-left-color: var(--ie-accent-blue);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   INTRUSIVE THOUGHT TOAST
+   ═══════════════════════════════════════════════════════════════ */
 
 .ie-toast-intrusive {
     border-left-width: 4px;
@@ -102,39 +117,48 @@
     color: var(--ie-accent-orange);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   THOUGHT DISCOVERY TOAST
+   RENAMED: .ie-discovery-* → .ie-toast-discovery-*
+   ═══════════════════════════════════════════════════════════════ */
+
 .ie-toast-discovery {
     border-left-color: var(--ie-accent-purple);
     flex-direction: column;
 }
 
-.ie-discovery-header {
+.ie-toast-discovery-header {
     display: flex;
     align-items: center;
     gap: 8px;
     color: var(--ie-accent-purple);
 }
 
-.ie-discovery-label {
+.ie-toast-discovery-label {
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
-.ie-discovery-name {
+.ie-toast-discovery-name {
     font-weight: 700;
     margin: 6px 0;
 }
 
-.ie-discovery-desc {
+.ie-toast-discovery-desc {
     font-size: 12px;
     color: var(--ie-text-secondary);
     margin-bottom: 10px;
 }
 
-.ie-discovery-actions {
+.ie-toast-discovery-actions {
     display: flex;
     gap: 8px;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   INTERNALIZED THOUGHT TOAST
+   ═══════════════════════════════════════════════════════════════ */
 
 .ie-toast-internalized {
     border-left: 4px solid gold;
@@ -171,4 +195,3 @@
     font-size: 11px;
     color: var(--ie-success);
 }
-
