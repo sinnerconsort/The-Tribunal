@@ -126,19 +126,35 @@ export function createPsychePanel() {
                         <div class="ie-vital-detail-row ie-health">
                             <div class="ie-vital-detail-header">
                                 <span class="ie-vital-detail-label">Health</span>
-                                <span class="ie-vital-detail-value" id="ie-health-detail-value">100 / 100</span>
+                                <div class="ie-vital-controls">
+                                    <button class="ie-vital-btn ie-vital-btn-minus" id="ie-health-minus" title="-1 Health">
+                                        <i class="fa-solid fa-minus"></i>
+                                    </button>
+                                    <span class="ie-vital-detail-value" id="ie-health-detail-value">13 / 13</span>
+                                    <button class="ie-vital-btn ie-vital-btn-plus" id="ie-health-plus" title="+1 Health">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="ie-vital-detail-track">
-                                <div class="ie-vital-detail-fill" id="ie-health-detail-fill" style="width: 100%; background: #f3650b;"></div>
+                                <div class="ie-vital-detail-fill" id="ie-health-detail-fill" style="width: 100%;"></div>
                             </div>
                         </div>
                         <div class="ie-vital-detail-row ie-morale">
                             <div class="ie-vital-detail-header">
                                 <span class="ie-vital-detail-label">Morale</span>
-                                <span class="ie-vital-detail-value" id="ie-morale-detail-value">100 / 100</span>
+                                <div class="ie-vital-controls">
+                                    <button class="ie-vital-btn ie-vital-btn-minus" id="ie-morale-minus" title="-1 Morale">
+                                        <i class="fa-solid fa-minus"></i>
+                                    </button>
+                                    <span class="ie-vital-detail-value" id="ie-morale-detail-value">13 / 13</span>
+                                    <button class="ie-vital-btn ie-vital-btn-plus" id="ie-morale-plus" title="+1 Morale">
+                                        <i class="fa-solid fa-plus"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="ie-vital-detail-track">
-                                <div class="ie-vital-detail-fill" id="ie-morale-detail-fill" style="width: 100%; background: #0e7989;"></div>
+                                <div class="ie-vital-detail-fill" id="ie-morale-detail-fill" style="width: 100%;"></div>
                             </div>
                         </div>
                     </div>
