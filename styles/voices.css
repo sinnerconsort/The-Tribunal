@@ -6,8 +6,6 @@
  * - Removed hardcoded max-height (let parent control)
  * - Added padding-bottom for last item visibility
  * - Improved scroll behavior
- * 
- * CLEANED: Removed .ie-check-badge definitions (canonical source: investigation.css)
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -98,11 +96,17 @@
     overflow-wrap: break-word;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   CHECK RESULTS (Dice rolls in voice cards)
-   NOTE: .ie-check-badge is defined in investigation.css (canonical)
-   These are voice-specific check result displays
-   ═══════════════════════════════════════════════════════════════ */
+.ie-check-badge {
+    font-family: var(--ie-font-header);
+    font-size: 9px;
+    padding: 3px 8px;
+    border-radius: 2px;
+    background: var(--ie-bg-secondary);
+    white-space: nowrap;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
 
 .ie-check-result {
     font-family: var(--ie-font-header);
@@ -130,7 +134,6 @@
     border: 1px solid var(--ie-border);
 }
 
-/* Standalone success/failure classes (used on various elements) */
 .ie-success, .ie-check-result.ie-success {
     background: rgba(107, 156, 90, 0.2);
     color: var(--ie-success);
@@ -150,10 +153,6 @@
     background: #6B2020;
     color: var(--ie-text-primary);
 }
-
-/* ═══════════════════════════════════════════════════════════════
-   VOICE TYPE VARIANTS
-   ═══════════════════════════════════════════════════════════════ */
 
 .ie-voice-ancient {
     background: linear-gradient(135deg, var(--ie-bg-tertiary), #1a2020);
