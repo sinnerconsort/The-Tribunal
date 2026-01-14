@@ -440,20 +440,13 @@ function refreshStatusTab() {
 function refreshCabinetTab() {
     const container = document.getElementById('ie-cabinet-content');
     if (container) {
-        renderThoughtCabinet(
-            container,
-            thoughtCabinet,
-            THOUGHTS,
-            THEMES,
-            themeCounters,
-            SKILLS,
-            {
-                onStartResearch: handleStartResearch,
-                onAbandon: handleAbandonResearch,
-                onForget: handleForgetThought,
-                showThemeTracker: extensionSettings.showThemeTracker
-            }
-        );
+        renderThoughtCabinet(container, {
+            onResearch: handleStartResearch,
+            onAbandon: handleAbandonResearch,
+            onDismiss: handleDismissThought,
+            onForget: handleForgetThought,
+            showThemeTracker: extensionSettings.showThemeTracker
+        });
     }
 }
 
@@ -497,7 +490,7 @@ function refreshProfilesTab() {
     const editor = document.getElementById('ie-attributes-editor');
     
     if (container) {
-        renderProfilesList(container, savedProfiles, currentBuild, (profileId) => {
+        renderProfilesList(container, (profileId) => {
             loadProfile(profileId);
             saveState(getContext());
             refreshProfilesTab();
