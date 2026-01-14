@@ -1,7 +1,21 @@
 /**
  * The Tribunal - Status Cards
  * FA icon support + smaller cards
+ * 
+ * FIX #4: Added overflow handling for status grid containers
  */
+
+/* ═══════════════════════════════════════════════════════════════
+   STATUS TAB CONTAINER - OVERFLOW FIX
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Ensure the Status tab content scrolls properly */
+.ie-tab-content[data-tab-content="status"] {
+    max-height: calc(100vh - 200px); /* Account for header + tabs */
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 20px; /* Space for last item */
+}
 
 /* ═══════════════════════════════════════════════════════════════
    STATUS CATEGORY HEADERS
@@ -30,17 +44,24 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STATUS GRID - Flex wrap for pills
+   STATUS GRID - Flex wrap for pills - FIXED OVERFLOW
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-status-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    /* FIX: Ensure grid doesn't overflow horizontally */
+    max-width: 100%;
+    overflow: visible; /* Allow pills to wrap naturally */
 }
 
 .ie-copotype-grid {
     /* Same flex wrap */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-width: 100%;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -60,6 +81,10 @@
     transition: all 0.2s ease;
     text-align: left;
     gap: 6px !important;
+    /* FIX: Prevent pills from overflowing their container */
+    flex-shrink: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .ie-status-card:hover {
@@ -99,7 +124,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   STATUS NAME (pill layout) - FORCE INLINE
+   STATUS NAME (pill layout) - FORCE INLINE - FIXED OVERFLOW
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-status-card .ie-status-name {
@@ -109,6 +134,10 @@
     line-height: 1;
     white-space: nowrap;
     display: inline !important;
+    /* FIX: Allow text to truncate if needed on very small screens */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px; /* Reasonable max for pill text */
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -265,14 +294,17 @@
     margin-top: 4px;
     font-style: italic;
 }
+
 /* ═══════════════════════════════════════════════════════════════
-   ADD TO: styles/status-cards.css
+   ACTIVE EFFECTS SUMMARY - FIXED OVERFLOW
    ═══════════════════════════════════════════════════════════════ */
 
-/* Fix active effects overflow */
 .ie-active-effects-summary {
     max-height: 300px;
     overflow-y: auto;
+    /* FIX: Add padding for scrollbar and last item visibility */
+    padding-right: 8px;
+    padding-bottom: 8px;
 }
 
 .ie-effects-row {
