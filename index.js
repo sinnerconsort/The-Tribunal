@@ -74,7 +74,8 @@ import {
 import {
     analyzeContext,
     selectSpeakingSkills,
-    generateVoices
+    generateVoices,
+    getAvailableProfiles
 } from './src/voice/generation.js';
 
 import {
@@ -107,7 +108,8 @@ import {
     updateMorale,
     updateCaseTitle,
     updateMoney,
-    updateWeather
+    updateWeather,
+    populateConnectionProfiles
 } from './src/ui/panel.js';
 
 import {
@@ -518,6 +520,10 @@ function refreshProfilesTab() {
 }
 
 function populateSettingsForm() {
+    // Populate connection profiles dropdown first
+    const profiles = getAvailableProfiles();
+    populateConnectionProfiles(profiles, extensionSettings.connectionProfile || 'current');
+    
     const fields = {
         'ie-api-endpoint': extensionSettings.apiEndpoint,
         'ie-api-key': extensionSettings.apiKey,
@@ -684,6 +690,7 @@ function bindEvents() {
     // Save settings
     document.querySelector('.ie-btn-save-settings')?.addEventListener('click', () => {
         const newSettings = {
+            connectionProfile: document.getElementById('ie-connection-profile')?.value || 'current',
             apiEndpoint: document.getElementById('ie-api-endpoint')?.value || '',
             apiKey: document.getElementById('ie-api-key')?.value || '',
             model: document.getElementById('ie-model')?.value || 'glm-4-plus',
@@ -790,6 +797,14 @@ function bindEvents() {
         extensionSettings.showInvestigationFab = e.target.checked;
         updateInvestigationFABVisibility();
         saveState(getContext());
+    });
+    
+    // Connection profile dropdown - instant save on change
+    document.getElementById('ie-connection-profile')?.addEventListener('change', (e) => {
+        extensionSettings.connectionProfile = e.target.value;
+        saveState(getContext());
+        console.log('[The Tribunal] Connection profile changed:', e.target.value);
+        showToast(`Voice API: ${e.target.value === 'current' ? 'Using Current ST Connection' : e.target.value}`, 'info');
     });
     
     // ═══════════════════════════════════════════════════════════════
