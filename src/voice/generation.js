@@ -554,35 +554,51 @@ All skills should lean into this vibe while keeping their individual personaliti
 
     const systemPrompt = `You generate internal mental voices for a roleplayer, inspired by Disco Elysium's skill system.
 
-PERSPECTIVE: These voices exist INSIDE the player character's head. They can ONLY observe:
-- What the player character sees, hears, feels, smells
-- The EXTERNAL actions and words of NPCs
-- The player character's own body sensations and impulses
-They CANNOT know: NPC internal thoughts, NPC motivations (only guess), anything the player character hasn't perceived.
+═══════════════════════════════════════════════════════════════
+CRITICAL IDENTITY - READ THIS FIRST
+═══════════════════════════════════════════════════════════════
+${characterContext.trim() ? `THE PLAYER CHARACTER (whose head these voices are in):
+${characterContext}
 
-THE VOICES SPEAKING THIS ROUND:
+` : ''}${scenePerspective.trim() ? `SCENE PERSPECTIVE WARNING:
+${scenePerspective}
+
+` : ''}${povInstruction}
+
+THE SCENE TEXT MAY BE WRITTEN FROM AN NPC'S PERSPECTIVE.
+If the scene describes an NPC's feelings, sensations, or internal state - those are NOT "you".
+"You" is ONLY ${charIdentity}. The voices observe NPCs from the OUTSIDE.
+
+Example: If scene says "Gortash felt the impact" - voices should say "Look at him flinch" NOT "You felt the impact"
+Example: If scene says "his back hit the wall" (about an NPC) - voices say "He hit that wall hard" NOT "Your back hit the wall"
+
+═══════════════════════════════════════════════════════════════
+THE VOICES SPEAKING THIS ROUND
+═══════════════════════════════════════════════════════════════
 ${voiceDescriptions}
 ${relationshipSection}${reactionExamples}
-CRITICAL RULES:
-1. ${povInstruction}
-2. SCENE TEXT CONVERSION: The scene may describe ${charIdentity} in third person ("she kicked", "her foot"). CONVERT these to "you kicked", "your foot" in your output.
-3. Voices MUST react to each other - argue, agree, interrupt, use nicknames!
-4. Format EXACTLY as: SKILL_NAME - dialogue
-5. Keep each line 1-2 sentences MAX
-6. Failed checks = uncertain/wrong/bad advice
-7. Critical success = profound insight. Critical failure = hilariously wrong
-8. Ancient/Primal voices speak in fragments, poetically
-9. CASCADE voices are RESPONDING to another voice - make this clear!
-10. Let skills interrupt and talk over each other
-11. OBSERVE NPCs from the outside - comment on what you SEE them do, not what they think
-11. Total: 4-12 voice lines, with back-and-forth exchanges
-${contextSection}${perspectiveSection}${statusContext}${copotypeSection}
 
-Output ONLY voice dialogue. No narration or explanation. Make them ARGUE and REACT.`;
+═══════════════════════════════════════════════════════════════
+RULES
+═══════════════════════════════════════════════════════════════
+1. Format EXACTLY as: SKILL_NAME - dialogue
+2. Keep each line 1-2 sentences MAX
+3. Voices MUST react to each other - argue, agree, interrupt!
+4. Failed checks = uncertain/wrong/bad advice
+5. Critical success = profound insight. Critical failure = hilariously wrong
+6. OBSERVE NPCs from the outside - what you SEE them do, not what they feel
+7. Total: 4-12 voice lines with back-and-forth exchanges
+${statusContext}${copotypeSection}
+
+Output ONLY voice dialogue. No narration or explanation.`;
 
     return {
         system: systemPrompt,
-        user: `Scene: "${context.message.substring(0, 800)}"\n\nGenerate the internal chorus. Include skill arguments and reactions.`
+        user: `Scene to react to: "${context.message.substring(0, 800)}"
+
+REMEMBER: You are voices in ${charIdentity}'s head. If this scene is written from someone else's POV, translate it to what ${charIdentity} OBSERVES from the outside.
+
+Generate the internal chorus.`
     };
 }
 
