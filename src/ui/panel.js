@@ -2,11 +2,6 @@
  * The Tribunal - Psyche Panel
  * Main panel structure and tab switching
  * Phase 1 Restructure: Header + Vitals, New Tabs, Bottom Buttons
- * 
- * FIXES APPLIED:
- * - Added vitals +/- buttons (lines 126-131, 136-141)
- * - Replaced manual API config with ST Connection Profile dropdown (lines 249-276)
- * - Fixed status toggle section overflow hint
  */
 
 import { extensionSettings, saveState } from '../core/state.js';
@@ -60,14 +55,14 @@ export function createPsychePanel() {
                     <div class="ie-vital-track">
                         <div class="ie-vital-fill" id="ie-health-fill" style="width: 100%;"></div>
                     </div>
-                    <span class="ie-vital-value" id="ie-health-value">13</span>
+                    <span class="ie-vital-value" id="ie-health-value">100</span>
                 </div>
                 <div class="ie-vital-bar ie-vital-morale">
                     <span class="ie-vital-label">Morale</span>
                     <div class="ie-vital-track">
                         <div class="ie-vital-fill" id="ie-morale-fill" style="width: 100%;"></div>
                     </div>
-                    <span class="ie-vital-value" id="ie-morale-value">13</span>
+                    <span class="ie-vital-value" id="ie-morale-value">100</span>
                 </div>
             </div>
         </div>
@@ -123,56 +118,40 @@ export function createPsychePanel() {
             <!-- Cabinet Tab -->
             <div class="ie-tab-content" data-tab-content="cabinet" id="ie-cabinet-content"></div>
 
-            <!-- Status Tab - FIXED: Added +/- buttons for vitals -->
+            <!-- Status Tab -->
             <div class="ie-tab-content" data-tab-content="status">
                 <div class="ie-section">
-                    <div class="ie-section-header"><span>// VITALS DETAIL</span></div>
+                    <div class="ie-section-header"><span>Vitals Detail</span></div>
                     <div class="ie-vitals-detail">
                         <div class="ie-vital-detail-row ie-health">
                             <div class="ie-vital-detail-header">
-                                <span class="ie-vital-detail-label">HEALTH</span>
-                                <span class="ie-vital-detail-value" id="ie-health-detail-value">13 / 13</span>
+                                <span class="ie-vital-detail-label">Health</span>
+                                <span class="ie-vital-detail-value" id="ie-health-detail-value">100 / 100</span>
                             </div>
-                            <div class="ie-vital-detail-controls">
-                                <button class="ie-btn ie-btn-sm ie-vital-btn" id="ie-health-minus" title="Decrease Health">
-                                    <i class="fa-solid fa-minus"></i>
-                                </button>
-                                <div class="ie-vital-detail-track">
-                                    <div class="ie-vital-detail-fill" id="ie-health-detail-fill" style="width: 100%; background: #f3650b;"></div>
-                                </div>
-                                <button class="ie-btn ie-btn-sm ie-vital-btn" id="ie-health-plus" title="Increase Health">
-                                    <i class="fa-solid fa-plus"></i>
-                                </button>
+                            <div class="ie-vital-detail-track">
+                                <div class="ie-vital-detail-fill" id="ie-health-detail-fill" style="width: 100%; background: #f3650b;"></div>
                             </div>
                         </div>
                         <div class="ie-vital-detail-row ie-morale">
                             <div class="ie-vital-detail-header">
-                                <span class="ie-vital-detail-label">MORALE</span>
-                                <span class="ie-vital-detail-value" id="ie-morale-detail-value">13 / 13</span>
+                                <span class="ie-vital-detail-label">Morale</span>
+                                <span class="ie-vital-detail-value" id="ie-morale-detail-value">100 / 100</span>
                             </div>
-                            <div class="ie-vital-detail-controls">
-                                <button class="ie-btn ie-btn-sm ie-vital-btn" id="ie-morale-minus" title="Decrease Morale">
-                                    <i class="fa-solid fa-minus"></i>
-                                </button>
-                                <div class="ie-vital-detail-track">
-                                    <div class="ie-vital-detail-fill" id="ie-morale-detail-fill" style="width: 100%; background: #0e7989;"></div>
-                                </div>
-                                <button class="ie-btn ie-btn-sm ie-vital-btn" id="ie-morale-plus" title="Increase Morale">
-                                    <i class="fa-solid fa-plus"></i>
-                                </button>
+                            <div class="ie-vital-detail-track">
+                                <div class="ie-vital-detail-fill" id="ie-morale-detail-fill" style="width: 100%; background: #0e7989;"></div>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="ie-section">
-                    <div class="ie-section-header"><span>// ACTIVE EFFECTS</span></div>
+                    <div class="ie-section-header"><span>Active Effects</span></div>
                     <div class="ie-active-effects-summary" id="ie-active-effects-summary">
                         <em>No active status effects</em>
                     </div>
                 </div>
                 <div class="ie-section">
-                    <div class="ie-section-header"><span>// TOGGLE STATUS EFFECTS</span></div>
-                    <div id="ie-status-grid" class="ie-status-grid-scrollable"></div>
+                    <div class="ie-section-header"><span>Toggle Status Effects</span></div>
+                    <div id="ie-status-grid"></div>
                 </div>
                 <div class="ie-section">
                     <div class="ie-section-header"><span>Ancient Voices</span></div>
@@ -265,7 +244,6 @@ export function createPsychePanel() {
             </div>
 
             <!-- Settings Panel (accessed via bottom button) -->
-            <!-- FIXED: Replaced manual API config with ST Connection Profile dropdown -->
             <div class="ie-tab-content" data-tab-content="settings">
                 <div class="ie-section">
                     <div class="ie-section-header"><span>// CONNECTION</span></div>
@@ -273,7 +251,7 @@ export function createPsychePanel() {
                         <label>Connection Profile</label>
                         <select id="ie-connection-profile" class="ie-select">
                             <option value="current">Use Current ST Profile</option>
-                            <!-- Populated dynamically from ST Connection Manager -->
+                            <!-- Populated dynamically -->
                         </select>
                         <small class="ie-form-hint">Select a ST connection profile for voice generation. Create a cheap API profile in ST's Connection Manager.</small>
                     </div>
@@ -284,25 +262,25 @@ export function createPsychePanel() {
                         </div>
                         <div class="ie-form-group">
                             <label>Max Tokens</label>
-                            <input type="number" id="ie-max-tokens" min="50" max="2000" value="600" />
+                            <input type="number" id="ie-max-tokens" min="50" max="1000" value="600" />
                         </div>
                     </div>
-                    <button class="ie-btn ie-btn-test-api" id="ie-test-connection-btn">
+                    <button class="ie-btn ie-btn-test-api" id="ie-test-api-btn">
                         <i class="fa-solid fa-plug"></i>
                         <span>Test Connection</span>
                     </button>
                 </div>
 
                 <div class="ie-section">
-                    <div class="ie-section-header"><span>// VOICE BEHAVIOR</span></div>
+                    <div class="ie-section-header"><span>Voice Behavior</span></div>
                     <div class="ie-form-row">
                         <div class="ie-form-group">
                             <label>Min Voices</label>
-                            <input type="number" id="ie-min-voices" min="0" max="6" value="4" />
+                            <input type="number" id="ie-min-voices" min="0" max="6" value="1" />
                         </div>
                         <div class="ie-form-group">
                             <label>Max Voices</label>
-                            <input type="number" id="ie-max-voices" min="1" max="12" value="8" />
+                            <input type="number" id="ie-max-voices" min="1" max="10" value="4" />
                         </div>
                     </div>
                     <div class="ie-form-group">
@@ -323,14 +301,14 @@ export function createPsychePanel() {
                     </div>
                     <div class="ie-form-group">
                         <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-auto-trigger" />
+                            <input type="checkbox" id="ie-auto-trigger" checked />
                             <span>Auto-trigger on new messages</span>
                         </label>
                     </div>
                 </div>
 
                 <div class="ie-section">
-                    <div class="ie-section-header"><span>INVESTIGATION MODE</span></div>
+                    <div class="ie-section-header"><span>Investigation Mode</span></div>
                     <div class="ie-form-group">
                         <label class="ie-checkbox">
                             <input type="checkbox" id="ie-investigation-enabled" />
@@ -406,7 +384,7 @@ export function createPsychePanel() {
                     <div class="ie-form-group">
                         <label>Character Context</label>
                         <textarea id="ie-char-context" class="ie-textarea" rows="3" 
-                            placeholder="Describe who YOU are (the character whose head these voices are in). Example: 'I am Julie, trapped at a club.'"></textarea>
+                            placeholder="Describe who YOU are (the character whose head these voices are in). Example: 'Harry Du Bois, amnesiac detective. Kim Kitsuragi is my partner.'"></textarea>
                         <small class="ie-form-hint">Who is "you" - the character whose head these voices are in.</small>
                     </div>
                     
@@ -426,7 +404,7 @@ export function createPsychePanel() {
                 </div>
 
                 <div class="ie-section">
-                    <div class="ie-section-header"><span>// SAVE CURRENT AS PROFILE</span></div>
+                    <div class="ie-section-header"><span>Save Current as Profile</span></div>
                     <div class="ie-form-group">
                         <label>Profile Name</label>
                         <input type="text" id="ie-new-profile-name" placeholder="e.g. Harry Du Bois" />
@@ -437,7 +415,7 @@ export function createPsychePanel() {
                     </button>
                 </div>
                 <div class="ie-section">
-                    <div class="ie-section-header"><span>// BUILD EDITOR</span></div>
+                    <div class="ie-section-header"><span>Build Editor</span></div>
                     <div class="ie-build-intro">
                         <div class="ie-points-remaining">Points: <span id="ie-points-remaining">12</span> / 12</div>
                     </div>
@@ -467,94 +445,200 @@ export function createPsychePanel() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// TAB SWITCHING
+// FAB CREATION
 // ═══════════════════════════════════════════════════════════════
 
 export function createToggleFAB(getContext) {
-    const fab = document.createElement('button');
+    const fab = document.createElement('div');
     fab.id = 'inland-empire-fab';
     fab.className = 'ie-fab';
-    fab.title = 'Open Psyche Panel';
-    fab.innerHTML = '<i class="fa-solid fa-brain"></i>';
-    
-    // Draggable FAB support
+    fab.title = 'Toggle Psyche Panel';
+    fab.innerHTML = '<span class="ie-fab-icon"><i class="fa-solid fa-address-card"></i></span>';
+    fab.style.display = 'flex';
+    fab.style.top = `${extensionSettings.fabPositionTop ?? 140}px`;
+    fab.style.left = `${extensionSettings.fabPositionLeft ?? 10}px`;
+
+    // Dragging state
     let isDragging = false;
-    let startX, startY, startLeft, startTop;
-    
+    let dragStartX, dragStartY, fabStartX, fabStartY;
+    let hasMoved = false;
+
+    function startDrag(e) {
+        isDragging = true;
+        hasMoved = false;
+        const touch = e.touches ? e.touches[0] : e;
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+        fabStartX = fab.offsetLeft;
+        fabStartY = fab.offsetTop;
+        fab.style.transition = 'none';
+        document.addEventListener('mousemove', doDrag);
+        document.addEventListener('touchmove', doDrag, { passive: false });
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+    }
+
+    function doDrag(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const touch = e.touches ? e.touches[0] : e;
+        const deltaX = touch.clientX - dragStartX;
+        const deltaY = touch.clientY - dragStartY;
+        if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved = true;
+        fab.style.left = `${Math.max(0, Math.min(window.innerWidth - fab.offsetWidth, fabStartX + deltaX))}px`;
+        fab.style.top = `${Math.max(0, Math.min(window.innerHeight - fab.offsetHeight, fabStartY + deltaY))}px`;
+    }
+
+    function endDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        fab.style.transition = 'all 0.3s ease';
+        document.removeEventListener('mousemove', doDrag);
+        document.removeEventListener('touchmove', doDrag);
+        document.removeEventListener('mouseup', endDrag);
+        document.removeEventListener('touchend', endDrag);
+
+        if (hasMoved) {
+            fab.dataset.justDragged = 'true';
+            extensionSettings.fabPositionTop = fab.offsetTop;
+            extensionSettings.fabPositionLeft = fab.offsetLeft;
+            if (getContext) saveState(getContext());
+        }
+    }
+
     fab.addEventListener('mousedown', startDrag);
     fab.addEventListener('touchstart', startDrag, { passive: false });
-    
-    function startDrag(e) {
-        if (e.type === 'touchstart') {
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-        } else {
-            startX = e.clientX;
-            startY = e.clientY;
-        }
-        
-        const rect = fab.getBoundingClientRect();
-        startLeft = rect.left;
-        startTop = rect.top;
-        
-        isDragging = false;
-        fab.dataset.justDragged = 'false';
-        
-        document.addEventListener('mousemove', onDrag);
-        document.addEventListener('mouseup', stopDrag);
-        document.addEventListener('touchmove', onDrag, { passive: false });
-        document.addEventListener('touchend', stopDrag);
-    }
-    
-    function onDrag(e) {
-        let currentX, currentY;
-        if (e.type === 'touchmove') {
-            e.preventDefault();
-            currentX = e.touches[0].clientX;
-            currentY = e.touches[0].clientY;
-        } else {
-            currentX = e.clientX;
-            currentY = e.clientY;
-        }
-        
-        const deltaX = currentX - startX;
-        const deltaY = currentY - startY;
-        
-        if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-            isDragging = true;
-            fab.dataset.justDragged = 'true';
-            
-            fab.style.left = `${startLeft + deltaX}px`;
-            fab.style.top = `${startTop + deltaY}px`;
-            fab.style.right = 'auto';
-            fab.style.bottom = 'auto';
-        }
-    }
-    
-    function stopDrag() {
-        document.removeEventListener('mousemove', onDrag);
-        document.removeEventListener('mouseup', stopDrag);
-        document.removeEventListener('touchmove', onDrag);
-        document.removeEventListener('touchend', stopDrag);
-        
-        if (isDragging) {
-            // Save position
-            const ctx = getContext();
-            if (ctx?.extensionSettings?.inland_empire) {
-                ctx.extensionSettings.inland_empire.fabPositionTop = parseInt(fab.style.top);
-                ctx.extensionSettings.inland_empire.fabPositionLeft = parseInt(fab.style.left);
-                ctx.saveSettingsDebounced?.();
-            }
-        }
-    }
-    
+
     return fab;
 }
 
+/**
+ * Create the Suggestions FAB (lightbulb icon)
+ * Hidden by default, toggleable in settings
+ */
+export function createSuggestionsFAB(getContext) {
+    const fab = document.createElement('div');
+    fab.id = 'ie-suggestions-fab';
+    fab.className = 'ie-fab ie-fab-suggestions';
+    fab.title = 'Get Suggestions';
+    fab.innerHTML = '<span class="ie-fab-icon"><i class="fa-solid fa-lightbulb"></i></span>';
+    fab.style.display = extensionSettings.showSuggestionsFab ? 'flex' : 'none';
+    fab.style.top = `${extensionSettings.suggestionsFabTop ?? 200}px`;
+    fab.style.left = `${extensionSettings.suggestionsFabLeft ?? 10}px`;
+
+    // Reuse same drag logic pattern
+    let isDragging = false;
+    let dragStartX, dragStartY, fabStartX, fabStartY;
+    let hasMoved = false;
+
+    function startDrag(e) {
+        isDragging = true;
+        hasMoved = false;
+        const touch = e.touches ? e.touches[0] : e;
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+        fabStartX = fab.offsetLeft;
+        fabStartY = fab.offsetTop;
+        fab.style.transition = 'none';
+        document.addEventListener('mousemove', doDrag);
+        document.addEventListener('touchmove', doDrag, { passive: false });
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+    }
+
+    function doDrag(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const touch = e.touches ? e.touches[0] : e;
+        const deltaX = touch.clientX - dragStartX;
+        const deltaY = touch.clientY - dragStartY;
+        if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved = true;
+        fab.style.left = `${Math.max(0, Math.min(window.innerWidth - fab.offsetWidth, fabStartX + deltaX))}px`;
+        fab.style.top = `${Math.max(0, Math.min(window.innerHeight - fab.offsetHeight, fabStartY + deltaY))}px`;
+    }
+
+    function endDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        fab.style.transition = 'all 0.3s ease';
+        document.removeEventListener('mousemove', doDrag);
+        document.removeEventListener('touchmove', doDrag);
+        document.removeEventListener('mouseup', endDrag);
+        document.removeEventListener('touchend', endDrag);
+
+        if (hasMoved) {
+            fab.dataset.justDragged = 'true';
+            extensionSettings.suggestionsFabTop = fab.offsetTop;
+            extensionSettings.suggestionsFabLeft = fab.offsetLeft;
+            if (getContext) saveState(getContext());
+        }
+    }
+
+    fab.addEventListener('mousedown', startDrag);
+    fab.addEventListener('touchstart', startDrag, { passive: false });
+
+    return fab;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PANEL CONTROLS
+// ═══════════════════════════════════════════════════════════════
+
 export function togglePanel() {
     const panel = document.getElementById('inland-empire-panel');
-    if (panel) {
-        panel.classList.toggle('ie-panel-open');
+    const fab = document.getElementById('inland-empire-fab');
+
+    if (!panel) return;
+
+    const isOpen = panel.classList.contains('ie-panel-open');
+
+    if (isOpen) {
+        panel.classList.remove('ie-panel-open');
+        fab?.classList.remove('ie-fab-active');
+    } else {
+        panel.classList.add('ie-panel-open');
+        fab?.classList.add('ie-fab-active');
+        // Trigger peek animation when opening
+        triggerFabLoading();
+    }
+}
+
+/**
+ * Trigger the "peek-up" loading animation on the main FAB
+ * Call this when voices are being generated
+ */
+export function triggerFabLoading() {
+    const fab = document.getElementById('inland-empire-fab');
+    if (!fab) return;
+    
+    fab.classList.add('ie-fab-loading');
+    // Remove after animation completes
+    setTimeout(() => {
+        fab.classList.remove('ie-fab-loading');
+    }, 800);
+}
+
+/**
+ * Toggle suggestions FAB active state (lightbulb on/off)
+ */
+export function setSuggestionsFabActive(active) {
+    const fab = document.getElementById('ie-suggestions-fab');
+    if (!fab) return;
+    
+    fab.classList.toggle('ie-fab-active', active);
+    const icon = fab.querySelector('i');
+    if (icon) {
+        icon.className = active ? 'fa-solid fa-lightbulb' : 'fa-regular fa-lightbulb';
+    }
+}
+
+/**
+ * Show/hide the suggestions FAB
+ */
+export function setSuggestionsFabVisible(visible) {
+    const fab = document.getElementById('ie-suggestions-fab');
+    if (fab) {
+        fab.style.display = visible ? 'flex' : 'none';
     }
 }
 
@@ -619,10 +703,10 @@ export function switchTab(tabName, callbacks = {}) {
 
 /**
  * Update health display in header and status tab
- * @param {number} current - Current health value (0-13 for DE scale)
- * @param {number} max - Max health value (default 13)
+ * @param {number} current - Current health value (0-100)
+ * @param {number} max - Max health value (default 100)
  */
-export function updateHealth(current, max = 13) {
+export function updateHealth(current, max = 100) {
     const percent = Math.max(0, Math.min(100, (current / max) * 100));
     
     // Header bar
@@ -646,27 +730,27 @@ export function updateHealth(current, max = 13) {
     // Status tab detail
     const detailFill = document.getElementById('ie-health-detail-fill');
     const detailValue = document.getElementById('ie-health-detail-value');
-    const detailRow = detailFill?.closest('.ie-vital-detail-row');
+    const detailBar = detailFill?.closest('.ie-vital-bar');
     
     if (detailFill) detailFill.style.width = `${percent}%`;
     if (detailValue) detailValue.textContent = `${Math.round(current)} / ${max}`;
     
-    if (detailRow) {
-        detailRow.classList.remove('ie-vital-low', 'ie-vital-critical');
+    if (detailBar) {
+        detailBar.classList.remove('ie-vital-low', 'ie-vital-critical');
         if (percent <= 15) {
-            detailRow.classList.add('ie-vital-critical');
+            detailBar.classList.add('ie-vital-critical');
         } else if (percent <= 30) {
-            detailRow.classList.add('ie-vital-low');
+            detailBar.classList.add('ie-vital-low');
         }
     }
 }
 
 /**
  * Update morale display in header and status tab
- * @param {number} current - Current morale value (0-13 for DE scale)
- * @param {number} max - Max morale value (default 13)
+ * @param {number} current - Current morale value (0-100)
+ * @param {number} max - Max morale value (default 100)
  */
-export function updateMorale(current, max = 13) {
+export function updateMorale(current, max = 100) {
     const percent = Math.max(0, Math.min(100, (current / max) * 100));
     
     // Header bar
@@ -690,17 +774,17 @@ export function updateMorale(current, max = 13) {
     // Status tab detail
     const detailFill = document.getElementById('ie-morale-detail-fill');
     const detailValue = document.getElementById('ie-morale-detail-value');
-    const detailRow = detailFill?.closest('.ie-vital-detail-row');
+    const detailBar = detailFill?.closest('.ie-vital-bar');
     
     if (detailFill) detailFill.style.width = `${percent}%`;
     if (detailValue) detailValue.textContent = `${Math.round(current)} / ${max}`;
     
-    if (detailRow) {
-        detailRow.classList.remove('ie-vital-low', 'ie-vital-critical');
+    if (detailBar) {
+        detailBar.classList.remove('ie-vital-low', 'ie-vital-critical');
         if (percent <= 15) {
-            detailRow.classList.add('ie-vital-critical');
+            detailBar.classList.add('ie-vital-critical');
         } else if (percent <= 30) {
-            detailRow.classList.add('ie-vital-low');
+            detailBar.classList.add('ie-vital-low');
         }
     }
 }
@@ -744,35 +828,30 @@ export function updateWeather(icon, description) {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// CONNECTION PROFILE HELPERS
-// ═══════════════════════════════════════════════════════════════
-
 /**
- * Populate the connection profile dropdown from ST's Connection Manager
- * @param {object} context - ST context object
+ * Populate the connection profile dropdown with available ST profiles
+ * @param {Array} profiles - Array of { id, name } objects from getAvailableProfiles()
+ * @param {string} selectedProfile - Currently selected profile name
  */
-export function populateConnectionProfiles(context) {
+export function populateConnectionProfiles(profiles, selectedProfile) {
     const select = document.getElementById('ie-connection-profile');
     if (!select) return;
     
-    // Clear existing options except first
-    while (select.options.length > 1) {
-        select.remove(1);
+    // Clear existing options except "current"
+    select.innerHTML = '<option value="current">Use Current ST Profile</option>';
+    
+    // Add available profiles
+    if (profiles && profiles.length > 0) {
+        profiles.forEach(profile => {
+            const option = document.createElement('option');
+            option.value = profile.name;
+            option.textContent = profile.name;
+            select.appendChild(option);
+        });
     }
     
-    // Get profiles from Connection Manager
-    const connectionManager = context?.extensionSettings?.connectionManager;
-    const profiles = connectionManager?.profiles || [];
-    
-    profiles.forEach(profile => {
-        const option = document.createElement('option');
-        option.value = profile.id;
-        option.textContent = profile.name;
-        select.appendChild(option);
-    });
-    
-    // Set current selection
-    const currentProfile = extensionSettings.connectionProfile || 'current';
-    select.value = currentProfile;
+    // Set selected value
+    if (selectedProfile) {
+        select.value = selectedProfile;
+    }
 }
