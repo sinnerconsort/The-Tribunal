@@ -449,7 +449,7 @@ function refreshCabinetTab() {
             SKILLS,
             {
                 onStartResearch: handleStartResearch,
-                onAbandonResearch: handleAbandonResearch,
+                onAbandon: handleAbandonResearch,
                 onForget: handleForgetThought,
                 showThemeTracker: extensionSettings.showThemeTracker
             }
