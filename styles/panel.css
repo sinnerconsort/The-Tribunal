@@ -1,6 +1,9 @@
 /**
  * The Tribunal - Panel Styles
  * Main panel, film strip borders, ruler
+ * 
+ * CLEANED: Removed duplicate header/vitals definitions
+ * See OVERLAP-MAP-COMPLETE.md for details
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -276,136 +279,9 @@
     transform: translateX(0);
 }
 
-.ie-panel-header {
-    display: flex;
-    flex-direction: column;  /* Stack header-top and vitals-row vertically */
-    padding: 16px 20px;
-    background: var(--ie-bg-panel);  /* Match teal panel background */
-    border-bottom: 2px solid var(--ie-accent-orange);
-}
-
-.ie-panel-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-family: var(--ie-font-header);
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--ie-text-primary);
-    text-transform: uppercase;
-    letter-spacing: 2px;
-}
-
-.ie-panel-title i {
-    color: var(--ie-accent-orange);
-}
-
-.ie-panel-controls {
-    display: flex;
-    gap: 8px;
-}
-
 
 /* ═══════════════════════════════════════════════════════════════
-   HEADER - CASE FILE TITLE + VITALS BARS (from additions)
-   ═══════════════════════════════════════════════════════════════ */
-.ie-panel-header {
-    display: flex;
-    flex-direction: column;  /* Stack header-top and vitals-row vertically */
-    padding: 12px 16px 8px 8px;  /* Reduced left padding */
-    border-bottom: 1px solid var(--ie-border);
-    background: var(--ie-bg-panel);  /* Match teal panel background */
-    flex-shrink: 0;
-}
-
-.ie-header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.ie-panel-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.ie-panel-title i {
-    color: var(--ie-accent-orange);
-    font-size: 18px;
-}
-
-.ie-case-title {
-    font-family: var(--ie-font-header);
-    font-size: 14px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--ie-text-primary);
-}
-
-/* Vitals Row */
-.ie-vitals-row {
-    display: flex;
-    gap: 12px;
-}
-
-.ie-vital-bar {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.ie-vital-label {
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--ie-text-muted);
-    width: 50px;
-    flex-shrink: 0;
-}
-
-.ie-vital-track {
-    flex: 1;
-    height: 8px;
-    background: var(--ie-bg-tertiary);
-    border-radius: 4px;
-    overflow: hidden;
-    border: 1px solid var(--ie-border);
-}
-
-.ie-vital-fill {
-    height: 100%;
-    background: linear-gradient(90deg, #4CAF50 0%, #8BC34A 100%);
-    border-radius: 3px;
-    transition: width 0.4s ease, background 0.4s ease;
-}
-
-.ie-vital-value {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--ie-text-secondary);
-    width: 28px;
-    text-align: right;
-    flex-shrink: 0;
-}
-
-/* Health-specific (inherits hue from JS) */
-.ie-vital-health .ie-vital-label {
-    color: var(--ie-accent-red);
-}
-
-/* Morale-specific */
-.ie-vital-morale .ie-vital-label {
-    color: var(--ie-accent-purple);
-}
-
-
-/* ═══════════════════════════════════════════════════════════════
-   Panel Content Adjustments (from additions)
+   PANEL CONTENT & SECTIONS
    ═══════════════════════════════════════════════════════════════ */
 
 /* Make panel content fill available space */
@@ -432,13 +308,10 @@
     justify-content: space-between;
     margin-bottom: 10px;
 }
-/**
- * The Tribunal - Panel Header & Vitals Styling
- * ADD this to the END of your existing panel.css
- */
+
 
 /* ═══════════════════════════════════════════════════════════════
-   PANEL HEADER - Phase 1 Restructure
+   PANEL HEADER - Latest Definition
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-panel-header {
