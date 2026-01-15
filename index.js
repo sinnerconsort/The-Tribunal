@@ -14,8 +14,17 @@
 // Data
 import { SKILLS, ATTRIBUTES, ANCIENT_VOICES } from './src/data/skills.js';
 import { STATUS_EFFECTS } from './src/data/statuses.js';
-// voices.js removed - objects now AI-generated in discovery.js v3
 import { THEMES, THOUGHTS } from './src/data/thoughts.js';
+
+// Fortune System (extracted for maintainability)
+import {
+    LEDGER_PERSONALITIES,
+    FORTUNE_PROMPTS,
+    STATIC_FORTUNES,
+    selectLedgerPersonality,
+    getStaticFortune,
+    isDeepNight
+} from './src/data/fortune.js';
 
 // Systems
 import {
@@ -87,10 +96,7 @@ import {
     autoScan
 } from './src/voice/discovery.js';
 
-// ═══════════════════════════════════════════════════════════════
-// PHASE 2: Vitals Detection Imports
-// ═══════════════════════════════════════════════════════════════
-
+// Phase 2: Vitals Detection Imports
 import {
     initVitalsHooks,
     processMessageForVitals,
@@ -104,14 +110,12 @@ import {
     createToggleFAB,
     togglePanel,
     switchTab,
-    // Phase 1 additions
     updateHealth,
     updateMorale,
     updateCaseTitle,
     updateMoney,
     updateWeather,
     populateConnectionProfiles,
-    // Phase 3 additions - Ledger Sub-Tabs
     initLedgerSubTabs,
     updateCompartmentCrack,
     renderCaseCard,
@@ -155,42 +159,6 @@ let messagesSinceAutoGen = 0;
 let isAutoGenerating = false;
 
 // ═══════════════════════════════════════════════════════════════
-// PHASE 3: FORTUNE SYSTEM DATA
-// ═══════════════════════════════════════════════════════════════
-
-const LEDGER_PERSONALITIES = {
-    damaged: {
-        id: 'damaged',
-        name: 'The Damaged Ledger',
-        color: 'damaged',
-        tone: 'Fragmented, cryptic, truthful',
-        weight: 40
-    },
-    oblivion: {
-        id: 'oblivion',
-        name: 'The Ledger of Oblivion',
-        color: 'oblivion',
-        tone: 'Prophetic, inevitable, ominous',
-        weight: 35
-    },
-    failure: {
-        id: 'failure',
-        name: 'The Ledger of Failure and Hatred',
-        color: 'failure',
-        tone: 'Mocking, bitter, meta-aware',
-        weight: 25
-    }
-};
-
-const FORTUNE_PROMPTS = {
-    damaged: `You are the Damaged Ledger - a water-damaged police notebook that speaks in fragments. Give a cryptic observation about the user's current situation. Be brief (1-2 sentences). Speak in broken, fragmented sentences. You see what IS, not what will be.`,
-    
-    oblivion: `You are the Ledger of Oblivion - a prophetic voice that speaks of inevitable futures. Give a brief, ominous fortune (1-2 sentences). Speak declaratively about what WILL happen. Be fatalistic but poetic.`,
-    
-    failure: `You are the Ledger of Failure and Hatred - a mocking, nihilistic voice that lies and breaks the fourth wall. Give a brief, cruel fortune (1-2 sentences). Mock the user. Be aware you're in a roleplay. Lie convincingly or tell uncomfortable truths.`
-};
-
-// ═══════════════════════════════════════════════════════════════
 // SILLYTAVERN INTEGRATION
 // ═══════════════════════════════════════════════════════════════
 
@@ -216,30 +184,22 @@ function getChatContainer() {
 // FAB VISIBILITY MANAGEMENT
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Updates the visibility and state of both FABs based on settings.
- * - Main FAB: Hidden when extension is disabled
- * - Investigation FAB: Hidden when extension is disabled OR when showInvestigationFab is false
- */
 function updateFABState() {
     const fab = document.getElementById('inland-empire-fab');
     const thoughtFab = document.getElementById('ie-thought-fab');
     
-    // Main FAB visibility
     if (fab) {
         if (extensionSettings.enabled) {
             fab.style.display = 'flex';
             fab.classList.remove('ie-fab-disabled');
             fab.title = 'Open Psyche Panel';
         } else {
-            // CHANGED: Hide completely instead of just dimming
             fab.style.display = 'none';
             fab.classList.add('ie-fab-disabled');
             fab.title = 'The Tribunal (Disabled)';
         }
     }
     
-    // Investigation FAB visibility - controlled by both enabled AND showInvestigationFab
     if (thoughtFab) {
         if (extensionSettings.enabled && extensionSettings.showInvestigationFab !== false) {
             thoughtFab.style.display = 'flex';
@@ -251,14 +211,10 @@ function updateFABState() {
     }
 }
 
-/**
- * Updates just the Investigation FAB visibility (for settings toggle)
- */
 function updateInvestigationFABVisibility() {
     const thoughtFab = document.getElementById('ie-thought-fab');
     
     if (thoughtFab) {
-        // Only show if BOTH extension is enabled AND setting allows it
         if (extensionSettings.enabled && extensionSettings.showInvestigationFab !== false) {
             thoughtFab.style.display = 'flex';
             thoughtFab.classList.remove('ie-thought-fab-disabled');
@@ -287,19 +243,14 @@ async function triggerVoices(externalContext = null) {
     const loadingToast = showToast('Consulting inner voices...', 'loading');
     
     try {
-        // Track themes in the message
         const themes = trackThemesInMessage(lastMsg.mes, THEMES);
-        
-        // Increment message count for thought discovery
         incrementMessageCount();
         
-        // Check for thought discoveries
         const thought = checkThoughtDiscovery(THOUGHTS);
         if (thought) {
             showDiscoveryToast(thought, handleStartResearch, handleDismissThought);
         }
         
-        // Build context for voice generation
         const voiceContext = analyzeContext(lastMsg.mes, {
             themes,
             activeStatuses: [...activeStatuses],
@@ -307,7 +258,6 @@ async function triggerVoices(externalContext = null) {
             researchPenalties: getResearchPenalties()
         });
         
-        // Select skills and generate voices
         const selectedSkills = selectSpeakingSkills(voiceContext, {
             currentBuild,
             activeStatuses: [...activeStatuses],
@@ -328,13 +278,11 @@ async function triggerVoices(externalContext = null) {
         hideToast(loadingToast);
         
         if (voices.length > 0) {
-            // Render in panel
             const container = document.getElementById('ie-voices-output');
             if (container) {
                 renderVoices(voices, container);
             }
             
-            // Also append to chat (default ON unless explicitly disabled)
             if (extensionSettings.appendToChat !== false) {
                 appendVoicesToChat(voices, getChatContainer());
             }
@@ -394,7 +342,6 @@ async function handleAutoThoughtGeneration() {
     
     try {
         const thought = checkThoughtDiscovery(THOUGHTS);
-        
         if (thought) {
             showDiscoveryToast(thought, handleStartResearch, handleDismissThought);
             refreshCabinetTab();
@@ -410,14 +357,9 @@ async function handleAutoThoughtGeneration() {
 // UI REFRESH HELPERS
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Calculate and display remaining build points
- * Reads current values from the editor UI
- */
 function updateBuildPointsDisplay(pointsDisplay) {
     if (!pointsDisplay) return;
     
-    // Sum all attribute values from the editor
     let total = 0;
     Object.keys(ATTRIBUTES).forEach(attrId => {
         const valueEl = document.getElementById(`ie-attr-${attrId}`);
@@ -426,7 +368,7 @@ function updateBuildPointsDisplay(pointsDisplay) {
         }
     });
     
-    const remaining = 12 - total; // 12 total points to distribute (4 attrs × 3 avg)
+    const remaining = 12 - total;
     updatePointsRemaining(pointsDisplay, remaining);
 }
 
@@ -468,38 +410,22 @@ function refreshCabinetTab() {
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// PHASE 1: VITALS, LEDGER, INVENTORY REFRESH
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Sync vitals display with current state
- * Call this when panel opens, profile loads, or vitals change
- */
 function refreshVitals() {
     const v = getVitals();
     updateHealth(v.health, v.maxHealth);
     updateMorale(v.morale, v.maxMorale);
-    
-    // Update case title from character name
     updateCaseTitle(extensionSettings.characterName);
 }
 
-/**
- * Refresh ledger display (weather, cases, notes)
- * PHASE 3: Now handles sub-tabs
- */
 function refreshLedgerDisplay() {
     const l = getLedger();
     
-    // Update weather in map tab
     updateWeather(
         l.weather?.icon || 'fa-cloud-sun', 
         l.weather?.condition || 'Unknown',
         l.weather?.description || ''
     );
     
-    // Render active cases
     const activeCasesList = document.getElementById('ie-active-cases-list');
     if (activeCasesList) {
         if (l.activeCases && l.activeCases.length > 0) {
@@ -514,7 +440,6 @@ function refreshLedgerDisplay() {
         }
     }
     
-    // Render completed cases
     const completedCasesList = document.getElementById('ie-completed-cases-list');
     if (completedCasesList) {
         if (l.completedCases && l.completedCases.length > 0) {
@@ -529,30 +454,23 @@ function refreshLedgerDisplay() {
         }
     }
     
-    // Update compartment crack based on state
     if (l.compartment) {
         updateCompartmentCrack(l.compartment.crackStage || 0);
     }
     
-    // Update badge if compartment is unlocked
     if (l.compartment?.discovered && l.officerProfile) {
         updateBadgeDisplay(l.officerProfile);
     }
     
-    // Restore notes textarea
     const notesEl = document.getElementById('ie-ledger-notes');
     if (notesEl && l.notes) {
         notesEl.value = Array.isArray(l.notes) ? l.notes.join('\n') : l.notes;
     }
 }
 
-/**
- * Refresh inventory display (items, money)
- */
 function refreshInventoryDisplay() {
     const inv = getInventory();
     updateMoney(inv.money);
-    // TODO: Render carried/worn items when Phase 4 is fully implemented
 }
 
 function refreshProfilesTab() {
@@ -562,7 +480,6 @@ function refreshProfilesTab() {
     
     if (container) {
         renderProfilesList(container, (profileId) => {
-            // Load profile
             loadProfile(profileId);
             saveState(getContext());
             refreshProfilesTab();
@@ -570,13 +487,11 @@ function refreshProfilesTab() {
             refreshVitals();
             showToast(`Loaded profile: ${savedProfiles[profileId]?.name || profileId}`, 'info');
         }, (profileId) => {
-            // Delete profile
             deleteProfile(profileId);
             saveState(getContext());
             refreshProfilesTab();
             showToast('Profile deleted', 'info');
         }, (profileId) => {
-            // Update profile with current settings
             updateProfile(profileId, getContext());
             refreshProfilesTab();
             showToast(`Updated profile: ${savedProfiles[profileId]?.name || profileId}`, 'success');
@@ -585,35 +500,29 @@ function refreshProfilesTab() {
     
     if (editor) {
         renderBuildEditor(editor, (attr, delta) => {
-            // Get current displayed value
             const valueEl = document.getElementById(`ie-attr-${attr}`);
             if (!valueEl) return;
             
             const current = parseInt(valueEl.textContent) || 1;
             const newValue = Math.max(1, Math.min(6, current + delta));
             
-            if (newValue === current) return; // No change (at limit)
+            if (newValue === current) return;
             
-            // Update display
             valueEl.textContent = newValue;
             
-            // Update button disabled states
             const minusBtn = editor.querySelector(`.ie-attr-minus[data-attr="${attr}"]`);
             const plusBtn = editor.querySelector(`.ie-attr-plus[data-attr="${attr}"]`);
             if (minusBtn) minusBtn.disabled = newValue <= 1;
             if (plusBtn) plusBtn.disabled = newValue >= 6;
             
-            // Recalculate and display remaining points
             updateBuildPointsDisplay(pointsDisplay);
         });
         
-        // Initial points display
         updateBuildPointsDisplay(pointsDisplay);
     }
 }
 
 function populateSettingsForm() {
-    // Populate connection profiles dropdown first
     const profiles = getAvailableProfiles();
     populateConnectionProfiles(profiles, extensionSettings.connectionProfile || 'current');
     
@@ -639,7 +548,6 @@ function populateSettingsForm() {
         'ie-character-context': extensionSettings.characterContext,
         'ie-scene-perspective': extensionSettings.scenePerspective,
         'ie-show-investigation-fab': extensionSettings.showInvestigationFab !== false,
-        // Phase 2 - Vitals detection
         'ie-auto-detect-vitals': extensionSettings.autoDetectVitals,
         'ie-vitals-sensitivity': extensionSettings.vitalsSensitivity || 'medium',
         'ie-vitals-notifications': extensionSettings.vitalsShowNotifications !== false
@@ -658,11 +566,9 @@ function populateSettingsForm() {
 }
 
 function closeAllModals() {
-    // Close thought modal
     const thoughtModal = document.getElementById('ie-thought-modal');
     if (thoughtModal) thoughtModal.remove();
     
-    // Close discovery modal
     const discoveryOverlay = document.getElementById('ie-discovery-overlay');
     if (discoveryOverlay?.classList.contains('ie-discovery-open')) {
         toggleDiscoveryModal();
@@ -670,12 +576,9 @@ function closeAllModals() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PHASE 3: LEDGER CASE & FORTUNE FUNCTIONS
+// LEDGER CASE & FORTUNE FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Add a new case to the ledger
- */
 function handleAddCase() {
     const title = prompt('Enter case title (e.g., "THE HANGED MAN"):');
     if (!title) return;
@@ -696,7 +599,6 @@ function handleAddCase() {
         created: Date.now()
     };
     
-    // Add to ledger state
     if (!l.activeCases) l.activeCases = [];
     l.activeCases.push(newCase);
     
@@ -705,26 +607,7 @@ function handleAddCase() {
     showToast(`Case opened: ${newCase.code}`, 'success');
 }
 
-/**
- * Select a random ledger personality based on weights
- */
-function selectLedgerPersonality() {
-    const total = Object.values(LEDGER_PERSONALITIES).reduce((sum, p) => sum + p.weight, 0);
-    let random = Math.random() * total;
-    
-    for (const personality of Object.values(LEDGER_PERSONALITIES)) {
-        random -= personality.weight;
-        if (random <= 0) return personality;
-    }
-    
-    return LEDGER_PERSONALITIES.damaged; // Fallback
-}
-
-/**
- * Generate and display a fortune from the secret compartment
- */
 async function handleDrawFortune() {
-    // 20% chance of empty fortune
     if (Math.random() < 0.2) {
         showToast('Your fingers find only crumbs and dust.', 'info');
         return;
@@ -736,7 +619,6 @@ async function handleDrawFortune() {
         const personality = selectLedgerPersonality();
         const prompt = FORTUNE_PROMPTS[personality.id];
         
-        // Get some context from current state
         const v = getVitals();
         const l = getLedger();
         const contextHints = [];
@@ -748,8 +630,6 @@ async function handleDrawFortune() {
         
         const fullPrompt = `${prompt}\n\nContext hints: ${contextHints.join(', ') || 'nothing special'}`;
         
-        // Use the voice generation system to get a fortune
-        // This reuses the existing API infrastructure
         const response = await generateFortuneText(fullPrompt, personality);
         
         hideToast(loadingToast);
@@ -761,10 +641,9 @@ async function handleDrawFortune() {
                 ledgerType: personality.color
             });
             
-            // Track fortune in ledger
-            const l = getLedger();
-            if (!l.fortunes) l.fortunes = [];
-            l.fortunes.push({
+            const ledger = getLedger();
+            if (!ledger.fortunes) ledger.fortunes = [];
+            ledger.fortunes.push({
                 text: response,
                 personality: personality.id,
                 timestamp: Date.now()
@@ -781,60 +660,24 @@ async function handleDrawFortune() {
     }
 }
 
-/**
- * Generate fortune text via API (simplified version using existing infrastructure)
- */
 async function generateFortuneText(prompt, personality) {
-    // Try to use the same API as voice generation
     try {
         const context = getContext();
         
-        // Use SillyTavern's generateQuietPrompt if available
         if (context?.generateQuietPrompt) {
             const result = await context.generateQuietPrompt(prompt, false, false);
             return result?.trim() || null;
         }
         
-        // Fallback: return a static fortune based on personality
-        const staticFortunes = {
-            damaged: [
-                "The water damage... it speaks of tears not yet cried.",
-                "Something is written here. Then crossed out. Then written again.",
-                "A name. Familiar. Gone now."
-            ],
-            oblivion: [
-                "You will find what you seek. You will wish you hadn't.",
-                "The pale approaches. It always approaches.",
-                "This case will end. Not well. But it will end."
-            ],
-            failure: [
-                "Still playing detective? How adorable.",
-                "The player behind you is getting bored, you know.",
-                "You're going to reload this save. I've seen it before."
-            ]
-        };
-        
-        const options = staticFortunes[personality.id] || staticFortunes.damaged;
-        return options[Math.floor(Math.random() * options.length)];
+        // Fallback to static fortune
+        return getStaticFortune(personality.id);
         
     } catch (error) {
         console.warn('[The Tribunal] API fortune failed, using fallback:', error);
-        return null;
+        return getStaticFortune(personality.id);
     }
 }
 
-/**
- * Check if current time is "deep night" (2am-6am)
- */
-function isDeepNight() {
-    const hour = new Date().getHours();
-    return hour >= 2 && hour < 6;
-}
-
-/**
- * Check and update compartment discovery progress
- * Called when a critical failure happens during deep night
- */
 function checkCompartmentProgress() {
     const l = getLedger();
     if (!l.compartment) {
@@ -848,19 +691,13 @@ function checkCompartmentProgress() {
         };
     }
     
-    // Already discovered
     if (l.compartment.discovered) return;
-    
-    // Only count once per session
     if (l.compartment.countedThisSession) return;
-    
-    // Must be deep night
     if (!isDeepNight()) return;
     
     l.compartment.countedThisSession = true;
     l.compartment.deepNightCritFails++;
     
-    // Update crack stage
     if (l.compartment.deepNightCritFails >= 3) {
         l.compartment.crackStage = 3;
         l.compartment.discovered = true;
@@ -875,9 +712,6 @@ function checkCompartmentProgress() {
     saveState(getContext());
 }
 
-/**
- * Save ledger notes on blur
- */
 function handleLedgerNotesChange(e) {
     const l = getLedger();
     l.notes = e.target.value;
@@ -897,7 +731,6 @@ function bindEvents() {
         }
         togglePanel();
         
-        // Refresh vitals display when opening - Phase 1
         const panel = document.getElementById('inland-empire-panel');
         if (panel?.classList.contains('ie-panel-open')) {
             refreshVitals();
@@ -922,7 +755,7 @@ function bindEvents() {
         });
     });
 
-    // Bottom buttons (Settings/Profiles) - Phase 1
+    // Bottom buttons (Settings/Profiles)
     document.querySelectorAll('.ie-bottom-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const panel = btn.dataset.panel;
@@ -1022,7 +855,6 @@ function bindEvents() {
             characterContext: document.getElementById('ie-character-context')?.value || '',
             scenePerspective: document.getElementById('ie-scene-perspective')?.value || '',
             showInvestigationFab: document.getElementById('ie-show-investigation-fab')?.checked ?? true,
-            // Phase 2 - Vitals detection
             autoDetectVitals: document.getElementById('ie-auto-detect-vitals')?.checked ?? false,
             vitalsSensitivity: document.getElementById('ie-vitals-sensitivity')?.value || 'medium',
             vitalsShowNotifications: document.getElementById('ie-vitals-notifications')?.checked ?? true
@@ -1030,9 +862,8 @@ function bindEvents() {
 
         updateSettings(newSettings);
         saveState(getContext());
-        updateFABState(); // Update FAB visibility after settings change
+        updateFABState();
         
-        // Sync extension panel checkbox
         const extCheckbox = document.getElementById('ie-ext-enabled');
         if (extCheckbox) extCheckbox.checked = newSettings.enabled;
 
@@ -1083,7 +914,6 @@ function bindEvents() {
     document.querySelector('.ie-btn-apply-build')?.addEventListener('click', () => {
         const allocation = {};
         
-        // Read values from the editor spans (created by renderBuildEditor)
         Object.keys(ATTRIBUTES).forEach(attrId => {
             const valueEl = document.getElementById(`ie-attr-${attrId}`);
             if (valueEl) {
@@ -1110,31 +940,19 @@ function bindEvents() {
         saveState(getContext());
     });
     
-    // ═══════════════════════════════════════════════════════════════
-    // PHASE 3: LEDGER EVENT BINDINGS
-    // ═══════════════════════════════════════════════════════════════
-    
-    // Add Case button
+    // Ledger event bindings
     document.getElementById('ie-add-case-btn')?.addEventListener('click', handleAddCase);
-    
-    // Draw Fortune button
     document.getElementById('ie-draw-fortune-btn')?.addEventListener('click', handleDrawFortune);
-    
-    // Ledger notes auto-save
     document.getElementById('ie-ledger-notes')?.addEventListener('blur', handleLedgerNotesChange);
     
-    // ═══════════════════════════════════════════════════════════════
-    // PHASE 2: Vitals Detection Button Bindings
-    // ═══════════════════════════════════════════════════════════════
-    
-    // Auto-detect vitals toggle
+    // Vitals detection toggle
     document.getElementById('ie-auto-detect-vitals')?.addEventListener('change', (e) => {
         extensionSettings.autoDetectVitals = e.target.checked;
         saveState(getContext());
         showToast(e.target.checked ? 'Auto-detection enabled' : 'Auto-detection disabled', 'info');
     });
     
-    // Manual vitals scan button
+    // Manual vitals scan
     document.getElementById('ie-scan-vitals-btn')?.addEventListener('click', () => {
         const lastMsg = getLastMessage();
         if (!lastMsg?.mes) {
@@ -1148,12 +966,10 @@ function bindEvents() {
         });
         
         if (result.healthDelta !== 0 || result.moraleDelta !== 0) {
-            // Apply changes
             if (result.healthDelta !== 0) modifyHealth(result.healthDelta, getContext());
             if (result.moraleDelta !== 0) modifyMorale(result.moraleDelta, getContext());
             refreshVitals();
             
-            // Show notification
             const parts = [];
             if (result.healthDelta !== 0) {
                 const sign = result.healthDelta > 0 ? '+' : '';
@@ -1169,11 +985,7 @@ function bindEvents() {
         }
     });
     
-    // ═══════════════════════════════════════════════════════════════
-    // PHASE 2: Manual Vitals Adjustment Buttons
-    // ═══════════════════════════════════════════════════════════════
-    
-    // Health adjustment buttons (±1 to match DE's 1-13 scale)
+    // Manual vitals adjustment buttons
     document.getElementById('ie-health-minus')?.addEventListener('click', () => {
         modifyHealth(-1, getContext());
         refreshVitals();
@@ -1186,7 +998,6 @@ function bindEvents() {
         showToast('Health +1', 'success', 1500);
     });
     
-    // Morale adjustment buttons
     document.getElementById('ie-morale-minus')?.addEventListener('click', () => {
         modifyMorale(-1, getContext());
         refreshVitals();
@@ -1201,7 +1012,7 @@ function bindEvents() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// AUTO TRIGGER SETUP (with Phase 2 vitals detection)
+// AUTO TRIGGER SETUP
 // ═══════════════════════════════════════════════════════════════
 
 function setupAutoTrigger() {
@@ -1220,12 +1031,10 @@ function setupAutoTrigger() {
             triggerVoices();
         }
         
-        // Auto-scan for investigation context (if enabled in discovery settings)
         const lastMsg = getLastMessage();
         if (lastMsg?.mes) {
             autoScan(lastMsg.mes);
             
-            // ═══ PHASE 2: Auto-detect vitals changes ═══
             if (extensionSettings.autoDetectVitals) {
                 processMessageForVitals(lastMsg.mes, lastMsg.send_date);
             }
@@ -1240,22 +1049,14 @@ function setupAutoTrigger() {
 async function init() {
     console.log('[The Tribunal] Initializing...');
 
-    // Initialize state
     await loadState(getContext);
     initializeThemeCounters(THEMES);
     initializeDefaultBuild(ATTRIBUTES, SKILLS);
     
-    // ═══════════════════════════════════════════════════════════════
-    // PHASE 2: Initialize Vitals Detection Hooks
-    // ═══════════════════════════════════════════════════════════════
-    
+    // Initialize Vitals Detection Hooks
     initVitalsHooks({
-        modifyHealth: (delta, ctx) => {
-            modifyHealth(delta, ctx);
-        },
-        modifyMorale: (delta, ctx) => {
-            modifyMorale(delta, ctx);
-        },
+        modifyHealth: (delta, ctx) => modifyHealth(delta, ctx),
+        modifyMorale: (delta, ctx) => modifyMorale(delta, ctx),
         getSettings: () => extensionSettings,
         getContext: getContext,
         showToast: showToast,
@@ -1284,12 +1085,10 @@ async function init() {
         `;
         extensionSettingsContainer.insertAdjacentHTML('beforeend', settingsHtml);
         
-        // Bind the enable toggle
         document.getElementById('ie-ext-enabled')?.addEventListener('change', (e) => {
             extensionSettings.enabled = e.target.checked;
             saveState(getContext());
             updateFABState();
-            // Sync with the settings panel checkbox too
             const settingsCheckbox = document.getElementById('ie-enabled');
             if (settingsCheckbox) settingsCheckbox.checked = e.target.checked;
             showToast(e.target.checked ? 'The Tribunal enabled' : 'The Tribunal disabled', 'info');
@@ -1303,37 +1102,32 @@ async function init() {
     document.body.appendChild(panel);
     document.body.appendChild(fab);
 
-    // ═══════════════════════════════════════════════════════════════
-    // PHASE 3: Initialize Ledger Sub-Tabs
-    // ═══════════════════════════════════════════════════════════════
+    // Initialize Ledger Sub-Tabs
     initLedgerSubTabs();
 
-    // Create Discovery UI (Thought Bubble)
+    // Create Discovery UI
     const thoughtFab = createThoughtBubbleFAB(getContext);
     const discoveryModal = createDiscoveryModal();
 
     document.body.appendChild(thoughtFab);
     document.body.appendChild(discoveryModal);
     
-    // Set initial FAB state
     updateFABState();
 
     // Initial renders
     refreshAttributesDisplay();
     refreshStatusTab();
     refreshCabinetTab();
-    refreshVitals();  // Phase 1
-    refreshLedgerDisplay(); // Phase 3
+    refreshVitals();
+    refreshLedgerDisplay();
 
     // Bind events
     bindEvents();
 
-    // Global ESC key handler - escape from any modal
+    // Global ESC key handler
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             closeAllModals();
-            
-            // Also close panel if open and no modals were open
             const panel = document.getElementById('inland-empire-panel');
             if (panel?.classList.contains('ie-panel-open')) {
                 togglePanel();
@@ -1341,96 +1135,88 @@ async function init() {
         }
     });
 
-    // Setup auto-trigger
     setupAutoTrigger();
     
-    // Reset session tracking for compartment at startup
+    // Reset session tracking for compartment
     const l = getLedger();
     if (l.compartment) {
         l.compartment.countedThisSession = false;
     }
+    saveState(getContext());
 
     console.log('[The Tribunal] Ready!');
 }
 
 // ═══════════════════════════════════════════════════════════════
-// JQUERY READY HOOK
+// JQUERY READY - ENTRY POINT
 // ═══════════════════════════════════════════════════════════════
 
 jQuery(async () => {
     try {
         await init();
         
-        // ═══════════════════════════════════════════════════════════
-        // GLOBAL API - For other extensions to interact with The Tribunal
-        // ═══════════════════════════════════════════════════════════
+        // Create global API
         window.InlandEmpire = {
-            // Version for compatibility checks
-            version: '3.0.0',
+            version: '3.1.0',
+            _externalModifiers: {},
+            _modifierSources: {},
             
-            // ─────────────────────────────────────────────────────────
-            // READ: Skill & State Queries
-            // ─────────────────────────────────────────────────────────
-            getSkills: () => ({ ...SKILLS }),
-            getSkillData: (skillId) => SKILLS[skillId] ? { ...SKILLS[skillId] } : null,
-            getSkillLevel: (skillId) => currentBuild[skillId] || 1,
-            getEffectiveSkillLevel: (skillId) => {
-                const base = getEffectiveSkillLevel(skillId, getResearchPenalties());
-                const external = window.InlandEmpire._externalModifiers[skillId] || 0;
-                return base + external;
-            },
-            getActiveStatuses: () => [...activeStatuses],
+            // Getters
+            getSettings: () => ({ ...extensionSettings }),
             isEnabled: () => extensionSettings.enabled,
+            getBuild: () => currentBuild ? { ...currentBuild } : null,
+            getAttributePoints: () => getAttributePoints(),
+            getActiveStatuses: () => [...activeStatuses],
+            getThemeCounters: () => ({ ...themeCounters }),
+            getTopThemes: (n = 5) => getTopThemes(n),
+            getThoughtCabinet: () => ({ ...thoughtCabinet }),
+            getDiscoveryContext: () => ({ ...discoveryContext }),
+            getSkillLevel: (skillId) => currentBuild?.skills?.[skillId]?.level ?? 0,
+            getEffectiveSkillLevel: (skillId) => getEffectiveSkillLevel(skillId, getResearchPenalties()),
+            getVitals: () => getVitals(),
+            getLedger: () => getLedger(),
             
-            // ─────────────────────────────────────────────────────────
-            // WRITE: External Modifier Registry
-            // Other extensions can push/remove skill modifiers
-            // ─────────────────────────────────────────────────────────
-            _externalModifiers: {}, // { skillId: totalModifier }
-            _modifierSources: {},   // { sourceId: { skillId: value, ... } }
+            // Setters
+            setHealth: (value) => {
+                setHealth(value, getContext());
+                refreshVitals();
+            },
+            setMorale: (value) => {
+                setMorale(value, getContext());
+                refreshVitals();
+            },
+            modifyHealth: (delta) => {
+                modifyHealth(delta, getContext());
+                refreshVitals();
+            },
+            modifyMorale: (delta) => {
+                modifyMorale(delta, getContext());
+                refreshVitals();
+            },
             
-            /**
-             * Register a modifier from an external source (e.g., equipment)
-             * @param {string} sourceId - Unique ID for the source (e.g., 'horrific_necktie', 'drunk_status')
-             * @param {string} skillId - The skill to modify (e.g., 'inland_empire')
-             * @param {number} value - The modifier value (+1, -2, etc.)
-             */
-            registerModifier: (sourceId, skillId, value) => {
+            // External modifier system
+            applyModifiers: (sourceId, modifiers) => {
                 const api = window.InlandEmpire;
-                
-                // Initialize source tracking
                 if (!api._modifierSources[sourceId]) {
                     api._modifierSources[sourceId] = {};
                 }
                 
-                // Remove old value from total if exists
-                const oldValue = api._modifierSources[sourceId][skillId] || 0;
-                api._externalModifiers[skillId] = (api._externalModifiers[skillId] || 0) - oldValue;
+                for (const [skillId, value] of Object.entries(modifiers)) {
+                    const oldValue = api._modifierSources[sourceId][skillId] || 0;
+                    api._modifierSources[sourceId][skillId] = value;
+                    api._externalModifiers[skillId] = (api._externalModifiers[skillId] || 0) - oldValue + value;
+                }
                 
-                // Add new value
-                api._modifierSources[sourceId][skillId] = value;
-                api._externalModifiers[skillId] = (api._externalModifiers[skillId] || 0) + value;
-                
-                console.log(`[The Tribunal API] Modifier registered: ${sourceId} → ${skillId} ${value >= 0 ? '+' : ''}${value}`);
-                
-                // Dispatch event for UI updates
                 document.dispatchEvent(new CustomEvent('ie:modifier-changed', {
-                    detail: { sourceId, skillId, value, totals: { ...api._externalModifiers } }
+                    detail: { sourceId, modifiers, totals: { ...api._externalModifiers } }
                 }));
             },
             
-            /**
-             * Remove all modifiers from a source (e.g., when unequipping an item)
-             * @param {string} sourceId - The source to remove
-             */
-            removeModifierSource: (sourceId) => {
+            removeModifiers: (sourceId) => {
                 const api = window.InlandEmpire;
-                const source = api._modifierSources[sourceId];
+                if (!api._modifierSources[sourceId]) return;
                 
-                if (!source) return;
-                
-                // Subtract all modifiers from this source
-                for (const [skillId, value] of Object.entries(source)) {
+                for (const [skillId, value] of Object.entries(api._modifierSources[sourceId])) {
                     api._externalModifiers[skillId] = (api._externalModifiers[skillId] || 0) - value;
                     if (api._externalModifiers[skillId] === 0) {
                         delete api._externalModifiers[skillId];
@@ -1438,49 +1224,29 @@ jQuery(async () => {
                 }
                 
                 delete api._modifierSources[sourceId];
-                console.log(`[The Tribunal API] Modifier source removed: ${sourceId}`);
                 
                 document.dispatchEvent(new CustomEvent('ie:modifier-changed', {
                     detail: { sourceId, removed: true, totals: { ...api._externalModifiers } }
                 }));
             },
             
-            /**
-             * Get all modifiers from a specific source
-             * @param {string} sourceId - The source to query
-             */
             getModifiersFromSource: (sourceId) => {
                 return { ...window.InlandEmpire._modifierSources[sourceId] } || {};
             },
             
-            /**
-             * Get total external modifier for a skill
-             * @param {string} skillId - The skill to query
-             */
             getExternalModifier: (skillId) => {
                 return window.InlandEmpire._externalModifiers[skillId] || 0;
             },
             
-            // ─────────────────────────────────────────────────────────
-            // ACTIONS: Trigger things
-            // ─────────────────────────────────────────────────────────
-            
-            /**
-             * Roll a skill check
-             * @param {string} skillId - The skill to check
-             * @param {number} difficulty - Target difficulty (6-20)
-             * @returns {object} { success, roll, total, isBoxcars, isSnakeEyes }
-             */
+            // Actions
             rollCheck: (skillId, difficulty) => {
                 const effectiveLevel = window.InlandEmpire.getEffectiveSkillLevel(skillId);
                 const result = rollSkillCheck(effectiveLevel, difficulty);
                 
-                // Dispatch event so other extensions can react
                 document.dispatchEvent(new CustomEvent('ie:skill-check', {
                     detail: { skillId, difficulty, effectiveLevel, ...result }
                 }));
                 
-                // PHASE 3: Check compartment progress on critical failure during deep night
                 if (result.isSnakeEyes && isDeepNight()) {
                     checkCompartmentProgress();
                 }
@@ -1488,76 +1254,11 @@ jQuery(async () => {
                 return result;
             },
             
-            /**
-             * Trigger the voice generation manually
-             */
             triggerVoices: () => triggerVoices(getContext()),
-            
-            /**
-             * Open/close the Psyche panel
-             */
             togglePanel: () => togglePanel(),
-            
-            /**
-             * Update FAB visibility (useful for external control)
-             */
             updateFABState: () => updateFABState(),
             
-            // ─────────────────────────────────────────────────────────
-            // PHASE 1: Vitals API
-            // ─────────────────────────────────────────────────────────
-            
-            /**
-             * Get current vitals state
-             * @returns {object} { health, maxHealth, morale, maxMorale }
-             */
-            getVitals: () => getVitals(),
-            
-            /**
-             * Set health value (0 to maxHealth)
-             * @param {number} value - New health value
-             */
-            setHealth: (value) => {
-                setHealth(value, getContext());
-                refreshVitals();
-            },
-            
-            /**
-             * Set morale value (0 to maxMorale)
-             * @param {number} value - New morale value
-             */
-            setMorale: (value) => {
-                setMorale(value, getContext());
-                refreshVitals();
-            },
-            
-            /**
-             * Modify health by delta (positive or negative)
-             * @param {number} delta - Amount to change health by
-             */
-            modifyHealth: (delta) => {
-                modifyHealth(delta, getContext());
-                refreshVitals();
-            },
-            
-            /**
-             * Modify morale by delta (positive or negative)
-             * @param {number} delta - Amount to change morale by
-             */
-            modifyMorale: (delta) => {
-                modifyMorale(delta, getContext());
-                refreshVitals();
-            },
-            
-            // ─────────────────────────────────────────────────────────
-            // PHASE 2: Vitals Detection API
-            // ─────────────────────────────────────────────────────────
-            
-            /**
-             * Analyze text for vitals impacts without applying
-             * @param {string} text - Text to analyze
-             * @returns {Object} Detection result
-             */
+            // Vitals detection
             analyzeVitals: (text) => {
                 return analyzeTextForVitals(text, {
                     protagonistName: extensionSettings.characterName,
@@ -1565,19 +1266,9 @@ jQuery(async () => {
                 });
             },
             
-            /**
-             * Manually trigger vitals change with reason
-             * @param {number} healthDelta - Health change
-             * @param {number} moraleDelta - Morale change  
-             * @param {string} reason - Reason string for notifications
-             */
             applyVitalsChange: (healthDelta, moraleDelta, reason = 'manual') => {
-                if (healthDelta !== 0) {
-                    modifyHealth(healthDelta, getContext());
-                }
-                if (moraleDelta !== 0) {
-                    modifyMorale(moraleDelta, getContext());
-                }
+                if (healthDelta !== 0) modifyHealth(healthDelta, getContext());
+                if (moraleDelta !== 0) modifyMorale(moraleDelta, getContext());
                 refreshVitals();
                 
                 if (extensionSettings.vitalsShowNotifications) {
@@ -1587,27 +1278,12 @@ jQuery(async () => {
                     showToast(`${parts.join(', ')} (${reason})`, healthDelta < 0 || moraleDelta < 0 ? 'warning' : 'success');
                 }
                 
-                // Dispatch event
                 document.dispatchEvent(new CustomEvent('ie:vitals-changed', {
                     detail: { healthDelta, moraleDelta, reason }
                 }));
             },
             
-            // ─────────────────────────────────────────────────────────
-            // PHASE 3: Ledger API
-            // ─────────────────────────────────────────────────────────
-            
-            /**
-             * Get current ledger state
-             * @returns {Object} Ledger state
-             */
-            getLedger: () => getLedger(),
-            
-            /**
-             * Add a case to the ledger
-             * @param {string} title - Case title
-             * @param {string} description - Case description
-             */
+            // Ledger API
             addCase: (title, description = '') => {
                 const l = getLedger();
                 const caseCount = (l.activeCases?.length || 0) + (l.completedCases?.length || 0) + 1;
@@ -1631,17 +1307,11 @@ jQuery(async () => {
                 return newCase;
             },
             
-            /**
-             * Check if compartment is discovered
-             */
             isCompartmentDiscovered: () => {
                 const l = getLedger();
                 return l.compartment?.discovered || false;
             },
             
-            /**
-             * Force reveal the compartment (for testing/cheats)
-             */
             revealCompartment: () => {
                 const l = getLedger();
                 if (!l.compartment) {
@@ -1657,7 +1327,6 @@ jQuery(async () => {
         
         console.log('[The Tribunal] Global API ready: window.InlandEmpire');
         
-        // Dispatch ready event so other extensions know we're loaded
         document.dispatchEvent(new CustomEvent('ie:ready', { 
             detail: { version: window.InlandEmpire.version } 
         }));
