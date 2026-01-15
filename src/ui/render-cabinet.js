@@ -357,5 +357,18 @@ export function renderThoughtModal(thoughtId, container) {
         });
     });
 
-    return container.querySelector('.ie-btn-close-modal');
+    // Close button handler
+    const closeBtn = container.querySelector('.ie-btn-close-modal');
+    closeBtn?.addEventListener('click', () => {
+        container.remove();
+    });
+    
+    // Close on overlay click (clicking outside modal box)
+    container.addEventListener('click', (e) => {
+        if (e.target === container) {
+            container.remove();
+        }
+    });
+
+    return closeBtn;
 }
