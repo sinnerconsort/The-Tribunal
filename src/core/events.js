@@ -227,7 +227,7 @@ export function bindEvents() {
         showToast(`Profile saved: ${name}`, 'success');
     });
 
-    // Apply build
+    // Apply build - FIXED: applyAttributeAllocation throws on error, doesn't return
     document.querySelector('.ie-btn-apply-build')?.addEventListener('click', () => {
         const editorInputs = document.querySelectorAll('.ie-attr-input');
         const allocation = {};
@@ -236,15 +236,14 @@ export function bindEvents() {
             allocation[input.dataset.attr] = parseInt(input.value) || 1;
         });
         
-        const result = applyAttributeAllocation(allocation);
-        
-        if (result.valid) {
+        try {
+            applyAttributeAllocation(allocation);
             saveState(getContext());
             refreshAttributesDisplay();
             refreshProfilesTab();
             showToast('Build applied!', 'success');
-        } else {
-            showToast(`Invalid build: ${result.reason}`, 'error');
+        } catch (error) {
+            showToast(`Invalid build: ${error.message}`, 'error');
         }
     });
 

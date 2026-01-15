@@ -3,7 +3,6 @@
  * Extension setup and auto-trigger configuration
  */
 
-import { ATTRIBUTES, SKILLS } from '../data/skills.js';
 import { THEMES } from '../data/thoughts.js';
 import {
     extensionSettings,
@@ -24,14 +23,16 @@ import {
 } from '../ui/panel.js';
 import { createThoughtBubbleFAB, createDiscoveryModal, autoScan } from '../voice/discovery.js';
 import { showToast } from '../ui/toasts.js';
-import { triggerVoices } from './trigger.js';
+import { triggerVoices, setTriggerCallbacks } from './trigger.js';
 import {
     refreshAttributesDisplay,
     refreshStatusTab,
     refreshCabinetTab,
     refreshVitals,
     refreshLedgerDisplay,
-    closeAllModals
+    closeAllModals,
+    handleStartResearch,
+    handleDismissThought
 } from './ui-handlers.js';
 import { bindEvents } from './events.js';
 
@@ -78,7 +79,14 @@ export async function init() {
     // Initialize state
     await loadState(getContext);
     initializeThemeCounters(THEMES);
-    initializeDefaultBuild(ATTRIBUTES, SKILLS);
+    initializeDefaultBuild(); // No parameters - uses defaults from state.js
+    
+    // Wire up trigger callbacks to avoid circular dependencies
+    setTriggerCallbacks({
+        onStartResearch: handleStartResearch,
+        onDismissThought: handleDismissThought,
+        onRefreshCabinet: refreshCabinetTab
+    });
     
     // Initialize Vitals Detection Hooks
     initVitalsHooks({

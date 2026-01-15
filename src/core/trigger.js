@@ -26,11 +26,21 @@ import {
 import { showToast, hideToast, showDiscoveryToast } from '../ui/toasts.js';
 import { renderVoices, appendVoicesToChat } from '../ui/render.js';
 
-// Import handlers that we need for callbacks
-import { handleStartResearch, handleDismissThought, refreshCabinetTab } from './ui-handlers.js';
+// Callback holders - set by init.js to avoid circular deps
+let _onStartResearch = null;
+let _onDismissThought = null;
+let _onRefreshCabinet = null;
+
+/**
+ * Set callbacks from init.js to avoid circular dependencies
+ */
+export function setTriggerCallbacks({ onStartResearch, onDismissThought, onRefreshCabinet }) {
+    _onStartResearch = onStartResearch;
+    _onDismissThought = onDismissThought;
+    _onRefreshCabinet = onRefreshCabinet;
+}
 
 // Auto-generation tracking
-let messagesSinceAutoGen = 0;
 let isAutoGenerating = false;
 
 // ═══════════════════════════════════════════════════════════════
@@ -59,8 +69,8 @@ export async function triggerVoices(externalContext = null) {
         
         // Check for thought discoveries
         const thought = checkThoughtDiscovery(THOUGHTS);
-        if (thought) {
-            showDiscoveryToast(thought, handleStartResearch, handleDismissThought);
+        if (thought && _onStartResearch && _onDismissThought) {
+            showDiscoveryToast(thought, _onStartResearch, _onDismissThought);
         }
         
         // Build context for voice generation
@@ -128,26 +138,13 @@ export async function handleAutoThoughtGeneration() {
     try {
         const thought = checkThoughtDiscovery(THOUGHTS);
         
-        if (thought) {
-            showDiscoveryToast(thought, handleStartResearch, handleDismissThought);
-            refreshCabinetTab();
+        if (thought && _onStartResearch && _onDismissThought) {
+            showDiscoveryToast(thought, _onStartResearch, _onDismissThought);
+            if (_onRefreshCabinet) _onRefreshCabinet();
         }
     } catch (error) {
         console.error('[The Tribunal] Auto thought generation failed:', error);
     } finally {
         isAutoGenerating = false;
     }
-}
-
-// Export tracking state for external access if needed
-export function getAutoGenState() {
-    return { messagesSinceAutoGen, isAutoGenerating };
-}
-
-export function incrementAutoGenCounter() {
-    messagesSinceAutoGen++;
-}
-
-export function resetAutoGenCounter() {
-    messagesSinceAutoGen = 0;
 }
