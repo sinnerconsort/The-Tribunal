@@ -7,7 +7,6 @@
  * - Status grid & effects
  * - Thought Cabinet
  * - Profiles
- * - Vitals detail
  * - Ledger (quests, events, weather)
  * - Inventory
  * - Settings sync
@@ -63,9 +62,9 @@ export {
 } from './render-settings.js';
 
 // ═══════════════════════════════════════════════════════════════
-// VITALS
+// VITALS - Now handled by panel-helpers.js
+// renderVitalsDetail removed (consolidated into updateHealth/updateMorale)
 // ═══════════════════════════════════════════════════════════════
-export { renderVitalsDetail } from './render-vitals.js';
 
 // ═══════════════════════════════════════════════════════════════
 // LEDGER (Quests, Events, Weather)
