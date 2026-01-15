@@ -15,6 +15,7 @@ import {
     getThought
 } from '../systems/cabinet.js';
 import { showToast, showDiscoveryToast } from './toasts.js';
+import { handleGenerateThought } from '../voice/thought-generation.js';
 
 // ═══════════════════════════════════════════════════════════════
 // RESEARCH HANDLERS
@@ -101,7 +102,9 @@ export function createCabinetHandlers(getContext, refreshCabinetTab) {
         onResearch: (thoughtId) => handleStartResearch(thoughtId, getContext, refreshCabinetTab),
         onAbandon: (thoughtId) => handleAbandonResearch(thoughtId, getContext, refreshCabinetTab),
         onDismiss: (thoughtId) => handleDismissThought(thoughtId, getContext, refreshCabinetTab),
-        onForget: (thoughtId) => handleForgetThought(thoughtId, getContext, refreshCabinetTab)
+        onForget: (thoughtId) => handleForgetThought(thoughtId, getContext, refreshCabinetTab),
+        onGenerate: (prompt, fromContext, perspective, playerContext) => 
+            handleGenerateThought(prompt, fromContext, perspective, playerContext, refreshCabinetTab)
     };
     
     return handlers;
