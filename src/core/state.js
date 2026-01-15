@@ -2,6 +2,7 @@
  * The Tribunal - State Management
  * Handles saves, loads, profiles, and build management
  * Phase 1 Update: Added vitals, suggestions FAB, ledger, inventory state
+ * Phase 5 Update: Added playerContext for thought generation
  */
 
 import { ATTRIBUTES, SKILLS } from '../data/skills.js';
@@ -133,7 +134,23 @@ export const DEFAULT_SETTINGS = {
     // Inventory system (Phase 4)
     inventoryEnabled: true,
     autoParseInventory: false,
-    aiGenerateItems: false
+    aiGenerateItems: false,
+    
+    // ═══════════════════════════════════════════════════════════════
+    // THOUGHT GENERATION (Phase 5) - NEW
+    // ═══════════════════════════════════════════════════════════════
+    thoughtGeneration: {
+        enableAutoThoughts: false,      // Auto-gen from chat context
+        autoTriggerThreshold: 5,        // Theme count to trigger auto-gen
+        cooldownMinutes: 10,            // Min time between auto-gens
+        lastAutoGenTime: 0              // Timestamp of last auto-gen
+    },
+    
+    // Global fallback player context (used if profile doesn't have one)
+    playerContext: {
+        perspective: 'observer',        // 'observer' | 'participant'
+        identity: ''                    // "spawn of Bhaal", "survivor", etc.
+    }
 };
 
 export let extensionSettings = { ...DEFAULT_SETTINGS };
@@ -267,45 +284,22 @@ export function getActiveAncientVoices() {
         }
     }
     
-    // Check for Spinal Cord combo (party state: Tequila Sunset + Revacholian Courage)
-    const hasAllCombo = SPINAL_CORD_COMBO.every(id => activeStatuses.has(id));
-    if (hasAllCombo) {
+    // Check spinal cord combo
+    const hasSpinalCombo = SPINAL_CORD_COMBO.every(id => activeStatuses.has(id));
+    if (hasSpinalCombo) {
         ancientVoices.add('spinal_cord');
     }
     
     return ancientVoices;
 }
 
-export function detectStatusesFromText(text) {
-    const detected = [];
-    const lowerText = text.toLowerCase();
-
-    for (const [statusId, status] of Object.entries(STATUS_EFFECTS)) {
-        for (const keyword of status.keywords) {
-            if (lowerText.includes(keyword)) {
-                detected.push(statusId);
-                break;
-            }
-        }
-    }
-
-    return [...new Set(detected)];
-}
-
-export function getBoostedIntrusiveSkills() {
-    const boosted = new Set();
-    for (const statusId of activeStatuses) {
-        const status = STATUS_EFFECTS[statusId];
-        if (status?.intrusiveBoost) {
-            status.intrusiveBoost.forEach(s => boosted.add(s));
-        }
-    }
-    return boosted;
-}
-
 // ═══════════════════════════════════════════════════════════════
 // VITALS MANAGEMENT (Phase 2)
 // ═══════════════════════════════════════════════════════════════
+
+export function getVitals() {
+    return { ...vitals };
+}
 
 export function setHealth(value, context = null) {
     vitals.health = Math.max(0, Math.min(vitals.maxHealth, value));
@@ -327,59 +321,24 @@ export function modifyMorale(delta, context = null) {
     return setMorale(vitals.morale + delta, context);
 }
 
-export function getVitals() {
-    return { ...vitals };
+export function setMaxHealth(value, context = null) {
+    vitals.maxHealth = Math.max(1, value);
+    vitals.health = Math.min(vitals.health, vitals.maxHealth);
+    if (context) saveState(context);
+}
+
+export function setMaxMorale(value, context = null) {
+    vitals.maxMorale = Math.max(1, value);
+    vitals.morale = Math.min(vitals.morale, vitals.maxMorale);
+    if (context) saveState(context);
 }
 
 // ═══════════════════════════════════════════════════════════════
 // LEDGER MANAGEMENT (Phase 3)
 // ═══════════════════════════════════════════════════════════════
 
-export function addCase(caseData, context = null) {
-    const newCase = {
-        id: `case_${Date.now()}`,
-        title: caseData.title,
-        description: caseData.description || '',
-        isMain: caseData.isMain || false,
-        complete: false,
-        createdAt: Date.now()
-    };
-    ledger.activeCases.push(newCase);
-    if (context) saveState(context);
-    return newCase;
-}
-
-export function completeCase(caseId, context = null) {
-    const idx = ledger.activeCases.findIndex(c => c.id === caseId);
-    if (idx !== -1) {
-        const completed = ledger.activeCases.splice(idx, 1)[0];
-        completed.complete = true;
-        completed.completedAt = Date.now();
-        ledger.completedCases.push(completed);
-        if (context) saveState(context);
-        return completed;
-    }
-    return null;
-}
-
-export function addNote(text, context = null) {
-    const note = {
-        id: `note_${Date.now()}`,
-        text,
-        timestamp: Date.now()
-    };
-    ledger.notes.unshift(note);
-    if (context) saveState(context);
-    return note;
-}
-
-export function setWeather(condition, description, icon, context = null) {
-    ledger.weather = { condition, description, icon };
-    if (context) saveState(context);
-}
-
 export function getLedger() {
-    return { ...ledger };
+    return ledger;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -388,12 +347,13 @@ export function getLedger() {
 
 export function addItem(item, location = 'carried', context = null) {
     const newItem = {
-        id: `item_${Date.now()}`,
-        name: item.name,
+        id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        name: item.name || 'Unknown Item',
         description: item.description || '',
         icon: item.icon || '📦',
-        modifiers: item.modifiers || [],
-        ...item
+        effects: item.effects || [],
+        tags: item.tags || [],
+        addedAt: Date.now()
     };
     
     if (location === 'carried') inventory.carried.push(newItem);
@@ -452,6 +412,88 @@ export function getInventory() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// THOUGHT CABINET HELPERS (Phase 5) - NEW
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Add a discovered thought to the cabinet
+ * @param {Object} thought - Thought object from generator
+ */
+export function addDiscoveredThought(thought) {
+    if (!thoughtCabinet.discovered) {
+        thoughtCabinet.discovered = [];
+    }
+    thoughtCabinet.discovered.push(thought);
+}
+
+/**
+ * Get all discovered thoughts
+ * @returns {Array} Discovered thoughts
+ */
+export function getDiscoveredThoughts() {
+    return thoughtCabinet.discovered || [];
+}
+
+/**
+ * Get theme counters
+ * @returns {Object} Theme counter object
+ */
+export function getThemeCounters() {
+    return { ...themeCounters };
+}
+
+/**
+ * Get the current profile (for playerContext)
+ * @returns {Object|null} Current profile or null
+ */
+export function getCurrentProfile() {
+    // Find the profile that matches current build
+    for (const profile of Object.values(savedProfiles)) {
+        if (profile.build?.id === currentBuild?.id) {
+            return profile;
+        }
+    }
+    return null;
+}
+
+/**
+ * Get player context (from current profile or global fallback)
+ * @returns {Object} { perspective: string, identity: string }
+ */
+export function getPlayerContext() {
+    const profile = getCurrentProfile();
+    
+    if (profile?.playerContext) {
+        return {
+            perspective: profile.playerContext.perspective || 'observer',
+            identity: profile.playerContext.identity || ''
+        };
+    }
+    
+    return {
+        perspective: extensionSettings.playerContext?.perspective || 'observer',
+        identity: extensionSettings.playerContext?.identity || ''
+    };
+}
+
+/**
+ * Save player context to current profile or global settings
+ * @param {Object} playerContext - { perspective, identity }
+ * @param {Object} context - SillyTavern context for saving
+ */
+export function savePlayerContext(playerContext, context = null) {
+    const profile = getCurrentProfile();
+    
+    if (profile) {
+        profile.playerContext = playerContext;
+    } else {
+        extensionSettings.playerContext = playerContext;
+    }
+    
+    if (context) saveState(context);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // PROFILE MANAGEMENT
 // ═══════════════════════════════════════════════════════════════
 
@@ -472,7 +514,9 @@ export function createProfile(name) {
         // Phase 2+ state
         vitals: { ...vitals },
         ledger: JSON.parse(JSON.stringify(ledger)),
-        inventory: JSON.parse(JSON.stringify(inventory))
+        inventory: JSON.parse(JSON.stringify(inventory)),
+        // Phase 5: Player context for thought generation - NEW
+        playerContext: getPlayerContext()
     };
 }
 
@@ -526,6 +570,11 @@ export function loadProfile(profileId, context = null) {
     }
     if (profile.inventory) {
         inventory = JSON.parse(JSON.stringify(profile.inventory));
+    }
+    
+    // Phase 5: Restore player context - NEW
+    if (profile.playerContext) {
+        extensionSettings.playerContext = { ...profile.playerContext };
     }
 
     if (context) saveState(context);
@@ -581,6 +630,21 @@ export function loadState(context) {
 
         if (state) {
             extensionSettings = { ...DEFAULT_SETTINGS, ...state.settings };
+            
+            // Ensure nested objects are properly merged
+            if (state.settings?.thoughtGeneration) {
+                extensionSettings.thoughtGeneration = {
+                    ...DEFAULT_SETTINGS.thoughtGeneration,
+                    ...state.settings.thoughtGeneration
+                };
+            }
+            if (state.settings?.playerContext) {
+                extensionSettings.playerContext = {
+                    ...DEFAULT_SETTINGS.playerContext,
+                    ...state.settings.playerContext
+                };
+            }
+            
             currentBuild = state.currentBuild || createBuild();
             activeStatuses = new Set(state.activeStatuses || []);
             savedProfiles = state.savedProfiles || {};
@@ -593,6 +657,11 @@ export function loadState(context) {
                 internalized: [],
                 dismissed: []
             };
+            
+            // Ensure discovered array exists (migration)
+            if (!thoughtCabinet.discovered) {
+                thoughtCabinet.discovered = [];
+            }
 
             if (state.discoveryContext) {
                 discoveryContext = {
