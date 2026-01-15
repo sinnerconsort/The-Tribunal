@@ -16,6 +16,7 @@ import {
 } from '../systems/cabinet.js';
 import { showToast, showDiscoveryToast } from './toasts.js';
 import { handleGenerateThought } from '../voice/thought-generation.js';
+import { renderThoughtModal } from './render-cabinet.js';
 
 // ═══════════════════════════════════════════════════════════════
 // RESEARCH HANDLERS
@@ -90,6 +91,41 @@ export async function handleAutoThoughtGeneration(getContext, refreshCabinetTab,
 }
 
 // ═══════════════════════════════════════════════════════════════
+// EXPAND/MODAL HANDLER
+// ═══════════════════════════════════════════════════════════════
+
+export function handleExpandThought(thoughtId) {
+    // Create modal overlay if it doesn't exist
+    let modalOverlay = document.getElementById('ie-thought-modal-overlay');
+    if (!modalOverlay) {
+        modalOverlay = document.createElement('div');
+        modalOverlay.id = 'ie-thought-modal-overlay';
+        modalOverlay.className = 'ie-thought-modal-overlay';
+        document.body.appendChild(modalOverlay);
+    }
+    
+    // Render the thought modal
+    const closeBtn = renderThoughtModal(thoughtId, modalOverlay);
+    
+    // Show the overlay
+    modalOverlay.classList.add('ie-modal-open');
+    
+    // Close button handler
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            modalOverlay.classList.remove('ie-modal-open');
+        });
+    }
+    
+    // Click outside to close
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            modalOverlay.classList.remove('ie-modal-open');
+        }
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════
 // FACTORY FOR BOUND HANDLERS
 // ═══════════════════════════════════════════════════════════════
 
@@ -104,7 +140,8 @@ export function createCabinetHandlers(getContext, refreshCabinetTab) {
         onDismiss: (thoughtId) => handleDismissThought(thoughtId, getContext, refreshCabinetTab),
         onForget: (thoughtId) => handleForgetThought(thoughtId, getContext, refreshCabinetTab),
         onGenerate: (prompt, fromContext, perspective, playerContext) => 
-            handleGenerateThought(prompt, fromContext, perspective, playerContext, refreshCabinetTab)
+            handleGenerateThought(prompt, fromContext, perspective, playerContext, refreshCabinetTab),
+        onExpand: (thoughtId) => handleExpandThought(thoughtId)
     };
     
     return handlers;

@@ -96,6 +96,7 @@ export function refreshCabinetTab(handlers) {
             onDismiss: handlers.onDismiss,
             onForget: handlers.onForget,
             onGenerate: handlers.onGenerate,
+            onExpand: handlers.onExpand,
             showThemeTracker: extensionSettings.showThemeTracker
         });
     }
