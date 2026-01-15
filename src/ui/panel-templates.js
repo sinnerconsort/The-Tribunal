@@ -138,7 +138,7 @@ export const CABINET_TAB_HTML = `
 <div class="ie-tab-content" data-tab-content="cabinet" id="ie-cabinet-content"></div>`;
 
 // ═══════════════════════════════════════════════════════════════
-// STATUS TAB TEMPLATE
+// STATUS TAB TEMPLATE - FIXED: Added +/- vitals buttons
 // ═══════════════════════════════════════════════════════════════
 
 export const STATUS_TAB_HTML = `
@@ -146,25 +146,48 @@ export const STATUS_TAB_HTML = `
     <div class="ie-section">
         <div class="ie-section-header"><span>Vitals Detail</span></div>
         <div class="ie-vitals-detail">
+            <!-- HEALTH ROW with +/- buttons -->
             <div class="ie-vital-detail-row ie-health">
                 <div class="ie-vital-detail-header">
                     <span class="ie-vital-detail-label">Health</span>
-                    <span class="ie-vital-detail-value" id="ie-health-detail-value">100 / 100</span>
+                    <div class="ie-vital-controls">
+                        <button class="ie-vital-btn ie-vital-btn-minus" id="ie-health-minus" title="Decrease Health">
+                            <i class="fa-solid fa-minus"></i>
+                        </button>
+                        <span class="ie-vital-detail-value" id="ie-health-detail-value">13 / 13</span>
+                        <button class="ie-vital-btn ie-vital-btn-plus" id="ie-health-plus" title="Increase Health">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="ie-vital-detail-track">
                     <div class="ie-vital-detail-fill" id="ie-health-detail-fill" style="width: 100%; background: #f3650b;"></div>
                 </div>
             </div>
+            <!-- MORALE ROW with +/- buttons -->
             <div class="ie-vital-detail-row ie-morale">
                 <div class="ie-vital-detail-header">
                     <span class="ie-vital-detail-label">Morale</span>
-                    <span class="ie-vital-detail-value" id="ie-morale-detail-value">100 / 100</span>
+                    <div class="ie-vital-controls">
+                        <button class="ie-vital-btn ie-vital-btn-minus" id="ie-morale-minus" title="Decrease Morale">
+                            <i class="fa-solid fa-minus"></i>
+                        </button>
+                        <span class="ie-vital-detail-value" id="ie-morale-detail-value">13 / 13</span>
+                        <button class="ie-vital-btn ie-vital-btn-plus" id="ie-morale-plus" title="Increase Morale">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="ie-vital-detail-track">
                     <div class="ie-vital-detail-fill" id="ie-morale-detail-fill" style="width: 100%; background: #0e7989;"></div>
                 </div>
             </div>
         </div>
+        <!-- Manual Scan Button -->
+        <button class="ie-btn ie-btn-sm" id="ie-scan-vitals-btn" style="margin-top: 8px; width: 100%;">
+            <i class="fa-solid fa-stethoscope"></i>
+            <span>Scan Last Message for Vitals</span>
+        </button>
     </div>
     <div class="ie-section">
         <div class="ie-section-header"><span>Active Effects</span></div>
@@ -406,6 +429,24 @@ export const INVENTORY_TAB_HTML = `
 export const SETTINGS_TAB_HTML = `
 <div class="ie-tab-content" data-tab-content="settings">
     <div class="ie-section">
+        <div class="ie-section-header"><span>// EXTENSION</span></div>
+        <div class="ie-form-group">
+            <label class="ie-checkbox">
+                <input type="checkbox" id="ie-enabled" checked />
+                <span>Enable The Tribunal</span>
+            </label>
+            <small class="ie-form-hint">Master switch for all extension features</small>
+        </div>
+        <div class="ie-form-group">
+            <label class="ie-checkbox">
+                <input type="checkbox" id="ie-show-investigation-fab" checked />
+                <span>Show Investigation FAB</span>
+            </label>
+            <small class="ie-form-hint">Toggle the thought bubble button</small>
+        </div>
+    </div>
+
+    <div class="ie-section">
         <div class="ie-section-header"><span>// CONNECTION</span></div>
         <div class="ie-form-group">
             <label>Connection Profile</label>
@@ -431,7 +472,7 @@ export const SETTINGS_TAB_HTML = `
     </div>
 
     <div class="ie-section">
-        <div class="ie-section-header"><span>Voice Behavior</span></div>
+        <div class="ie-section-header"><span>// VOICE BEHAVIOR</span></div>
         <div class="ie-form-row">
             <div class="ie-form-group">
                 <label>Min Voices</label>
@@ -460,40 +501,59 @@ export const SETTINGS_TAB_HTML = `
         </div>
         <div class="ie-form-group">
             <label class="ie-checkbox">
-                <input type="checkbox" id="ie-auto-trigger" checked />
+                <input type="checkbox" id="ie-auto-trigger" />
                 <span>Auto-trigger on new messages</span>
             </label>
         </div>
     </div>
 
     <div class="ie-section">
-        <div class="ie-section-header"><span>Investigation Mode</span></div>
+        <div class="ie-section-header"><span>// INTRUSIVE THOUGHTS</span></div>
         <div class="ie-form-group">
             <label class="ie-checkbox">
-                <input type="checkbox" id="ie-investigation-enabled" />
-                <span>Enable Investigation System</span>
+                <input type="checkbox" id="ie-intrusive-enabled" checked />
+                <span>Enable intrusive thoughts</span>
             </label>
-            <small class="ie-form-hint">Track clues, discoveries, and case progress</small>
         </div>
-    </div>
-
-    <div class="ie-section">
-        <div class="ie-section-header"><span>Context & Memory</span></div>
         <div class="ie-form-group">
-            <label>Context Messages</label>
-            <input type="number" id="ie-context-messages" min="1" max="20" value="5" />
-            <small class="ie-form-hint">How many recent messages to include for voice context</small>
+            <label>Intrusive Chance (%)</label>
+            <input type="number" id="ie-intrusive-chance" min="0" max="100" value="15" />
         </div>
         <div class="ie-form-group">
             <label class="ie-checkbox">
-                <input type="checkbox" id="ie-include-thoughts" checked />
-                <span>Include thought cabinet in context</span>
+                <input type="checkbox" id="ie-intrusive-in-chat" checked />
+                <span>Show intrusive thoughts in chat</span>
             </label>
         </div>
     </div>
 
     <div class="ie-section">
-        <div class="ie-section-header"><span>Actions</span></div>
+        <div class="ie-section-header"><span>// VITALS DETECTION</span></div>
+        <div class="ie-form-group">
+            <label class="ie-checkbox">
+                <input type="checkbox" id="ie-auto-detect-vitals" />
+                <span>Auto-detect vitals changes</span>
+            </label>
+            <small class="ie-form-hint">Automatically scan messages for health/morale impacts</small>
+        </div>
+        <div class="ie-form-group">
+            <label>Detection Sensitivity</label>
+            <select id="ie-vitals-sensitivity" class="ie-select">
+                <option value="low">Low (major events only)</option>
+                <option value="medium" selected>Medium (balanced)</option>
+                <option value="high">High (sensitive)</option>
+            </select>
+        </div>
+        <div class="ie-form-group">
+            <label class="ie-checkbox">
+                <input type="checkbox" id="ie-vitals-notifications" checked />
+                <span>Show vitals notifications</span>
+            </label>
+        </div>
+    </div>
+
+    <div class="ie-section">
+        <div class="ie-section-header"><span>// ACTIONS</span></div>
         <button class="ie-btn ie-btn-primary ie-btn-save-settings" style="width: 100%;">
             <i class="fa-solid fa-save"></i>
             <span>Save Settings</span>
@@ -530,13 +590,13 @@ export const PROFILES_TAB_HTML = `
         
         <div class="ie-form-group">
             <label>Character Name</label>
-            <input type="text" id="ie-char-name" placeholder="e.g. Harry Du Bois" />
+            <input type="text" id="ie-character-name" placeholder="e.g. Harry Du Bois" />
             <small class="ie-form-hint">Name used when voices address the player</small>
         </div>
         
         <div class="ie-form-group">
             <label>Pronouns</label>
-            <select id="ie-pronouns" class="ie-select">
+            <select id="ie-character-pronouns" class="ie-select">
                 <option value="they">They/Them</option>
                 <option value="she">She/Her</option>
                 <option value="he">He/Him</option>
@@ -546,23 +606,16 @@ export const PROFILES_TAB_HTML = `
         
         <div class="ie-form-group">
             <label>Character Context</label>
-            <textarea id="ie-char-context" class="ie-textarea" rows="3" 
+            <textarea id="ie-character-context" class="ie-textarea" rows="3" 
                 placeholder="Describe who YOU are (the character whose head these voices are in). Example: 'Harry Du Bois, amnesiac detective. Kim Kitsuragi is my partner.'"></textarea>
             <small class="ie-form-hint">Who is "you" - the character whose head these voices are in.</small>
         </div>
         
         <div class="ie-form-group">
             <label>Scene Perspective Notes</label>
-            <textarea id="ie-scene-notes" class="ie-textarea" rows="3"
+            <textarea id="ie-scene-perspective" class="ie-textarea" rows="3"
                 placeholder="e.g. 'Scene is written from Kim's external POV watching Harry. Harry = you/your. Kim = he/him.'"></textarea>
             <small class="ie-form-hint">Help voices convert third-person scene text to correct POV.</small>
-        </div>
-        
-        <div class="ie-form-group">
-            <label class="ie-checkbox">
-                <input type="checkbox" id="ie-include-persona" checked />
-                <span>Include character persona in prompts</span>
-            </label>
         </div>
     </div>
 
