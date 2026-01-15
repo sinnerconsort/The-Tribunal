@@ -1,6 +1,7 @@
 /**
  * The Tribunal - Thought Cabinet
  * Cabinet, enhanced styling, modal, extras
+ * Phase 5: Added thought generator styles
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -547,3 +548,89 @@
     to { transform: rotate(360deg); }
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   THOUGHT GENERATOR - PHASE 5 ADDITIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Generate button loading state */
+.ie-btn-generate-thought.ie-generating {
+    background: var(--ie-bg-tertiary);
+    cursor: wait;
+}
+
+.ie-btn-generate-thought.ie-generating i {
+    animation: spin 1s linear infinite;
+}
+
+/* Disabled state for section during generation */
+.ie-thought-generator-section.ie-disabled {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Auto-context mode for textarea */
+.ie-thought-concept-input.ie-auto-context {
+    border-color: var(--ie-accent-blue);
+    background: rgba(137, 207, 240, 0.05);
+}
+
+/* Generator hint text */
+.ie-generator-hint {
+    font-size: 10px;
+    color: var(--ie-text-muted);
+    font-style: italic;
+    margin-top: 4px;
+}
+
+/* Identity input styling */
+.ie-player-identity-input {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--ie-border);
+    background: var(--ie-bg-tertiary);
+    color: var(--ie-text-primary);
+    font-size: 12px;
+    font-style: italic;
+}
+
+.ie-player-identity-input:focus {
+    outline: none;
+    border-color: var(--ie-accent-purple);
+}
+
+.ie-player-identity-input::placeholder {
+    color: var(--ie-text-muted);
+}
+
+/* Generated thought badge */
+.ie-thought-generated {
+    border-left: 3px solid var(--ie-accent-purple);
+}
+
+.ie-auto-badge {
+    font-size: 9px;
+    background: var(--ie-accent-blue);
+    color: var(--ie-bg-primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* From chat checkbox styling */
+.ie-from-chat-checkbox {
+    accent-color: var(--ie-accent-blue);
+}
+
+/* Discovered section styling */
+.ie-discovered-section {
+    border-left: 2px solid var(--ie-accent-purple);
+    padding-left: 8px;
+    margin-bottom: 12px;
+}
+
+.ie-discovered-section .ie-section-header {
+    color: var(--ie-accent-purple);
+}
