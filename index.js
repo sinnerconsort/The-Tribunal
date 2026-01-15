@@ -331,12 +331,12 @@ async function triggerVoices(externalContext = null) {
             // Render in panel
             const container = document.getElementById('ie-voices-output');
             if (container) {
-                renderVoices(container, voices, extensionSettings);
+                renderVoices(voices, container);
             }
             
             // Also append to chat if enabled
             if (extensionSettings.appendToChat) {
-                appendVoicesToChat(getChatContainer(), voices);
+                appendVoicesToChat(voices, getChatContainer());
             }
             
             showToast(`${voices.length} voice${voices.length > 1 ? 's' : ''} spoke`, 'success');
