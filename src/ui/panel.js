@@ -2,8 +2,6 @@
  * The Tribunal - Psyche Panel
  * Main panel structure and tab switching
  * Phase 1 Restructure: Header + Vitals, New Tabs, Bottom Buttons
- * 
- * UPDATED: Expanded Ledger tab with sub-tabs, clock, paper textures
  */
 
 import { extensionSettings, saveState } from '../core/state.js';
@@ -20,24 +18,6 @@ const DISCO_BALL_SVG = `
     <ellipse cx="12" cy="12" rx="8" ry="3" transform="rotate(120 12 12)"/>
     <line x1="12" y1="4" x2="12" y2="1"/>
     <line x1="10" y1="1" x2="14" y2="1"/>
-</svg>`;
-
-// ═══════════════════════════════════════════════════════════════
-// HANGMAN SVG (for Map tab decoration)
-// ═══════════════════════════════════════════════════════════════
-
-const HANGMAN_SVG = `
-<svg viewBox="0 0 50 65" xmlns="http://www.w3.org/2000/svg">
-    <line x1="5" y1="60" x2="35" y2="60"/>
-    <line x1="12" y1="60" x2="12" y2="8"/>
-    <line x1="12" y1="8" x2="32" y2="8"/>
-    <line x1="32" y1="8" x2="32" y2="18"/>
-    <circle cx="32" cy="23" r="5"/>
-    <line x1="32" y1="28" x2="32" y2="42"/>
-    <line x1="32" y1="32" x2="24" y2="38"/>
-    <line x1="32" y1="32" x2="40" y2="38"/>
-    <line x1="32" y1="42" x2="25" y2="52"/>
-    <line x1="32" y1="42" x2="39" y2="52"/>
 </svg>`;
 
 // ═══════════════════════════════════════════════════════════════
@@ -146,35 +126,19 @@ export function createPsychePanel() {
                         <div class="ie-vital-detail-row ie-health">
                             <div class="ie-vital-detail-header">
                                 <span class="ie-vital-detail-label">Health</span>
-                                <div class="ie-vital-controls">
-                                    <button class="ie-vital-btn ie-vital-btn-minus" id="ie-health-minus" title="-1 Health">
-                                        <i class="fa-solid fa-minus"></i>
-                                    </button>
-                                    <span class="ie-vital-detail-value" id="ie-health-detail-value">13 / 13</span>
-                                    <button class="ie-vital-btn ie-vital-btn-plus" id="ie-health-plus" title="+1 Health">
-                                        <i class="fa-solid fa-plus"></i>
-                                    </button>
-                                </div>
+                                <span class="ie-vital-detail-value" id="ie-health-detail-value">100 / 100</span>
                             </div>
                             <div class="ie-vital-detail-track">
-                                <div class="ie-vital-detail-fill" id="ie-health-detail-fill" style="width: 100%;"></div>
+                                <div class="ie-vital-detail-fill" id="ie-health-detail-fill" style="width: 100%; background: #f3650b;"></div>
                             </div>
                         </div>
                         <div class="ie-vital-detail-row ie-morale">
                             <div class="ie-vital-detail-header">
                                 <span class="ie-vital-detail-label">Morale</span>
-                                <div class="ie-vital-controls">
-                                    <button class="ie-vital-btn ie-vital-btn-minus" id="ie-morale-minus" title="-1 Morale">
-                                        <i class="fa-solid fa-minus"></i>
-                                    </button>
-                                    <span class="ie-vital-detail-value" id="ie-morale-detail-value">13 / 13</span>
-                                    <button class="ie-vital-btn ie-vital-btn-plus" id="ie-morale-plus" title="+1 Morale">
-                                        <i class="fa-solid fa-plus"></i>
-                                    </button>
-                                </div>
+                                <span class="ie-vital-detail-value" id="ie-morale-detail-value">100 / 100</span>
                             </div>
                             <div class="ie-vital-detail-track">
-                                <div class="ie-vital-detail-fill" id="ie-morale-detail-fill" style="width: 100%;"></div>
+                                <div class="ie-vital-detail-fill" id="ie-morale-detail-fill" style="width: 100%; background: #0e7989;"></div>
                             </div>
                         </div>
                     </div>
@@ -217,198 +181,31 @@ export function createPsychePanel() {
                 </div>
             </div>
 
-            <!-- ═══════════════════════════════════════════════════════════
-                 LEDGER TAB (Expanded with Sub-Tabs)
-                 ═══════════════════════════════════════════════════════════ -->
+            <!-- Ledger Tab (NEW) -->
             <div class="ie-tab-content" data-tab-content="ledger">
-                
-                <!-- Ledger Header with Clock -->
-                <div class="ledger-header">
-                    <span class="ledger-title">Damaged Ledger</span>
-                    <div class="ledger-clock" id="ie-ledger-clock">
-                        <div class="ledger-clock-face">
-                            <div class="ledger-clock-weather" id="ie-clock-weather">
-                                <i class="fa-solid fa-sun" id="ie-clock-weather-icon"></i>
-                            </div>
-                            <div class="ledger-clock-hand ledger-clock-hour" id="ie-clock-hour"></div>
-                            <div class="ledger-clock-hand ledger-clock-minute" id="ie-clock-minute"></div>
-                            <div class="ledger-clock-center"></div>
-                            <div class="ledger-clock-crack"></div>
-                        </div>
+                <div class="ie-section">
+                    <div class="ie-section-header"><span>Active Cases</span></div>
+                    <div class="ie-ledger-empty" id="ie-active-cases">
+                        <i class="fa-solid fa-folder-open"></i>
+                        <span>No active cases</span>
                     </div>
                 </div>
-                
-                <!-- Sub-Tab Navigation -->
-                <div class="ledger-sub-tabs">
-                    <button class="ledger-sub-tab active" data-subtab="cases">Cases</button>
-                    <button class="ledger-sub-tab" data-subtab="map">Map</button>
-                    <button class="ledger-sub-tab ledger-tab-secret" data-subtab="compartment" id="ie-secret-tab">???</button>
-                    <div class="ledger-crack-overlay">
-                        <div class="ledger-crack-line" id="ie-compartment-crack"></div>
+                <div class="ie-section">
+                    <div class="ie-section-header"><span>Case Notes</span></div>
+                    <div class="ie-ledger-empty" id="ie-case-notes">
+                        <i class="fa-solid fa-note-sticky"></i>
+                        <span>No notes recorded</span>
                     </div>
                 </div>
-                
-                <!-- ═══════════════════════════════════════════════════════
-                     CASES SUB-TAB
-                     ═══════════════════════════════════════════════════════ -->
-                <div class="ledger-sub-content ledger-paper cases-tab active" data-subtab-content="cases">
-                    <!-- Coffee Stain - Top Right -->
-                    <div class="ledger-coffee-stain"></div>
-                    
-                    <!-- Active Cases Section -->
-                    <div class="ledger-section-header">Active Cases</div>
-                    <div id="ie-active-cases-list">
-                        <div class="ie-ledger-empty">
-                            <i class="fa-solid fa-folder-open"></i>
-                            <span>No active cases</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Completed Cases Section -->
-                    <div class="ledger-section-header" style="margin-top: 16px;">Closed Cases</div>
-                    <div id="ie-completed-cases-list">
-                        <div class="ie-ledger-empty">
-                            <i class="fa-solid fa-folder"></i>
-                            <span>No closed cases</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Add Case Button -->
-                    <button class="ie-btn ie-btn-sm" id="ie-add-case-btn" style="margin-top: 12px;">
-                        <i class="fa-solid fa-plus"></i>
-                        <span>Open New Case</span>
-                    </button>
-                </div>
-                
-                <!-- ═══════════════════════════════════════════════════════
-                     MAP SUB-TAB
-                     ═══════════════════════════════════════════════════════ -->
-                <div class="ledger-sub-content ledger-paper map-tab" data-subtab-content="map">
-                    <!-- Hangman Doodle - Bottom Left -->
-                    <div class="ledger-hangman-doodle">${HANGMAN_SVG}</div>
-                    
-                    <!-- Weather Section -->
-                    <div class="ledger-section-header">Weather</div>
+                <div class="ie-section">
+                    <div class="ie-section-header"><span>Weather</span></div>
                     <div class="ie-weather-display" id="ie-weather-display">
                         <div class="ie-weather-current">
                             <i class="fa-solid fa-cloud-sun"></i>
-                            <div>
-                                <div class="ie-weather-condition">Conditions Unknown</div>
-                                <div class="ie-weather-flavor">"The sky offers no comment."</div>
-                            </div>
+                            <span>Conditions unknown</span>
                         </div>
-                    </div>
-                    
-                    <!-- Points of Interest Section -->
-                    <div class="ledger-section-header" style="margin-top: 16px;">Points of Interest</div>
-                    <div id="ie-poi-list">
-                        <div class="ie-ledger-empty">
-                            <i class="fa-solid fa-map-pin"></i>
-                            <span>No locations recorded</span>
-                        </div>
-                    </div>
-                    
-                    <!-- Notes Section -->
-                    <div class="ledger-section-header" style="margin-top: 16px;">Notes</div>
-                    <textarea class="ie-textarea" id="ie-ledger-notes" rows="4" 
-                              placeholder="Write your notes here..."></textarea>
-                </div>
-                
-                <!-- ═══════════════════════════════════════════════════════
-                     SECRET COMPARTMENT SUB-TAB
-                     ═══════════════════════════════════════════════════════ -->
-                <div class="ledger-sub-content ledger-compartment" data-subtab-content="compartment">
-                    <!-- Apricot Scent -->
-                    <span class="ledger-apricot-scent">~ apricot ~</span>
-                    
-                    <!-- RCM ID Badge -->
-                    <div class="rcm-badge-card" id="ie-rcm-badge">
-                        <div class="rcm-badge-header">
-                            <div class="rcm-badge-photo" id="ie-badge-photo">
-                                <i class="fa-solid fa-user"></i>
-                            </div>
-                            <div class="rcm-badge-info">
-                                <div class="rcm-badge-org">RCM • Revachol Citizens Militia</div>
-                                <div class="rcm-badge-name" id="ie-badge-name">NAME UNKNOWN</div>
-                                <div class="rcm-badge-rank" id="ie-badge-rank">RANK UNKNOWN</div>
-                                <div class="rcm-badge-numbers">
-                                    <div class="rcm-badge-field">
-                                        <span class="rcm-badge-field-label">Badge</span>
-                                        <span class="rcm-badge-field-value" id="ie-badge-id">LTN-????</span>
-                                    </div>
-                                    <div class="rcm-badge-field">
-                                        <span class="rcm-badge-field-label">Reg</span>
-                                        <span class="rcm-badge-field-value" id="ie-badge-reg">REV??-??-??-???</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Officer Stats -->
-                        <div class="rcm-badge-stats">
-                            <div class="rcm-badge-stats-title">Copotype Scores</div>
-                            <div id="ie-copotype-stats">
-                                <div class="rcm-badge-stat-row">
-                                    <span class="rcm-badge-stat-label">Superstar Cop</span>
-                                    <span class="rcm-badge-stat-value">0</span>
-                                </div>
-                                <div class="rcm-badge-stat-row">
-                                    <span class="rcm-badge-stat-label">Sorry Cop</span>
-                                    <span class="rcm-badge-stat-value">0</span>
-                                </div>
-                                <div class="rcm-badge-stat-row">
-                                    <span class="rcm-badge-stat-label">Hobocop</span>
-                                    <span class="rcm-badge-stat-value">0</span>
-                                </div>
-                            </div>
-                            
-                            <div class="rcm-badge-stats-title">Perforations</div>
-                            <div id="ie-perforation-stats">
-                                <div class="rcm-badge-stat-row">
-                                    <span class="rcm-badge-stat-label">Sessions</span>
-                                    <span class="rcm-badge-stat-value" id="ie-stat-sessions">0</span>
-                                </div>
-                                <div class="rcm-badge-stat-row">
-                                    <span class="rcm-badge-stat-label">Voices Heard</span>
-                                    <span class="rcm-badge-stat-value" id="ie-stat-voices">0</span>
-                                </div>
-                                <div class="rcm-badge-stat-row">
-                                    <span class="rcm-badge-stat-label">Critical Failures</span>
-                                    <span class="rcm-badge-stat-value" id="ie-stat-critfails">0</span>
-                                </div>
-                                <div class="rcm-badge-stat-row">
-                                    <span class="rcm-badge-stat-label">Deep Night Sessions</span>
-                                    <span class="rcm-badge-stat-value" id="ie-stat-deepnight">0</span>
-                                </div>
-                            </div>
-                            
-                            <div class="rcm-badge-perforations" id="ie-perforation-dots">
-                                ○○○○○○○○○○ (0)
-                            </div>
-                        </div>
-                        
-                        <!-- RCM Logo -->
-                        <div class="rcm-badge-logo">
-                            <div class="inner"></div>
-                        </div>
-                    </div>
-                    
-                    <!-- Fortune Section -->
-                    <div style="text-align: center; margin-top: 16px;">
-                        <button class="ie-btn ie-btn-sm" id="ie-draw-fortune-btn">
-                            <i class="fa-solid fa-hand-holding"></i>
-                            <span>Reach Inside</span>
-                        </button>
-                    </div>
-                    
-                    <!-- Fortune Display (hidden until drawn) -->
-                    <div class="ledger-fortune-wrapper" id="ie-fortune-display" style="display: none;">
-                        <div class="ledger-fortune-title">～ APRICOT PROPHECY ～</div>
-                        <div class="ledger-fortune-text" id="ie-fortune-text"></div>
-                        <div class="ledger-fortune-source" id="ie-fortune-source"></div>
                     </div>
                 </div>
-                
             </div>
 
             <!-- Inventory Tab (NEW) -->
@@ -537,68 +334,109 @@ export function createPsychePanel() {
                 </div>
 
                 <div class="ie-section">
-                    <div class="ie-section-header"><span>Display</span></div>
-                    <div class="ie-form-group">
-                        <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-inject-voices" checked />
-                            <span>Display voices in chat</span>
-                        </label>
-                    </div>
-                    <div class="ie-form-group">
-                        <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-show-toasts" checked />
-                            <span>Show toast notifications</span>
-                        </label>
-                    </div>
-                    <div class="ie-form-group">
-                        <label class="ie-checkbox">
-                            <input type="checkbox" id="ie-compact-mode" />
-                            <span>Compact mode</span>
-                        </label>
-                    </div>
+                    <div class="ie-section-header"><span>Actions</span></div>
+                    <button class="ie-btn ie-btn-primary ie-btn-save-settings" style="width: 100%;">
+                        <i class="fa-solid fa-save"></i>
+                        <span>Save Settings</span>
+                    </button>
+                    <button class="ie-btn ie-btn-reset-fab" style="width: 100%; margin-top: 8px;">
+                        <i class="fa-solid fa-arrows-to-dot"></i>
+                        <span>Reset Icon Positions</span>
+                    </button>
                 </div>
             </div>
 
             <!-- Profiles Panel (accessed via bottom button) -->
             <div class="ie-tab-content" data-tab-content="profiles">
                 <div class="ie-section">
-                    <div class="ie-section-header"><span>Character Build</span></div>
+                    <div class="ie-section-header"><span>Persona Profiles</span></div>
+                    <div class="ie-profiles-list" id="ie-profiles-list"></div>
+                </div>
+
+                <div class="ie-section">
+                    <div class="ie-section-header"><span>// CHARACTER CONTEXT</span></div>
+                    
                     <div class="ie-form-group">
-                        <label>Profile Name</label>
-                        <input type="text" id="ie-profile-name" placeholder="Enter profile name..." />
+                        <label>POV Style</label>
+                        <select id="ie-pov-style" class="ie-select">
+                            <option value="second">Second Person (you/your)</option>
+                            <option value="third">Third Person (name/pronouns)</option>
+                            <option value="first">First Person (I/me/my)</option>
+                        </select>
                     </div>
-                    <div class="ie-attributes-grid ie-build-grid" id="ie-build-attributes"></div>
-                    <div class="ie-form-row" style="margin-top: 12px;">
-                        <button class="ie-btn ie-btn-sm" id="ie-save-profile">
-                            <i class="fa-solid fa-save"></i>
-                            <span>Save</span>
-                        </button>
-                        <button class="ie-btn ie-btn-sm" id="ie-reset-build">
-                            <i class="fa-solid fa-undo"></i>
-                            <span>Reset</span>
-                        </button>
+                    
+                    <div class="ie-form-group">
+                        <label>Character Name</label>
+                        <input type="text" id="ie-char-name" placeholder="e.g. Harry Du Bois" />
+                        <small class="ie-form-hint">Name used when voices address the player</small>
+                    </div>
+                    
+                    <div class="ie-form-group">
+                        <label>Pronouns</label>
+                        <select id="ie-pronouns" class="ie-select">
+                            <option value="they">They/Them</option>
+                            <option value="she">She/Her</option>
+                            <option value="he">He/Him</option>
+                            <option value="it">It/Its</option>
+                        </select>
+                    </div>
+                    
+                    <div class="ie-form-group">
+                        <label>Character Context</label>
+                        <textarea id="ie-char-context" class="ie-textarea" rows="3" 
+                            placeholder="Describe who YOU are (the character whose head these voices are in). Example: 'Harry Du Bois, amnesiac detective. Kim Kitsuragi is my partner.'"></textarea>
+                        <small class="ie-form-hint">Who is "you" - the character whose head these voices are in.</small>
+                    </div>
+                    
+                    <div class="ie-form-group">
+                        <label>Scene Perspective Notes</label>
+                        <textarea id="ie-scene-notes" class="ie-textarea" rows="3"
+                            placeholder="e.g. 'Scene is written from Kim's external POV watching Harry. Harry = you/your. Kim = he/him.'"></textarea>
+                        <small class="ie-form-hint">Help voices convert third-person scene text to correct POV.</small>
+                    </div>
+                    
+                    <div class="ie-form-group">
+                        <label class="ie-checkbox">
+                            <input type="checkbox" id="ie-include-persona" checked />
+                            <span>Include character persona in prompts</span>
+                        </label>
                     </div>
                 </div>
 
                 <div class="ie-section">
-                    <div class="ie-section-header"><span>Saved Profiles</span></div>
-                    <div id="ie-saved-profiles">
-                        <div class="ie-profiles-empty">
-                            <i class="fa-solid fa-user-slash"></i>
-                            <span>No saved profiles</span>
-                        </div>
+                    <div class="ie-section-header"><span>Save Current as Profile</span></div>
+                    <div class="ie-form-group">
+                        <label>Profile Name</label>
+                        <input type="text" id="ie-new-profile-name" placeholder="e.g. Harry Du Bois" />
                     </div>
+                    <button class="ie-btn ie-btn-primary" id="ie-save-profile-btn" style="width: 100%;">
+                        <i class="fa-solid fa-save"></i>
+                        <span>Save Profile</span>
+                    </button>
+                </div>
+                <div class="ie-section">
+                    <div class="ie-section-header"><span>Build Editor</span></div>
+                    <div class="ie-build-intro">
+                        <div class="ie-points-remaining">Points: <span id="ie-points-remaining">12</span> / 12</div>
+                    </div>
+                    <div class="ie-attributes-editor" id="ie-attributes-editor"></div>
+                    <button class="ie-btn ie-btn-primary ie-btn-apply-build" style="width: 100%; margin-top: 10px;">
+                        <i class="fa-solid fa-check"></i>
+                        <span>Apply Build</span>
+                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- Bottom Buttons -->
+        <!-- Bottom Buttons: Settings & Profiles -->
         <div class="ie-bottom-buttons">
-            <button class="ie-btn ie-btn-bottom" data-tab="settings" title="Settings">
+            <button class="ie-bottom-btn" data-panel="settings" title="Settings">
                 <i class="fa-solid fa-gear"></i>
+                <span>Settings</span>
             </button>
-            <button class="ie-btn ie-btn-bottom" data-tab="profiles" title="Profiles">
-                <i class="fa-solid fa-user-pen"></i>
+            <button class="ie-bottom-btn" data-panel="profiles" title="Profiles">
+                <span class="ie-disco-ball-icon">${DISCO_BALL_SVG}</span>
+                <span>Profiles</span>
             </button>
         </div>
     `;
@@ -607,56 +445,232 @@ export function createPsychePanel() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// TAB SWITCHING
+// FAB CREATION
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Initialize tab switching for the panel
- * @param {Object} callbacks - Optional callbacks for tab-specific initialization
- */
-export function initTabSwitching(callbacks = {}) {
-    const panel = document.getElementById('inland-empire-panel');
-    if (!panel) return;
+export function createToggleFAB(getContext) {
+    const fab = document.createElement('div');
+    fab.id = 'inland-empire-fab';
+    fab.className = 'ie-fab';
+    fab.title = 'Toggle Psyche Panel';
+    fab.innerHTML = '<span class="ie-fab-icon"><i class="fa-solid fa-address-card"></i></span>';
+    fab.style.display = 'flex';
+    fab.style.top = `${extensionSettings.fabPositionTop ?? 140}px`;
+    fab.style.left = `${extensionSettings.fabPositionLeft ?? 10}px`;
 
-    // Main tabs
-    const mainTabs = panel.querySelectorAll('.ie-tab');
-    const bottomTabs = panel.querySelectorAll('.ie-btn-bottom');
-    const allTabs = [...mainTabs, ...bottomTabs];
-    const tabContents = panel.querySelectorAll('.ie-tab-content');
+    // Dragging state
+    let isDragging = false;
+    let dragStartX, dragStartY, fabStartX, fabStartY;
+    let hasMoved = false;
 
-    allTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const tabName = tab.dataset.tab;
-            switchToTab(tabName, allTabs, tabContents, callbacks);
-        });
-    });
-
-    // Initialize ledger sub-tabs
-    initLedgerSubTabs();
-    
-    // Start ledger clock
-    initLedgerClock();
-}
-
-function switchToTab(tabName, allTabs, tabContents, callbacks) {
-    // Remove active class from all tabs
-    allTabs.forEach(t => t.classList.remove('ie-tab-active'));
-
-    // Hide all tab contents
-    tabContents.forEach(c => c.classList.remove('ie-tab-content-active'));
-
-    // Find and activate the clicked tab
-    const targetTab = [...allTabs].find(t => t.dataset.tab === tabName);
-    if (targetTab) {
-        targetTab.classList.add('ie-tab-active');
+    function startDrag(e) {
+        isDragging = true;
+        hasMoved = false;
+        const touch = e.touches ? e.touches[0] : e;
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+        fabStartX = fab.offsetLeft;
+        fabStartY = fab.offsetTop;
+        fab.style.transition = 'none';
+        document.addEventListener('mousemove', doDrag);
+        document.addEventListener('touchmove', doDrag, { passive: false });
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
     }
 
-    // Show the corresponding content
-    const targetContent = [...tabContents].find(
-        c => c.dataset.tabContent === tabName
+    function doDrag(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const touch = e.touches ? e.touches[0] : e;
+        const deltaX = touch.clientX - dragStartX;
+        const deltaY = touch.clientY - dragStartY;
+        if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved = true;
+        fab.style.left = `${Math.max(0, Math.min(window.innerWidth - fab.offsetWidth, fabStartX + deltaX))}px`;
+        fab.style.top = `${Math.max(0, Math.min(window.innerHeight - fab.offsetHeight, fabStartY + deltaY))}px`;
+    }
+
+    function endDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        fab.style.transition = 'all 0.3s ease';
+        document.removeEventListener('mousemove', doDrag);
+        document.removeEventListener('touchmove', doDrag);
+        document.removeEventListener('mouseup', endDrag);
+        document.removeEventListener('touchend', endDrag);
+
+        if (hasMoved) {
+            fab.dataset.justDragged = 'true';
+            extensionSettings.fabPositionTop = fab.offsetTop;
+            extensionSettings.fabPositionLeft = fab.offsetLeft;
+            if (getContext) saveState(getContext());
+        }
+    }
+
+    fab.addEventListener('mousedown', startDrag);
+    fab.addEventListener('touchstart', startDrag, { passive: false });
+
+    return fab;
+}
+
+/**
+ * Create the Suggestions FAB (lightbulb icon)
+ * Hidden by default, toggleable in settings
+ */
+export function createSuggestionsFAB(getContext) {
+    const fab = document.createElement('div');
+    fab.id = 'ie-suggestions-fab';
+    fab.className = 'ie-fab ie-fab-suggestions';
+    fab.title = 'Get Suggestions';
+    fab.innerHTML = '<span class="ie-fab-icon"><i class="fa-solid fa-lightbulb"></i></span>';
+    fab.style.display = extensionSettings.showSuggestionsFab ? 'flex' : 'none';
+    fab.style.top = `${extensionSettings.suggestionsFabTop ?? 200}px`;
+    fab.style.left = `${extensionSettings.suggestionsFabLeft ?? 10}px`;
+
+    // Reuse same drag logic pattern
+    let isDragging = false;
+    let dragStartX, dragStartY, fabStartX, fabStartY;
+    let hasMoved = false;
+
+    function startDrag(e) {
+        isDragging = true;
+        hasMoved = false;
+        const touch = e.touches ? e.touches[0] : e;
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+        fabStartX = fab.offsetLeft;
+        fabStartY = fab.offsetTop;
+        fab.style.transition = 'none';
+        document.addEventListener('mousemove', doDrag);
+        document.addEventListener('touchmove', doDrag, { passive: false });
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+    }
+
+    function doDrag(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const touch = e.touches ? e.touches[0] : e;
+        const deltaX = touch.clientX - dragStartX;
+        const deltaY = touch.clientY - dragStartY;
+        if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved = true;
+        fab.style.left = `${Math.max(0, Math.min(window.innerWidth - fab.offsetWidth, fabStartX + deltaX))}px`;
+        fab.style.top = `${Math.max(0, Math.min(window.innerHeight - fab.offsetHeight, fabStartY + deltaY))}px`;
+    }
+
+    function endDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        fab.style.transition = 'all 0.3s ease';
+        document.removeEventListener('mousemove', doDrag);
+        document.removeEventListener('touchmove', doDrag);
+        document.removeEventListener('mouseup', endDrag);
+        document.removeEventListener('touchend', endDrag);
+
+        if (hasMoved) {
+            fab.dataset.justDragged = 'true';
+            extensionSettings.suggestionsFabTop = fab.offsetTop;
+            extensionSettings.suggestionsFabLeft = fab.offsetLeft;
+            if (getContext) saveState(getContext());
+        }
+    }
+
+    fab.addEventListener('mousedown', startDrag);
+    fab.addEventListener('touchstart', startDrag, { passive: false });
+
+    return fab;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PANEL CONTROLS
+// ═══════════════════════════════════════════════════════════════
+
+export function togglePanel() {
+    const panel = document.getElementById('inland-empire-panel');
+    const fab = document.getElementById('inland-empire-fab');
+
+    if (!panel) return;
+
+    const isOpen = panel.classList.contains('ie-panel-open');
+
+    if (isOpen) {
+        panel.classList.remove('ie-panel-open');
+        fab?.classList.remove('ie-fab-active');
+    } else {
+        panel.classList.add('ie-panel-open');
+        fab?.classList.add('ie-fab-active');
+        // Trigger peek animation when opening
+        triggerFabLoading();
+    }
+}
+
+/**
+ * Trigger the "peek-up" loading animation on the main FAB
+ * Call this when voices are being generated
+ */
+export function triggerFabLoading() {
+    const fab = document.getElementById('inland-empire-fab');
+    if (!fab) return;
+    
+    fab.classList.add('ie-fab-loading');
+    // Remove after animation completes
+    setTimeout(() => {
+        fab.classList.remove('ie-fab-loading');
+    }, 800);
+}
+
+/**
+ * Toggle suggestions FAB active state (lightbulb on/off)
+ */
+export function setSuggestionsFabActive(active) {
+    const fab = document.getElementById('ie-suggestions-fab');
+    if (!fab) return;
+    
+    fab.classList.toggle('ie-fab-active', active);
+    const icon = fab.querySelector('i');
+    if (icon) {
+        icon.className = active ? 'fa-solid fa-lightbulb' : 'fa-regular fa-lightbulb';
+    }
+}
+
+/**
+ * Show/hide the suggestions FAB
+ */
+export function setSuggestionsFabVisible(visible) {
+    const fab = document.getElementById('ie-suggestions-fab');
+    if (fab) {
+        fab.style.display = visible ? 'flex' : 'none';
+    }
+}
+
+export function switchTab(tabName, callbacks = {}) {
+    // Handle main tabs
+    document.querySelectorAll('.ie-tab').forEach(tab =>
+        tab.classList.toggle('ie-tab-active', tab.dataset.tab === tabName)
     );
-    if (targetContent) {
-        targetContent.classList.add('ie-tab-content-active');
+
+    // Handle bottom buttons (settings/profiles)
+    document.querySelectorAll('.ie-bottom-btn').forEach(btn =>
+        btn.classList.toggle('ie-bottom-btn-active', btn.dataset.panel === tabName)
+    );
+
+    // Show/hide tab content
+    document.querySelectorAll('.ie-tab-content').forEach(content =>
+        content.classList.toggle('ie-tab-content-active', content.dataset.tabContent === tabName)
+    );
+
+    // Clear active state from main tabs if switching to bottom panel
+    if (tabName === 'settings' || tabName === 'profiles') {
+        document.querySelectorAll('.ie-tab').forEach(tab =>
+            tab.classList.remove('ie-tab-active')
+        );
+    }
+
+    // Clear active state from bottom buttons if switching to main tab
+    const mainTabs = ['voices', 'cabinet', 'status', 'ledger', 'inventory'];
+    if (mainTabs.includes(tabName)) {
+        document.querySelectorAll('.ie-bottom-btn').forEach(btn =>
+            btn.classList.remove('ie-bottom-btn-active')
+        );
     }
 
     // Tab-specific callbacks
@@ -681,224 +695,6 @@ function switchToTab(tabName, allTabs, tabContents, callbacks) {
     if (tabName === 'inventory' && callbacks.onInventory) {
         callbacks.onInventory();
     }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// LEDGER SUB-TAB SWITCHING
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Initialize ledger sub-tab switching
- */
-export function initLedgerSubTabs() {
-    const subTabs = document.querySelectorAll('.ledger-sub-tab');
-    const subContents = document.querySelectorAll('.ledger-sub-content');
-    
-    subTabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const targetTab = tab.dataset.subtab;
-            
-            // Skip if it's the secret tab and not revealed
-            if (tab.classList.contains('ledger-tab-secret') && 
-                !tab.classList.contains('revealed')) {
-                return;
-            }
-            
-            // Remove active from all
-            subTabs.forEach(t => t.classList.remove('active'));
-            subContents.forEach(c => c.classList.remove('active'));
-            
-            // Add active to clicked
-            tab.classList.add('active');
-            const content = document.querySelector(`[data-subtab-content="${targetTab}"]`);
-            if (content) content.classList.add('active');
-        });
-    });
-}
-
-/**
- * Update the compartment crack visual based on unlock progress
- * @param {number} stage - 0 (hidden), 1, 2, or 3 (revealed)
- */
-export function updateCompartmentCrack(stage) {
-    const crack = document.getElementById('ie-compartment-crack');
-    const tab = document.getElementById('ie-secret-tab');
-    
-    if (!crack || !tab) return;
-    
-    // Reset classes
-    crack.className = 'ledger-crack-line';
-    tab.classList.remove('cracking', 'revealed');
-    
-    switch (stage) {
-        case 1:
-            crack.classList.add('stage-1');
-            break;
-        case 2:
-            crack.classList.add('stage-2');
-            tab.classList.add('cracking');
-            break;
-        case 3:
-            crack.classList.add('stage-3');
-            tab.classList.add('revealed');
-            break;
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// LEDGER CLOCK
-// ═══════════════════════════════════════════════════════════════
-
-let clockInterval = null;
-
-/**
- * Initialize the ledger analog clock
- */
-export function initLedgerClock() {
-    updateLedgerClock();
-    if (clockInterval) clearInterval(clockInterval);
-    clockInterval = setInterval(updateLedgerClock, 1000);
-}
-
-/**
- * Update clock hands to current time
- */
-function updateLedgerClock() {
-    const now = new Date();
-    const hours = now.getHours() % 12;
-    const minutes = now.getMinutes();
-    
-    const hourDeg = (hours * 30) + (minutes * 0.5);
-    const minuteDeg = minutes * 6;
-    
-    const hourHand = document.getElementById('ie-clock-hour');
-    const minuteHand = document.getElementById('ie-clock-minute');
-    
-    if (hourHand) hourHand.style.transform = `rotate(${hourDeg}deg)`;
-    if (minuteHand) minuteHand.style.transform = `rotate(${minuteDeg}deg)`;
-}
-
-/**
- * Update the clock weather indicator
- * @param {string} weather - Weather type: sunny, cloudy, rainy, night, stormy, snowy
- */
-export function updateClockWeather(weather) {
-    const weatherEl = document.getElementById('ie-clock-weather');
-    const iconEl = document.getElementById('ie-clock-weather-icon');
-    
-    if (!weatherEl || !iconEl) return;
-    
-    // Weather icon mapping
-    const icons = {
-        sunny: 'fa-sun',
-        cloudy: 'fa-cloud',
-        rainy: 'fa-cloud-rain',
-        night: 'fa-moon',
-        stormy: 'fa-cloud-bolt',
-        snowy: 'fa-snowflake',
-        clear_night: 'fa-moon',
-        clear_day: 'fa-sun'
-    };
-    
-    // Update class for styling
-    weatherEl.className = 'ledger-clock-weather ' + weather;
-    
-    // Update icon
-    iconEl.className = 'fa-solid ' + (icons[weather] || 'fa-sun');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// LEDGER CASE HELPERS
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Render a case card
- * @param {Object} caseData - Case object with title, code, description, etc.
- * @returns {string} HTML string
- */
-export function renderCaseCard(caseData) {
-    const statusClass = caseData.status || 'active';
-    return `
-        <div class="ledger-case-card ${statusClass}" data-case-id="${caseData.id}">
-            <div class="ledger-case-code">${caseData.code || 'HDB-??-????-??'}</div>
-            <div class="ledger-case-title">${caseData.title || 'UNTITLED CASE'}</div>
-            <div class="ledger-case-filed">FILED — Session ${caseData.session || '?'}, ${caseData.time || '??:??'}</div>
-            <div class="ledger-case-description">${caseData.description || ''}</div>
-            <div class="ledger-case-status ${statusClass}">${statusClass}</div>
-        </div>
-    `;
-}
-
-/**
- * Generate alphanumeric case code
- * @param {number} precinct - Precinct number (default 41)
- * @param {number} sequence - Case sequence number
- * @returns {string} Case code like "HDB-41-0115-03"
- */
-export function generateCaseCode(precinct = 41, sequence = 1) {
-    const now = new Date();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const seq = String(sequence).padStart(2, '0');
-    return `HDB-${precinct}-${month}${day}-${seq}`;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// BADGE & FORTUNE HELPERS
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Update the RCM badge with officer profile data
- * @param {Object} profile - Officer profile object
- */
-export function updateBadgeDisplay(profile) {
-    const nameEl = document.getElementById('ie-badge-name');
-    const rankEl = document.getElementById('ie-badge-rank');
-    const badgeIdEl = document.getElementById('ie-badge-id');
-    const regEl = document.getElementById('ie-badge-reg');
-    const sessionsEl = document.getElementById('ie-stat-sessions');
-    const voicesEl = document.getElementById('ie-stat-voices');
-    const critFailsEl = document.getElementById('ie-stat-critfails');
-    const deepNightEl = document.getElementById('ie-stat-deepnight');
-    const dotsEl = document.getElementById('ie-perforation-dots');
-    
-    if (nameEl) nameEl.textContent = profile.name || 'NAME UNKNOWN';
-    if (rankEl) rankEl.textContent = profile.rank || 'RANK UNKNOWN';
-    if (badgeIdEl) badgeIdEl.textContent = profile.badgeId || 'LTN-????';
-    if (regEl) regEl.textContent = profile.regNumber || 'REV??-??-??-???';
-    
-    if (sessionsEl) sessionsEl.textContent = profile.sessions || 0;
-    if (voicesEl) voicesEl.textContent = profile.voicesHeard || 0;
-    if (critFailsEl) critFailsEl.textContent = profile.criticalFailures || 0;
-    if (deepNightEl) deepNightEl.textContent = profile.deepNightSessions || 0;
-    
-    // Perforation dots
-    if (dotsEl) {
-        const count = Math.min(profile.sessions || 0, 20);
-        const filled = '●'.repeat(count);
-        const empty = '○'.repeat(Math.max(0, 10 - count));
-        dotsEl.textContent = `${filled}${empty} (${profile.sessions || 0})`;
-    }
-}
-
-/**
- * Display a fortune in the compartment
- * @param {Object} fortune - Fortune object with text, ledger type, etc.
- */
-export function displayFortune(fortune) {
-    const wrapper = document.getElementById('ie-fortune-display');
-    const textEl = document.getElementById('ie-fortune-text');
-    const sourceEl = document.getElementById('ie-fortune-source');
-    
-    if (!wrapper || !textEl || !sourceEl) return;
-    
-    textEl.textContent = `"${fortune.text}"`;
-    
-    // Set source with color class
-    sourceEl.textContent = `— ${fortune.ledgerName}`;
-    sourceEl.className = 'ledger-fortune-source ' + fortune.ledgerType;
-    
-    wrapper.style.display = 'block';
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1019,31 +815,17 @@ export function updateMoney(amount) {
  * Update weather display in ledger tab
  * @param {string} icon - FontAwesome icon class (e.g., 'fa-cloud-rain')
  * @param {string} description - Weather description text
- * @param {string} flavor - Optional flavor text
- * @param {string} effect - Optional mechanical effect text
  */
-export function updateWeather(icon, description, flavor = '', effect = '') {
+export function updateWeather(icon, description) {
     const weatherEl = document.getElementById('ie-weather-display');
     if (weatherEl) {
         weatherEl.innerHTML = `
             <div class="ie-weather-current">
                 <i class="fa-solid ${icon}"></i>
-                <div>
-                    <div class="ie-weather-condition">${description}</div>
-                    ${flavor ? `<div class="ie-weather-flavor">"${flavor}"</div>` : ''}
-                    ${effect ? `<div class="ie-weather-effect">${effect}</div>` : ''}
-                </div>
+                <span>${description}</span>
             </div>
         `;
     }
-    
-    // Also update the clock weather
-    const weatherType = icon.includes('rain') ? 'rainy' :
-                       icon.includes('cloud') ? 'cloudy' :
-                       icon.includes('snow') ? 'snowy' :
-                       icon.includes('bolt') ? 'stormy' :
-                       icon.includes('moon') ? 'night' : 'sunny';
-    updateClockWeather(weatherType);
 }
 
 /**
