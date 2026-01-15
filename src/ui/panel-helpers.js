@@ -55,7 +55,7 @@ function updateVitalBar(type, current, max = 100) {
     // Status tab detail bar
     const detailFill = document.getElementById(`ie-${type}-detail-fill`);
     const detailValue = document.getElementById(`ie-${type}-detail-value`);
-    const detailBar = detailFill?.closest('.ie-vital-bar');
+    const detailRow = detailFill?.closest('.ie-vital-detail-row');
     
     if (detailFill) {
         detailFill.style.width = `${percent}%`;
@@ -63,12 +63,13 @@ function updateVitalBar(type, current, max = 100) {
     }
     if (detailValue) detailValue.textContent = `${Math.round(current)} / ${max}`;
     
-    if (detailBar) {
-        detailBar.classList.remove('ie-vital-low', 'ie-vital-critical');
+    // Add low/critical classes to detail ROW (not bar) for CSS animations
+    if (detailRow) {
+        detailRow.classList.remove('ie-vital-low', 'ie-vital-critical');
         if (percent <= 15) {
-            detailBar.classList.add('ie-vital-critical');
+            detailRow.classList.add('ie-vital-critical');
         } else if (percent <= 30) {
-            detailBar.classList.add('ie-vital-low');
+            detailRow.classList.add('ie-vital-low');
         }
     }
 }
