@@ -15,18 +15,9 @@
 import { SKILLS, ATTRIBUTES, ANCIENT_VOICES } from './src/data/skills.js';
 import { STATUS_EFFECTS } from './src/data/statuses.js';
 import { THEMES, THOUGHTS } from './src/data/thoughts.js';
+import { isDeepNight } from './src/data/fortune.js';
 
-// Fortune System (extracted for maintainability)
-import {
-    LEDGER_PERSONALITIES,
-    FORTUNE_PROMPTS,
-    STATIC_FORTUNES,
-    selectLedgerPersonality,
-    getStaticFortune,
-    isDeepNight
-} from './src/data/fortune.js';
-
-// Systems
+// Core State
 import {
     extensionSettings,
     activeStatuses,
@@ -47,22 +38,20 @@ import {
     deleteProfile,
     updateProfile,
     initializeDefaultBuild,
-    // Phase 1 additions - Vitals
     vitals,
     getVitals,
     setHealth,
     setMorale,
     modifyHealth,
     modifyMorale,
-    // Phase 1 additions - Ledger
     ledger,
     getLedger,
-    // Phase 1 additions - Inventory
     inventory,
     getInventory,
     setMoney as setMoneyState
 } from './src/core/state.js';
 
+// Systems
 import { rollSkillCheck } from './src/systems/dice.js';
 
 import {
@@ -70,11 +59,6 @@ import {
     trackThemesInMessage,
     checkThoughtDiscovery,
     startResearch,
-    abandonResearch,
-    advanceResearch,
-    dismissThought,
-    forgetThought,
-    addCustomThought,
     incrementMessageCount,
     getResearchPenalties,
     getTopThemes,
@@ -96,7 +80,6 @@ import {
     autoScan
 } from './src/voice/discovery.js';
 
-// Phase 2: Vitals Detection Imports
 import {
     initVitalsHooks,
     processMessageForVitals,
@@ -104,7 +87,7 @@ import {
     analyzeTextForVitals
 } from './src/systems/vitals/hooks.js';
 
-// UI
+// UI - Panel & Toasts
 import {
     createPsychePanel,
     createToggleFAB,
@@ -144,6 +127,36 @@ import {
     renderThoughtModal
 } from './src/ui/render.js';
 
+// UI - Extracted Handlers
+import {
+    updateBuildPointsDisplay,
+    refreshAttributesDisplay,
+    refreshStatusTab as refreshStatusTabBase,
+    refreshCabinetTab as refreshCabinetTabBase,
+    refreshVitals,
+    refreshLedgerDisplay,
+    refreshInventoryDisplay,
+    refreshProfilesTab as refreshProfilesTabBase,
+    populateSettingsForm,
+    closeAllModals as closeAllModalsBase
+} from './src/ui/refresh.js';
+
+import {
+    handleAddCase as handleAddCaseBase,
+    handleDrawFortune as handleDrawFortuneBase,
+    checkCompartmentProgress as checkCompartmentProgressBase,
+    handleLedgerNotesChange as handleLedgerNotesChangeBase
+} from './src/ui/ledger-handlers.js';
+
+import {
+    createCabinetHandlers,
+    handleStartResearch,
+    handleAbandonResearch,
+    handleDismissThought,
+    handleForgetThought,
+    handleAutoThoughtGeneration
+} from './src/ui/cabinet-handlers.js';
+
 // ═══════════════════════════════════════════════════════════════
 // EXTENSION METADATA
 // ═══════════════════════════════════════════════════════════════
@@ -151,12 +164,8 @@ import {
 const extensionName = 'inland-empire';
 const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
 
-// SillyTavern context reference
 let stContext = null;
-
-// Auto-generation tracking
 let messagesSinceAutoGen = 0;
-let isAutoGenerating = false;
 
 // ═══════════════════════════════════════════════════════════════
 // SILLYTAVERN INTEGRATION
@@ -178,6 +187,69 @@ function getLastMessage() {
 
 function getChatContainer() {
     return document.getElementById('chat');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOUND HANDLER WRAPPERS
+// ═══════════════════════════════════════════════════════════════
+
+// Bound versions of extracted handlers that include getContext
+function refreshStatusTab() {
+    refreshStatusTabBase((statusId) => {
+        toggleStatus(statusId);
+    }, () => saveState(getContext()));
+}
+
+function refreshCabinetTab() {
+    const handlers = createCabinetHandlers(getContext, refreshCabinetTab);
+    refreshCabinetTabBase(handlers);
+}
+
+function refreshProfilesTab() {
+    refreshProfilesTabBase({
+        loadProfile,
+        deleteProfile,
+        updateProfile,
+        saveState,
+        getContext
+    });
+}
+
+function closeAllModals() {
+    closeAllModalsBase(toggleDiscoveryModal);
+}
+
+function handleAddCase() {
+    handleAddCaseBase(getContext, refreshLedgerDisplay);
+}
+
+function handleDrawFortune() {
+    handleDrawFortuneBase(getContext);
+}
+
+function checkCompartmentProgress() {
+    checkCompartmentProgressBase(getContext);
+}
+
+function handleLedgerNotesChange(e) {
+    handleLedgerNotesChangeBase(e, getContext);
+}
+
+// Cabinet handler wrappers
+function onStartResearch(thoughtId) {
+    handleStartResearch(thoughtId, getContext, refreshCabinetTab);
+}
+
+function onAbandonResearch(thoughtId) {
+    handleAbandonResearch(thoughtId, getContext, refreshCabinetTab);
+}
+
+function onDismissThought(thoughtId) {
+    handleDismissThought(thoughtId, getContext, refreshCabinetTab);
+}
+
+function onForgetThought(thoughtId) {
+    handleForgetThought(thoughtId, getContext, refreshCabinetTab);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -248,7 +320,7 @@ async function triggerVoices(externalContext = null) {
         
         const thought = checkThoughtDiscovery(THOUGHTS);
         if (thought) {
-            showDiscoveryToast(thought, handleStartResearch, handleDismissThought);
+            showDiscoveryToast(thought, onStartResearch, onDismissThought);
         }
         
         const voiceContext = analyzeContext(lastMsg.mes, {
@@ -297,425 +369,6 @@ async function triggerVoices(externalContext = null) {
         console.error('[The Tribunal] Voice generation failed:', error);
         showToast(`Error: ${error.message}`, 'error');
     }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// THOUGHT CABINET HANDLERS
-// ═══════════════════════════════════════════════════════════════
-
-function handleStartResearch(thoughtId) {
-    const result = startResearch(thoughtId, THOUGHTS);
-    if (result.success) {
-        saveState(getContext());
-        refreshCabinetTab();
-        showToast(`Researching: ${THOUGHTS[thoughtId]?.name || thoughtId}`, 'info');
-    } else {
-        showToast(result.reason || 'Cannot research this thought', 'error');
-    }
-}
-
-function handleAbandonResearch(thoughtId) {
-    abandonResearch(thoughtId);
-    saveState(getContext());
-    refreshCabinetTab();
-    showToast('Research abandoned', 'info');
-}
-
-function handleDismissThought(thoughtId) {
-    dismissThought(thoughtId);
-    saveState(getContext());
-    refreshCabinetTab();
-}
-
-function handleForgetThought(thoughtId) {
-    forgetThought(thoughtId);
-    saveState(getContext());
-    refreshCabinetTab();
-    showToast('Thought forgotten', 'info');
-}
-
-async function handleAutoThoughtGeneration() {
-    if (isAutoGenerating) return;
-    if (!extensionSettings.enabled) return;
-    
-    isAutoGenerating = true;
-    
-    try {
-        const thought = checkThoughtDiscovery(THOUGHTS);
-        if (thought) {
-            showDiscoveryToast(thought, handleStartResearch, handleDismissThought);
-            refreshCabinetTab();
-        }
-    } catch (error) {
-        console.error('[The Tribunal] Auto thought generation failed:', error);
-    } finally {
-        isAutoGenerating = false;
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// UI REFRESH HELPERS
-// ═══════════════════════════════════════════════════════════════
-
-function updateBuildPointsDisplay(pointsDisplay) {
-    if (!pointsDisplay) return;
-    
-    let total = 0;
-    Object.keys(ATTRIBUTES).forEach(attrId => {
-        const valueEl = document.getElementById(`ie-attr-${attrId}`);
-        if (valueEl) {
-            total += parseInt(valueEl.textContent) || 1;
-        }
-    });
-    
-    const remaining = 12 - total;
-    updatePointsRemaining(pointsDisplay, remaining);
-}
-
-function refreshAttributesDisplay() {
-    const container = document.getElementById('ie-attributes-display');
-    if (container) {
-        renderAttributesDisplay(container);
-    }
-}
-
-function refreshStatusTab() {
-    const statusGrid = document.getElementById('ie-status-grid');
-    const effectsSummary = document.getElementById('ie-active-effects-summary');
-    
-    if (statusGrid) {
-        renderStatusGrid(statusGrid, (statusId) => {
-            toggleStatus(statusId);
-            saveState(getContext());
-            refreshStatusTab();
-            refreshAttributesDisplay();
-        });
-    }
-    
-    if (effectsSummary) {
-        renderActiveEffectsSummary(effectsSummary);
-    }
-}
-
-function refreshCabinetTab() {
-    const container = document.getElementById('ie-cabinet-content');
-    if (container) {
-        renderThoughtCabinet(container, {
-            onResearch: handleStartResearch,
-            onAbandon: handleAbandonResearch,
-            onDismiss: handleDismissThought,
-            onForget: handleForgetThought,
-            showThemeTracker: extensionSettings.showThemeTracker
-        });
-    }
-}
-
-function refreshVitals() {
-    const v = getVitals();
-    updateHealth(v.health, v.maxHealth);
-    updateMorale(v.morale, v.maxMorale);
-    updateCaseTitle(extensionSettings.characterName);
-}
-
-function refreshLedgerDisplay() {
-    const l = getLedger();
-    
-    updateWeather(
-        l.weather?.icon || 'fa-cloud-sun', 
-        l.weather?.condition || 'Unknown',
-        l.weather?.description || ''
-    );
-    
-    const activeCasesList = document.getElementById('ie-active-cases-list');
-    if (activeCasesList) {
-        if (l.activeCases && l.activeCases.length > 0) {
-            activeCasesList.innerHTML = l.activeCases.map(c => renderCaseCard(c)).join('');
-        } else {
-            activeCasesList.innerHTML = `
-                <div class="ie-ledger-empty">
-                    <i class="fa-solid fa-folder-open"></i>
-                    <span>No active cases</span>
-                </div>
-            `;
-        }
-    }
-    
-    const completedCasesList = document.getElementById('ie-completed-cases-list');
-    if (completedCasesList) {
-        if (l.completedCases && l.completedCases.length > 0) {
-            completedCasesList.innerHTML = l.completedCases.map(c => renderCaseCard(c)).join('');
-        } else {
-            completedCasesList.innerHTML = `
-                <div class="ie-ledger-empty">
-                    <i class="fa-solid fa-folder"></i>
-                    <span>No closed cases</span>
-                </div>
-            `;
-        }
-    }
-    
-    if (l.compartment) {
-        updateCompartmentCrack(l.compartment.crackStage || 0);
-    }
-    
-    if (l.compartment?.discovered && l.officerProfile) {
-        updateBadgeDisplay(l.officerProfile);
-    }
-    
-    const notesEl = document.getElementById('ie-ledger-notes');
-    if (notesEl && l.notes) {
-        notesEl.value = Array.isArray(l.notes) ? l.notes.join('\n') : l.notes;
-    }
-}
-
-function refreshInventoryDisplay() {
-    const inv = getInventory();
-    updateMoney(inv.money);
-}
-
-function refreshProfilesTab() {
-    const container = document.getElementById('ie-profiles-list');
-    const editor = document.getElementById('ie-attributes-editor');
-    const pointsDisplay = document.getElementById('ie-points-remaining');
-    
-    if (container) {
-        renderProfilesList(container, (profileId) => {
-            loadProfile(profileId);
-            saveState(getContext());
-            refreshProfilesTab();
-            refreshAttributesDisplay();
-            refreshVitals();
-            showToast(`Loaded profile: ${savedProfiles[profileId]?.name || profileId}`, 'info');
-        }, (profileId) => {
-            deleteProfile(profileId);
-            saveState(getContext());
-            refreshProfilesTab();
-            showToast('Profile deleted', 'info');
-        }, (profileId) => {
-            updateProfile(profileId, getContext());
-            refreshProfilesTab();
-            showToast(`Updated profile: ${savedProfiles[profileId]?.name || profileId}`, 'success');
-        });
-    }
-    
-    if (editor) {
-        renderBuildEditor(editor, (attr, delta) => {
-            const valueEl = document.getElementById(`ie-attr-${attr}`);
-            if (!valueEl) return;
-            
-            const current = parseInt(valueEl.textContent) || 1;
-            const newValue = Math.max(1, Math.min(6, current + delta));
-            
-            if (newValue === current) return;
-            
-            valueEl.textContent = newValue;
-            
-            const minusBtn = editor.querySelector(`.ie-attr-minus[data-attr="${attr}"]`);
-            const plusBtn = editor.querySelector(`.ie-attr-plus[data-attr="${attr}"]`);
-            if (minusBtn) minusBtn.disabled = newValue <= 1;
-            if (plusBtn) plusBtn.disabled = newValue >= 6;
-            
-            updateBuildPointsDisplay(pointsDisplay);
-        });
-        
-        updateBuildPointsDisplay(pointsDisplay);
-    }
-}
-
-function populateSettingsForm() {
-    const profiles = getAvailableProfiles();
-    populateConnectionProfiles(profiles, extensionSettings.connectionProfile || 'current');
-    
-    const fields = {
-        'ie-api-endpoint': extensionSettings.apiEndpoint,
-        'ie-api-key': extensionSettings.apiKey,
-        'ie-model': extensionSettings.model,
-        'ie-temperature': extensionSettings.temperature,
-        'ie-max-tokens': extensionSettings.maxTokens,
-        'ie-min-voices': extensionSettings.voicesPerMessage?.min,
-        'ie-max-voices': extensionSettings.voicesPerMessage?.max,
-        'ie-trigger-delay': extensionSettings.triggerDelay,
-        'ie-enabled': extensionSettings.enabled,
-        'ie-show-dice-rolls': extensionSettings.showDiceRolls,
-        'ie-show-failed-checks': extensionSettings.showFailedChecks,
-        'ie-auto-trigger': extensionSettings.autoTrigger,
-        'ie-intrusive-enabled': extensionSettings.intrusiveEnabled,
-        'ie-intrusive-chance': (extensionSettings.intrusiveChance * 100).toFixed(0),
-        'ie-intrusive-in-chat': extensionSettings.intrusiveInChat,
-        'ie-pov-style': extensionSettings.povStyle,
-        'ie-character-name': extensionSettings.characterName,
-        'ie-character-pronouns': extensionSettings.characterPronouns,
-        'ie-character-context': extensionSettings.characterContext,
-        'ie-scene-perspective': extensionSettings.scenePerspective,
-        'ie-show-investigation-fab': extensionSettings.showInvestigationFab !== false,
-        'ie-auto-detect-vitals': extensionSettings.autoDetectVitals,
-        'ie-vitals-sensitivity': extensionSettings.vitalsSensitivity || 'medium',
-        'ie-vitals-notifications': extensionSettings.vitalsShowNotifications !== false
-    };
-    
-    for (const [id, value] of Object.entries(fields)) {
-        const el = document.getElementById(id);
-        if (!el) continue;
-        
-        if (el.type === 'checkbox') {
-            el.checked = !!value;
-        } else {
-            el.value = value ?? '';
-        }
-    }
-}
-
-function closeAllModals() {
-    const thoughtModal = document.getElementById('ie-thought-modal');
-    if (thoughtModal) thoughtModal.remove();
-    
-    const discoveryOverlay = document.getElementById('ie-discovery-overlay');
-    if (discoveryOverlay?.classList.contains('ie-discovery-open')) {
-        toggleDiscoveryModal();
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// LEDGER CASE & FORTUNE FUNCTIONS
-// ═══════════════════════════════════════════════════════════════
-
-function handleAddCase() {
-    const title = prompt('Enter case title (e.g., "THE HANGED MAN"):');
-    if (!title) return;
-    
-    const description = prompt('Brief description (optional):') || '';
-    
-    const l = getLedger();
-    const caseCount = (l.activeCases?.length || 0) + (l.completedCases?.length || 0) + 1;
-    
-    const newCase = {
-        id: `case_${Date.now()}`,
-        code: generateCaseCode(41, caseCount),
-        title: title.toUpperCase(),
-        description,
-        status: 'active',
-        session: l.officerProfile?.sessions || 1,
-        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-        created: Date.now()
-    };
-    
-    if (!l.activeCases) l.activeCases = [];
-    l.activeCases.push(newCase);
-    
-    saveState(getContext());
-    refreshLedgerDisplay();
-    showToast(`Case opened: ${newCase.code}`, 'success');
-}
-
-async function handleDrawFortune() {
-    if (Math.random() < 0.2) {
-        showToast('Your fingers find only crumbs and dust.', 'info');
-        return;
-    }
-    
-    const loadingToast = showToast('Reaching into the compartment...', 'loading');
-    
-    try {
-        const personality = selectLedgerPersonality();
-        const prompt = FORTUNE_PROMPTS[personality.id];
-        
-        const v = getVitals();
-        const l = getLedger();
-        const contextHints = [];
-        
-        if (v.health < v.maxHealth * 0.3) contextHints.push('near death');
-        if (v.morale < v.maxMorale * 0.3) contextHints.push('broken spirit');
-        if (l.activeCases?.length > 0) contextHints.push(`working on: ${l.activeCases[0].title}`);
-        if (isDeepNight()) contextHints.push('deep night hours');
-        
-        const fullPrompt = `${prompt}\n\nContext hints: ${contextHints.join(', ') || 'nothing special'}`;
-        
-        const response = await generateFortuneText(fullPrompt, personality);
-        
-        hideToast(loadingToast);
-        
-        if (response) {
-            displayFortune({
-                text: response,
-                ledgerName: personality.name,
-                ledgerType: personality.color
-            });
-            
-            const ledger = getLedger();
-            if (!ledger.fortunes) ledger.fortunes = [];
-            ledger.fortunes.push({
-                text: response,
-                personality: personality.id,
-                timestamp: Date.now()
-            });
-            saveState(getContext());
-        } else {
-            showToast('The wrapper is blank.', 'info');
-        }
-        
-    } catch (error) {
-        hideToast(loadingToast);
-        console.error('[The Tribunal] Fortune generation failed:', error);
-        showToast('The fortune crumbles to dust.', 'error');
-    }
-}
-
-async function generateFortuneText(prompt, personality) {
-    try {
-        const context = getContext();
-        
-        if (context?.generateQuietPrompt) {
-            const result = await context.generateQuietPrompt(prompt, false, false);
-            return result?.trim() || null;
-        }
-        
-        // Fallback to static fortune
-        return getStaticFortune(personality.id);
-        
-    } catch (error) {
-        console.warn('[The Tribunal] API fortune failed, using fallback:', error);
-        return getStaticFortune(personality.id);
-    }
-}
-
-function checkCompartmentProgress() {
-    const l = getLedger();
-    if (!l.compartment) {
-        l.compartment = {
-            discovered: false,
-            deepNightCritFails: 0,
-            crackStage: 0,
-            timesOpened: 0,
-            lastOpened: null,
-            countedThisSession: false
-        };
-    }
-    
-    if (l.compartment.discovered) return;
-    if (l.compartment.countedThisSession) return;
-    if (!isDeepNight()) return;
-    
-    l.compartment.countedThisSession = true;
-    l.compartment.deepNightCritFails++;
-    
-    if (l.compartment.deepNightCritFails >= 3) {
-        l.compartment.crackStage = 3;
-        l.compartment.discovered = true;
-        showToast('Something shifts in the binding. A smell. Apricot.', 'info', 5000);
-    } else if (l.compartment.deepNightCritFails >= 2) {
-        l.compartment.crackStage = 2;
-    } else if (l.compartment.deepNightCritFails >= 1) {
-        l.compartment.crackStage = 1;
-    }
-    
-    updateCompartmentCrack(l.compartment.crackStage);
-    saveState(getContext());
-}
-
-function handleLedgerNotesChange(e) {
-    const l = getLedger();
-    l.notes = e.target.value;
-    saveState(getContext());
 }
 
 // ═══════════════════════════════════════════════════════════════
