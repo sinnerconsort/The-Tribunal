@@ -15,6 +15,7 @@ import {
 } from '../core/state.js';
 
 import { getAvailableProfiles } from '../voice/generation.js';
+import { showToast } from './toasts.js';
 
 import {
     updateHealth,
@@ -163,29 +164,58 @@ export function refreshInventoryDisplay() {
 }
 
 export function refreshProfilesTab(callbacks) {
-    const { loadProfile, deleteProfile, updateProfile, saveState, getContext } = callbacks;
+    const { loadProfile, deleteProfile, updateProfile, saveState, getContext, 
+            onStatusRefresh, onCabinetRefresh } = callbacks;
     
     const container = document.getElementById('ie-profiles-list');
     const editor = document.getElementById('ie-attributes-editor');
     const pointsDisplay = document.getElementById('ie-points-remaining');
     
     if (container) {
+        // LOAD callback
         renderProfilesList(container, (profileId) => {
-            loadProfile(profileId);
-            saveState(getContext());
-            refreshProfilesTab(callbacks);
-            refreshAttributesDisplay();
-            refreshVitals();
-            // Toast handled by caller
-        }, (profileId) => {
+            const profile = savedProfiles[profileId];
+            const profileName = profile?.name || 'Profile';
+            
+            const success = loadProfile(profileId);
+            if (success) {
+                saveState(getContext());
+                
+                // Refresh ALL UI sections
+                refreshProfilesTab(callbacks);
+                refreshAttributesDisplay();
+                refreshVitals();
+                refreshLedgerDisplay();
+                refreshInventoryDisplay();
+                populateSettingsForm();
+                
+                // These need handlers from index.js, call if provided
+                if (onStatusRefresh) onStatusRefresh();
+                if (onCabinetRefresh) onCabinetRefresh();
+                
+                showToast(`Loaded: ${profileName}`, 'success');
+            } else {
+                showToast(`Failed to load profile`, 'error');
+            }
+        }, 
+        // DELETE callback
+        (profileId) => {
+            const profile = savedProfiles[profileId];
+            const profileName = profile?.name || 'Profile';
+            
             deleteProfile(profileId);
             saveState(getContext());
             refreshProfilesTab(callbacks);
-            // Toast handled by caller
-        }, (profileId) => {
+            showToast(`Deleted: ${profileName}`, 'info');
+        }, 
+        // UPDATE callback
+        (profileId) => {
+            const profile = savedProfiles[profileId];
+            const profileName = profile?.name || 'Profile';
+            
             updateProfile(profileId, getContext());
             refreshProfilesTab(callbacks);
-            // Toast handled by caller
+            showToast(`Updated: ${profileName}`, 'success');
         });
     }
     
