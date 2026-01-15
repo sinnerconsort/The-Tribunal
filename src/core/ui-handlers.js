@@ -13,7 +13,6 @@ import {
     saveState,
     toggleStatus,
     getAttributePoints,
-    applyAttributeAllocation,
     getVitals,
     getLedger,
     getInventory,
