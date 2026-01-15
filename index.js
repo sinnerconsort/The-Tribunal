@@ -4,6 +4,7 @@
  * 
  * A Disco Elysium-inspired internal skill voice system for roleplay
  * Phase 2: Vitals Auto-Detection
+ * Phase 3: Ledger Sub-Tabs & Fortune System
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -109,7 +110,14 @@ import {
     updateCaseTitle,
     updateMoney,
     updateWeather,
-    populateConnectionProfiles
+    populateConnectionProfiles,
+    // Phase 3 additions - Ledger Sub-Tabs
+    initLedgerSubTabs,
+    updateCompartmentCrack,
+    renderCaseCard,
+    updateBadgeDisplay,
+    displayFortune,
+    generateCaseCode
 } from './src/ui/panel.js';
 
 import {
@@ -145,6 +153,42 @@ let stContext = null;
 // Auto-generation tracking
 let messagesSinceAutoGen = 0;
 let isAutoGenerating = false;
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 3: FORTUNE SYSTEM DATA
+// ═══════════════════════════════════════════════════════════════
+
+const LEDGER_PERSONALITIES = {
+    damaged: {
+        id: 'damaged',
+        name: 'The Damaged Ledger',
+        color: 'damaged',
+        tone: 'Fragmented, cryptic, truthful',
+        weight: 40
+    },
+    oblivion: {
+        id: 'oblivion',
+        name: 'The Ledger of Oblivion',
+        color: 'oblivion',
+        tone: 'Prophetic, inevitable, ominous',
+        weight: 35
+    },
+    failure: {
+        id: 'failure',
+        name: 'The Ledger of Failure and Hatred',
+        color: 'failure',
+        tone: 'Mocking, bitter, meta-aware',
+        weight: 25
+    }
+};
+
+const FORTUNE_PROMPTS = {
+    damaged: `You are the Damaged Ledger - a water-damaged police notebook that speaks in fragments. Give a cryptic observation about the user's current situation. Be brief (1-2 sentences). Speak in broken, fragmented sentences. You see what IS, not what will be.`,
+    
+    oblivion: `You are the Ledger of Oblivion - a prophetic voice that speaks of inevitable futures. Give a brief, ominous fortune (1-2 sentences). Speak declaratively about what WILL happen. Be fatalistic but poetic.`,
+    
+    failure: `You are the Ledger of Failure and Hatred - a mocking, nihilistic voice that lies and breaks the fourth wall. Give a brief, cruel fortune (1-2 sentences). Mock the user. Be aware you're in a roleplay. Lie convincingly or tell uncomfortable truths.`
+};
 
 // ═══════════════════════════════════════════════════════════════
 // SILLYTAVERN INTEGRATION
@@ -229,109 +273,81 @@ function updateInvestigationFABVisibility() {
 // MAIN TRIGGER FUNCTION
 // ═══════════════════════════════════════════════════════════════
 
-async function triggerVoices(messageText = null) {
-    if (!extensionSettings.enabled) {
-        showToast('Extension is disabled', 'error', 3000);
-        return;
-    }
-
-    const context = getContext();
+async function triggerVoices(externalContext = null) {
+    if (!extensionSettings.enabled) return;
     
-    // Debug: Check if we can get context
-    if (!context) {
-        showToast('Could not get ST context', 'error', 5000);
-        return;
-    }
-
+    const context = externalContext || getContext();
     const lastMsg = getLastMessage();
-    const text = messageText || lastMsg?.mes || '';
-
-    // Update scene context for investigation
-    updateSceneContext(text);
-
-    // Debug: Show what we're working with
-    if (!text.trim()) {
-        const chatLen = context?.chat?.length || 0;
-        showToast(`No message found (chat has ${chatLen} messages)`, 'info', 5000);
+    
+    if (!lastMsg?.mes) {
+        showToast('No message to analyze', 'info');
         return;
     }
-
-    showToast(`Analyzing: "${text.substring(0, 30)}..."`, 'info', 2000);
-    const loadingToast = showToast('The voices stir...', 'loading');
-
+    
+    const loadingToast = showToast('Consulting inner voices...', 'loading');
+    
     try {
-        // Analyze context
-        const analysisContext = analyzeContext(text);
-
-        // Track themes
-        trackThemesInMessage(text);
-        incrementMessageCount();
-
-        // Select speaking skills
-        const selectedSkills = selectSpeakingSkills(analysisContext, {
-            minVoices: extensionSettings.voicesPerMessage?.min || 1,
-            maxVoices: extensionSettings.voicesPerMessage?.max || 4
-        });
-
-        if (selectedSkills.length === 0) {
-            hideToast(loadingToast);
-            showToast('No skills selected (context too vague?)', 'info', 5000);
-            return;
-        }
-
-        showToast(`${selectedSkills.length} skills speaking...`, 'info', 2000);
-
-        // Generate voices
-        const voiceResults = await generateVoices(selectedSkills, analysisContext);
+        // Track themes in the message
+        const themes = trackThemesInMessage(lastMsg.mes, THEMES);
         
-        showToast(`Generated ${voiceResults.length} voices`, 'info', 2000);
-
-        // Advance research
-        const completedThoughts = advanceResearch(text);
-        for (const thoughtId of completedThoughts) {
-            const thought = THOUGHTS[thoughtId];
-            if (thought) {
-                showInternalizedToast(thought, SKILLS);
-            }
-        }
-
-        // Check for new thought discoveries
-        const newThoughts = checkThoughtDiscovery();
-        for (const thought of newThoughts) {
+        // Increment message count for thought discovery
+        incrementMessageCount();
+        
+        // Check for thought discoveries
+        const thought = checkThoughtDiscovery(THOUGHTS);
+        if (thought) {
             showDiscoveryToast(thought, handleStartResearch, handleDismissThought);
         }
-
-        // Check for auto-generation of custom thoughts
-        messagesSinceAutoGen++;
-        if (shouldAutoGenerateThought(newThoughts.length)) {
-            autoGenerateThought(text);
+        
+        // Build context for voice generation
+        const voiceContext = analyzeContext(lastMsg.mes, {
+            themes,
+            activeStatuses: [...activeStatuses],
+            vitals: getVitals(),
+            researchPenalties: getResearchPenalties()
+        });
+        
+        // Select skills and generate voices
+        const selectedSkills = selectSpeakingSkills(voiceContext, {
+            currentBuild,
+            activeStatuses: [...activeStatuses],
+            settings: extensionSettings
+        });
+        
+        if (selectedSkills.length === 0) {
+            hideToast(loadingToast);
+            showToast('No skills triggered', 'info');
+            return;
         }
-
-        // Combine results
-        const allVoices = [];
-
-        // Add main voices (filter failed checks if setting disabled)
-        const filteredVoices = extensionSettings.showFailedChecks ?
-            voiceResults :
-            voiceResults.filter(v => !v.checkResult || v.checkResult.success || v.isAncient);
-
-        allVoices.push(...filteredVoices);
-
-        // Render to panel
-        const voicesContainer = document.getElementById('ie-voices-output');
-        renderVoices(allVoices, voicesContainer);
-
-        // Append to chat if enabled
-        if (extensionSettings.showInChat !== false) {
-            appendVoicesToChat(allVoices, getChatContainer());
-        }
-
+        
+        const voices = await generateVoices(selectedSkills, voiceContext, {
+            settings: extensionSettings,
+            researchPenalties: getResearchPenalties()
+        });
+        
         hideToast(loadingToast);
-
+        
+        if (voices.length > 0) {
+            // Render in panel
+            const container = document.getElementById('ie-voices-output');
+            if (container) {
+                renderVoices(container, voices, extensionSettings);
+            }
+            
+            // Also append to chat if enabled
+            if (extensionSettings.appendToChat) {
+                appendVoicesToChat(getChatContainer(), voices);
+            }
+            
+            showToast(`${voices.length} voice${voices.length > 1 ? 's' : ''} spoke`, 'success');
+        } else {
+            showToast('Voices are silent...', 'info');
+        }
+        
     } catch (error) {
-        console.error('[The Tribunal] Voice generation failed:', error);
         hideToast(loadingToast);
-        showToast(`Error: ${error.message}`, 'error', 5000);
+        console.error('[The Tribunal] Voice generation failed:', error);
+        showToast(`Error: ${error.message}`, 'error');
     }
 }
 
@@ -340,20 +356,14 @@ async function triggerVoices(messageText = null) {
 // ═══════════════════════════════════════════════════════════════
 
 function handleStartResearch(thoughtId) {
-    const result = startResearch(thoughtId);
+    const result = startResearch(thoughtId, THOUGHTS);
     if (result.success) {
         saveState(getContext());
         refreshCabinetTab();
         showToast(`Researching: ${THOUGHTS[thoughtId]?.name || thoughtId}`, 'info');
     } else {
-        showToast(result.reason, 'error');
+        showToast(result.reason || 'Cannot research this thought', 'error');
     }
-}
-
-function handleDismissThought(thoughtId) {
-    dismissThought(thoughtId);
-    saveState(getContext());
-    refreshCabinetTab();
 }
 
 function handleAbandonResearch(thoughtId) {
@@ -363,6 +373,12 @@ function handleAbandonResearch(thoughtId) {
     showToast('Research abandoned', 'info');
 }
 
+function handleDismissThought(thoughtId) {
+    dismissThought(thoughtId);
+    saveState(getContext());
+    refreshCabinetTab();
+}
+
 function handleForgetThought(thoughtId) {
     forgetThought(thoughtId);
     saveState(getContext());
@@ -370,33 +386,14 @@ function handleForgetThought(thoughtId) {
     showToast('Thought forgotten', 'info');
 }
 
-// ═══════════════════════════════════════════════════════════════
-// AUTO THOUGHT GENERATION
-// ═══════════════════════════════════════════════════════════════
-
-function shouldAutoGenerateThought(recentDiscoveries) {
-    if (!extensionSettings.autoDiscoverThoughts) return false;
-    if (isAutoGenerating) return false;
-    if (recentDiscoveries > 0) return false;
+async function handleAutoThoughtGeneration() {
+    if (isAutoGenerating) return;
+    if (!extensionSettings.enabled) return;
     
-    const discovered = thoughtCabinet.discovered?.length || 0;
-    const researching = Object.keys(thoughtCabinet.researching || {}).length;
-    const internalized = thoughtCabinet.internalized?.length || 0;
-    
-    if (internalized >= MAX_INTERNALIZED_THOUGHTS) return false;
-    if (discovered + researching >= 5) return false;
-    if (messagesSinceAutoGen < 8) return false;
-    
-    return Math.random() < 0.15;
-}
-
-async function autoGenerateThought(contextText) {
     isAutoGenerating = true;
-    messagesSinceAutoGen = 0;
     
     try {
-        const topThemes = getTopThemes(3);
-        const thought = await addCustomThought(contextText, topThemes);
+        const thought = checkThoughtDiscovery(THOUGHTS);
         
         if (thought) {
             showDiscoveryToast(thought, handleStartResearch, handleDismissThought);
@@ -470,11 +467,63 @@ function refreshVitals() {
 
 /**
  * Refresh ledger display (weather, cases, notes)
+ * PHASE 3: Now handles sub-tabs
  */
 function refreshLedgerDisplay() {
     const l = getLedger();
-    updateWeather(l.weather.icon, l.weather.description);
-    // TODO: Render cases/notes when Phase 3 is fully implemented
+    
+    // Update weather in map tab
+    updateWeather(
+        l.weather?.icon || 'fa-cloud-sun', 
+        l.weather?.condition || 'Unknown',
+        l.weather?.description || ''
+    );
+    
+    // Render active cases
+    const activeCasesList = document.getElementById('ie-active-cases-list');
+    if (activeCasesList) {
+        if (l.activeCases && l.activeCases.length > 0) {
+            activeCasesList.innerHTML = l.activeCases.map(c => renderCaseCard(c)).join('');
+        } else {
+            activeCasesList.innerHTML = `
+                <div class="ie-ledger-empty">
+                    <i class="fa-solid fa-folder-open"></i>
+                    <span>No active cases</span>
+                </div>
+            `;
+        }
+    }
+    
+    // Render completed cases
+    const completedCasesList = document.getElementById('ie-completed-cases-list');
+    if (completedCasesList) {
+        if (l.completedCases && l.completedCases.length > 0) {
+            completedCasesList.innerHTML = l.completedCases.map(c => renderCaseCard(c)).join('');
+        } else {
+            completedCasesList.innerHTML = `
+                <div class="ie-ledger-empty">
+                    <i class="fa-solid fa-folder"></i>
+                    <span>No closed cases</span>
+                </div>
+            `;
+        }
+    }
+    
+    // Update compartment crack based on state
+    if (l.compartment) {
+        updateCompartmentCrack(l.compartment.crackStage || 0);
+    }
+    
+    // Update badge if compartment is unlocked
+    if (l.compartment?.discovered && l.officerProfile) {
+        updateBadgeDisplay(l.officerProfile);
+    }
+    
+    // Restore notes textarea
+    const notesEl = document.getElementById('ie-ledger-notes');
+    if (notesEl && l.notes) {
+        notesEl.value = Array.isArray(l.notes) ? l.notes.join('\n') : l.notes;
+    }
 }
 
 /**
@@ -574,6 +623,221 @@ function closeAllModals() {
     if (discoveryOverlay?.classList.contains('ie-discovery-open')) {
         toggleDiscoveryModal();
     }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 3: LEDGER CASE & FORTUNE FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Add a new case to the ledger
+ */
+function handleAddCase() {
+    const title = prompt('Enter case title (e.g., "THE HANGED MAN"):');
+    if (!title) return;
+    
+    const description = prompt('Brief description (optional):') || '';
+    
+    const l = getLedger();
+    const caseCount = (l.activeCases?.length || 0) + (l.completedCases?.length || 0) + 1;
+    
+    const newCase = {
+        id: `case_${Date.now()}`,
+        code: generateCaseCode(41, caseCount),
+        title: title.toUpperCase(),
+        description,
+        status: 'active',
+        session: l.officerProfile?.sessions || 1,
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+        created: Date.now()
+    };
+    
+    // Add to ledger state
+    if (!l.activeCases) l.activeCases = [];
+    l.activeCases.push(newCase);
+    
+    saveState(getContext());
+    refreshLedgerDisplay();
+    showToast(`Case opened: ${newCase.code}`, 'success');
+}
+
+/**
+ * Select a random ledger personality based on weights
+ */
+function selectLedgerPersonality() {
+    const total = Object.values(LEDGER_PERSONALITIES).reduce((sum, p) => sum + p.weight, 0);
+    let random = Math.random() * total;
+    
+    for (const personality of Object.values(LEDGER_PERSONALITIES)) {
+        random -= personality.weight;
+        if (random <= 0) return personality;
+    }
+    
+    return LEDGER_PERSONALITIES.damaged; // Fallback
+}
+
+/**
+ * Generate and display a fortune from the secret compartment
+ */
+async function handleDrawFortune() {
+    // 20% chance of empty fortune
+    if (Math.random() < 0.2) {
+        showToast('Your fingers find only crumbs and dust.', 'info');
+        return;
+    }
+    
+    const loadingToast = showToast('Reaching into the compartment...', 'loading');
+    
+    try {
+        const personality = selectLedgerPersonality();
+        const prompt = FORTUNE_PROMPTS[personality.id];
+        
+        // Get some context from current state
+        const v = getVitals();
+        const l = getLedger();
+        const contextHints = [];
+        
+        if (v.health < v.maxHealth * 0.3) contextHints.push('near death');
+        if (v.morale < v.maxMorale * 0.3) contextHints.push('broken spirit');
+        if (l.activeCases?.length > 0) contextHints.push(`working on: ${l.activeCases[0].title}`);
+        if (isDeepNight()) contextHints.push('deep night hours');
+        
+        const fullPrompt = `${prompt}\n\nContext hints: ${contextHints.join(', ') || 'nothing special'}`;
+        
+        // Use the voice generation system to get a fortune
+        // This reuses the existing API infrastructure
+        const response = await generateFortuneText(fullPrompt, personality);
+        
+        hideToast(loadingToast);
+        
+        if (response) {
+            displayFortune({
+                text: response,
+                ledgerName: personality.name,
+                ledgerType: personality.color
+            });
+            
+            // Track fortune in ledger
+            const l = getLedger();
+            if (!l.fortunes) l.fortunes = [];
+            l.fortunes.push({
+                text: response,
+                personality: personality.id,
+                timestamp: Date.now()
+            });
+            saveState(getContext());
+        } else {
+            showToast('The wrapper is blank.', 'info');
+        }
+        
+    } catch (error) {
+        hideToast(loadingToast);
+        console.error('[The Tribunal] Fortune generation failed:', error);
+        showToast('The fortune crumbles to dust.', 'error');
+    }
+}
+
+/**
+ * Generate fortune text via API (simplified version using existing infrastructure)
+ */
+async function generateFortuneText(prompt, personality) {
+    // Try to use the same API as voice generation
+    try {
+        const context = getContext();
+        
+        // Use SillyTavern's generateQuietPrompt if available
+        if (context?.generateQuietPrompt) {
+            const result = await context.generateQuietPrompt(prompt, false, false);
+            return result?.trim() || null;
+        }
+        
+        // Fallback: return a static fortune based on personality
+        const staticFortunes = {
+            damaged: [
+                "The water damage... it speaks of tears not yet cried.",
+                "Something is written here. Then crossed out. Then written again.",
+                "A name. Familiar. Gone now."
+            ],
+            oblivion: [
+                "You will find what you seek. You will wish you hadn't.",
+                "The pale approaches. It always approaches.",
+                "This case will end. Not well. But it will end."
+            ],
+            failure: [
+                "Still playing detective? How adorable.",
+                "The player behind you is getting bored, you know.",
+                "You're going to reload this save. I've seen it before."
+            ]
+        };
+        
+        const options = staticFortunes[personality.id] || staticFortunes.damaged;
+        return options[Math.floor(Math.random() * options.length)];
+        
+    } catch (error) {
+        console.warn('[The Tribunal] API fortune failed, using fallback:', error);
+        return null;
+    }
+}
+
+/**
+ * Check if current time is "deep night" (2am-6am)
+ */
+function isDeepNight() {
+    const hour = new Date().getHours();
+    return hour >= 2 && hour < 6;
+}
+
+/**
+ * Check and update compartment discovery progress
+ * Called when a critical failure happens during deep night
+ */
+function checkCompartmentProgress() {
+    const l = getLedger();
+    if (!l.compartment) {
+        l.compartment = {
+            discovered: false,
+            deepNightCritFails: 0,
+            crackStage: 0,
+            timesOpened: 0,
+            lastOpened: null,
+            countedThisSession: false
+        };
+    }
+    
+    // Already discovered
+    if (l.compartment.discovered) return;
+    
+    // Only count once per session
+    if (l.compartment.countedThisSession) return;
+    
+    // Must be deep night
+    if (!isDeepNight()) return;
+    
+    l.compartment.countedThisSession = true;
+    l.compartment.deepNightCritFails++;
+    
+    // Update crack stage
+    if (l.compartment.deepNightCritFails >= 3) {
+        l.compartment.crackStage = 3;
+        l.compartment.discovered = true;
+        showToast('Something shifts in the binding. A smell. Apricot.', 'info', 5000);
+    } else if (l.compartment.deepNightCritFails >= 2) {
+        l.compartment.crackStage = 2;
+    } else if (l.compartment.deepNightCritFails >= 1) {
+        l.compartment.crackStage = 1;
+    }
+    
+    updateCompartmentCrack(l.compartment.crackStage);
+    saveState(getContext());
+}
+
+/**
+ * Save ledger notes on blur
+ */
+function handleLedgerNotesChange(e) {
+    const l = getLedger();
+    l.notes = e.target.value;
+    saveState(getContext());
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -799,39 +1063,35 @@ function bindEvents() {
         saveState(getContext());
     });
     
-    // Connection profile dropdown - instant save on change
-    document.getElementById('ie-connection-profile')?.addEventListener('change', (e) => {
-        extensionSettings.connectionProfile = e.target.value;
-        saveState(getContext());
-        console.log('[The Tribunal] Connection profile changed:', e.target.value);
-        showToast(`Voice API: ${e.target.value === 'current' ? 'Using Current ST Connection' : e.target.value}`, 'info');
-    });
-    
     // ═══════════════════════════════════════════════════════════════
-    // PHASE 2: Vitals Detection Settings Bindings
+    // PHASE 3: LEDGER EVENT BINDINGS
     // ═══════════════════════════════════════════════════════════════
     
+    // Add Case button
+    document.getElementById('ie-add-case-btn')?.addEventListener('click', handleAddCase);
+    
+    // Draw Fortune button
+    document.getElementById('ie-draw-fortune-btn')?.addEventListener('click', handleDrawFortune);
+    
+    // Ledger notes auto-save
+    document.getElementById('ie-ledger-notes')?.addEventListener('blur', handleLedgerNotesChange);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // PHASE 2: Vitals Detection Button Bindings
+    // ═══════════════════════════════════════════════════════════════
+    
+    // Auto-detect vitals toggle
     document.getElementById('ie-auto-detect-vitals')?.addEventListener('change', (e) => {
         extensionSettings.autoDetectVitals = e.target.checked;
         saveState(getContext());
-        showToast(e.target.checked ? 'Vitals auto-detection enabled' : 'Vitals auto-detection disabled', 'info');
+        showToast(e.target.checked ? 'Auto-detection enabled' : 'Auto-detection disabled', 'info');
     });
     
-    document.getElementById('ie-vitals-sensitivity')?.addEventListener('change', (e) => {
-        extensionSettings.vitalsSensitivity = e.target.value;
-        saveState(getContext());
-    });
-    
-    document.getElementById('ie-vitals-notifications')?.addEventListener('change', (e) => {
-        extensionSettings.vitalsShowNotifications = e.target.checked;
-        saveState(getContext());
-    });
-    
-    // Test vitals detection button
-    document.getElementById('ie-test-vitals-btn')?.addEventListener('click', () => {
+    // Manual vitals scan button
+    document.getElementById('ie-scan-vitals-btn')?.addEventListener('click', () => {
         const lastMsg = getLastMessage();
         if (!lastMsg?.mes) {
-            showToast('No message to analyze', 'error');
+            showToast('No message to scan', 'info');
             return;
         }
         
@@ -840,7 +1100,13 @@ function bindEvents() {
             sensitivity: extensionSettings.vitalsSensitivity || 'medium'
         });
         
-        if (result.detected) {
+        if (result.healthDelta !== 0 || result.moraleDelta !== 0) {
+            // Apply changes
+            if (result.healthDelta !== 0) modifyHealth(result.healthDelta, getContext());
+            if (result.moraleDelta !== 0) modifyMorale(result.moraleDelta, getContext());
+            refreshVitals();
+            
+            // Show notification
             const parts = [];
             if (result.healthDelta !== 0) {
                 const sign = result.healthDelta > 0 ? '+' : '';
@@ -990,6 +1256,11 @@ async function init() {
     document.body.appendChild(panel);
     document.body.appendChild(fab);
 
+    // ═══════════════════════════════════════════════════════════════
+    // PHASE 3: Initialize Ledger Sub-Tabs
+    // ═══════════════════════════════════════════════════════════════
+    initLedgerSubTabs();
+
     // Create Discovery UI (Thought Bubble)
     const thoughtFab = createThoughtBubbleFAB(getContext);
     const discoveryModal = createDiscoveryModal();
@@ -1005,6 +1276,7 @@ async function init() {
     refreshStatusTab();
     refreshCabinetTab();
     refreshVitals();  // Phase 1
+    refreshLedgerDisplay(); // Phase 3
 
     // Bind events
     bindEvents();
@@ -1024,6 +1296,12 @@ async function init() {
 
     // Setup auto-trigger
     setupAutoTrigger();
+    
+    // Reset session tracking for compartment at startup
+    const l = getLedger();
+    if (l.compartment) {
+        l.compartment.countedThisSession = false;
+    }
 
     console.log('[The Tribunal] Ready!');
 }
@@ -1041,7 +1319,7 @@ jQuery(async () => {
         // ═══════════════════════════════════════════════════════════
         window.InlandEmpire = {
             // Version for compatibility checks
-            version: '2.0.0',
+            version: '3.0.0',
             
             // ─────────────────────────────────────────────────────────
             // READ: Skill & State Queries
@@ -1155,6 +1433,11 @@ jQuery(async () => {
                     detail: { skillId, difficulty, effectiveLevel, ...result }
                 }));
                 
+                // PHASE 3: Check compartment progress on critical failure during deep night
+                if (result.isSnakeEyes && isDeepNight()) {
+                    checkCompartmentProgress();
+                }
+                
                 return result;
             },
             
@@ -1261,6 +1544,67 @@ jQuery(async () => {
                 document.dispatchEvent(new CustomEvent('ie:vitals-changed', {
                     detail: { healthDelta, moraleDelta, reason }
                 }));
+            },
+            
+            // ─────────────────────────────────────────────────────────
+            // PHASE 3: Ledger API
+            // ─────────────────────────────────────────────────────────
+            
+            /**
+             * Get current ledger state
+             * @returns {Object} Ledger state
+             */
+            getLedger: () => getLedger(),
+            
+            /**
+             * Add a case to the ledger
+             * @param {string} title - Case title
+             * @param {string} description - Case description
+             */
+            addCase: (title, description = '') => {
+                const l = getLedger();
+                const caseCount = (l.activeCases?.length || 0) + (l.completedCases?.length || 0) + 1;
+                
+                const newCase = {
+                    id: `case_${Date.now()}`,
+                    code: generateCaseCode(41, caseCount),
+                    title: title.toUpperCase(),
+                    description,
+                    status: 'active',
+                    session: l.officerProfile?.sessions || 1,
+                    time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+                    created: Date.now()
+                };
+                
+                if (!l.activeCases) l.activeCases = [];
+                l.activeCases.push(newCase);
+                
+                saveState(getContext());
+                refreshLedgerDisplay();
+                return newCase;
+            },
+            
+            /**
+             * Check if compartment is discovered
+             */
+            isCompartmentDiscovered: () => {
+                const l = getLedger();
+                return l.compartment?.discovered || false;
+            },
+            
+            /**
+             * Force reveal the compartment (for testing/cheats)
+             */
+            revealCompartment: () => {
+                const l = getLedger();
+                if (!l.compartment) {
+                    l.compartment = { discovered: false, deepNightCritFails: 0, crackStage: 0 };
+                }
+                l.compartment.discovered = true;
+                l.compartment.crackStage = 3;
+                updateCompartmentCrack(3);
+                saveState(getContext());
+                showToast('Compartment revealed', 'info');
             }
         };
         
