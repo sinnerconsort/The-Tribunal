@@ -5,13 +5,14 @@
  */
 
 import { THOUGHTS } from '../data/thoughts.js';
-import { saveState } from '../core/state.js';
+import { thoughtCabinet, saveState } from '../core/state.js';
 import {
     checkThoughtDiscovery,
     startResearch,
     abandonResearch,
     dismissThought,
-    forgetThought
+    forgetThought,
+    getThought
 } from '../systems/cabinet.js';
 import { showToast, showDiscoveryToast } from './toasts.js';
 
@@ -20,31 +21,39 @@ import { showToast, showDiscoveryToast } from './toasts.js';
 // ═══════════════════════════════════════════════════════════════
 
 export function handleStartResearch(thoughtId, getContext, refreshCabinetTab) {
-    const result = startResearch(thoughtId, THOUGHTS);
-    if (result.success) {
+    // Get thought name for toast (from THOUGHTS or custom)
+    const thought = getThought(thoughtId);
+    const thoughtName = thought?.name || thoughtId;
+    
+    // startResearch returns: true (success), false (not found/slots full), or { error: 'cap_reached' }
+    const result = startResearch(thoughtId, getContext());
+    
+    if (result === true) {
         saveState(getContext());
         refreshCabinetTab();
-        showToast(`Researching: ${THOUGHTS[thoughtId]?.name || thoughtId}`, 'info');
+        showToast(`Researching: ${thoughtName}`, 'info');
+    } else if (result && result.error === 'cap_reached') {
+        showToast('Cannot research: Internalized thoughts at maximum (5/5)', 'error');
     } else {
-        showToast(result.reason || 'Cannot research this thought', 'error');
+        showToast('Cannot research this thought', 'error');
     }
 }
 
 export function handleAbandonResearch(thoughtId, getContext, refreshCabinetTab) {
-    abandonResearch(thoughtId);
+    abandonResearch(thoughtId, getContext());
     saveState(getContext());
     refreshCabinetTab();
     showToast('Research abandoned', 'info');
 }
 
 export function handleDismissThought(thoughtId, getContext, refreshCabinetTab) {
-    dismissThought(thoughtId);
+    dismissThought(thoughtId, getContext());
     saveState(getContext());
     refreshCabinetTab();
 }
 
 export function handleForgetThought(thoughtId, getContext, refreshCabinetTab) {
-    forgetThought(thoughtId);
+    forgetThought(thoughtId, getContext());
     saveState(getContext());
     refreshCabinetTab();
     showToast('Thought forgotten', 'info');
@@ -62,9 +71,14 @@ export async function handleAutoThoughtGeneration(getContext, refreshCabinetTab,
     isAutoGenerating = true;
     
     try {
-        const thought = checkThoughtDiscovery(THOUGHTS);
-        if (thought) {
-            showDiscoveryToast(thought, handleStartResearchBound, handleDismissThoughtBound);
+        // checkThoughtDiscovery returns array of newly discovered thoughts
+        const newThoughts = checkThoughtDiscovery();
+        
+        if (newThoughts && newThoughts.length > 0) {
+            // Show discovery toast for each new thought
+            for (const thought of newThoughts) {
+                showDiscoveryToast(thought, handleStartResearchBound, handleDismissThoughtBound);
+            }
             refreshCabinetTab();
         }
     } catch (error) {
