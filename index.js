@@ -558,6 +558,17 @@ function bindEvents() {
             return;
         }
 
+        // Sync current form values to extensionSettings BEFORE saving profile
+        // This ensures the profile captures what's in the form, not stale data
+        const currentFormSettings = {
+            povStyle: document.getElementById('ie-pov-style')?.value || 'second',
+            characterName: document.getElementById('ie-character-name')?.value || '',
+            characterPronouns: document.getElementById('ie-character-pronouns')?.value || 'they',
+            characterContext: document.getElementById('ie-character-context')?.value || '',
+            scenePerspective: document.getElementById('ie-scene-perspective')?.value || ''
+        };
+        updateSettings(currentFormSettings);
+
         saveProfile(name);
         saveState(getContext());
         nameInput.value = '';
