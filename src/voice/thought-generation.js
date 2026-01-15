@@ -119,6 +119,9 @@ TONE REQUIREMENTS:
     try {
         const response = await callAPI(systemPrompt, userPrompt);
         
+        console.log('[The Tribunal] Raw response length:', response?.length);
+        console.log('[The Tribunal] Response preview:', response?.substring(0, 100));
+        
         // Parse JSON from response
         let jsonStr = response;
         
@@ -126,17 +129,38 @@ TONE REQUIREMENTS:
         const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/);
         if (jsonMatch) {
             jsonStr = jsonMatch[1];
+            console.log('[The Tribunal] Extracted from code block');
+        }
+        
+        // Also try to find JSON object directly if no code blocks
+        if (!jsonMatch) {
+            const objectMatch = response.match(/\{[\s\S]*\}/);
+            if (objectMatch) {
+                jsonStr = objectMatch[0];
+                console.log('[The Tribunal] Extracted JSON object directly');
+            }
         }
         
         // Clean up common issues
         jsonStr = jsonStr.trim();
         
+        console.log('[The Tribunal] Attempting to parse JSON, length:', jsonStr.length);
+        
         // Parse the thought
-        const thought = JSON.parse(jsonStr);
+        let thought;
+        try {
+            thought = JSON.parse(jsonStr);
+        } catch (parseError) {
+            console.error('[The Tribunal] JSON parse failed:', parseError.message);
+            console.error('[The Tribunal] JSON string was:', jsonStr.substring(0, 200));
+            throw new Error(`JSON parse failed: ${parseError.message}`);
+        }
+        
+        console.log('[The Tribunal] Parsed thought name:', thought.name);
         
         // Validate required fields
         if (!thought.name || !thought.problemText) {
-            throw new Error('Missing required thought fields');
+            throw new Error('Missing required thought fields (name or problemText)');
         }
         
         // Set defaults for optional fields
@@ -160,32 +184,42 @@ TONE REQUIREMENTS:
  * Called from cabinet UI via callbacks
  */
 export async function handleGenerateThought(prompt, fromContext, perspective, playerContext, refreshCabinetTab) {
-    const loadingToast = showToast('Generating thought...', 'info', 30000);
+    showToast('Generating thought...', 'info', 5000);
     
     try {
         const thought = await generateThought(prompt, fromContext, perspective, playerContext);
         
         if (thought) {
-            // Add to discovered thoughts
-            const addedThought = addCustomThought(thought, getContext());
-            saveState(getContext());
+            console.log('[The Tribunal] Generated thought:', thought.name);
             
-            // Hide loading toast
-            if (loadingToast?.remove) loadingToast.remove();
+            // Add to discovered thoughts
+            const ctx = getContext();
+            const addedThought = addCustomThought(thought, ctx);
+            
+            console.log('[The Tribunal] Added thought with ID:', addedThought?.id);
+            console.log('[The Tribunal] Discovered array now has:', 
+                (ctx?.extensionSettings?.inland_empire?.thoughtCabinet?.discovered?.length || 'unknown') + ' items');
+            
+            // Force save
+            saveState(ctx);
             
             showToast(`Discovered: ${thought.name}`, 'success');
             
             // Refresh the cabinet UI
-            if (refreshCabinetTab) refreshCabinetTab();
+            if (refreshCabinetTab) {
+                console.log('[The Tribunal] Calling refreshCabinetTab');
+                refreshCabinetTab();
+            } else {
+                console.warn('[The Tribunal] No refreshCabinetTab callback provided!');
+            }
             
             return addedThought;
+        } else {
+            showToast('Generation returned empty', 'error');
         }
     } catch (error) {
-        // Hide loading toast
-        if (loadingToast?.remove) loadingToast.remove();
-        
         const errorMsg = error.message || 'Unknown error';
-        showToast(`Generation failed: ${errorMsg}`, 'error');
+        showToast(`Failed: ${errorMsg.substring(0, 50)}`, 'error');
         console.error('[The Tribunal] Generate thought error:', error);
     }
     
