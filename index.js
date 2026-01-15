@@ -334,8 +334,8 @@ async function triggerVoices(externalContext = null) {
                 renderVoices(voices, container);
             }
             
-            // Also append to chat if enabled
-            if (extensionSettings.appendToChat) {
+            // Also append to chat (default ON unless explicitly disabled)
+            if (extensionSettings.appendToChat !== false) {
                 appendVoicesToChat(voices, getChatContainer());
             }
             
