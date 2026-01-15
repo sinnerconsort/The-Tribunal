@@ -213,6 +213,18 @@ export function refreshProfilesTab(callbacks) {
             const profile = savedProfiles[profileId];
             const profileName = profile?.name || 'Profile';
             
+            // Sync current form values to extensionSettings BEFORE updating profile
+            const formSettings = {
+                povStyle: document.getElementById('ie-pov-style')?.value || 'second',
+                characterName: document.getElementById('ie-character-name')?.value || '',
+                characterPronouns: document.getElementById('ie-character-pronouns')?.value || 'they',
+                characterContext: document.getElementById('ie-character-context')?.value || '',
+                scenePerspective: document.getElementById('ie-scene-perspective')?.value || ''
+            };
+            // We need updateSettings - import it or call via a callback
+            // For now, directly update extensionSettings since we imported it
+            Object.assign(extensionSettings, formSettings);
+            
             updateProfile(profileId, getContext());
             refreshProfilesTab(callbacks);
             showToast(`Updated: ${profileName}`, 'success');
