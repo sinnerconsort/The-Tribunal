@@ -410,10 +410,30 @@ async function handleAutoThoughtGeneration() {
 // UI REFRESH HELPERS
 // ═══════════════════════════════════════════════════════════════
 
+/**
+ * Calculate and display remaining build points
+ * Reads current values from the editor UI
+ */
+function updateBuildPointsDisplay(pointsDisplay) {
+    if (!pointsDisplay) return;
+    
+    // Sum all attribute values from the editor
+    let total = 0;
+    Object.keys(ATTRIBUTES).forEach(attrId => {
+        const valueEl = document.getElementById(`ie-attr-${attrId}`);
+        if (valueEl) {
+            total += parseInt(valueEl.textContent) || 1;
+        }
+    });
+    
+    const remaining = 12 - total; // 12 total points to distribute (4 attrs × 3 avg)
+    updatePointsRemaining(pointsDisplay, remaining);
+}
+
 function refreshAttributesDisplay() {
     const container = document.getElementById('ie-attributes-display');
     if (container) {
-        renderAttributesDisplay(container, ATTRIBUTES, SKILLS, currentBuild);
+        renderAttributesDisplay(container);
     }
 }
 
@@ -538,6 +558,7 @@ function refreshInventoryDisplay() {
 function refreshProfilesTab() {
     const container = document.getElementById('ie-profiles-list');
     const editor = document.getElementById('ie-attributes-editor');
+    const pointsDisplay = document.getElementById('ie-points-remaining');
     
     if (container) {
         renderProfilesList(container, (profileId) => {
@@ -563,8 +584,31 @@ function refreshProfilesTab() {
     }
     
     if (editor) {
-        renderBuildEditor(editor, ATTRIBUTES, SKILLS, currentBuild, getAttributePoints);
-        updatePointsRemaining();
+        renderBuildEditor(editor, (attr, delta) => {
+            // Get current displayed value
+            const valueEl = document.getElementById(`ie-attr-${attr}`);
+            if (!valueEl) return;
+            
+            const current = parseInt(valueEl.textContent) || 1;
+            const newValue = Math.max(1, Math.min(6, current + delta));
+            
+            if (newValue === current) return; // No change (at limit)
+            
+            // Update display
+            valueEl.textContent = newValue;
+            
+            // Update button disabled states
+            const minusBtn = editor.querySelector(`.ie-attr-minus[data-attr="${attr}"]`);
+            const plusBtn = editor.querySelector(`.ie-attr-plus[data-attr="${attr}"]`);
+            if (minusBtn) minusBtn.disabled = newValue <= 1;
+            if (plusBtn) plusBtn.disabled = newValue >= 6;
+            
+            // Recalculate and display remaining points
+            updateBuildPointsDisplay(pointsDisplay);
+        });
+        
+        // Initial points display
+        updateBuildPointsDisplay(pointsDisplay);
     }
 }
 
@@ -1037,11 +1081,14 @@ function bindEvents() {
 
     // Apply build
     document.querySelector('.ie-btn-apply-build')?.addEventListener('click', () => {
-        const editorInputs = document.querySelectorAll('.ie-attr-input');
         const allocation = {};
         
-        editorInputs.forEach(input => {
-            allocation[input.dataset.attr] = parseInt(input.value) || 1;
+        // Read values from the editor spans (created by renderBuildEditor)
+        Object.keys(ATTRIBUTES).forEach(attrId => {
+            const valueEl = document.getElementById(`ie-attr-${attrId}`);
+            if (valueEl) {
+                allocation[attrId] = parseInt(valueEl.textContent) || 1;
+            }
         });
         
         const result = applyAttributeAllocation(allocation);
