@@ -211,7 +211,9 @@ function refreshProfilesTab() {
         deleteProfile,
         updateProfile,
         saveState,
-        getContext
+        getContext,
+        onStatusRefresh: () => refreshStatusTab(),
+        onCabinetRefresh: () => refreshCabinetTab()
     });
 }
 
