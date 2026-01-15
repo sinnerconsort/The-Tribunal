@@ -367,36 +367,33 @@
 
 /* ═══════════════════════════════════════════════════════════════
    VITALS DETAIL - LOW/CRITICAL STATE ANIMATIONS
+   Bars pulse (like header), not text
    ═══════════════════════════════════════════════════════════════ */
 
-@keyframes ie-pulse-gentle {
+@keyframes ie-detail-pulse {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+    50% { opacity: 0.6; }
 }
 
-@keyframes ie-pulse-critical {
+@keyframes ie-detail-pulse-critical {
     0%, 100% { 
         opacity: 1;
-        text-shadow: none;
+        box-shadow: 0 0 8px currentColor;
     }
     50% { 
-        opacity: 0.6;
-        text-shadow: 0 0 8px currentColor;
+        opacity: 0.5;
+        box-shadow: 0 0 4px currentColor;
     }
 }
 
-.ie-vital-detail-row.ie-vital-low .ie-vital-detail-label,
-.ie-vital-detail-row.ie-vital-low .ie-vital-detail-value {
-    animation: ie-pulse-gentle 1.5s ease-in-out infinite;
+/* Low state - bar pulses gently */
+.ie-vital-detail-row.ie-vital-low .ie-vital-detail-fill {
+    animation: ie-detail-pulse 1.5s ease-in-out infinite;
 }
 
-.ie-vital-detail-row.ie-vital-critical .ie-vital-detail-label,
-.ie-vital-detail-row.ie-vital-critical .ie-vital-detail-value {
-    animation: ie-pulse-critical 0.8s ease-in-out infinite;
-}
-
+/* Critical state - bar pulses faster with glow */
 .ie-vital-detail-row.ie-vital-critical .ie-vital-detail-fill {
-    box-shadow: 0 0 10px currentColor;
+    animation: ie-detail-pulse-critical 0.8s ease-in-out infinite;
 }
 
 /* ═══════════════════════════════════════════════════════════════
