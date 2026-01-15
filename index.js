@@ -5,6 +5,7 @@
  * A Disco Elysium-inspired internal skill voice system for roleplay
  * Phase 2: Vitals Auto-Detection
  * Phase 3: Ledger Sub-Tabs & Fortune System
+ * Phase 5: Thought Generation System
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -48,7 +49,13 @@ import {
     getLedger,
     inventory,
     getInventory,
-    setMoney as setMoneyState
+    setMoney as setMoneyState,
+    // Phase 5: Thought generation - NEW
+    addDiscoveredThought,
+    getDiscoveredThoughts,
+    getThemeCounters,
+    getPlayerContext,
+    savePlayerContext
 } from './src/core/state.js';
 
 // Systems
@@ -157,6 +164,13 @@ import {
     handleAutoThoughtGeneration
 } from './src/ui/cabinet-handlers.js';
 
+// Phase 5: Thought Generator Handlers - NEW
+import {
+    bindThoughtGeneratorEvents,
+    autoGenerateThought,
+    generateThoughtFromConcept
+} from './src/ui/thought-generator-handlers.js';
+
 // ═══════════════════════════════════════════════════════════════
 // EXTENSION METADATA
 // ═══════════════════════════════════════════════════════════════
@@ -211,9 +225,7 @@ function refreshProfilesTab() {
         deleteProfile,
         updateProfile,
         saveState,
-        getContext,
-        onStatusRefresh: () => refreshStatusTab(),
-        onCabinetRefresh: () => refreshCabinetTab()
+        getContext
     });
 }
 
@@ -558,17 +570,6 @@ function bindEvents() {
             return;
         }
 
-        // Sync current form values to extensionSettings BEFORE saving profile
-        // This ensures the profile captures what's in the form, not stale data
-        const currentFormSettings = {
-            povStyle: document.getElementById('ie-pov-style')?.value || 'second',
-            characterName: document.getElementById('ie-character-name')?.value || '',
-            characterPronouns: document.getElementById('ie-character-pronouns')?.value || 'they',
-            characterContext: document.getElementById('ie-character-context')?.value || '',
-            scenePerspective: document.getElementById('ie-scene-perspective')?.value || ''
-        };
-        updateSettings(currentFormSettings);
-
         saveProfile(name);
         saveState(getContext());
         nameInput.value = '';
@@ -675,6 +676,24 @@ function bindEvents() {
         refreshVitals();
         showToast('Morale +1', 'success', 1500);
     });
+    
+    // ═══════════════════════════════════════════════════════════════
+    // THOUGHT GENERATOR BINDINGS (Phase 5) - NEW
+    // ═══════════════════════════════════════════════════════════════
+    
+    // Bind thought generator events (perspective toggle, identity input, generate button)
+    bindThoughtGeneratorEvents(
+        getContext,
+        (thought) => {
+            // Add to discovered thoughts
+            addDiscoveredThought(thought);
+            saveState(getContext());
+        },
+        () => {
+            // Refresh cabinet display
+            refreshCabinetTab();
+        }
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -704,8 +723,58 @@ function setupAutoTrigger() {
             if (extensionSettings.autoDetectVitals) {
                 processMessageForVitals(lastMsg.mes, lastMsg.send_date);
             }
+            
+            // ═══════════════════════════════════════════════════════════════
+            // AUTO THOUGHT GENERATION (Phase 5) - NEW
+            // ═══════════════════════════════════════════════════════════════
+            if (extensionSettings.thoughtGeneration?.enableAutoThoughts) {
+                await checkAutoThoughtTrigger(lastMsg.mes);
+            }
         }
     });
+}
+
+/**
+ * Check if conditions are met for auto thought generation
+ * @param {string} messageText - The message text to analyze
+ */
+async function checkAutoThoughtTrigger(messageText) {
+    const themeData = getThemeCounters();
+    const threshold = extensionSettings.thoughtGeneration?.autoTriggerThreshold || 5;
+    
+    // Find themes that crossed threshold
+    const triggeringThemes = Object.entries(themeData)
+        .filter(([theme, count]) => count >= threshold)
+        .map(([theme]) => theme);
+    
+    if (triggeringThemes.length === 0) return;
+    
+    // Check cooldown
+    const lastAutoGen = extensionSettings.thoughtGeneration?.lastAutoGenTime || 0;
+    const cooldownMs = (extensionSettings.thoughtGeneration?.cooldownMinutes || 10) * 60 * 1000;
+    
+    if (Date.now() - lastAutoGen < cooldownMs) return;
+    
+    // Trigger auto-generation
+    const thought = await autoGenerateThought(
+        triggeringThemes,
+        null, // emotionalTone - could extract from analyzeContext()
+        getContext,
+        (thought) => {
+            addDiscoveredThought(thought);
+            saveState(getContext());
+            refreshCabinetTab();
+        }
+    );
+    
+    if (thought) {
+        // Update cooldown
+        if (!extensionSettings.thoughtGeneration) {
+            extensionSettings.thoughtGeneration = {};
+        }
+        extensionSettings.thoughtGeneration.lastAutoGenTime = Date.now();
+        saveState(getContext());
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -823,7 +892,7 @@ jQuery(async () => {
         
         // Create global API
         window.InlandEmpire = {
-            version: '3.1.0',
+            version: '3.2.0', // Updated version for Phase 5
             _externalModifiers: {},
             _modifierSources: {},
             
@@ -833,7 +902,7 @@ jQuery(async () => {
             getBuild: () => currentBuild ? { ...currentBuild } : null,
             getAttributePoints: () => getAttributePoints(),
             getActiveStatuses: () => [...activeStatuses],
-            getThemeCounters: () => ({ ...themeCounters }),
+            getThemeCounters: () => getThemeCounters(),
             getTopThemes: (n = 5) => getTopThemes(n),
             getThoughtCabinet: () => ({ ...thoughtCabinet }),
             getDiscoveryContext: () => ({ ...discoveryContext }),
@@ -841,6 +910,9 @@ jQuery(async () => {
             getEffectiveSkillLevel: (skillId) => getEffectiveSkillLevel(skillId, getResearchPenalties()),
             getVitals: () => getVitals(),
             getLedger: () => getLedger(),
+            // Phase 5: Player context - NEW
+            getPlayerContext: () => getPlayerContext(),
+            getDiscoveredThoughts: () => getDiscoveredThoughts(),
             
             // Setters
             setHealth: (value) => {
@@ -988,6 +1060,19 @@ jQuery(async () => {
                 updateCompartmentCrack(3);
                 saveState(getContext());
                 showToast('Compartment revealed', 'info');
+            },
+            
+            // Phase 5: Thought generation API - NEW
+            generateThought: async (concept) => {
+                return await generateThoughtFromConcept(
+                    concept,
+                    getContext,
+                    (thought) => {
+                        addDiscoveredThought(thought);
+                        saveState(getContext());
+                        refreshCabinetTab();
+                    }
+                );
             }
         };
         
