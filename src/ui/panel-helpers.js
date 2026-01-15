@@ -3,26 +3,43 @@
  * Utility functions for updating panel displays
  * 
  * Split from panel.js for maintainability
+ * Updated: Dynamic HSL colors for vitals (consolidated from render-vitals.js)
  */
 
 // ═══════════════════════════════════════════════════════════════
-// VITALS HELPERS
+// VITALS HELPERS (with dynamic HSL colors)
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Update health display in header and status tab
- * @param {number} current - Current health value (0-100)
- * @param {number} max - Max health value (default 100)
+ * Calculate HSL hue based on vital percentage
+ * 0% = red (0), 100% = green (120)
+ * @param {number} percent - 0-100
+ * @returns {number} HSL hue value
  */
-export function updateHealth(current, max = 100) {
+function getVitalHue(percent) {
+    return (percent / 100) * 120;
+}
+
+/**
+ * Update a vital bar (shared logic for health/morale)
+ * @param {string} type - 'health' or 'morale'
+ * @param {number} current - Current value
+ * @param {number} max - Maximum value
+ */
+function updateVitalBar(type, current, max = 100) {
     const percent = Math.max(0, Math.min(100, (current / max) * 100));
+    const hue = getVitalHue(percent);
+    const color = `hsl(${hue}, 65%, 45%)`;
     
     // Header bar
-    const headerFill = document.getElementById('ie-health-fill');
-    const headerValue = document.getElementById('ie-health-value');
+    const headerFill = document.getElementById(`ie-${type}-fill`);
+    const headerValue = document.getElementById(`ie-${type}-value`);
     const headerBar = headerFill?.closest('.ie-vital-bar');
     
-    if (headerFill) headerFill.style.width = `${percent}%`;
+    if (headerFill) {
+        headerFill.style.width = `${percent}%`;
+        headerFill.style.background = color;
+    }
     if (headerValue) headerValue.textContent = Math.round(current);
     
     // Add low/critical state classes
@@ -35,12 +52,15 @@ export function updateHealth(current, max = 100) {
         }
     }
     
-    // Status tab detail
-    const detailFill = document.getElementById('ie-health-detail-fill');
-    const detailValue = document.getElementById('ie-health-detail-value');
+    // Status tab detail bar
+    const detailFill = document.getElementById(`ie-${type}-detail-fill`);
+    const detailValue = document.getElementById(`ie-${type}-detail-value`);
     const detailBar = detailFill?.closest('.ie-vital-bar');
     
-    if (detailFill) detailFill.style.width = `${percent}%`;
+    if (detailFill) {
+        detailFill.style.width = `${percent}%`;
+        detailFill.style.background = color;
+    }
     if (detailValue) detailValue.textContent = `${Math.round(current)} / ${max}`;
     
     if (detailBar) {
@@ -54,47 +74,48 @@ export function updateHealth(current, max = 100) {
 }
 
 /**
+ * Update health display in header and status tab
+ * @param {number} current - Current health value
+ * @param {number} max - Max health value (default 100)
+ */
+export function updateHealth(current, max = 100) {
+    updateVitalBar('health', current, max);
+}
+
+/**
  * Update morale display in header and status tab
- * @param {number} current - Current morale value (0-100)
+ * @param {number} current - Current morale value
  * @param {number} max - Max morale value (default 100)
  */
 export function updateMorale(current, max = 100) {
-    const percent = Math.max(0, Math.min(100, (current / max) * 100));
+    updateVitalBar('morale', current, max);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VITALS BUTTON EVENT BINDING
+// Call this after panel is created to wire up +/- buttons
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Bind vitals +/- button events
+ * @param {Object} callbacks - { onHealthChange: (delta) => {}, onMoraleChange: (delta) => {} }
+ */
+export function bindVitalsControls(callbacks = {}) {
+    // Health buttons
+    document.getElementById('ie-health-minus')?.addEventListener('click', () => {
+        if (callbacks.onHealthChange) callbacks.onHealthChange(-1);
+    });
+    document.getElementById('ie-health-plus')?.addEventListener('click', () => {
+        if (callbacks.onHealthChange) callbacks.onHealthChange(1);
+    });
     
-    // Header bar
-    const headerFill = document.getElementById('ie-morale-fill');
-    const headerValue = document.getElementById('ie-morale-value');
-    const headerBar = headerFill?.closest('.ie-vital-bar');
-    
-    if (headerFill) headerFill.style.width = `${percent}%`;
-    if (headerValue) headerValue.textContent = Math.round(current);
-    
-    // Add low/critical state classes
-    if (headerBar) {
-        headerBar.classList.remove('ie-vital-low', 'ie-vital-critical');
-        if (percent <= 15) {
-            headerBar.classList.add('ie-vital-critical');
-        } else if (percent <= 30) {
-            headerBar.classList.add('ie-vital-low');
-        }
-    }
-    
-    // Status tab detail
-    const detailFill = document.getElementById('ie-morale-detail-fill');
-    const detailValue = document.getElementById('ie-morale-detail-value');
-    const detailBar = detailFill?.closest('.ie-vital-bar');
-    
-    if (detailFill) detailFill.style.width = `${percent}%`;
-    if (detailValue) detailValue.textContent = `${Math.round(current)} / ${max}`;
-    
-    if (detailBar) {
-        detailBar.classList.remove('ie-vital-low', 'ie-vital-critical');
-        if (percent <= 15) {
-            detailBar.classList.add('ie-vital-critical');
-        } else if (percent <= 30) {
-            detailBar.classList.add('ie-vital-low');
-        }
-    }
+    // Morale buttons
+    document.getElementById('ie-morale-minus')?.addEventListener('click', () => {
+        if (callbacks.onMoraleChange) callbacks.onMoraleChange(-1);
+    });
+    document.getElementById('ie-morale-plus')?.addEventListener('click', () => {
+        if (callbacks.onMoraleChange) callbacks.onMoraleChange(1);
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════
