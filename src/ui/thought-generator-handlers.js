@@ -198,13 +198,22 @@ async function generateThoughtFromConcept(concept, getContext, onSuccess) {
         // Call API
         const response = await callAPI(systemPrompt, userPrompt);
         
+        // DEBUG 1: Check if we got a response
+        showToast(`DEBUG 1: Response ${response ? 'received' : 'NULL'}`, 'info', 5000);
+        
         if (!response) {
             showToast('No response from API', 'error');
             return null;
         }
         
+        // DEBUG 2: Show first 100 chars of response
+        showToast(`DEBUG 2: ${response.substring(0, 100)}...`, 'info', 8000);
+        
         // Parse response
         const parsed = parseThoughtResponse(response);
+        
+        // DEBUG 3: Check if parsing worked
+        showToast(`DEBUG 3: Parsed = ${parsed ? parsed.name : 'NULL'}`, 'info', 5000);
         
         if (!parsed) {
             showToast('Failed to parse thought - check API response', 'error');
@@ -215,9 +224,16 @@ async function generateThoughtFromConcept(concept, getContext, onSuccess) {
         const thoughtId = `generated-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
         const thought = formatThoughtForCabinet(parsed, thoughtId);
         
+        // DEBUG 4: Check formatted thought
+        showToast(`DEBUG 4: Formatted ID = ${thought?.id}`, 'info', 5000);
+        
         // Success callback (adds to cabinet, refreshes UI)
         if (onSuccess) {
+            // DEBUG 5: About to call onSuccess
+            showToast(`DEBUG 5: Calling onSuccess`, 'info', 5000);
             onSuccess(thought);
+            // DEBUG 6: onSuccess completed
+            showToast(`DEBUG 6: onSuccess done`, 'info', 5000);
         }
         
         showToast(`Discovered: ${thought.name}`, 'success');
