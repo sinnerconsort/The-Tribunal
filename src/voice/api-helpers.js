@@ -143,25 +143,21 @@ export function extractResponseContent(response) {
 
 /**
  * Main API call function - tries multiple methods
- * @param {string} systemPrompt - System prompt
- * @param {string} userPrompt - User prompt
- * @param {Object} options - Optional overrides { maxTokens, temperature }
  */
-export async function callAPI(systemPrompt, userPrompt, options = {}) {
+export async function callAPI(systemPrompt, userPrompt) {
     const ctx = getContext();
     const useSTConnection = extensionSettings.connectionProfile && extensionSettings.connectionProfile !== 'none';
     
     console.log('[The Tribunal] API call config:', {
         connectionProfile: extensionSettings.connectionProfile,
         useSTConnection,
-        hasConnectionManager: !!ctx?.ConnectionManagerRequestService,
-        optionOverrides: options
+        hasConnectionManager: !!ctx?.ConnectionManagerRequestService
     });
     
     // Method 1: Use ST Connection Manager if configured
     if (useSTConnection && ctx?.ConnectionManagerRequestService) {
         try {
-            return await callAPIViaConnectionManager(ctx, systemPrompt, userPrompt, options);
+            return await callAPIViaConnectionManager(ctx, systemPrompt, userPrompt);
         } catch (err) {
             console.error('[The Tribunal] ConnectionManager failed:', err);
             // Fall through to direct fetch
@@ -169,28 +165,13 @@ export async function callAPI(systemPrompt, userPrompt, options = {}) {
     }
     
     // Method 2: Direct fetch with extension's own API settings
-    return await callAPIDirectFetch(systemPrompt, userPrompt, options);
-}
-
-/**
- * Specialized API call for thought generation
- * Uses higher maxTokens to ensure JSON completes
- * @param {string} systemPrompt - System prompt
- * @param {string} userPrompt - User prompt
- */
-export async function callAPIForThoughts(systemPrompt, userPrompt) {
-    // Force higher maxTokens for thought generation to prevent truncation
-    // Even concise thoughts need ~400-500 tokens for full JSON structure
-    return await callAPI(systemPrompt, userPrompt, {
-        maxTokens: 800,
-        temperature: 0.85  // Slightly lower temp for more consistent JSON output
-    });
+    return await callAPIDirectFetch(systemPrompt, userPrompt);
 }
 
 /**
  * Call API via SillyTavern's ConnectionManagerRequestService
  */
-async function callAPIViaConnectionManager(ctx, systemPrompt, userPrompt, options = {}) {
+async function callAPIViaConnectionManager(ctx, systemPrompt, userPrompt) {
     const profileName = extensionSettings.connectionProfile || 'current';
     const profileId = getProfileIdByName(profileName);
     
@@ -198,11 +179,7 @@ async function callAPIViaConnectionManager(ctx, systemPrompt, userPrompt, option
         throw new Error('No connection profile found');
     }
     
-    // Use option overrides if provided, otherwise fall back to settings
-    const maxTokens = options.maxTokens || extensionSettings.maxTokens || 600;
-    const temperature = options.temperature || extensionSettings.temperature || 0.9;
-    
-    console.log('[The Tribunal] Calling via ConnectionManager, profile:', profileName, 'id:', profileId, 'maxTokens:', maxTokens);
+    console.log('[The Tribunal] Calling via ConnectionManager, profile:', profileName, 'id:', profileId);
     
     const response = await ctx.ConnectionManagerRequestService.sendRequest(
         profileId,
@@ -210,14 +187,14 @@ async function callAPIViaConnectionManager(ctx, systemPrompt, userPrompt, option
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
         ],
-        maxTokens,
+        extensionSettings.maxTokens || 600,
         {
             extractData: true,
             includePreset: false,
             includeInstruct: false
         },
         {
-            temperature: temperature
+            temperature: extensionSettings.temperature || 0.9
         }
     );
     
@@ -238,12 +215,8 @@ async function callAPIViaConnectionManager(ctx, systemPrompt, userPrompt, option
 /**
  * Direct fetch to external API
  */
-async function callAPIDirectFetch(systemPrompt, userPrompt, options = {}) {
+async function callAPIDirectFetch(systemPrompt, userPrompt) {
     let { apiEndpoint, apiKey, model, maxTokens, temperature } = extensionSettings;
-
-    // Use option overrides if provided
-    maxTokens = options.maxTokens || maxTokens || 600;
-    temperature = options.temperature || temperature || 0.9;
 
     if (!apiEndpoint || !apiKey) {
         throw new Error('API not configured. Set API endpoint and key in settings, or select a ST connection profile.');
@@ -257,7 +230,7 @@ async function callAPIDirectFetch(systemPrompt, userPrompt, options = {}) {
         ? apiEndpoint 
         : apiEndpoint + '/chat/completions';
 
-    console.log('[The Tribunal] Direct fetch to:', fullUrl, 'Model:', model, 'maxTokens:', maxTokens);
+    console.log('[The Tribunal] Direct fetch to:', fullUrl, 'Model:', model);
 
     let response;
     try {
@@ -273,8 +246,8 @@ async function callAPIDirectFetch(systemPrompt, userPrompt, options = {}) {
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt }
                 ],
-                max_tokens: maxTokens,
-                temperature: temperature
+                max_tokens: maxTokens || 600,
+                temperature: temperature || 0.9
             })
         });
     } catch (fetchError) {
