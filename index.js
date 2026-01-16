@@ -50,17 +50,12 @@ import {
     inventory,
     getInventory,
     setMoney as setMoneyState,
-    // Phase 5: Thought generation
+    // Phase 5: Thought generation - NEW
     addDiscoveredThought,
     getDiscoveredThoughts,
     getThemeCounters,
     getPlayerContext,
-    savePlayerContext,
-    // Phase 6: Per-chat persistence
-    loadChatState,
-    saveChatState,
-    hasChatState,
-    clearChatState
+    savePlayerContext
 } from './src/core/state.js';
 
 // Systems
@@ -767,7 +762,7 @@ async function checkAutoThoughtTrigger(messageText) {
         getContext,
         (thought) => {
             addDiscoveredThought(thought);
-            saveChatState(getContext());
+            saveState(getContext());
             refreshCabinetTab();
         }
     );
@@ -778,87 +773,8 @@ async function checkAutoThoughtTrigger(messageText) {
             extensionSettings.thoughtGeneration = {};
         }
         extensionSettings.thoughtGeneration.lastAutoGenTime = Date.now();
-        saveChatState(getContext());
+        saveState(getContext());
     }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CHAT PERSISTENCE (Phase 6)
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Set up per-chat state persistence
- * Saves state when leaving a chat, loads when entering
- */
-function setupChatPersistence() {
-    const context = getContext();
-    if (!context?.eventSource) {
-        console.warn('[The Tribunal] Event source not available for chat persistence');
-        return;
-    }
-
-    const event_types = context.event_types;
-
-    // Save state BEFORE switching away from current chat
-    context.eventSource.on(event_types.CHAT_CHANGING, () => {
-        console.log('[The Tribunal] Chat changing, saving state...');
-        saveChatState(getContext());
-    });
-
-    // Load state AFTER switching to new chat
-    context.eventSource.on(event_types.CHAT_CHANGED, () => {
-        const ctx = getContext();
-        const loaded = loadChatState(ctx);
-        
-        if (loaded) {
-            console.log('[The Tribunal] Loaded saved state for this chat');
-            showToast('Loaded saved progress', 'info', 2000);
-        } else {
-            console.log('[The Tribunal] No saved state for this chat');
-        }
-        
-        // Refresh all UI panels to reflect loaded state
-        refreshAllPanels();
-    });
-
-    // Auto-save periodically after messages (debounced)
-    let chatSaveTimeout = null;
-    context.eventSource.on(event_types.MESSAGE_RECEIVED, () => {
-        clearTimeout(chatSaveTimeout);
-        chatSaveTimeout = setTimeout(() => {
-            saveChatState(getContext());
-        }, 3000);
-    });
-
-    console.log('[The Tribunal] Chat persistence hooks registered');
-}
-
-/**
- * Refresh all UI panels after loading chat state
- */
-function refreshAllPanels() {
-    refreshAttributesDisplay();
-    refreshStatusTab();
-    refreshCabinetTab();
-    refreshVitals();
-    refreshLedgerDisplay();
-    refreshInventoryDisplay();
-    
-    // Update thought generator identity field
-    const identityInput = document.querySelector('.ie-player-identity-input');
-    if (identityInput) {
-        const playerContext = getPlayerContext();
-        identityInput.value = playerContext.identity || '';
-    }
-    
-    // Update perspective buttons
-    const perspective = getPlayerContext().perspective || 'observer';
-    document.querySelectorAll('.ie-perspective-btn').forEach(btn => {
-        btn.classList.toggle(
-            'ie-perspective-active',
-            btn.dataset.perspective === perspective
-        );
-    });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -868,15 +784,7 @@ function refreshAllPanels() {
 async function init() {
     console.log('[The Tribunal] Initializing...');
 
-    // Load GLOBAL state (settings + profile templates)
     await loadState(getContext);
-    
-    // Load PER-CHAT state if available
-    const hadChatState = loadChatState(getContext());
-    if (hadChatState) {
-        console.log('[The Tribunal] Restored saved chat state');
-    }
-    
     initializeThemeCounters(THEMES);
     initializeDefaultBuild(ATTRIBUTES, SKILLS);
     
@@ -963,7 +871,6 @@ async function init() {
     });
 
     setupAutoTrigger();
-    setupChatPersistence();
     
     // Reset session tracking for compartment
     const l = getLedger();
@@ -1162,35 +1069,10 @@ jQuery(async () => {
                     getContext,
                     (thought) => {
                         addDiscoveredThought(thought);
-                        saveChatState(getContext());
+                        saveState(getContext());
                         refreshCabinetTab();
                     }
                 );
-            },
-            
-            // Phase 6: Chat state management API - NEW
-            saveChatState: () => {
-                saveChatState(getContext());
-                showToast('Progress saved', 'success', 2000);
-            },
-            
-            loadChatStateManual: () => {
-                const loaded = loadChatState(getContext());
-                if (loaded) {
-                    refreshAllPanels();
-                    showToast('Progress loaded', 'success', 2000);
-                } else {
-                    showToast('No saved progress for this chat', 'info', 2000);
-                }
-                return loaded;
-            },
-            
-            hasChatState: () => hasChatState(getContext()),
-            
-            clearChatState: () => {
-                clearChatState(getContext());
-                refreshAllPanels();
-                showToast('Progress cleared', 'info', 2000);
             }
         };
         
