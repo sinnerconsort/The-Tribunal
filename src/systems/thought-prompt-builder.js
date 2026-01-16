@@ -11,92 +11,57 @@
  */
 export function buildThoughtSystemPrompt(playerContext, themeData) {
     const perspectiveGuide = playerContext.perspective === 'observer'
-        ? `The player is an OBSERVER - an outside consciousness watching events unfold. Frame thoughts as reactions to what they're witnessing, not experiencing directly. Use "you watch", "you see them", "this reminds you of".`
-        : `The player is a PARTICIPANT - they ARE the character. Frame thoughts as internal experiences. Use "you feel", "you remember", "your hands", "your heart".`;
+        ? `The player is an OBSERVER watching events unfold. Use "you watch", "you see them".`
+        : `The player is a PARTICIPANT. Use "you feel", "you remember".`;
 
     const identityGuide = playerContext.identity
-        ? `The player's identity/role: "${playerContext.identity}". Incorporate this perspective naturally - their background colors how they interpret events.`
-        : `No specific identity provided. Write for a general observer/participant.`;
+        ? `Player identity: "${playerContext.identity}".`
+        : '';
 
     // Get top 3 themes for flavor
     const topThemes = Object.entries(themeData || {})
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
-        .map(([theme, count]) => `${theme} (${count})`)
+        .map(([theme]) => theme)
         .join(', ');
 
-    return `You are a Disco Elysium thought generator. You create THOUGHTS for the Thought Cabinet - obsessive ideas that lodge in the player's mind during roleplay.
+    return `You generate Disco Elysium THOUGHTS for a Thought Cabinet.
 
 ${perspectiveGuide}
-
 ${identityGuide}
+${topThemes ? `Themes: ${topThemes}` : ''}
 
-${topThemes ? `Current dominant themes in this playthrough: ${topThemes}` : ''}
+## CRITICAL LENGTH RULES - FOLLOW EXACTLY
 
-## DISCO ELYSIUM THOUGHT STRUCTURE
+⚠️ MAXIMUM 50 WORDS for problemText
+⚠️ MAXIMUM 50 WORDS for solutionText
+⚠️ Total response must be under 400 tokens
 
-Each thought has TWO parts:
+If you exceed these limits, the response will be cut off and fail.
 
-**PROBLEM** (While Researching)
-- The obsessive question or fixation that won't let go
-- Uncertain, probing, often uncomfortable
-- Hooks the player with a mystery or discomfort
-- 3-6 sentences, building tension
+## STRUCTURE
 
-**SOLUTION** (When Internalized)  
-- The "answer" the mind arrives at (may be wrong, ironic, or darkly funny)
-- Resolves the tension with insight, acceptance, or delusion
-- Often bittersweet, self-aware, or unexpectedly practical
-- 3-6 sentences, landing on a strong final line
+problemText: The obsessive question (2-3 sentences MAX)
+solutionText: The "answer" arrived at (2-3 sentences MAX)
 
-## ALLOWED WRITING PATTERNS
+## STYLE
 
-Choose ONE pattern per thought:
+- Punchy, evocative, specific
+- No filler or repetition
+- End solutionText with impact
 
-1. **LIST ESCALATION** (Actual Art Degree style)
-   Build momentum through increasingly absurd/intense descriptors
-   "Trite, contrived, mediocre, milquetoast, amateurish, infantile..."
+## OUTPUT FORMAT - JSON ONLY
 
-2. **PRACTICAL SPIRAL** (Waste Land of Reality style)
-   Start existential, land on weirdly specific practical advice
-   "Congrats - you're sober. Eat plenty. Your coordination will improve in weeks."
-
-3. **PROPHETIC DREAD** (Cop of the Apocalypse style)
-   Build cosmic/existential weight, end with call to action
-   "The world is dying. It's a fact. People need to know."
-
-4. **SELF-AWARE COMMENTARY** (Homo-Sexual Underground style)
-   Break the fourth wall about the obsession itself
-   "You've thought about this for *eight hours*?! Maybe you should stop."
-
-5. **MEMORY TRACE** (Lonesome Long Way Home style)
-   Reconstruct a path, place, or moment with sensory specificity
-   "Jump across the bridge. Fall over. Get up. Shuffle through courtyards..."
-
-## CRITICAL RULES
-
-❌ NEVER repeat a phrase or idea, even reworded
-❌ NEVER loop on the same emotional beat
-❌ NEVER use filler ("It's about...", "The thing is...")
-❌ NEVER exceed 100 words per section
-
-✅ Each sentence must ADD something new
-✅ Build toward a punchline, revelation, or emotional peak
-✅ Use *italics* for emphasis sparingly
-✅ Include specific details (names, places, objects from context)
-✅ End SOLUTION with a memorable final line
-
-## OUTPUT FORMAT
-
-Respond with ONLY valid JSON:
 {
-    "name": "THOUGHT NAME IN CAPS",
-    "icon": "single emoji representing the thought",
-    "problemText": "The PROBLEM text...",
-    "solutionText": "The SOLUTION text...",
-    "researchBonus": { "skillName": { "value": -1, "flavor": "Brief reason" } },
-    "internalizedBonus": { "skillName": { "value": 2, "flavor": "Brief reason" } }
-}`;
+    "name": "THOUGHT NAME",
+    "icon": "emoji",
+    "problemText": "2-3 sentences max.",
+    "solutionText": "2-3 sentences max.",
+    "researchBonus": { "skillname": { "value": -1, "flavor": "Short reason" } },
+    "internalizedBonus": { "skillname": { "value": 2, "flavor": "Short reason" } }
+}
+
+NO markdown fences. NO extra text. ONLY the JSON object.`;
 }
 
 /**
@@ -116,38 +81,31 @@ export function buildThoughtUserPrompt(concept, chatContext, options = {}) {
     let prompt = '';
 
     if (autoGenerated) {
-        prompt += `Generate a thought that emerged organically from this scene.
+        prompt += `Generate a thought from this scene.
 
-TRIGGERING THEMES: ${triggeringThemes.join(', ')}
-${emotionalTone ? `EMOTIONAL TONE: ${emotionalTone}` : ''}
+THEMES: ${triggeringThemes.join(', ')}
+${emotionalTone ? `TONE: ${emotionalTone}` : ''}
 
-SCENE CONTEXT:
+SCENE:
 """
-${chatContext}
-"""
-
-Create a thought that captures something the player might fixate on from this scene - a question, contradiction, obsession, or realization that won't let go.`;
+${chatContext?.substring(0, 800) || 'No context'}
+"""`;
     } else {
-        prompt += `Generate a thought based on this player-provided concept:
+        prompt += `Generate a thought about: "${concept}"
 
-CONCEPT: "${concept}"
-
-${chatContext ? `CURRENT SCENE FOR CONTEXT:
+${chatContext ? `SCENE CONTEXT:
 """
-${chatContext}
-"""` : ''}
-
-Create a thought that explores this concept through the lens of what's happening in the roleplay.`;
+${chatContext.substring(0, 800)}
+"""` : ''}`;
     }
 
     prompt += `
 
-Remember:
-- Match one of the five allowed patterns (list escalation, practical spiral, prophetic dread, self-aware commentary, or memory trace)
-- NO repetition - each sentence must advance
-- End with impact
-- Keep it under 100 words per section
-- Output valid JSON only, no markdown fences`;
+REMEMBER:
+- problemText: MAX 50 words (2-3 sentences)
+- solutionText: MAX 50 words (2-3 sentences)
+- Output ONLY valid JSON, no markdown fences
+- Be concise or the response will be cut off`;
 
     return prompt;
 }
@@ -158,21 +116,34 @@ Remember:
  * @returns {Object|null} Parsed thought or null if invalid
  */
 export function parseThoughtResponse(response) {
+    if (!response) {
+        console.error('[Tribunal] No response to parse');
+        return null;
+    }
+    
     try {
-        // Clean up response - remove markdown code blocks if present
         let cleaned = response.trim();
         
-        // Handle various markdown fence formats
-        // Match ```json, ```JSON, ``` at start
+        // Strip markdown code fences (various formats)
+        // Handle ```json, ```JSON, ``` with or without newlines
         cleaned = cleaned.replace(/^```(?:json|JSON)?\s*\n?/i, '');
-        // Match ``` at end (with possible trailing whitespace/newlines)
         cleaned = cleaned.replace(/\n?```\s*$/i, '');
+        
+        // Also handle if there's trailing content after the JSON
+        // Find the last } and truncate there
+        const lastBrace = cleaned.lastIndexOf('}');
+        if (lastBrace !== -1 && lastBrace < cleaned.length - 1) {
+            cleaned = cleaned.substring(0, lastBrace + 1);
+        }
+        
         cleaned = cleaned.trim();
+        
+        // Debug log
+        console.log('[Tribunal] Cleaned JSON:', cleaned.substring(0, 200) + '...');
 
         const thought = JSON.parse(cleaned);
 
-        // Accept both field name variants (problem/problemText, solution/solutionText)
-        // Normalize to problemText/solutionText for cabinet compatibility
+        // Accept both field name variants
         if (thought.problem && !thought.problemText) {
             thought.problemText = thought.problem;
         }
@@ -180,37 +151,35 @@ export function parseThoughtResponse(response) {
             thought.solutionText = thought.solution;
         }
 
-        // Validate required fields (check both variants)
+        // Validate required fields
         if (!thought.name) {
-            console.warn('[Tribunal] Thought missing required field: name');
-            return null;
-        }
-        if (!thought.icon) {
-            console.warn('[Tribunal] Thought missing required field: icon');
+            console.warn('[Tribunal] Thought missing name');
             return null;
         }
         if (!thought.problemText) {
-            console.warn('[Tribunal] Thought missing required field: problemText/problem');
+            console.warn('[Tribunal] Thought missing problemText');
             return null;
         }
         if (!thought.solutionText) {
-            console.warn('[Tribunal] Thought missing required field: solutionText/solution');
+            console.warn('[Tribunal] Thought missing solutionText');
             return null;
         }
 
         // Normalize name to uppercase
         thought.name = thought.name.toUpperCase();
+        
+        // Default icon if missing
+        if (!thought.icon) {
+            thought.icon = '💭';
+        }
 
-        // Normalize bonus formats - handle both old array format and new object format
-        // Old format: internalizeBonuses: ["+1 Volition: reason"]
-        // New format: internalizedBonus: { "volition": { "value": 1, "flavor": "reason" } }
+        // Normalize bonus formats
         if (Array.isArray(thought.internalizeBonuses) && !thought.internalizedBonus) {
             thought.internalizedBonus = {};
             for (const bonus of thought.internalizeBonuses) {
                 const match = bonus.match(/([+-]\d+)\s+(\w+)(?::\s*(.+))?/);
                 if (match) {
-                    const skillName = match[2].toLowerCase();
-                    thought.internalizedBonus[skillName] = {
+                    thought.internalizedBonus[match[2].toLowerCase()] = {
                         value: parseInt(match[1]),
                         flavor: match[3] || ''
                     };
@@ -218,13 +187,11 @@ export function parseThoughtResponse(response) {
             }
         }
 
-        // Handle old researchBonus string format
         if (typeof thought.researchBonus === 'string') {
             const match = thought.researchBonus.match(/([+-]\d+)\s+(\w+)(?::\s*(.+))?/);
             if (match) {
-                const skillName = match[2].toLowerCase();
                 thought.researchBonus = {
-                    [skillName]: {
+                    [match[2].toLowerCase()]: {
                         value: parseInt(match[1]),
                         flavor: match[3] || ''
                     }
@@ -234,14 +201,14 @@ export function parseThoughtResponse(response) {
 
         // Add metadata
         thought.isGenerated = true;
-        thought.isCustom = true;  // Mark as custom for cabinet rendering
+        thought.isCustom = true;
         thought.generatedAt = Date.now();
 
         return thought;
 
     } catch (e) {
-        console.error('[Tribunal] Failed to parse thought response:', e);
-        console.error('[Tribunal] Raw response:', response?.substring?.(0, 500));
+        console.error('[Tribunal] JSON parse failed:', e.message);
+        console.error('[Tribunal] Raw response (first 500 chars):', response?.substring?.(0, 500));
         return null;
     }
 }
@@ -256,80 +223,20 @@ export function formatThoughtForCabinet(thought, thoughtId) {
     return {
         id: thoughtId,
         name: thought.name,
-        icon: thought.icon,
+        icon: thought.icon || '💭',
         
-        // Use the normalized field names that render-cabinet expects
         problemText: thought.problemText,
         solutionText: thought.solutionText,
         
-        // Bonus format matching what render-cabinet expects
-        // { skillId: { value: number, flavor: string } }
         researchBonus: thought.researchBonus || {},
         internalizedBonus: thought.internalizedBonus || {},
         
-        // Optional fields
         flavorEffect: thought.flavorEffect || null,
         
-        // Metadata
         isGenerated: true,
         isCustom: true,
         generatedAt: thought.generatedAt,
         
-        // Research timing (in message counts, multiplied by RESEARCH_TIME_MULTIPLIER in cabinet.js)
-        researchTime: 10,
+        researchTime: thought.researchTime || 10,
     };
 }
-
-
-// ═══════════════════════════════════════════════════════════════
-// EXAMPLE USAGE
-// ═══════════════════════════════════════════════════════════════
-
-/*
-import { callAPI } from './api-helpers.js';
-import { 
-    buildThoughtSystemPrompt, 
-    buildThoughtUserPrompt, 
-    parseThoughtResponse,
-    formatThoughtForCabinet 
-} from './thought-prompt-builder.js';
-
-async function generateThought(concept, chatContext, playerContext, themeData) {
-    const systemPrompt = buildThoughtSystemPrompt(playerContext, themeData);
-    const userPrompt = buildThoughtUserPrompt(concept, chatContext);
-    
-    const response = await callAPI(systemPrompt, userPrompt);
-    const parsed = parseThoughtResponse(response);
-    
-    if (!parsed) {
-        showToast('Failed to generate thought', 'error');
-        return null;
-    }
-    
-    const thoughtId = `generated-${Date.now()}`;
-    const thought = formatThoughtForCabinet(parsed, thoughtId);
-    
-    // Add to discovered thoughts
-    thoughtCabinet.discovered.push(thought);
-    saveState(getContext());
-    
-    return thought;
-}
-
-// Manual generation (from Generate Thought UI)
-generateThought(
-    "Why does Gortash care who I talk to?",
-    recentChatText,
-    { perspective: 'participant', identity: 'spawn of Bhaal' },
-    themeCounters
-);
-
-// Auto generation (triggered by theme thresholds)
-generateThought(
-    null, // no concept - extract from context
-    recentChatText,
-    playerContext,
-    themeCounters,
-    { autoGenerated: true, triggeringThemes: ['jealousy', 'control'] }
-);
-*/
