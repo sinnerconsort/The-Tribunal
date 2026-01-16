@@ -11,41 +11,97 @@
  */
 export function buildThoughtSystemPrompt(playerContext, themeData) {
     const perspectiveGuide = playerContext.perspective === 'observer'
-        ? `The player is an OBSERVER watching events unfold. Use "you watch", "you see them".`
-        : `The player is a PARTICIPANT. Use "you feel", "you remember".`;
+        ? `The player is an OBSERVER - an outside consciousness watching events unfold. Frame thoughts as reactions to what they're witnessing, not experiencing directly. Use "you watch", "you see them", "this reminds you of".`
+        : `The player is a PARTICIPANT - they ARE the character. Frame thoughts as internal experiences. Use "you feel", "you remember", "your hands", "your heart".`;
 
     const identityGuide = playerContext.identity
-        ? `Player identity: "${playerContext.identity}".`
-        : '';
+        ? `The player's identity/role: "${playerContext.identity}". Incorporate this perspective naturally - their background colors how they interpret events.`
+        : `No specific identity provided. Write for a general observer/participant.`;
 
     // Get top 3 themes for flavor
     const topThemes = Object.entries(themeData || {})
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3)
-        .map(([theme]) => theme)
+        .map(([theme, count]) => `${theme} (${count})`)
         .join(', ');
 
-    return `You generate Disco Elysium THOUGHTS for a Thought Cabinet.
+    return `You are a Disco Elysium thought generator. You create THOUGHTS for the Thought Cabinet - obsessive ideas that lodge in the player's mind during roleplay.
 
 ${perspectiveGuide}
+
 ${identityGuide}
-${topThemes ? `Themes: ${topThemes}` : ''}
 
-## CRITICAL FORMAT RULES
+${topThemes ? `Current dominant themes in this playthrough: ${topThemes}` : ''}
 
-⚠️ Output ONLY valid JSON - no markdown, no code fences
-⚠️ Keep problemText and solutionText on SINGLE LINES (no line breaks inside strings)
-⚠️ Use spaces, not newlines, between sentences
-⚠️ Maximum 50 words per text field
+## DISCO ELYSIUM THOUGHT STRUCTURE
 
-## STRUCTURE
+Each thought has TWO parts:
 
-problemText: The obsessive question (2-3 sentences, ONE LINE)
-solutionText: The "answer" arrived at (2-3 sentences, ONE LINE)
+**PROBLEM** (While Researching)
+- The obsessive question or fixation that won't let go
+- Uncertain, probing, often uncomfortable
+- Hooks the player with a mystery or discomfort
+- 3-6 sentences, building tension
+
+**SOLUTION** (When Internalized)  
+- The "answer" the mind arrives at (may be wrong, ironic, or darkly funny)
+- Resolves the tension with insight, acceptance, or delusion
+- Often bittersweet, self-aware, or unexpectedly practical
+- 3-6 sentences, landing on a strong final line
+
+## ALLOWED WRITING PATTERNS
+
+Choose ONE pattern per thought:
+
+1. **LIST ESCALATION** (Actual Art Degree style)
+   Build momentum through increasingly absurd/intense descriptors
+   "Trite, contrived, mediocre, milquetoast, amateurish, infantile..."
+
+2. **PRACTICAL SPIRAL** (Waste Land of Reality style)
+   Start existential, land on weirdly specific practical advice
+   "Congrats - you're sober. Eat plenty. Your coordination will improve in weeks."
+
+3. **PROPHETIC DREAD** (Cop of the Apocalypse style)
+   Build cosmic/existential weight, end with call to action
+   "The world is dying. It's a fact. People need to know."
+
+4. **SELF-AWARE COMMENTARY** (Homo-Sexual Underground style)
+   Break the fourth wall about the obsession itself
+   "You've thought about this for *eight hours*?! Maybe you should stop."
+
+5. **MEMORY TRACE** (Lonesome Long Way Home style)
+   Reconstruct a path, place, or moment with sensory specificity
+   "Jump across the bridge. Fall over. Get up. Shuffle through courtyards..."
+
+## CRITICAL RULES
+
+❌ NEVER repeat a phrase or idea, even reworded
+❌ NEVER loop on the same emotional beat
+❌ NEVER use filler ("It's about...", "The thing is...")
+❌ NEVER exceed 100 words per section
+
+✅ Each sentence must ADD something new
+✅ Build toward a punchline, revelation, or emotional peak
+✅ Use *italics* for emphasis sparingly
+✅ Include specific details (names, places, objects from context)
+✅ End SOLUTION with a memorable final line
 
 ## OUTPUT FORMAT
 
-{"name":"THOUGHT NAME","icon":"emoji","problemText":"All text on one line. No line breaks.","solutionText":"All text on one line. No line breaks.","researchBonus":{"skillname":{"value":-1,"flavor":"reason"}},"internalizedBonus":{"skillname":{"value":2,"flavor":"reason"}}}`;
+Respond with ONLY valid JSON:
+{
+    "name": "THOUGHT NAME IN CAPS",
+    "icon": "single emoji representing the thought",
+    "problem": "The PROBLEM text...",
+    "solution": "The SOLUTION text...",
+    "researchBonus": "+1 or -1 to a relevant skill during research",
+    "researchPenalty": "A negative effect while researching (optional)",
+    "internalizeBonuses": [
+        "+1 SkillName: brief flavor reason",
+        "-1 SkillName: brief flavor reason"
+    ],
+    "flavorEffect": "A unique non-stat effect (optional, e.g., 'No positive effects from alcohol')"
+}`;
 }
 
 /**
@@ -65,83 +121,40 @@ export function buildThoughtUserPrompt(concept, chatContext, options = {}) {
     let prompt = '';
 
     if (autoGenerated) {
-        prompt += `Generate a thought from this scene.
+        prompt += `Generate a thought that emerged organically from this scene.
 
-THEMES: ${triggeringThemes.join(', ')}
-${emotionalTone ? `TONE: ${emotionalTone}` : ''}
+TRIGGERING THEMES: ${triggeringThemes.join(', ')}
+${emotionalTone ? `EMOTIONAL TONE: ${emotionalTone}` : ''}
 
-SCENE:
+SCENE CONTEXT:
 """
-${chatContext?.substring(0, 800) || 'No context'}
-"""`;
+${chatContext}
+"""
+
+Create a thought that captures something the player might fixate on from this scene - a question, contradiction, obsession, or realization that won't let go.`;
     } else {
-        prompt += `Generate a thought about: "${concept}"
+        prompt += `Generate a thought based on this player-provided concept:
 
-${chatContext ? `SCENE CONTEXT:
+CONCEPT: "${concept}"
+
+${chatContext ? `CURRENT SCENE FOR CONTEXT:
 """
-${chatContext.substring(0, 800)}
-"""` : ''}`;
+${chatContext}
+"""` : ''}
+
+Create a thought that explores this concept through the lens of what's happening in the roleplay.`;
     }
 
     prompt += `
 
-CRITICAL: Output raw JSON only. NO newlines inside string values. Keep all text on single lines.`;
+Remember:
+- Match one of the five allowed patterns (list escalation, practical spiral, prophetic dread, self-aware commentary, or memory trace)
+- NO repetition - each sentence must advance
+- End with impact
+- Keep it under 100 words per section
+- Output valid JSON only`;
 
     return prompt;
-}
-
-/**
- * Sanitize JSON string to fix common LLM output issues
- * @param {string} jsonStr - Raw JSON string
- * @returns {string} Sanitized JSON string
- */
-function sanitizeJSON(jsonStr) {
-    if (!jsonStr) return jsonStr;
-    
-    // Step 1: Replace literal newlines inside string values with spaces
-    // This regex finds content between quotes and replaces newlines
-    let result = jsonStr;
-    
-    // First, normalize all types of line endings
-    result = result.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    
-    // Replace newlines that appear inside JSON string values with spaces
-    // We do this by finding all string contents and processing them
-    let inString = false;
-    let escaped = false;
-    let output = '';
-    
-    for (let i = 0; i < result.length; i++) {
-        const char = result[i];
-        
-        if (escaped) {
-            output += char;
-            escaped = false;
-            continue;
-        }
-        
-        if (char === '\\') {
-            output += char;
-            escaped = true;
-            continue;
-        }
-        
-        if (char === '"') {
-            inString = !inString;
-            output += char;
-            continue;
-        }
-        
-        if (inString && char === '\n') {
-            // Replace newline inside string with space
-            output += ' ';
-            continue;
-        }
-        
-        output += char;
-    }
-    
-    return output;
 }
 
 /**
@@ -150,103 +163,47 @@ function sanitizeJSON(jsonStr) {
  * @returns {Object|null} Parsed thought or null if invalid
  */
 export function parseThoughtResponse(response) {
-    if (!response) {
-        console.error('[Tribunal] No response to parse');
-        return null;
-    }
-    
     try {
+        // Clean up response - remove markdown code blocks if present
         let cleaned = response.trim();
-        
-        // Strip markdown code fences (various formats)
-        cleaned = cleaned.replace(/^```(?:json|JSON)?\s*\n?/i, '');
-        cleaned = cleaned.replace(/\n?```\s*$/i, '');
-        
-        // Find JSON boundaries - look for first { and last }
-        const firstBrace = cleaned.indexOf('{');
-        const lastBrace = cleaned.lastIndexOf('}');
-        
-        if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
-            console.error('[Tribunal] No valid JSON object found in response');
-            return null;
+        if (cleaned.startsWith('```json')) {
+            cleaned = cleaned.slice(7);
         }
-        
-        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
-        
-        // Sanitize the JSON (fix newlines inside strings, etc.)
-        cleaned = sanitizeJSON(cleaned);
-        
-        // Debug log
-        console.log('[Tribunal] Sanitized JSON (first 300 chars):', cleaned.substring(0, 300));
+        if (cleaned.startsWith('```')) {
+            cleaned = cleaned.slice(3);
+        }
+        if (cleaned.endsWith('```')) {
+            cleaned = cleaned.slice(0, -3);
+        }
+        cleaned = cleaned.trim();
 
         const thought = JSON.parse(cleaned);
 
-        // Accept both field name variants
-        if (thought.problem && !thought.problemText) {
-            thought.problemText = thought.problem;
-        }
-        if (thought.solution && !thought.solutionText) {
-            thought.solutionText = thought.solution;
-        }
-
         // Validate required fields
-        if (!thought.name) {
-            console.warn('[Tribunal] Thought missing name');
-            return null;
-        }
-        if (!thought.problemText) {
-            console.warn('[Tribunal] Thought missing problemText');
-            return null;
-        }
-        if (!thought.solutionText) {
-            console.warn('[Tribunal] Thought missing solutionText');
-            return null;
+        const required = ['name', 'icon', 'problem', 'solution'];
+        for (const field of required) {
+            if (!thought[field]) {
+                console.warn(`Thought missing required field: ${field}`);
+                return null;
+            }
         }
 
         // Normalize name to uppercase
         thought.name = thought.name.toUpperCase();
-        
-        // Default icon if missing
-        if (!thought.icon) {
-            thought.icon = '💭';
-        }
 
-        // Normalize bonus formats
-        if (Array.isArray(thought.internalizeBonuses) && !thought.internalizedBonus) {
-            thought.internalizedBonus = {};
-            for (const bonus of thought.internalizeBonuses) {
-                const match = bonus.match(/([+-]\d+)\s+(\w+)(?::\s*(.+))?/);
-                if (match) {
-                    thought.internalizedBonus[match[2].toLowerCase()] = {
-                        value: parseInt(match[1]),
-                        flavor: match[3] || ''
-                    };
-                }
-            }
-        }
-
-        if (typeof thought.researchBonus === 'string') {
-            const match = thought.researchBonus.match(/([+-]\d+)\s+(\w+)(?::\s*(.+))?/);
-            if (match) {
-                thought.researchBonus = {
-                    [match[2].toLowerCase()]: {
-                        value: parseInt(match[1]),
-                        flavor: match[3] || ''
-                    }
-                };
-            }
+        // Ensure internalizeBonuses is an array
+        if (!Array.isArray(thought.internalizeBonuses)) {
+            thought.internalizeBonuses = [];
         }
 
         // Add metadata
         thought.isGenerated = true;
-        thought.isCustom = true;
         thought.generatedAt = Date.now();
 
         return thought;
 
     } catch (e) {
-        console.error('[Tribunal] JSON parse failed:', e.message);
-        console.error('[Tribunal] Raw response (first 500 chars):', response?.substring?.(0, 500));
+        console.error('Failed to parse thought response:', e);
         return null;
     }
 }
@@ -258,23 +215,104 @@ export function parseThoughtResponse(response) {
  * @returns {Object} Cabinet-ready thought object
  */
 export function formatThoughtForCabinet(thought, thoughtId) {
+    // Parse bonuses into structured format
+    const bonuses = {
+        research: [],
+        internalized: []
+    };
+
+    // Parse research bonus (e.g., "+1 Logic" or "-1 Composure")
+    if (thought.researchBonus) {
+        const match = thought.researchBonus.match(/([+-]\d+)\s+(\w+)/);
+        if (match) {
+            bonuses.research.push({
+                skill: match[2].toLowerCase(),
+                value: parseInt(match[1]),
+                reason: thought.researchBonus
+            });
+        }
+    }
+
+    // Parse internalize bonuses
+    for (const bonus of thought.internalizeBonuses) {
+        const match = bonus.match(/([+-]\d+)\s+(\w+):\s*(.+)/);
+        if (match) {
+            bonuses.internalized.push({
+                skill: match[2].toLowerCase(),
+                value: parseInt(match[1]),
+                reason: match[3]
+            });
+        }
+    }
+
     return {
         id: thoughtId,
         name: thought.name,
-        icon: thought.icon || '💭',
-        
-        problemText: thought.problemText,
-        solutionText: thought.solutionText,
-        
-        researchBonus: thought.researchBonus || {},
-        internalizedBonus: thought.internalizedBonus || {},
-        
+        icon: thought.icon,
+        problem: thought.problem,
+        solution: thought.solution,
+        bonuses,
+        researchPenalty: thought.researchPenalty || null,
         flavorEffect: thought.flavorEffect || null,
-        
         isGenerated: true,
-        isCustom: true,
         generatedAt: thought.generatedAt,
-        
-        researchTime: thought.researchTime || 10,
+        // Cabinet state
+        status: 'discovered', // discovered -> researching -> internalized
+        researchProgress: 0,
+        researchTime: 180000, // 3 minutes default, could be dynamic
     };
 }
+
+
+// ═══════════════════════════════════════════════════════════════
+// EXAMPLE USAGE
+// ═══════════════════════════════════════════════════════════════
+
+/*
+import { callAPI } from './api-helpers.js';
+import { 
+    buildThoughtSystemPrompt, 
+    buildThoughtUserPrompt, 
+    parseThoughtResponse,
+    formatThoughtForCabinet 
+} from './thought-prompt-builder.js';
+
+async function generateThought(concept, chatContext, playerContext, themeData) {
+    const systemPrompt = buildThoughtSystemPrompt(playerContext, themeData);
+    const userPrompt = buildThoughtUserPrompt(concept, chatContext);
+    
+    const response = await callAPI(systemPrompt, userPrompt);
+    const parsed = parseThoughtResponse(response);
+    
+    if (!parsed) {
+        showToast('Failed to generate thought', 'error');
+        return null;
+    }
+    
+    const thoughtId = `generated-${Date.now()}`;
+    const thought = formatThoughtForCabinet(parsed, thoughtId);
+    
+    // Add to discovered thoughts
+    thoughtCabinet.discovered.push(thought);
+    saveState(getContext());
+    
+    return thought;
+}
+
+// Manual generation (from Generate Thought UI)
+generateThought(
+    "Why does Gortash care who I talk to?",
+    recentChatText,
+    { perspective: 'participant', identity: 'spawn of Bhaal' },
+    themeCounters
+);
+
+// Auto generation (triggered by theme thresholds)
+generateThought(
+    null, // no concept - extract from context
+    recentChatText,
+    playerContext,
+    themeCounters,
+    { autoGenerated: true, triggeringThemes: ['jealousy', 'control'] }
+);
+*/
