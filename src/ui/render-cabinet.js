@@ -5,7 +5,7 @@
 
 import { SKILLS } from '../data/skills.js';
 import { THOUGHTS } from '../data/thoughts.js';
-import { thoughtCabinet } from '../core/state.js';
+import { thoughtCabinet, getPlayerContext, savePlayerContext } from '../core/state.js';
 import { getResearchPenalties, getTopThemes } from '../systems/cabinet.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -227,31 +227,77 @@ export function renderThoughtCabinet(container, callbacks = {}) {
         </div>
     `;
 
-    // Attach callbacks
+    // ═══════════════════════════════════════════════════════════════
+    // POPULATE FROM CURRENT PROFILE'S PLAYER CONTEXT
+    // ═══════════════════════════════════════════════════════════════
+    
+    const playerCtx = getPlayerContext();
+    const identityInput = document.getElementById('ie-player-context');
+    
+    // Load identity from profile
+    if (identityInput && playerCtx.identity) {
+        identityInput.value = playerCtx.identity;
+    }
+    
+    // Set correct perspective button active based on profile
+    if (playerCtx.perspective) {
+        container.querySelectorAll('.ie-perspective-btn').forEach(btn => {
+            btn.classList.toggle('ie-perspective-active', btn.dataset.perspective === playerCtx.perspective);
+        });
+        // Update hint text to match
+        const hint = document.getElementById('ie-perspective-hint');
+        if (hint) {
+            hint.textContent = playerCtx.perspective === 'observer'
+                ? "Observer: You're wrestling with what you've seen, like Harry processing the world."
+                : "Participant: You're embodying this mindset, thinking from within it.";
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // SAVE IDENTITY ON BLUR
+    // ═══════════════════════════════════════════════════════════════
+    
+    identityInput?.addEventListener('blur', () => {
+        const perspectiveBtn = container.querySelector('.ie-perspective-btn.ie-perspective-active');
+        savePlayerContext({
+            perspective: perspectiveBtn?.dataset?.perspective || 'observer',
+            identity: identityInput.value.trim()
+        }, callbacks.getContext?.());
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // EVENT HANDLERS
+    // ═══════════════════════════════════════════════════════════════
+
+    // Research button
     container.querySelectorAll('.ie-btn-research').forEach(btn => {
         btn.addEventListener('click', () => {
             if (callbacks.onResearch) callbacks.onResearch(btn.dataset.thought);
         });
     });
 
+    // Dismiss button
     container.querySelectorAll('.ie-btn-dismiss-thought').forEach(btn => {
         btn.addEventListener('click', () => {
             if (callbacks.onDismiss) callbacks.onDismiss(btn.dataset.thought);
         });
     });
 
+    // Abandon button
     container.querySelectorAll('.ie-btn-abandon').forEach(btn => {
         btn.addEventListener('click', () => {
             if (callbacks.onAbandon) callbacks.onAbandon(btn.dataset.thought);
         });
     });
 
+    // Forget button
     container.querySelectorAll('.ie-btn-forget').forEach(btn => {
         btn.addEventListener('click', () => {
             if (callbacks.onForget) callbacks.onForget(btn.dataset.thought);
         });
     });
 
+    // Expand button
     container.querySelectorAll('.ie-btn-expand-thought').forEach(btn => {
         btn.addEventListener('click', () => {
             if (callbacks.onExpand) callbacks.onExpand(btn.dataset.thought);
@@ -268,23 +314,34 @@ export function renderThoughtCabinet(container, callbacks = {}) {
         if (callbacks.onGenerate) callbacks.onGenerate(prompt, fromContext, perspective, playerContext);
     });
 
-    // Perspective toggle
+    // Perspective toggle - now saves to profile
     container.querySelectorAll('.ie-perspective-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             container.querySelectorAll('.ie-perspective-btn').forEach(b => b.classList.remove('ie-perspective-active'));
             btn.classList.add('ie-perspective-active');
             
+            // Update hint text
             const hint = document.getElementById('ie-perspective-hint');
             if (hint) {
                 hint.textContent = btn.dataset.perspective === 'observer'
                     ? "Observer: You're wrestling with what you've seen, like Harry processing the world."
                     : "Participant: You're embodying this mindset, thinking from within it.";
             }
+            
+            // Save to profile
+            const identityInput = document.getElementById('ie-player-context');
+            savePlayerContext({
+                perspective: btn.dataset.perspective,
+                identity: identityInput?.value?.trim() || ''
+            }, callbacks.getContext?.());
         });
     });
 }
 
-// Full thought modal/expanded view
+// ═══════════════════════════════════════════════════════════════
+// FULL THOUGHT MODAL / EXPANDED VIEW
+// ═══════════════════════════════════════════════════════════════
+
 export function renderThoughtModal(thoughtId, container) {
     const thought = getThought(thoughtId);
     if (!thought || !container) return;
