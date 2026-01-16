@@ -33,7 +33,8 @@ export let themeCounters = {};
 export let thoughtCabinet = {
     slots: 3,
     maxSlots: 12,
-    discovered: [],
+    discovered: [],          // Array of thought IDs
+    customThoughts: {},      // Map of ID → thought object (for generated thoughts)
     researching: {},
     internalized: [],
     dismissed: []
@@ -412,26 +413,54 @@ export function getInventory() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// THOUGHT CABINET HELPERS (Phase 5) - NEW
+// THOUGHT CABINET HELPERS (Phase 5)
 // ═══════════════════════════════════════════════════════════════
 
 /**
  * Add a discovered thought to the cabinet
- * @param {Object} thought - Thought object from generator
+ * Stores the thought object in customThoughts and adds ID to discovered array
+ * @param {Object} thought - Thought object from generator (must have .id)
  */
 export function addDiscoveredThought(thought) {
+    if (!thought?.id) {
+        console.error('[Tribunal] Cannot add thought without ID:', thought);
+        return;
+    }
+    
+    // Ensure customThoughts exists
+    if (!thoughtCabinet.customThoughts) {
+        thoughtCabinet.customThoughts = {};
+    }
+    
+    // Ensure discovered exists
     if (!thoughtCabinet.discovered) {
         thoughtCabinet.discovered = [];
     }
-    thoughtCabinet.discovered.push(thought);
+    
+    // Store the thought object by ID
+    thoughtCabinet.customThoughts[thought.id] = thought;
+    
+    // Add the ID to discovered array (if not already there)
+    if (!thoughtCabinet.discovered.includes(thought.id)) {
+        thoughtCabinet.discovered.push(thought.id);
+    }
 }
 
 /**
- * Get all discovered thoughts
- * @returns {Array} Discovered thoughts
+ * Get all discovered thoughts (returns array of IDs)
+ * @returns {Array} Discovered thought IDs
  */
 export function getDiscoveredThoughts() {
     return thoughtCabinet.discovered || [];
+}
+
+/**
+ * Get a custom thought by ID
+ * @param {string} thoughtId - The thought ID
+ * @returns {Object|null} The thought object or null
+ */
+export function getCustomThought(thoughtId) {
+    return thoughtCabinet.customThoughts?.[thoughtId] || null;
 }
 
 /**
@@ -515,7 +544,7 @@ export function createProfile(name) {
         vitals: { ...vitals },
         ledger: JSON.parse(JSON.stringify(ledger)),
         inventory: JSON.parse(JSON.stringify(inventory)),
-        // Phase 5: Player context for thought generation - NEW
+        // Phase 5: Player context for thought generation
         playerContext: getPlayerContext()
     };
 }
@@ -556,6 +585,10 @@ export function loadProfile(profileId, context = null) {
 
     if (profile.thoughtCabinet) {
         thoughtCabinet = JSON.parse(JSON.stringify(profile.thoughtCabinet));
+        // Ensure customThoughts exists after load
+        if (!thoughtCabinet.customThoughts) {
+            thoughtCabinet.customThoughts = {};
+        }
     }
     if (profile.themeCounters) {
         themeCounters = { ...profile.themeCounters };
@@ -572,7 +605,7 @@ export function loadProfile(profileId, context = null) {
         inventory = JSON.parse(JSON.stringify(profile.inventory));
     }
     
-    // Phase 5: Restore player context - NEW
+    // Phase 5: Restore player context
     if (profile.playerContext) {
         extensionSettings.playerContext = { ...profile.playerContext };
     }
@@ -653,6 +686,7 @@ export function loadState(context) {
                 slots: 3,
                 maxSlots: 12,
                 discovered: [],
+                customThoughts: {},
                 researching: {},
                 internalized: [],
                 dismissed: []
@@ -661,6 +695,23 @@ export function loadState(context) {
             // Ensure discovered array exists (migration)
             if (!thoughtCabinet.discovered) {
                 thoughtCabinet.discovered = [];
+            }
+            
+            // Ensure customThoughts exists (migration)
+            if (!thoughtCabinet.customThoughts) {
+                thoughtCabinet.customThoughts = {};
+            }
+            
+            // Migration: If discovered contains objects instead of IDs, fix it
+            if (thoughtCabinet.discovered.length > 0 && typeof thoughtCabinet.discovered[0] === 'object') {
+                const oldDiscovered = thoughtCabinet.discovered;
+                thoughtCabinet.discovered = [];
+                for (const thought of oldDiscovered) {
+                    if (thought?.id) {
+                        thoughtCabinet.customThoughts[thought.id] = thought;
+                        thoughtCabinet.discovered.push(thought.id);
+                    }
+                }
             }
 
             if (state.discoveryContext) {
