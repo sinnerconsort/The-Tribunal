@@ -92,15 +92,10 @@ Respond with ONLY valid JSON:
 {
     "name": "THOUGHT NAME IN CAPS",
     "icon": "single emoji representing the thought",
-    "problem": "The PROBLEM text...",
-    "solution": "The SOLUTION text...",
-    "researchBonus": "+1 or -1 to a relevant skill during research",
-    "researchPenalty": "A negative effect while researching (optional)",
-    "internalizeBonuses": [
-        "+1 SkillName: brief flavor reason",
-        "-1 SkillName: brief flavor reason"
-    ],
-    "flavorEffect": "A unique non-stat effect (optional, e.g., 'No positive effects from alcohol')"
+    "problemText": "The PROBLEM text...",
+    "solutionText": "The SOLUTION text...",
+    "researchBonus": { "skillName": { "value": -1, "flavor": "Brief reason" } },
+    "internalizedBonus": { "skillName": { "value": 2, "flavor": "Brief reason" } }
 }`;
 }
 
@@ -152,7 +147,7 @@ Remember:
 - NO repetition - each sentence must advance
 - End with impact
 - Keep it under 100 words per section
-- Output valid JSON only`;
+- Output valid JSON only, no markdown fences`;
 
     return prompt;
 }
@@ -166,44 +161,87 @@ export function parseThoughtResponse(response) {
     try {
         // Clean up response - remove markdown code blocks if present
         let cleaned = response.trim();
-        if (cleaned.startsWith('```json')) {
-            cleaned = cleaned.slice(7);
-        }
-        if (cleaned.startsWith('```')) {
-            cleaned = cleaned.slice(3);
-        }
-        if (cleaned.endsWith('```')) {
-            cleaned = cleaned.slice(0, -3);
-        }
+        
+        // Handle various markdown fence formats
+        // Match ```json, ```JSON, ``` at start
+        cleaned = cleaned.replace(/^```(?:json|JSON)?\s*\n?/i, '');
+        // Match ``` at end (with possible trailing whitespace/newlines)
+        cleaned = cleaned.replace(/\n?```\s*$/i, '');
         cleaned = cleaned.trim();
 
         const thought = JSON.parse(cleaned);
 
-        // Validate required fields
-        const required = ['name', 'icon', 'problem', 'solution'];
-        for (const field of required) {
-            if (!thought[field]) {
-                console.warn(`Thought missing required field: ${field}`);
-                return null;
-            }
+        // Accept both field name variants (problem/problemText, solution/solutionText)
+        // Normalize to problemText/solutionText for cabinet compatibility
+        if (thought.problem && !thought.problemText) {
+            thought.problemText = thought.problem;
+        }
+        if (thought.solution && !thought.solutionText) {
+            thought.solutionText = thought.solution;
+        }
+
+        // Validate required fields (check both variants)
+        if (!thought.name) {
+            console.warn('[Tribunal] Thought missing required field: name');
+            return null;
+        }
+        if (!thought.icon) {
+            console.warn('[Tribunal] Thought missing required field: icon');
+            return null;
+        }
+        if (!thought.problemText) {
+            console.warn('[Tribunal] Thought missing required field: problemText/problem');
+            return null;
+        }
+        if (!thought.solutionText) {
+            console.warn('[Tribunal] Thought missing required field: solutionText/solution');
+            return null;
         }
 
         // Normalize name to uppercase
         thought.name = thought.name.toUpperCase();
 
-        // Ensure internalizeBonuses is an array
-        if (!Array.isArray(thought.internalizeBonuses)) {
-            thought.internalizeBonuses = [];
+        // Normalize bonus formats - handle both old array format and new object format
+        // Old format: internalizeBonuses: ["+1 Volition: reason"]
+        // New format: internalizedBonus: { "volition": { "value": 1, "flavor": "reason" } }
+        if (Array.isArray(thought.internalizeBonuses) && !thought.internalizedBonus) {
+            thought.internalizedBonus = {};
+            for (const bonus of thought.internalizeBonuses) {
+                const match = bonus.match(/([+-]\d+)\s+(\w+)(?::\s*(.+))?/);
+                if (match) {
+                    const skillName = match[2].toLowerCase();
+                    thought.internalizedBonus[skillName] = {
+                        value: parseInt(match[1]),
+                        flavor: match[3] || ''
+                    };
+                }
+            }
+        }
+
+        // Handle old researchBonus string format
+        if (typeof thought.researchBonus === 'string') {
+            const match = thought.researchBonus.match(/([+-]\d+)\s+(\w+)(?::\s*(.+))?/);
+            if (match) {
+                const skillName = match[2].toLowerCase();
+                thought.researchBonus = {
+                    [skillName]: {
+                        value: parseInt(match[1]),
+                        flavor: match[3] || ''
+                    }
+                };
+            }
         }
 
         // Add metadata
         thought.isGenerated = true;
+        thought.isCustom = true;  // Mark as custom for cabinet rendering
         thought.generatedAt = Date.now();
 
         return thought;
 
     } catch (e) {
-        console.error('Failed to parse thought response:', e);
+        console.error('[Tribunal] Failed to parse thought response:', e);
+        console.error('[Tribunal] Raw response:', response?.substring?.(0, 500));
         return null;
     }
 }
@@ -215,51 +253,30 @@ export function parseThoughtResponse(response) {
  * @returns {Object} Cabinet-ready thought object
  */
 export function formatThoughtForCabinet(thought, thoughtId) {
-    // Parse bonuses into structured format
-    const bonuses = {
-        research: [],
-        internalized: []
-    };
-
-    // Parse research bonus (e.g., "+1 Logic" or "-1 Composure")
-    if (thought.researchBonus) {
-        const match = thought.researchBonus.match(/([+-]\d+)\s+(\w+)/);
-        if (match) {
-            bonuses.research.push({
-                skill: match[2].toLowerCase(),
-                value: parseInt(match[1]),
-                reason: thought.researchBonus
-            });
-        }
-    }
-
-    // Parse internalize bonuses
-    for (const bonus of thought.internalizeBonuses) {
-        const match = bonus.match(/([+-]\d+)\s+(\w+):\s*(.+)/);
-        if (match) {
-            bonuses.internalized.push({
-                skill: match[2].toLowerCase(),
-                value: parseInt(match[1]),
-                reason: match[3]
-            });
-        }
-    }
-
     return {
         id: thoughtId,
         name: thought.name,
         icon: thought.icon,
-        problem: thought.problem,
-        solution: thought.solution,
-        bonuses,
-        researchPenalty: thought.researchPenalty || null,
+        
+        // Use the normalized field names that render-cabinet expects
+        problemText: thought.problemText,
+        solutionText: thought.solutionText,
+        
+        // Bonus format matching what render-cabinet expects
+        // { skillId: { value: number, flavor: string } }
+        researchBonus: thought.researchBonus || {},
+        internalizedBonus: thought.internalizedBonus || {},
+        
+        // Optional fields
         flavorEffect: thought.flavorEffect || null,
+        
+        // Metadata
         isGenerated: true,
+        isCustom: true,
         generatedAt: thought.generatedAt,
-        // Cabinet state
-        status: 'discovered', // discovered -> researching -> internalized
-        researchProgress: 0,
-        researchTime: 180000, // 3 minutes default, could be dynamic
+        
+        // Research timing (in message counts, multiplied by RESEARCH_TIME_MULTIPLIER in cabinet.js)
+        researchTime: 10,
     };
 }
 
