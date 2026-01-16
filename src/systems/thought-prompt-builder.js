@@ -31,37 +31,21 @@ ${perspectiveGuide}
 ${identityGuide}
 ${topThemes ? `Themes: ${topThemes}` : ''}
 
-## CRITICAL LENGTH RULES - FOLLOW EXACTLY
+## CRITICAL FORMAT RULES
 
-⚠️ MAXIMUM 50 WORDS for problemText
-⚠️ MAXIMUM 50 WORDS for solutionText
-⚠️ Total response must be under 400 tokens
-
-If you exceed these limits, the response will be cut off and fail.
+⚠️ Output ONLY valid JSON - no markdown, no code fences
+⚠️ Keep problemText and solutionText on SINGLE LINES (no line breaks inside strings)
+⚠️ Use spaces, not newlines, between sentences
+⚠️ Maximum 50 words per text field
 
 ## STRUCTURE
 
-problemText: The obsessive question (2-3 sentences MAX)
-solutionText: The "answer" arrived at (2-3 sentences MAX)
+problemText: The obsessive question (2-3 sentences, ONE LINE)
+solutionText: The "answer" arrived at (2-3 sentences, ONE LINE)
 
-## STYLE
+## OUTPUT FORMAT
 
-- Punchy, evocative, specific
-- No filler or repetition
-- End solutionText with impact
-
-## OUTPUT FORMAT - JSON ONLY
-
-{
-    "name": "THOUGHT NAME",
-    "icon": "emoji",
-    "problemText": "2-3 sentences max.",
-    "solutionText": "2-3 sentences max.",
-    "researchBonus": { "skillname": { "value": -1, "flavor": "Short reason" } },
-    "internalizedBonus": { "skillname": { "value": 2, "flavor": "Short reason" } }
-}
-
-NO markdown fences. NO extra text. ONLY the JSON object.`;
+{"name":"THOUGHT NAME","icon":"emoji","problemText":"All text on one line. No line breaks.","solutionText":"All text on one line. No line breaks.","researchBonus":{"skillname":{"value":-1,"flavor":"reason"}},"internalizedBonus":{"skillname":{"value":2,"flavor":"reason"}}}`;
 }
 
 /**
@@ -101,13 +85,63 @@ ${chatContext.substring(0, 800)}
 
     prompt += `
 
-REMEMBER:
-- problemText: MAX 50 words (2-3 sentences)
-- solutionText: MAX 50 words (2-3 sentences)
-- Output ONLY valid JSON, no markdown fences
-- Be concise or the response will be cut off`;
+CRITICAL: Output raw JSON only. NO newlines inside string values. Keep all text on single lines.`;
 
     return prompt;
+}
+
+/**
+ * Sanitize JSON string to fix common LLM output issues
+ * @param {string} jsonStr - Raw JSON string
+ * @returns {string} Sanitized JSON string
+ */
+function sanitizeJSON(jsonStr) {
+    if (!jsonStr) return jsonStr;
+    
+    // Step 1: Replace literal newlines inside string values with spaces
+    // This regex finds content between quotes and replaces newlines
+    let result = jsonStr;
+    
+    // First, normalize all types of line endings
+    result = result.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    
+    // Replace newlines that appear inside JSON string values with spaces
+    // We do this by finding all string contents and processing them
+    let inString = false;
+    let escaped = false;
+    let output = '';
+    
+    for (let i = 0; i < result.length; i++) {
+        const char = result[i];
+        
+        if (escaped) {
+            output += char;
+            escaped = false;
+            continue;
+        }
+        
+        if (char === '\\') {
+            output += char;
+            escaped = true;
+            continue;
+        }
+        
+        if (char === '"') {
+            inString = !inString;
+            output += char;
+            continue;
+        }
+        
+        if (inString && char === '\n') {
+            // Replace newline inside string with space
+            output += ' ';
+            continue;
+        }
+        
+        output += char;
+    }
+    
+    return output;
 }
 
 /**
@@ -125,21 +159,25 @@ export function parseThoughtResponse(response) {
         let cleaned = response.trim();
         
         // Strip markdown code fences (various formats)
-        // Handle ```json, ```JSON, ``` with or without newlines
         cleaned = cleaned.replace(/^```(?:json|JSON)?\s*\n?/i, '');
         cleaned = cleaned.replace(/\n?```\s*$/i, '');
         
-        // Also handle if there's trailing content after the JSON
-        // Find the last } and truncate there
+        // Find JSON boundaries - look for first { and last }
+        const firstBrace = cleaned.indexOf('{');
         const lastBrace = cleaned.lastIndexOf('}');
-        if (lastBrace !== -1 && lastBrace < cleaned.length - 1) {
-            cleaned = cleaned.substring(0, lastBrace + 1);
+        
+        if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+            console.error('[Tribunal] No valid JSON object found in response');
+            return null;
         }
         
-        cleaned = cleaned.trim();
+        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+        
+        // Sanitize the JSON (fix newlines inside strings, etc.)
+        cleaned = sanitizeJSON(cleaned);
         
         // Debug log
-        console.log('[Tribunal] Cleaned JSON:', cleaned.substring(0, 200) + '...');
+        console.log('[Tribunal] Sanitized JSON (first 300 chars):', cleaned.substring(0, 300));
 
         const thought = JSON.parse(cleaned);
 
