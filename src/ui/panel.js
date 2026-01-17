@@ -1,47 +1,197 @@
 /**
- * src/ui/panel.js - Panel creation, tab switching
+ * The Tribunal - Psyche Panel
+ * Main panel structure, FABs, and tab switching
  */
 
-import { getPanelTemplate } from './panel-templates.js';
+import { extensionSettings, saveState } from '../core/state.js';
 
-let isPanelOpen = false;
+import {
+    PANEL_HEADER_HTML,
+    TAB_BAR_HTML,
+    VOICES_TAB_HTML,
+    CABINET_TAB_HTML,
+    STATUS_TAB_HTML,
+    LEDGER_TAB_HTML,
+    INVENTORY_TAB_HTML,
+    SETTINGS_TAB_HTML,
+    PROFILES_TAB_HTML,
+    getBottomButtonsHTML
+} from './panel-templates.js';
 
-export function createFAB() {
-    const fab = document.createElement('div');
-    fab.id = 'ie-fab';
-    fab.className = 'ie-fab';
-    fab.innerHTML = '<span class="ie-fab-icon"><i class="fa-solid fa-id-card"></i></span>';
-    fab.title = 'The Tribunal';
-    return fab;
-}
+// Re-export helpers for backward compatibility
+export {
+    updateHealth,
+    updateMorale,
+    bindVitalsControls
+} from './panel-helpers.js';
 
-export function createPanel() {
+// ═══════════════════════════════════════════════════════════════
+// PANEL CREATION
+// ═══════════════════════════════════════════════════════════════
+
+export function createPsychePanel() {
     const panel = document.createElement('div');
-    panel.id = 'ie-panel';
-    panel.className = 'ie-panel';
-    panel.innerHTML = getPanelTemplate();
+    panel.id = 'inland-empire-panel';
+    panel.className = 'inland-empire-panel';
+
+    panel.innerHTML = `
+        ${PANEL_HEADER_HTML}
+        ${TAB_BAR_HTML}
+        <div class="ie-panel-content">
+            ${VOICES_TAB_HTML}
+            ${CABINET_TAB_HTML}
+            ${STATUS_TAB_HTML}
+            ${LEDGER_TAB_HTML}
+            ${INVENTORY_TAB_HTML}
+            ${SETTINGS_TAB_HTML}
+            ${PROFILES_TAB_HTML}
+        </div>
+        ${getBottomButtonsHTML()}
+    `;
+
     return panel;
 }
 
-export function togglePanel() {
-    const panel = document.getElementById('ie-panel');
-    const fab = document.getElementById('ie-fab');
-    if (!panel) return;
-    
-    isPanelOpen = !isPanelOpen;
-    panel.classList.toggle('ie-panel-open', isPanelOpen);
-    fab?.classList.toggle('ie-fab-active', isPanelOpen);
+// ═══════════════════════════════════════════════════════════════
+// FAB CREATION (with drag support)
+// ═══════════════════════════════════════════════════════════════
+
+export function createToggleFAB(getContext) {
+    const fab = document.createElement('div');
+    fab.id = 'inland-empire-fab';
+    fab.className = 'ie-fab';
+    fab.title = 'Toggle Psyche Panel';
+    fab.innerHTML = '<span class="ie-fab-icon"><i class="fa-solid fa-address-card"></i></span>';
+    fab.style.display = 'flex';
+    fab.style.top = `${extensionSettings.fabPositionTop ?? 140}px`;
+    fab.style.left = `${extensionSettings.fabPositionLeft ?? 10}px`;
+
+    // Dragging state
+    let isDragging = false;
+    let dragStartX, dragStartY, fabStartX, fabStartY;
+    let hasMoved = false;
+
+    function startDrag(e) {
+        isDragging = true;
+        hasMoved = false;
+        const touch = e.touches ? e.touches[0] : e;
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+        fabStartX = fab.offsetLeft;
+        fabStartY = fab.offsetTop;
+        fab.style.transition = 'none';
+        document.addEventListener('mousemove', doDrag);
+        document.addEventListener('touchmove', doDrag, { passive: false });
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+    }
+
+    function doDrag(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const touch = e.touches ? e.touches[0] : e;
+        const deltaX = touch.clientX - dragStartX;
+        const deltaY = touch.clientY - dragStartY;
+        if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved = true;
+        fab.style.left = `${Math.max(0, Math.min(window.innerWidth - fab.offsetWidth, fabStartX + deltaX))}px`;
+        fab.style.top = `${Math.max(0, Math.min(window.innerHeight - fab.offsetHeight, fabStartY + deltaY))}px`;
+    }
+
+    function endDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        fab.style.transition = 'all 0.3s ease';
+        document.removeEventListener('mousemove', doDrag);
+        document.removeEventListener('touchmove', doDrag);
+        document.removeEventListener('mouseup', endDrag);
+        document.removeEventListener('touchend', endDrag);
+
+        if (hasMoved) {
+            fab.dataset.justDragged = 'true';
+            extensionSettings.fabPositionTop = fab.offsetTop;
+            extensionSettings.fabPositionLeft = fab.offsetLeft;
+            if (getContext) saveState(getContext());
+        }
+    }
+
+    fab.addEventListener('mousedown', startDrag);
+    fab.addEventListener('touchstart', startDrag, { passive: false });
+
+    return fab;
 }
 
-export function openPanel() { if (!isPanelOpen) togglePanel(); }
-export function closePanel() { if (isPanelOpen) togglePanel(); }
+// ═══════════════════════════════════════════════════════════════
+// PANEL CONTROLS
+// ═══════════════════════════════════════════════════════════════
 
-export function switchTab(tabName) {
-    document.querySelectorAll('.ie-tab').forEach(t => t.classList.toggle('ie-tab-active', t.dataset.tab === tabName));
-    document.querySelectorAll('.ie-tab-content').forEach(c => c.classList.toggle('active', c.dataset.tab === tabName));
+export function togglePanel() {
+    const panel = document.getElementById('inland-empire-panel');
+    const fab = document.getElementById('inland-empire-fab');
+
+    if (!panel) return;
+
+    const isOpen = panel.classList.contains('ie-panel-open');
+
+    if (isOpen) {
+        panel.classList.remove('ie-panel-open');
+        fab?.classList.remove('ie-fab-active');
+    } else {
+        panel.classList.add('ie-panel-open');
+        fab?.classList.add('ie-fab-active');
+        triggerFabLoading();
+    }
+}
+
+export function triggerFabLoading() {
+    const fab = document.getElementById('inland-empire-fab');
+    if (!fab) return;
+    
+    fab.classList.add('ie-fab-loading');
+    setTimeout(() => fab.classList.remove('ie-fab-loading'), 800);
 }
 
 export function updateFABState(enabled) {
-    const fab = document.getElementById('ie-fab');
+    const fab = document.getElementById('inland-empire-fab');
     if (fab) fab.style.display = enabled ? 'flex' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════
+
+export function switchTab(tabName, callbacks = {}) {
+    // Handle main tabs
+    document.querySelectorAll('.ie-tab').forEach(tab =>
+        tab.classList.toggle('ie-tab-active', tab.dataset.tab === tabName)
+    );
+
+    // Handle bottom buttons (settings/profiles)
+    document.querySelectorAll('.ie-bottom-btn').forEach(btn =>
+        btn.classList.toggle('ie-bottom-btn-active', btn.dataset.panel === tabName)
+    );
+
+    // Show/hide tab content
+    document.querySelectorAll('.ie-tab-content').forEach(content =>
+        content.classList.toggle('ie-tab-content-active', content.dataset.tabContent === tabName)
+    );
+
+    // Clear active state from main tabs if switching to bottom panel
+    if (tabName === 'settings' || tabName === 'profiles') {
+        document.querySelectorAll('.ie-tab').forEach(tab =>
+            tab.classList.remove('ie-tab-active')
+        );
+    }
+
+    // Clear active state from bottom buttons if switching to main tab
+    const mainTabs = ['voices', 'cabinet', 'status', 'ledger', 'inventory'];
+    if (mainTabs.includes(tabName)) {
+        document.querySelectorAll('.ie-bottom-btn').forEach(btn =>
+            btn.classList.remove('ie-bottom-btn-active')
+        );
+    }
+
+    // Tab-specific callbacks
+    if (callbacks[`on${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`]) {
+        callbacks[`on${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`]();
+    }
 }

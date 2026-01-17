@@ -1,53 +1,111 @@
 /**
- * src/ui/panel-helpers.js - Vitals updates, display utils
+ * The Tribunal - Panel Helper Functions
+ * Utility functions for updating panel displays
  */
 
-import { closePanel, switchTab } from './panel.js';
-import { updateSettings } from '../core/state.js';
+// ═══════════════════════════════════════════════════════════════
+// VITALS HELPERS (with dynamic HSL colors)
+// ═══════════════════════════════════════════════════════════════
 
-export function updateHealth(current, max) {
-    const fill = document.querySelector('.ie-health-fill');
-    const text = document.querySelector('.ie-health-text');
-    if (fill && text) {
-        const pct = (current / max) * 100;
-        fill.style.width = pct + '%';
-        text.textContent = current + '/' + max;
+function getVitalHue(percent) {
+    return (percent / 100) * 120;
+}
+
+function updateVitalBar(type, current, max = 100) {
+    const percent = Math.max(0, Math.min(100, (current / max) * 100));
+    const hue = getVitalHue(percent);
+    const color = `hsl(${hue}, 65%, 45%)`;
+    
+    // Header bar
+    const headerFill = document.getElementById(`ie-${type}-fill`);
+    const headerValue = document.getElementById(`ie-${type}-value`);
+    const headerBar = headerFill?.closest('.ie-vital-bar');
+    
+    if (headerFill) {
+        headerFill.style.width = `${percent}%`;
+        headerFill.style.background = color;
+    }
+    if (headerValue) headerValue.textContent = Math.round(current);
+    
+    if (headerBar) {
+        headerBar.classList.remove('ie-vital-low', 'ie-vital-critical');
+        if (percent <= 15) headerBar.classList.add('ie-vital-critical');
+        else if (percent <= 30) headerBar.classList.add('ie-vital-low');
+    }
+    
+    // Status tab detail bar
+    const detailFill = document.getElementById(`ie-${type}-detail-fill`);
+    const detailValue = document.getElementById(`ie-${type}-detail-value`);
+    const detailRow = detailFill?.closest('.ie-vital-detail-row');
+    
+    if (detailFill) {
+        detailFill.style.width = `${percent}%`;
+        detailFill.style.background = color;
+    }
+    if (detailValue) detailValue.textContent = `${Math.round(current)} / ${max}`;
+    
+    if (detailRow) {
+        detailRow.classList.remove('ie-vital-low', 'ie-vital-critical');
+        if (percent <= 15) detailRow.classList.add('ie-vital-critical');
+        else if (percent <= 30) detailRow.classList.add('ie-vital-low');
     }
 }
 
-export function updateMorale(current, max) {
-    const fill = document.querySelector('.ie-morale-fill');
-    const text = document.querySelector('.ie-morale-text');
-    if (fill && text) {
-        const pct = (current / max) * 100;
-        fill.style.width = pct + '%';
-        text.textContent = current + '/' + max;
+export function updateHealth(current, max = 100) {
+    updateVitalBar('health', current, max);
+}
+
+export function updateMorale(current, max = 100) {
+    updateVitalBar('morale', current, max);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VITALS BUTTON EVENT BINDING
+// ═══════════════════════════════════════════════════════════════
+
+export function bindVitalsControls(callbacks = {}) {
+    document.getElementById('ie-health-minus')?.addEventListener('click', () => {
+        if (callbacks.onHealthChange) callbacks.onHealthChange(-1);
+    });
+    document.getElementById('ie-health-plus')?.addEventListener('click', () => {
+        if (callbacks.onHealthChange) callbacks.onHealthChange(1);
+    });
+    document.getElementById('ie-morale-minus')?.addEventListener('click', () => {
+        if (callbacks.onMoraleChange) callbacks.onMoraleChange(-1);
+    });
+    document.getElementById('ie-morale-plus')?.addEventListener('click', () => {
+        if (callbacks.onMoraleChange) callbacks.onMoraleChange(1);
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DISPLAY HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+export function updateCaseTitle(name) {
+    const titleEl = document.querySelector('.ie-case-title');
+    if (titleEl) titleEl.textContent = name ? `CASE FILE: ${name}` : 'CASE FILE';
+}
+
+export function updateMoney(amount) {
+    const moneyEl = document.getElementById('ie-money-amount');
+    if (moneyEl) moneyEl.textContent = amount.toLocaleString();
+}
+
+export function populateConnectionProfiles(profiles, selectedProfile) {
+    const select = document.getElementById('ie-connection-profile');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="current">Use Current ST Profile</option>';
+    
+    if (profiles && profiles.length > 0) {
+        profiles.forEach(profile => {
+            const option = document.createElement('option');
+            option.value = profile.name;
+            option.textContent = profile.name;
+            select.appendChild(option);
+        });
     }
-}
-
-export function bindPanelEvents(getContext, callbacks = {}) {
-    document.querySelector('.ie-close')?.addEventListener('click', closePanel);
-    document.querySelector('.ie-settings-btn')?.addEventListener('click', toggleSettingsPanel);
-    document.querySelector('.ie-rescan')?.addEventListener('click', () => callbacks.onRescan?.());
     
-    document.querySelectorAll('.ie-tab').forEach(tab => {
-        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
-    });
-    
-    document.getElementById('ie-auto-trigger')?.addEventListener('change', e => {
-        updateSettings({ autoTrigger: e.target.checked }, getContext());
-    });
-    document.getElementById('ie-tokens')?.addEventListener('change', e => {
-        const v = parseInt(e.target.value, 10);
-        if (v >= 100 && v <= 2000) updateSettings({ maxTokens: v }, getContext());
-    });
-}
-
-let settingsOpen = false;
-export function toggleSettingsPanel() {
-    const settings = document.querySelector('.ie-settings');
-    const content = document.querySelector('.ie-content');
-    settingsOpen = !settingsOpen;
-    if (settings) settings.style.display = settingsOpen ? 'block' : 'none';
-    if (content) content.style.display = settingsOpen ? 'none' : 'block';
+    if (selectedProfile) select.value = selectedProfile;
 }
