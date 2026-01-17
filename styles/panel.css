@@ -171,7 +171,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   PANEL MARKERS (01A15 style)
+   PANEL MARKERS (01A15 style) - LEFT RULER SIDE
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-panel-marker {
@@ -189,17 +189,26 @@
     z-index: 50;
 }
 
+/* Top marker - pushed down more */
 .ie-panel-marker-top {
-    top: 130px;
+    top: 200px;
 }
+
+/* Bottom marker - with significant gap from top */
+.ie-panel-marker-bottom {
+    top: 420px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PANEL MARKERS - RIGHT FILM STRIP SIDE
+   ═══════════════════════════════════════════════════════════════ */
 
 .ie-panel-marker-right {
     position: absolute;
     right: 24px;
-    top: 50%;
-    transform: translateY(-50%) rotate(180deg);
     writing-mode: vertical-rl;
     text-orientation: mixed;
+    transform: rotate(180deg);
     font-family: 'Courier New', monospace;
     font-size: 11px;
     font-weight: 600;
@@ -207,6 +216,14 @@
     color: var(--ie-film-marker);
     pointer-events: none;
     z-index: 50;
+}
+
+.ie-panel-marker-right-top {
+    top: 200px;
+}
+
+.ie-panel-marker-right-bottom {
+    top: 420px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -271,7 +288,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   HEADER VITALS BARS (matching working version structure)
+   HEADER VITALS BARS
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-vitals-row {
@@ -342,7 +359,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   PANEL FOOTER
+   PANEL FOOTER (Settings/Profiles buttons)
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-panel-footer {
@@ -353,6 +370,7 @@
     background: var(--ie-bg-secondary);
     margin-left: 32px;
     margin-right: 30px;
+    flex-shrink: 0;
 }
 
 .ie-bottom-btn {
@@ -361,12 +379,13 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 8px 12px;
+    padding: 10px 12px;
     background: var(--ie-bg-tertiary);
     border: 1px solid var(--ie-border);
     border-radius: 4px;
     color: var(--ie-text-secondary);
     font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -377,12 +396,25 @@
     color: var(--ie-accent-orange);
 }
 
+.ie-bottom-btn.active,
+.ie-bottom-btn.ie-bottom-btn-active {
+    background: var(--ie-accent-orange);
+    border-color: var(--ie-accent-orange);
+    color: var(--ie-bg-primary);
+}
+
 .ie-bottom-btn i {
     font-size: 14px;
 }
 
+.ie-bottom-btn span {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 /* ═══════════════════════════════════════════════════════════════
-   SECTIONS
+   SECTIONS (basic - detailed in sections.css)
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-section {
@@ -442,7 +474,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   BUTTONS
+   BUTTONS (basic - detailed in sections.css)
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-btn {
