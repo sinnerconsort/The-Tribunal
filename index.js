@@ -15,8 +15,8 @@ const extensionName = 'the-tribunal';
 const PANEL_HEADER_HTML = `
 <div class="ie-right-ruler"></div>
 <div class="ie-film-bottom-text"></div>
-<span class="ie-panel-marker ie-panel-marker-top">01A15</span>
 <span class="ie-panel-marker ie-panel-marker-mid">01A15</span>
+<span class="ie-panel-marker ie-panel-marker-bottom">01A15</span>
 <span class="ie-panel-marker-right">FELD ▼   DEVICE</span>
 
 <div class="ie-panel-header">
