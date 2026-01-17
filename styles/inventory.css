@@ -1,0 +1,161 @@
+/**
+ * The Tribunal - Inventory Tab Content
+ * Item cards, money display
+ * 
+ * Extracted from tabs.css for better organization
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   INVENTORY EMPTY STATE
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-inventory-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 20px;
+    color: var(--ie-text-muted);
+    font-style: italic;
+}
+
+.ie-inventory-empty i {
+    font-size: 24px;
+    opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION COUNT BADGE (used in headers)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-section-count {
+    font-size: 11px;
+    color: var(--ie-text-muted);
+    background: var(--ie-bg-tertiary);
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INVENTORY GRID
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-inventory-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ITEM CARDS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-item-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--ie-bg-tertiary);
+    border: 1px solid var(--ie-border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ie-item-card:hover {
+    border-color: var(--ie-accent-orange-dim);
+    background: var(--ie-bg-secondary);
+}
+
+.ie-item-card.ie-item-equipped {
+    border-color: var(--ie-accent-blue);
+    background: rgba(83, 164, 181, 0.1);
+}
+
+.ie-item-icon {
+    font-size: 20px;
+    width: 28px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.ie-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.ie-item-name {
+    font-weight: 600;
+    color: var(--ie-text-primary);
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ie-item-desc {
+    font-size: 11px;
+    color: var(--ie-text-muted);
+    margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ITEM MODIFIERS (boosts/debuffs)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-item-modifiers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.ie-item-mod {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.ie-item-mod.ie-mod-boost {
+    background: rgba(76, 175, 80, 0.2);
+    color: #81c784;
+}
+
+.ie-item-mod.ie-mod-debuff {
+    background: rgba(244, 67, 54, 0.2);
+    color: #e57373;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MONEY DISPLAY
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-money-section {
+    margin-top: auto;
+}
+
+.ie-money-display {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding: 12px;
+    background: linear-gradient(135deg, rgba(191, 161, 39, 0.15) 0%, rgba(191, 161, 39, 0.05) 100%);
+    border: 1px solid rgba(191, 161, 39, 0.3);
+    border-radius: 4px;
+}
+
+.ie-money-amount {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--ie-accent-yellow);
+}
+
+.ie-money-unit {
+    font-size: 12px;
+    color: var(--ie-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}

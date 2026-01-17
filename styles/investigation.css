@@ -1,0 +1,196 @@
+/**
+ * The Tribunal - Investigation v2
+ * Narrator + Reactor styles, check badges
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   INVESTIGATION v2 - Narrator + Reactor Styles
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Investigation Results Container */
+.ie-investigation-results {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NARRATOR BLOCK - The main scene description
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-narrator-block {
+    background: linear-gradient(135deg, rgba(40, 35, 30, 0.9) 0%, rgba(30, 25, 20, 0.95) 100%);
+    border-left: 4px solid #888;
+    border-radius: 4px;
+    padding: 14px 16px;
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.ie-narrator-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.ie-narrator-name {
+    font-family: var(--ie-font-header, 'Courier New', monospace);
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.ie-narrator-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin-left: auto;
+}
+
+.ie-narrator-content {
+    font-style: italic;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 14px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CHECK BADGES
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-check-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ie-check-badge.ie-success {
+    background: rgba(76, 175, 80, 0.2);
+    color: #81c784;
+    border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.ie-check-badge.ie-failure {
+    background: rgba(244, 67, 54, 0.2);
+    color: #e57373;
+    border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.ie-check-badge.ie-critical-success {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(255, 193, 7, 0.2) 100%);
+    color: #ffd54f;
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+    animation: critical-glow 2s ease-in-out infinite;
+}
+
+.ie-check-badge.ie-critical-failure {
+    background: linear-gradient(135deg, rgba(183, 28, 28, 0.3) 0%, rgba(244, 67, 54, 0.2) 100%);
+    color: #ff8a80;
+    border: 1px solid rgba(244, 67, 54, 0.5);
+    text-shadow: 0 0 8px rgba(244, 67, 54, 0.5);
+    animation: critical-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes critical-glow {
+    0%, 100% { box-shadow: 0 0 4px rgba(255, 215, 0, 0.3); }
+    50% { box-shadow: 0 0 12px rgba(255, 215, 0, 0.5); }
+}
+
+@keyframes critical-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.8; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REACTORS SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-reactors-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ie-reactors-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(208, 189, 97, 0.3) 20%, rgba(208, 189, 97, 0.3) 80%, transparent 100%);
+    margin: 4px 0 8px 0;
+}
+
+/* Individual Reactor Line */
+.ie-reactor-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(30, 25, 20, 0.6);
+    border-left: 3px solid #888;
+    border-radius: 0 4px 4px 0;
+    flex-wrap: wrap;
+}
+
+.ie-reactor-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.ie-reactor-name {
+    font-family: var(--ie-font-header, 'Courier New', monospace);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.ie-reactor-type {
+    font-size: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.08);
+    padding: 1px 6px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.ie-reactor-dash {
+    color: rgba(255, 255, 255, 0.3);
+    flex-shrink: 0;
+}
+
+.ie-reactor-content {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    line-height: 1.4;
+    flex: 1;
+    min-width: 150px;
+}
+
+/* Object Reactor - Special styling */
+.ie-reactor-line.ie-reactor-object {
+    background: linear-gradient(135deg, rgba(40, 30, 25, 0.7) 0%, rgba(35, 25, 20, 0.8) 100%);
+    border-left-width: 3px;
+}
+
+.ie-reactor-line.ie-reactor-object .ie-reactor-content {
+    font-style: italic;
+}
+
