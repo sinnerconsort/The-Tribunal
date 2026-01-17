@@ -1,15 +1,15 @@
 /**
  * The Tribunal - SillyTavern Extension
- * REBUILD v0.1.0 - UI Shell Only
+ * REBUILD v0.1.1 - UI Shell Only (jQuery + Mobile Fix)
  * 
- * This is a fresh start. No state management, no saves.
+ * Fresh start. No state management, no saves.
  * Just the UI shell that opens and closes.
  */
 
 const extensionName = 'the-tribunal';
 
 // ═══════════════════════════════════════════════════════════════
-// HTML TEMPLATES (inline for now)
+// HTML TEMPLATES
 // ═══════════════════════════════════════════════════════════════
 
 function getPanelHTML() {
@@ -38,7 +38,7 @@ function getPanelHTML() {
                 </div>
             </div>
             
-            <!-- Vitals bars placeholder -->
+            <!-- Vitals bars -->
             <div class="ie-header-vitals">
                 <div class="ie-vital-row">
                     <span class="ie-vital-label">HEALTH</span>
@@ -136,49 +136,70 @@ function getPanelHTML() {
     `;
 }
 
+function getFABHTML() {
+    return `
+        <div id="inland-empire-fab" class="ie-fab" title="Open Psyche Panel">
+            <div class="ie-fab-icon">
+                <i class="fa-solid fa-address-card"></i>
+            </div>
+        </div>
+    `;
+}
+
 // ═══════════════════════════════════════════════════════════════
-// UI CREATION
+// UI CREATION (jQuery)
 // ═══════════════════════════════════════════════════════════════
 
 function createPanel() {
-    const panel = document.createElement('div');
-    panel.id = 'inland-empire-panel';
-    panel.className = 'inland-empire-panel';
-    panel.innerHTML = getPanelHTML();
-    return panel;
+    const panelHtml = `<div id="inland-empire-panel" class="inland-empire-panel">${getPanelHTML()}</div>`;
+    $('body').append(panelHtml);
+    return $('#inland-empire-panel');
 }
 
 function createFAB() {
-    const fab = document.createElement('div');
-    fab.id = 'inland-empire-fab';
-    fab.className = 'ie-fab';
-    fab.title = 'Open Psyche Panel';
-    fab.innerHTML = `
-        <div class="ie-fab-icon">
-            <i class="fa-solid fa-address-card"></i>
-        </div>
-    `;
+    $('body').append(getFABHTML());
+    const $fab = $('#inland-empire-fab');
     
-    // Position
-    fab.style.top = '140px';
-    fab.style.left = '10px';
+    // Position - use CSS variable for ST's top bar, fallback for safety
+    const isMobile = window.innerWidth <= 1000;
+    if (isMobile) {
+        $fab.css({
+            top: 'calc(var(--topBarBlockSize, 50px) + 10px)',
+            left: '10px'
+        });
+    } else {
+        $fab.css({
+            top: '140px',
+            left: '10px'
+        });
+    }
     
     // Make draggable
-    makeDraggable(fab);
+    makeDraggable($fab);
     
-    return fab;
+    return $fab;
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DRAGGABLE FAB
+// DRAGGABLE FAB (jQuery + Touch)
 // ═══════════════════════════════════════════════════════════════
 
-function makeDraggable(element) {
+function makeDraggable($element) {
     let isDragging = false;
-    let startX, startY, startLeft, startTop;
     let hasMoved = false;
+    let startX, startY, startLeft, startTop;
+    let rafId = null;
+    let pendingX, pendingY;
     
-    const onStart = (e) => {
+    const element = $element[0];
+    
+    function updatePosition() {
+        element.style.left = pendingX + 'px';
+        element.style.top = pendingY + 'px';
+        rafId = null;
+    }
+    
+    function onStart(e) {
         isDragging = true;
         hasMoved = false;
         
@@ -189,11 +210,15 @@ function makeDraggable(element) {
         startTop = element.offsetTop;
         
         element.style.transition = 'none';
-        element.style.cursor = 'grabbing';
-    };
+    }
     
-    const onMove = (e) => {
+    function onMove(e) {
         if (!isDragging) return;
+        
+        // Prevent scrolling while dragging
+        if (e.cancelable) {
+            e.preventDefault();
+        }
         
         const touch = e.touches ? e.touches[0] : e;
         const dx = touch.clientX - startX;
@@ -203,37 +228,38 @@ function makeDraggable(element) {
             hasMoved = true;
         }
         
-        const newLeft = Math.max(0, Math.min(window.innerWidth - element.offsetWidth, startLeft + dx));
-        const newTop = Math.max(0, Math.min(window.innerHeight - element.offsetHeight, startTop + dy));
+        pendingX = Math.max(0, Math.min(window.innerWidth - element.offsetWidth, startLeft + dx));
+        pendingY = Math.max(0, Math.min(window.innerHeight - element.offsetHeight, startTop + dy));
         
-        element.style.left = newLeft + 'px';
-        element.style.top = newTop + 'px';
-    };
+        // Use RAF for smooth updates
+        if (!rafId) {
+            rafId = requestAnimationFrame(updatePosition);
+        }
+    }
     
-    const onEnd = () => {
+    function onEnd() {
         if (!isDragging) return;
         isDragging = false;
         
         element.style.transition = '';
-        element.style.cursor = '';
         
         if (hasMoved) {
-            element.dataset.justDragged = 'true';
+            $element.data('justDragged', true);
             setTimeout(() => {
-                element.dataset.justDragged = 'false';
+                $element.data('justDragged', false);
             }, 100);
         }
-    };
+    }
     
     // Mouse events
-    element.addEventListener('mousedown', onStart);
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onEnd);
+    $element.on('mousedown', onStart);
+    $(document).on('mousemove', onMove);
+    $(document).on('mouseup', onEnd);
     
-    // Touch events
+    // Touch events - passive: false to allow preventDefault
     element.addEventListener('touchstart', onStart, { passive: true });
-    document.addEventListener('touchmove', onMove, { passive: true });
-    document.addEventListener('touchend', onEnd);
+    element.addEventListener('touchmove', onMove, { passive: false });
+    element.addEventListener('touchend', onEnd, { passive: true });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -241,16 +267,11 @@ function makeDraggable(element) {
 // ═══════════════════════════════════════════════════════════════
 
 function togglePanel() {
-    const panel = document.getElementById('inland-empire-panel');
-    const fab = document.getElementById('inland-empire-fab');
+    const $panel = $('#inland-empire-panel');
+    const $fab = $('#inland-empire-fab');
     
-    if (panel) {
-        panel.classList.toggle('ie-panel-open');
-        
-        if (fab) {
-            fab.classList.toggle('ie-fab-active', panel.classList.contains('ie-panel-open'));
-        }
-    }
+    $panel.toggleClass('ie-panel-open');
+    $fab.toggleClass('ie-fab-active', $panel.hasClass('ie-panel-open'));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -259,14 +280,12 @@ function togglePanel() {
 
 function switchTab(tabId) {
     // Update tab buttons
-    document.querySelectorAll('.ie-tab').forEach(tab => {
-        tab.classList.toggle('ie-tab-active', tab.dataset.tab === tabId);
-    });
+    $('.ie-tab').removeClass('ie-tab-active');
+    $(`.ie-tab[data-tab="${tabId}"]`).addClass('ie-tab-active');
     
     // Update tab content
-    document.querySelectorAll('.ie-tab-content').forEach(content => {
-        content.classList.toggle('ie-tab-content-active', content.dataset.tab === tabId);
-    });
+    $('.ie-tab-content').removeClass('ie-tab-content-active');
+    $(`.ie-tab-content[data-tab="${tabId}"]`).addClass('ie-tab-content-active');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -275,40 +294,39 @@ function switchTab(tabId) {
 
 function bindEvents() {
     // FAB click
-    document.getElementById('inland-empire-fab')?.addEventListener('click', function(e) {
-        if (this.dataset.justDragged === 'true') {
+    $(document).on('click', '#inland-empire-fab', function() {
+        if ($(this).data('justDragged')) {
             return;
         }
         togglePanel();
     });
     
     // Close button
-    document.querySelector('.ie-btn-close-panel')?.addEventListener('click', togglePanel);
+    $(document).on('click', '.ie-btn-close-panel', togglePanel);
     
     // Tab switching
-    document.querySelectorAll('.ie-tab').forEach(tab => {
-        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    $(document).on('click', '.ie-tab', function() {
+        switchTab($(this).data('tab'));
     });
     
-    // Bottom buttons (just switch tabs for now)
-    document.querySelectorAll('.ie-bottom-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const panel = btn.dataset.panel;
-            // For now, just log - we'll add these tabs later
-            console.log('[The Tribunal] Bottom button clicked:', panel);
-        });
+    // Bottom buttons
+    $(document).on('click', '.ie-bottom-btn', function() {
+        const panel = $(this).data('panel');
+        console.log('[The Tribunal] Bottom button:', panel);
+        // TODO: Add profiles/settings tabs
     });
     
     // Manual trigger (placeholder)
-    document.getElementById('ie-manual-trigger')?.addEventListener('click', () => {
+    $(document).on('click', '#ie-manual-trigger', function() {
         console.log('[The Tribunal] Manual trigger clicked');
+        toastr.info('Voice trigger (not implemented yet)');
     });
     
     // ESC to close
-    document.addEventListener('keydown', (e) => {
+    $(document).on('keydown', function(e) {
         if (e.key === 'Escape') {
-            const panel = document.getElementById('inland-empire-panel');
-            if (panel?.classList.contains('ie-panel-open')) {
+            const $panel = $('#inland-empire-panel');
+            if ($panel.hasClass('ie-panel-open')) {
                 togglePanel();
             }
         }
@@ -320,19 +338,17 @@ function bindEvents() {
 // ═══════════════════════════════════════════════════════════════
 
 function init() {
-    console.log('[The Tribunal] Initializing UI shell...');
+    console.log('[The Tribunal] Initializing UI shell v0.1.1...');
     
-    // Create and append UI elements
-    const panel = createPanel();
-    const fab = createFAB();
-    
-    document.body.appendChild(panel);
-    document.body.appendChild(fab);
+    // Create UI elements
+    createPanel();
+    createFAB();
     
     // Bind events
     bindEvents();
     
     console.log('[The Tribunal] UI shell ready!');
+    toastr.success('The Tribunal loaded!', 'Extension', { timeOut: 2000 });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -344,5 +360,6 @@ jQuery(async () => {
         init();
     } catch (error) {
         console.error('[The Tribunal] Failed to initialize:', error);
+        toastr.error(`Init failed: ${error.message}`, 'The Tribunal');
     }
 });
