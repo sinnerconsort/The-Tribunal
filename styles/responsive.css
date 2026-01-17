@@ -1,0 +1,88 @@
+/**
+ * The Tribunal - Responsive / Mobile
+ * Mobile breakpoints and adaptations
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE / MOBILE
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .inland-empire-panel {
+        width: 100%;
+        right: 0;
+        transform: translateX(100%);
+    }
+
+    .ie-panel-open {
+        transform: translateX(0);
+    }
+
+    .ie-attributes-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ie-status-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .ie-discovery-modal {
+        width: 95%;
+        max-height: 85vh;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE / MOBILE
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Discovery overlay mobile positioning fix */
+@media (max-width: 768px) {
+    .ie-discovery-overlay {
+        align-items: flex-start;
+        padding-top: 40px;
+        padding-bottom: 20px;
+    }
+    
+    .ie-discovery-modal {
+        width: 95%;
+        max-height: calc(100vh - 80px);
+        margin: 0 auto;
+    }
+    
+    .ie-quick-scan-btn {
+        opacity: 1;
+        transform: scale(1);
+    }
+    
+    .ie-discovery-actions {
+        flex-direction: column;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE ADJUSTMENTS (from additions)
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .ie-vitals-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .ie-vital-label {
+        width: 60px;
+    }
+    
+    .ie-bottom-buttons {
+        padding: 8px 12px 10px 24px;
+    }
+    
+    .ie-bottom-btn {
+        padding: 8px 10px;
+    }
+    
+    .ie-bottom-btn span {
+        font-size: 10px;
+    }
+}
