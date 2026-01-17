@@ -1,7 +1,5 @@
 /**
  * The Tribunal - Main Entry Point
- * index.js
- * 
  * Disco Elysium-inspired internal voice system for SillyTavern
  * v4.0.0
  */
@@ -29,12 +27,17 @@ import {
 // IMPORTS - UI
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { createFAB, createPanel, togglePanel, openPanel, closePanel, updateFABState, switchTab } from './src/ui/panel.js';
-import { bindPanelEvents, updateHealth, updateMorale } from './src/ui/panel-helpers.js';
+import { 
+    createToggleFAB, 
+    createPsychePanel, 
+    togglePanel, 
+    updateFABState, 
+    switchTab,
+    updateHealth,
+    updateMorale,
+    bindVitalsControls
+} from './src/ui/panel.js';
 import { showToast } from './src/ui/toasts.js';
-import { renderVoices, showVoicesLoading, showVoicesError } from './src/ui/render-voices.js';
-import { populateSettingsForm } from './src/ui/render-settings.js';
-import { refreshVitals, refreshAll } from './src/ui/refresh.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // IMPORTS - Voice Generation
@@ -71,6 +74,68 @@ function getLastMessage() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// VOICE RENDERING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function renderVoicesToPanel(voices) {
+    const container = document.getElementById('ie-voices-output');
+    if (!container) return;
+    
+    if (!voices || voices.length === 0) {
+        container.innerHTML = `
+            <div class="ie-voices-empty">
+                <i class="fa-solid fa-comment-slash"></i>
+                <span>Waiting for something to happen...</span>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = voices.map(v => `
+        <div class="ie-voice-block" style="border-left-color: ${v.color || '#a3a3a3'}">
+            <div class="ie-voice-header">
+                <span class="ie-voice-skill" style="color: ${v.color || '#a3a3a3'}">${v.skill}</span>
+            </div>
+            <div class="ie-voice-text">${v.text}</div>
+        </div>
+    `).join('');
+}
+
+function showVoicesLoading() {
+    const container = document.getElementById('ie-voices-output');
+    if (container) {
+        container.innerHTML = `
+            <div class="ie-voices-loading">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <span>The voices are deliberating...</span>
+            </div>
+        `;
+    }
+}
+
+function showVoicesError(message) {
+    const container = document.getElementById('ie-voices-output');
+    if (container) {
+        container.innerHTML = `
+            <div class="ie-voices-error">
+                <i class="fa-solid fa-exclamation-triangle"></i>
+                <span>${message}</span>
+            </div>
+        `;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VITALS REFRESH
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function refreshVitals() {
+    const v = getVitals();
+    updateHealth(v.health, v.maxHealth);
+    updateMorale(v.morale, v.maxMorale);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // VOICE GENERATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -90,13 +155,12 @@ async function triggerVoices() {
     
     try {
         showVoicesLoading();
-        openPanel();
         
         const context = analyzeContext(lastMsg.mes);
         const selectedSkills = selectSpeakingSkills(context);
         const voices = await generateVoices(selectedSkills, context, getContext);
         
-        renderVoices(voices);
+        renderVoicesToPanel(voices);
         showToast('Voices generated', 'success');
         
     } catch (error) {
@@ -106,6 +170,68 @@ async function triggerVoices() {
     } finally {
         isGenerating = false;
     }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EVENT BINDING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function bindPanelEvents() {
+    // Close button
+    document.querySelector('.ie-btn-close-panel')?.addEventListener('click', togglePanel);
+    
+    // Tab switching
+    document.querySelectorAll('.ie-tab').forEach(tab => {
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+    });
+    
+    // Bottom buttons
+    document.querySelectorAll('.ie-bottom-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.panel));
+    });
+    
+    // Manual trigger button
+    document.getElementById('ie-manual-trigger')?.addEventListener('click', triggerVoices);
+    
+    // Clear voices button
+    document.querySelector('.ie-btn-clear-voices')?.addEventListener('click', () => {
+        renderVoicesToPanel([]);
+    });
+    
+    // Vitals controls
+    bindVitalsControls({
+        onHealthChange: (delta) => {
+            modifyHealth(delta, getContext());
+            refreshVitals();
+        },
+        onMoraleChange: (delta) => {
+            modifyMorale(delta, getContext());
+            refreshVitals();
+        }
+    });
+    
+    // Settings save
+    document.querySelector('.ie-btn-save-settings')?.addEventListener('click', () => {
+        extensionSettings.enabled = document.getElementById('ie-enabled')?.checked ?? true;
+        extensionSettings.autoTrigger = document.getElementById('ie-auto-trigger')?.checked ?? false;
+        extensionSettings.maxTokens = parseInt(document.getElementById('ie-max-tokens')?.value) || 400;
+        extensionSettings.connectionProfile = document.getElementById('ie-connection-profile')?.value || 'current';
+        saveState(getContext());
+        updateFABState(extensionSettings.enabled);
+        showToast('Settings saved', 'success');
+    });
+}
+
+function populateSettings() {
+    const enabledEl = document.getElementById('ie-enabled');
+    const autoTriggerEl = document.getElementById('ie-auto-trigger');
+    const maxTokensEl = document.getElementById('ie-max-tokens');
+    const profileEl = document.getElementById('ie-connection-profile');
+    
+    if (enabledEl) enabledEl.checked = extensionSettings.enabled;
+    if (autoTriggerEl) autoTriggerEl.checked = extensionSettings.autoTrigger;
+    if (maxTokensEl) maxTokensEl.value = extensionSettings.maxTokens;
+    if (profileEl) profileEl.value = extensionSettings.connectionProfile;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -127,8 +253,8 @@ function setupAutoTrigger() {
     
     ctx.eventSource.on('chat_changed', () => {
         loadState(getContext);
-        refreshAll();
-        populateSettingsForm(getContext());
+        refreshVitals();
+        populateSettings();
     });
 }
 
@@ -171,20 +297,28 @@ async function init() {
     }
 
     // Create UI
-    const fab = createFAB();
-    const panel = createPanel();
+    const fab = createToggleFAB(getContext);
+    const panel = createPsychePanel();
     document.body.appendChild(fab);
     document.body.appendChild(panel);
     
     updateFABState(extensionSettings.enabled);
     
-    // Events
-    fab.addEventListener('click', togglePanel);
-    bindPanelEvents(getContext, { onRescan: triggerVoices });
+    // FAB click (with drag check)
+    fab.addEventListener('click', (e) => {
+        if (fab.dataset.justDragged === 'true') {
+            fab.dataset.justDragged = 'false';
+            return;
+        }
+        togglePanel();
+    });
+    
+    // Bind all panel events
+    bindPanelEvents();
     
     // Initial render
-    populateSettingsForm(getContext());
-    refreshAll();
+    populateSettings();
+    refreshVitals();
     setupAutoTrigger();
 
     console.log('[The Tribunal] Ready!');
