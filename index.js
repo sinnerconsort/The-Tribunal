@@ -1,182 +1,287 @@
 /**
- * The Tribunal - Main Entry Point
- * Disco Elysium-inspired internal voice system for SillyTavern
- * v4.0.0
+ * The Tribunal - SillyTavern Extension
+ * REBUILD v0.1.0 - UI Shell Only
+ * 
+ * This is a fresh start. No state management, no saves.
+ * Just the UI shell that opens and closes.
  */
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// IMPORTS - State
-// ═══════════════════════════════════════════════════════════════════════════════
+const extensionName = 'the-tribunal';
 
-import {
-    extensionSettings,
-    loadState,
-    saveState,
-    getVitals,
-    modifyHealth,
-    modifyMorale,
-    setHealth,
-    setMorale,
-    getEffectiveSkillLevel,
-    getThemeCounters,
-    getPlayerContext,
-    getDiscoveredThoughts
-} from './src/core/state.js';
+// ═══════════════════════════════════════════════════════════════
+// HTML TEMPLATES (inline for now)
+// ═══════════════════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// IMPORTS - UI
-// ═══════════════════════════════════════════════════════════════════════════════
-
-import { 
-    createToggleFAB, 
-    createPsychePanel, 
-    togglePanel, 
-    updateFABState, 
-    switchTab,
-    updateHealth,
-    updateMorale,
-    bindVitalsControls
-} from './src/ui/panel.js';
-import { showToast } from './src/ui/toasts.js';
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// IMPORTS - Voice Generation
-// ═══════════════════════════════════════════════════════════════════════════════
-
-import { selectSpeakingSkills, generateVoices } from './src/voice/generation.js';
-import { analyzeContext } from './src/voice/prompt-builder.js';
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// IMPORTS - Systems
-// ═══════════════════════════════════════════════════════════════════════════════
-
-import { rollSkillCheck } from './src/systems/dice.js';
-import { analyzeTextForVitals } from './src/systems/vitals/hooks.js';
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SILLYTAVERN CONTEXT
-// ═══════════════════════════════════════════════════════════════════════════════
-
-let stContext = null;
-
-function getContext() {
-    if (stContext) return stContext;
-    if (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) {
-        stContext = SillyTavern.getContext();
-    }
-    return stContext;
-}
-
-function getLastMessage() {
-    const ctx = getContext();
-    if (!ctx?.chat?.length) return null;
-    return ctx.chat[ctx.chat.length - 1];
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// VOICE RENDERING
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function renderVoicesToPanel(voices) {
-    const container = document.getElementById('ie-voices-output');
-    if (!container) return;
-    
-    if (!voices || voices.length === 0) {
-        container.innerHTML = `
-            <div class="ie-voices-empty">
-                <i class="fa-solid fa-comment-slash"></i>
-                <span>Waiting for something to happen...</span>
+function getPanelHTML() {
+    return `
+        <!-- Left ruler edge -->
+        <div class="ie-right-ruler"></div>
+        
+        <!-- Film strip bottom text -->
+        <div class="ie-film-bottom-text"></div>
+        
+        <!-- Panel markers -->
+        <div class="ie-panel-marker ie-panel-marker-top">01A15</div>
+        <div class="ie-panel-marker-right">02B23</div>
+        
+        <!-- Header -->
+        <div class="ie-panel-header">
+            <div class="ie-header-top">
+                <div class="ie-panel-title">
+                    <i class="fa-solid fa-address-card"></i>
+                    <span>THE TRIBUNAL</span>
+                </div>
+                <div class="ie-panel-controls">
+                    <button class="ie-btn-close-panel" title="Close">
+                        <i class="fa-solid fa-times"></i>
+                    </button>
+                </div>
             </div>
-        `;
-        return;
-    }
-    
-    container.innerHTML = voices.map(v => `
-        <div class="ie-voice-block" style="border-left-color: ${v.color || '#a3a3a3'}">
-            <div class="ie-voice-header">
-                <span class="ie-voice-skill" style="color: ${v.color || '#a3a3a3'}">${v.skill}</span>
+            
+            <!-- Vitals bars placeholder -->
+            <div class="ie-header-vitals">
+                <div class="ie-vital-row">
+                    <span class="ie-vital-label">HEALTH</span>
+                    <div class="ie-vital-bar ie-health-bar">
+                        <div class="ie-vital-fill" style="width: 100%"></div>
+                    </div>
+                    <span class="ie-vital-value">13/13</span>
+                </div>
+                <div class="ie-vital-row">
+                    <span class="ie-vital-label">MORALE</span>
+                    <div class="ie-vital-bar ie-morale-bar">
+                        <div class="ie-vital-fill" style="width: 100%"></div>
+                    </div>
+                    <span class="ie-vital-value">13/13</span>
+                </div>
             </div>
-            <div class="ie-voice-text">${v.text}</div>
         </div>
-    `).join('');
-}
-
-function showVoicesLoading() {
-    const container = document.getElementById('ie-voices-output');
-    if (container) {
-        container.innerHTML = `
-            <div class="ie-voices-loading">
-                <i class="fa-solid fa-spinner fa-spin"></i>
-                <span>The voices are deliberating...</span>
+        
+        <!-- Tab bar -->
+        <div class="ie-tabs">
+            <button class="ie-tab ie-tab-active" data-tab="voices">
+                <i class="fa-solid fa-comments"></i>
+                <span>Voices</span>
+            </button>
+            <button class="ie-tab" data-tab="cabinet">
+                <i class="fa-solid fa-brain"></i>
+                <span>Cabinet</span>
+            </button>
+            <button class="ie-tab" data-tab="status">
+                <i class="fa-solid fa-bolt"></i>
+                <span>Status</span>
+            </button>
+            <button class="ie-tab" data-tab="ledger">
+                <i class="fa-solid fa-book"></i>
+                <span>Ledger</span>
+            </button>
+        </div>
+        
+        <!-- Tab content area -->
+        <div class="ie-panel-content">
+            <!-- Voices Tab -->
+            <div class="ie-tab-content ie-tab-content-active" data-tab="voices">
+                <div class="ie-section">
+                    <div class="ie-section-header">
+                        <h3>Inner Voices</h3>
+                        <button class="ie-btn ie-btn-small" id="ie-manual-trigger">
+                            <i class="fa-solid fa-play"></i> Trigger
+                        </button>
+                    </div>
+                    <div id="ie-voices-output" class="ie-voices-container">
+                        <div class="ie-voices-empty">
+                            <i class="fa-solid fa-comment-slash"></i>
+                            <span>Waiting for something to happen...</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-        `;
-    }
-}
-
-function showVoicesError(message) {
-    const container = document.getElementById('ie-voices-output');
-    if (container) {
-        container.innerHTML = `
-            <div class="ie-voices-error">
-                <i class="fa-solid fa-exclamation-triangle"></i>
-                <span>${message}</span>
+            
+            <!-- Cabinet Tab -->
+            <div class="ie-tab-content" data-tab="cabinet">
+                <div class="ie-section">
+                    <h3>Thought Cabinet</h3>
+                    <p class="ie-empty-state">No thoughts yet...</p>
+                </div>
             </div>
-        `;
+            
+            <!-- Status Tab -->
+            <div class="ie-tab-content" data-tab="status">
+                <div class="ie-section">
+                    <h3>Status Effects</h3>
+                    <p class="ie-empty-state">No active effects</p>
+                </div>
+            </div>
+            
+            <!-- Ledger Tab -->
+            <div class="ie-tab-content" data-tab="ledger">
+                <div class="ie-section">
+                    <h3>Case Ledger</h3>
+                    <p class="ie-empty-state">No open cases</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom buttons -->
+        <div class="ie-panel-footer">
+            <button class="ie-bottom-btn" data-panel="profiles">
+                <i class="fa-solid fa-user"></i>
+                <span>Profiles</span>
+            </button>
+            <button class="ie-bottom-btn" data-panel="settings">
+                <i class="fa-solid fa-cog"></i>
+                <span>Settings</span>
+            </button>
+        </div>
+    `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UI CREATION
+// ═══════════════════════════════════════════════════════════════
+
+function createPanel() {
+    const panel = document.createElement('div');
+    panel.id = 'inland-empire-panel';
+    panel.className = 'inland-empire-panel';
+    panel.innerHTML = getPanelHTML();
+    return panel;
+}
+
+function createFAB() {
+    const fab = document.createElement('div');
+    fab.id = 'inland-empire-fab';
+    fab.className = 'ie-fab';
+    fab.title = 'Open Psyche Panel';
+    fab.innerHTML = `
+        <div class="ie-fab-icon">
+            <i class="fa-solid fa-address-card"></i>
+        </div>
+    `;
+    
+    // Position
+    fab.style.top = '140px';
+    fab.style.left = '10px';
+    
+    // Make draggable
+    makeDraggable(fab);
+    
+    return fab;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRAGGABLE FAB
+// ═══════════════════════════════════════════════════════════════
+
+function makeDraggable(element) {
+    let isDragging = false;
+    let startX, startY, startLeft, startTop;
+    let hasMoved = false;
+    
+    const onStart = (e) => {
+        isDragging = true;
+        hasMoved = false;
+        
+        const touch = e.touches ? e.touches[0] : e;
+        startX = touch.clientX;
+        startY = touch.clientY;
+        startLeft = element.offsetLeft;
+        startTop = element.offsetTop;
+        
+        element.style.transition = 'none';
+        element.style.cursor = 'grabbing';
+    };
+    
+    const onMove = (e) => {
+        if (!isDragging) return;
+        
+        const touch = e.touches ? e.touches[0] : e;
+        const dx = touch.clientX - startX;
+        const dy = touch.clientY - startY;
+        
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+            hasMoved = true;
+        }
+        
+        const newLeft = Math.max(0, Math.min(window.innerWidth - element.offsetWidth, startLeft + dx));
+        const newTop = Math.max(0, Math.min(window.innerHeight - element.offsetHeight, startTop + dy));
+        
+        element.style.left = newLeft + 'px';
+        element.style.top = newTop + 'px';
+    };
+    
+    const onEnd = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        
+        element.style.transition = '';
+        element.style.cursor = '';
+        
+        if (hasMoved) {
+            element.dataset.justDragged = 'true';
+            setTimeout(() => {
+                element.dataset.justDragged = 'false';
+            }, 100);
+        }
+    };
+    
+    // Mouse events
+    element.addEventListener('mousedown', onStart);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    
+    // Touch events
+    element.addEventListener('touchstart', onStart, { passive: true });
+    document.addEventListener('touchmove', onMove, { passive: true });
+    document.addEventListener('touchend', onEnd);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PANEL TOGGLE
+// ═══════════════════════════════════════════════════════════════
+
+function togglePanel() {
+    const panel = document.getElementById('inland-empire-panel');
+    const fab = document.getElementById('inland-empire-fab');
+    
+    if (panel) {
+        panel.classList.toggle('ie-panel-open');
+        
+        if (fab) {
+            fab.classList.toggle('ie-fab-active', panel.classList.contains('ie-panel-open'));
+        }
     }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// VITALS REFRESH
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════
 
-function refreshVitals() {
-    const v = getVitals();
-    updateHealth(v.health, v.maxHealth);
-    updateMorale(v.morale, v.maxMorale);
+function switchTab(tabId) {
+    // Update tab buttons
+    document.querySelectorAll('.ie-tab').forEach(tab => {
+        tab.classList.toggle('ie-tab-active', tab.dataset.tab === tabId);
+    });
+    
+    // Update tab content
+    document.querySelectorAll('.ie-tab-content').forEach(content => {
+        content.classList.toggle('ie-tab-content-active', content.dataset.tab === tabId);
+    });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// VOICE GENERATION
-// ═══════════════════════════════════════════════════════════════════════════════
-
-let isGenerating = false;
-
-async function triggerVoices() {
-    if (!extensionSettings.enabled) return;
-    if (isGenerating) return;
-    
-    const lastMsg = getLastMessage();
-    if (!lastMsg?.mes) {
-        showToast('No message to analyze', 'info');
-        return;
-    }
-    
-    isGenerating = true;
-    
-    try {
-        showVoicesLoading();
-        
-        const context = analyzeContext(lastMsg.mes);
-        const selectedSkills = selectSpeakingSkills(context);
-        const voices = await generateVoices(selectedSkills, context, getContext);
-        
-        renderVoicesToPanel(voices);
-        showToast('Voices generated', 'success');
-        
-    } catch (error) {
-        console.error('[The Tribunal] Generation failed:', error);
-        showVoicesError(error.message || 'Generation failed');
-        showToast('Error: ' + error.message, 'error');
-    } finally {
-        isGenerating = false;
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 // EVENT BINDING
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 
-function bindPanelEvents() {
+function bindEvents() {
+    // FAB click
+    document.getElementById('inland-empire-fab')?.addEventListener('click', function(e) {
+        if (this.dataset.justDragged === 'true') {
+            return;
+        }
+        togglePanel();
+    });
+    
     // Close button
     document.querySelector('.ie-btn-close-panel')?.addEventListener('click', togglePanel);
     
@@ -185,177 +290,59 @@ function bindPanelEvents() {
         tab.addEventListener('click', () => switchTab(tab.dataset.tab));
     });
     
-    // Bottom buttons
+    // Bottom buttons (just switch tabs for now)
     document.querySelectorAll('.ie-bottom-btn').forEach(btn => {
-        btn.addEventListener('click', () => switchTab(btn.dataset.panel));
-    });
-    
-    // Manual trigger button
-    document.getElementById('ie-manual-trigger')?.addEventListener('click', triggerVoices);
-    
-    // Clear voices button
-    document.querySelector('.ie-btn-clear-voices')?.addEventListener('click', () => {
-        renderVoicesToPanel([]);
-    });
-    
-    // Vitals controls
-    bindVitalsControls({
-        onHealthChange: (delta) => {
-            modifyHealth(delta, getContext());
-            refreshVitals();
-        },
-        onMoraleChange: (delta) => {
-            modifyMorale(delta, getContext());
-            refreshVitals();
-        }
-    });
-    
-    // Settings save
-    document.querySelector('.ie-btn-save-settings')?.addEventListener('click', () => {
-        extensionSettings.enabled = document.getElementById('ie-enabled')?.checked ?? true;
-        extensionSettings.autoTrigger = document.getElementById('ie-auto-trigger')?.checked ?? false;
-        extensionSettings.maxTokens = parseInt(document.getElementById('ie-max-tokens')?.value) || 400;
-        extensionSettings.connectionProfile = document.getElementById('ie-connection-profile')?.value || 'current';
-        saveState(getContext());
-        updateFABState(extensionSettings.enabled);
-        showToast('Settings saved', 'success');
-    });
-}
-
-function populateSettings() {
-    const enabledEl = document.getElementById('ie-enabled');
-    const autoTriggerEl = document.getElementById('ie-auto-trigger');
-    const maxTokensEl = document.getElementById('ie-max-tokens');
-    const profileEl = document.getElementById('ie-connection-profile');
-    
-    if (enabledEl) enabledEl.checked = extensionSettings.enabled;
-    if (autoTriggerEl) autoTriggerEl.checked = extensionSettings.autoTrigger;
-    if (maxTokensEl) maxTokensEl.value = extensionSettings.maxTokens;
-    if (profileEl) profileEl.value = extensionSettings.connectionProfile;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// AUTO TRIGGER
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function setupAutoTrigger() {
-    const ctx = getContext();
-    if (!ctx?.eventSource) {
-        console.warn('[The Tribunal] Event source not available');
-        return;
-    }
-
-    ctx.eventSource.on('message_received', async () => {
-        if (!extensionSettings.enabled || !extensionSettings.autoTrigger) return;
-        await new Promise(r => setTimeout(r, extensionSettings.triggerDelay || 1000));
-        triggerVoices();
-    });
-    
-    ctx.eventSource.on('chat_changed', () => {
-        loadState(getContext);
-        refreshVitals();
-        populateSettings();
-    });
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// INITIALIZATION
-// ═══════════════════════════════════════════════════════════════════════════════
-
-async function init() {
-    console.log('[The Tribunal] Initializing v4.0.0...');
-
-    await loadState(getContext);
-    
-    // Extension settings panel in ST sidebar
-    const container = document.getElementById('extensions_settings');
-    if (container) {
-        container.insertAdjacentHTML('beforeend', `
-            <div class="inline-drawer">
-                <div class="inline-drawer-toggle inline-drawer-header">
-                    <b><i class="fa-solid fa-brain"></i> The Tribunal</b>
-                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
-                </div>
-                <div class="inline-drawer-content">
-                    <div class="flex-container">
-                        <label class="checkbox_label">
-                            <input id="ie-ext-enabled" type="checkbox" ${extensionSettings.enabled ? 'checked' : ''}>
-                            <span>Enable The Tribunal</span>
-                        </label>
-                        <small>When disabled, the FAB will be hidden.</small>
-                    </div>
-                </div>
-            </div>
-        `);
-        
-        document.getElementById('ie-ext-enabled')?.addEventListener('change', (e) => {
-            extensionSettings.enabled = e.target.checked;
-            saveState(getContext());
-            updateFABState(e.target.checked);
-            showToast(e.target.checked ? 'The Tribunal enabled' : 'The Tribunal disabled', 'info');
+        btn.addEventListener('click', () => {
+            const panel = btn.dataset.panel;
+            // For now, just log - we'll add these tabs later
+            console.log('[The Tribunal] Bottom button clicked:', panel);
         });
-    }
-
-    // Create UI
-    const fab = createToggleFAB(getContext);
-    const panel = createPsychePanel();
-    document.body.appendChild(fab);
-    document.body.appendChild(panel);
-    
-    updateFABState(extensionSettings.enabled);
-    
-    // FAB click (with drag check)
-    fab.addEventListener('click', (e) => {
-        if (fab.dataset.justDragged === 'true') {
-            fab.dataset.justDragged = 'false';
-            return;
-        }
-        togglePanel();
     });
     
-    // Bind all panel events
-    bindPanelEvents();
+    // Manual trigger (placeholder)
+    document.getElementById('ie-manual-trigger')?.addEventListener('click', () => {
+        console.log('[The Tribunal] Manual trigger clicked');
+    });
     
-    // Initial render
-    populateSettings();
-    refreshVitals();
-    setupAutoTrigger();
-
-    console.log('[The Tribunal] Ready!');
+    // ESC to close
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const panel = document.getElementById('inland-empire-panel');
+            if (panel?.classList.contains('ie-panel-open')) {
+                togglePanel();
+            }
+        }
+    });
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════════
+
+function init() {
+    console.log('[The Tribunal] Initializing UI shell...');
+    
+    // Create and append UI elements
+    const panel = createPanel();
+    const fab = createFAB();
+    
+    document.body.appendChild(panel);
+    document.body.appendChild(fab);
+    
+    // Bind events
+    bindEvents();
+    
+    console.log('[The Tribunal] UI shell ready!');
+}
+
+// ═══════════════════════════════════════════════════════════════
 // ENTRY POINT
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 
 jQuery(async () => {
     try {
-        await init();
-        
-        // Global API
-        window.InlandEmpire = {
-            version: '4.0.0',
-            getSettings: () => ({ ...extensionSettings }),
-            getVitals,
-            getEffectiveSkillLevel,
-            getThemeCounters,
-            getPlayerContext,
-            getDiscoveredThoughts,
-            setHealth: (v) => { setHealth(v, getContext()); refreshVitals(); },
-            modifyHealth: (d) => { modifyHealth(d, getContext()); refreshVitals(); },
-            setMorale: (v) => { setMorale(v, getContext()); refreshVitals(); },
-            modifyMorale: (d) => { modifyMorale(d, getContext()); refreshVitals(); },
-            rollCheck: rollSkillCheck,
-            analyzeVitals: analyzeTextForVitals,
-            triggerVoices,
-            togglePanel
-        };
-        
-        console.log('[The Tribunal] Global API ready: window.InlandEmpire');
-        
+        init();
     } catch (error) {
         console.error('[The Tribunal] Failed to initialize:', error);
     }
 });
-
-export { triggerVoices, togglePanel, extensionSettings };

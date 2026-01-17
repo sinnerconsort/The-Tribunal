@@ -1,0 +1,94 @@
+/**
+ * The Tribunal - FAB Styles
+ * Floating Action Button
+ * REBUILD v0.1.0
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN FAB - Health Orange Theme
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-fab {
+    position: fixed;
+    z-index: 9998;
+    width: 52px;
+    height: 52px;
+    border-radius: 4px;
+    background: var(--ie-bg-secondary);
+    border: 2px solid #f3650b40;
+    color: var(--ie-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--ie-shadow);
+    transition: all 0.2s ease;
+    font-size: 22px;
+    touch-action: none;
+    user-select: none;
+}
+
+/* Top accent bar */
+.ie-fab::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 3px;
+    background: #f3650b60;
+}
+
+.ie-fab:hover {
+    border-color: #f3650b;
+    color: #f3650b;
+    box-shadow: 0 0 20px rgba(243, 101, 11, 0.4);
+}
+
+.ie-fab:hover::before {
+    background: #f3650b;
+}
+
+/* Icon container */
+.ie-fab-icon {
+    font-size: 22px;
+    line-height: 1;
+    transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ie-fab-icon i {
+    color: #f3650b;
+    transition: transform 0.3s ease, color 0.2s ease;
+}
+
+.ie-fab:hover .ie-fab-icon i {
+    color: #ff7a2a;
+    transform: scale(1.1);
+}
+
+/* Active state (panel open) */
+.ie-fab-active {
+    background: #f3650b;
+    border-color: #f3650b;
+    color: var(--ie-bg-primary);
+}
+
+.ie-fab-active::before {
+    background: #ff9040;
+}
+
+.ie-fab-active .ie-fab-icon i {
+    color: var(--ie-bg-primary);
+}
+
+/* Disabled state */
+.ie-fab-disabled {
+    opacity: 0.4;
+    border-color: var(--ie-border);
+    color: var(--ie-text-muted);
+    pointer-events: none;
+}

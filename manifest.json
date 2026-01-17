@@ -1,12 +1,12 @@
 {
     "display_name": "The Tribunal",
-    "loading_order": 10,
+    "loading_order": 100,
     "requires": [],
     "optional": [],
     "js": "index.js",
     "css": "styles.css",
-    "author": "Judas",
-    "version": "4.0.0",
+    "author": "sinnerconsort",
+    "version": "0.1.0",
     "homePage": "https://github.com/sinnerconsort/The-Tribunal",
     "auto_update": false
 }
