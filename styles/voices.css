@@ -1,0 +1,247 @@
+/**
+ * The Tribunal - Voices Output
+ * Voice display styling
+ * REBUILD: Clean voice block rendering
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   VOICES CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-voices-container {
+    max-height: none;
+    overflow-y: visible;
+    padding-bottom: 16px;
+}
+
+/* Scrollable variant if needed */
+.ie-voices-container.ie-scrollable {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-bottom: 20px;
+    scroll-behavior: smooth;
+}
+
+.ie-voices-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 30px;
+    color: var(--ie-text-muted);
+    font-style: italic;
+}
+
+.ie-voices-empty i {
+    font-size: 24px;
+    opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VOICE CARDS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-voice-line,
+.ie-voice-item {
+    background: var(--ie-bg-tertiary);
+    border-left: 4px solid;
+    border-radius: 0 2px 2px 0;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    position: relative;
+}
+
+.ie-voice-line:last-child,
+.ie-voice-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Subtle gradient fade on right edge */
+.ie-voice-line::before,
+.ie-voice-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 100%;
+    background: linear-gradient(to right, transparent, rgba(0,0,0,0.2));
+    pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VOICE HEADER & SIGNATURE
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-voice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.ie-voice-signature {
+    font-family: var(--ie-font-header);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.ie-voice-content {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--ie-text-primary);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CHECK RESULTS (Dice rolls)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-check-result {
+    font-family: var(--ie-font-header);
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 2px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ie-die {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: var(--ie-bg-primary);
+    border-radius: 2px;
+    font-weight: bold;
+    font-size: 11px;
+    border: 1px solid var(--ie-border);
+}
+
+/* Success */
+.ie-success,
+.ie-check-result.ie-success {
+    background: rgba(107, 156, 90, 0.2);
+    color: var(--ie-success);
+}
+
+/* Failure */
+.ie-fail,
+.ie-failure,
+.ie-check-result.ie-fail {
+    background: rgba(196, 92, 92, 0.2);
+    color: var(--ie-error);
+}
+
+/* Critical Success */
+.ie-crit-success,
+.ie-critical-success {
+    background: var(--ie-accent-yellow);
+    color: var(--ie-bg-primary);
+}
+
+/* Critical Failure */
+.ie-crit-fail,
+.ie-critical-failure {
+    background: #6B2020;
+    color: var(--ie-text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VOICE TYPE VARIANTS (by skill category)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Intellect voices - Blue tint */
+.ie-voice-int,
+.ie-voice-intellect {
+    border-left-color: var(--ie-accent-blue);
+}
+
+.ie-voice-int .ie-voice-signature,
+.ie-voice-intellect .ie-voice-signature {
+    color: var(--ie-accent-blue);
+}
+
+/* Psyche voices - Purple tint */
+.ie-voice-psy,
+.ie-voice-psyche {
+    border-left-color: var(--ie-accent-purple);
+}
+
+.ie-voice-psy .ie-voice-signature,
+.ie-voice-psyche .ie-voice-signature {
+    color: var(--ie-accent-purple);
+}
+
+/* Physique voices - Red tint */
+.ie-voice-fys,
+.ie-voice-physique {
+    border-left-color: var(--ie-accent-red);
+}
+
+.ie-voice-fys .ie-voice-signature,
+.ie-voice-physique .ie-voice-signature {
+    color: var(--ie-accent-red);
+}
+
+/* Motorics voices - Yellow tint */
+.ie-voice-mot,
+.ie-voice-motorics {
+    border-left-color: var(--ie-accent-yellow);
+}
+
+.ie-voice-mot .ie-voice-signature,
+.ie-voice-motorics .ie-voice-signature {
+    color: var(--ie-accent-yellow);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SPECIAL VOICE TYPES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Ancient Reptilian Brain */
+.ie-voice-ancient {
+    background: linear-gradient(135deg, var(--ie-bg-tertiary), #1a2020);
+    border-left-color: #4a6a6a;
+}
+
+/* Intrusive thoughts */
+.ie-voice-intrusive {
+    background: linear-gradient(135deg, var(--ie-bg-tertiary), #201a28);
+    border-left-color: var(--ie-accent-purple);
+}
+
+/* Object voices (Shivers-style) */
+.ie-voice-object {
+    background: linear-gradient(135deg, var(--ie-bg-tertiary), #28281a);
+    border-left-color: var(--ie-accent-yellow);
+}
+
+/* Narrator voice */
+.ie-voice-line.ie-narrator-voice,
+.ie-voice-narrator {
+    background: linear-gradient(135deg, var(--ie-bg-tertiary), #1a1a28);
+    border-left-width: 6px;
+    border-left-color: var(--ie-accent-orange);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VOICES TAB SCROLL FIX
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-tab-content[data-tab-content="voices"] {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 24px;
+}
