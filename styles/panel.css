@@ -191,12 +191,12 @@
 
 /* Top marker - below header in content area */
 .ie-panel-marker-top {
-    top: 340px;
+    top: 380px !important;
 }
 
 /* Bottom marker - with significant gap from top */
 .ie-panel-marker-bottom {
-    top: 620px;
+    top: 620px !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
