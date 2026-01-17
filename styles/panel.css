@@ -189,13 +189,13 @@
     z-index: 50;
 }
 
-/* First marker (upper) - below header in content area */
-.ie-panel-marker-first {
+/* Top marker - below header in content area */
+.ie-panel-marker-top {
     top: 380px !important;
 }
 
-/* Second marker (lower) - with significant gap from first */
-.ie-panel-marker-second {
+/* Bottom marker - with significant gap from top */
+.ie-panel-marker-bottom {
     top: 620px !important;
 }
 
