@@ -10,7 +10,9 @@ export let extensionSettings = {
     autoTrigger: true,
     triggerDelay: 1000,
     maxTokens: 400,
-    connectionProfile: 'current'
+    connectionProfile: 'current',
+    fabPositionTop: 140,
+    fabPositionLeft: 10
 };
 
 export let activeStatuses = new Set();
