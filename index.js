@@ -160,19 +160,12 @@ function createFAB() {
     $('body').append(getFABHTML());
     const $fab = $('#inland-empire-fab');
     
-    // Position - use CSS variable for ST's top bar, fallback for safety
-    const isMobile = window.innerWidth <= 1000;
-    if (isMobile) {
-        $fab.css({
-            top: 'calc(var(--topBarBlockSize, 50px) + 10px)',
-            left: '10px'
-        });
-    } else {
-        $fab.css({
-            top: '140px',
-            left: '10px'
-        });
-    }
+    // Explicit positioning - 70px from top to clear ST mobile header
+    $fab.css({
+        'top': '70px',
+        'left': '10px',
+        'z-index': '99999'
+    });
     
     // Make draggable
     makeDraggable($fab);
@@ -338,7 +331,27 @@ function bindEvents() {
 // ═══════════════════════════════════════════════════════════════
 
 function init() {
-    console.log('[The Tribunal] Initializing UI shell v0.1.1...');
+    console.log('[The Tribunal] Initializing UI shell v0.1.2...');
+    
+    // DEBUG: Add visible indicator that JS ran
+    $('body').append(`
+        <div id="ie-debug-indicator" style="
+            position: fixed !important;
+            bottom: 120px !important;
+            right: 10px !important;
+            background: #f3650b !important;
+            color: white !important;
+            padding: 8px 12px !important;
+            border-radius: 4px !important;
+            font-size: 12px !important;
+            font-weight: bold !important;
+            z-index: 999999 !important;
+            pointer-events: none !important;
+        ">TRIBUNAL JS OK</div>
+    `);
+    
+    // Remove debug indicator after 5 seconds
+    setTimeout(() => $('#ie-debug-indicator').fadeOut(), 5000);
     
     // Create UI elements
     createPanel();
