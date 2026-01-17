@@ -1,31 +1,36 @@
 /**
  * The Tribunal - FAB Styles
  * Floating Action Button
- * REBUILD v0.1.0
+ * REBUILD v0.1.2 - Mobile fix with explicit positioning
  */
 
 /* ═══════════════════════════════════════════════════════════════
    MAIN FAB - Health Orange Theme
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-fab {
-    position: fixed;
-    z-index: 9998;
-    width: 52px;
-    height: 52px;
+#inland-empire-fab.ie-fab {
+    position: fixed !important;
+    z-index: 99999 !important;
+    top: 70px !important;
+    left: 10px !important;
+    width: 52px !important;
+    height: 52px !important;
     border-radius: 4px;
-    background: var(--ie-bg-secondary);
+    background: #151519 !important;
     border: 2px solid #f3650b40;
-    color: var(--ie-text-secondary);
-    display: flex;
+    color: #9a958c;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: var(--ie-shadow);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.7);
     transition: all 0.2s ease;
     font-size: 22px;
     touch-action: none;
     user-select: none;
+    pointer-events: auto !important;
 }
 
 /* Top accent bar */
