@@ -189,26 +189,27 @@
     z-index: 50;
 }
 
-/* Top marker - pushed down more */
+/* Top marker - below header in content area */
 .ie-panel-marker-top {
-    top: 200px;
+    top: 280px;
 }
 
 /* Bottom marker - with significant gap from top */
 .ie-panel-marker-bottom {
-    top: 420px;
+    top: 520px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   PANEL MARKERS - RIGHT FILM STRIP SIDE
+   PANEL MARKERS - RIGHT FILM STRIP SIDE (FELD ▶DEVICE)
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-panel-marker-right {
     position: absolute;
     right: 24px;
+    top: 50%;
+    transform: translateY(-50%) rotate(180deg);
     writing-mode: vertical-rl;
     text-orientation: mixed;
-    transform: rotate(180deg);
     font-family: 'Courier New', monospace;
     font-size: 11px;
     font-weight: 600;
@@ -216,14 +217,6 @@
     color: var(--ie-film-marker);
     pointer-events: none;
     z-index: 50;
-}
-
-.ie-panel-marker-right-top {
-    top: 200px;
-}
-
-.ie-panel-marker-right-bottom {
-    top: 420px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
