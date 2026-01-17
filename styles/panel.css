@@ -271,16 +271,17 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   HEADER VITALS BARS
+   HEADER VITALS BARS (matching working version structure)
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-header-vitals {
+.ie-vitals-row {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    margin-top: 8px;
 }
 
-.ie-vital-row {
+.ie-vital-bar {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -291,14 +292,14 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: var(--ie-text-secondary);
+    color: var(--ie-text-secondary, #9a958c);
     width: 50px;
 }
 
-.ie-vital-bar {
+.ie-vital-track {
     flex: 1;
     height: 8px;
-    background: var(--ie-bg-primary);
+    background: var(--ie-bg-primary, #0d0d12);
     border-radius: 2px;
     overflow: hidden;
     position: relative;
@@ -310,19 +311,19 @@
     border-radius: 2px;
 }
 
-.ie-health-bar .ie-vital-fill {
-    background: linear-gradient(90deg, #c45c5c, #e07070);
+.ie-vital-health .ie-vital-fill {
+    background: linear-gradient(90deg, #f3650b, #ff8040);
 }
 
-.ie-morale-bar .ie-vital-fill {
-    background: linear-gradient(90deg, #53a4b5, #6bc4d5);
+.ie-vital-morale .ie-vital-fill {
+    background: linear-gradient(90deg, #0e7989, #15b0c5);
 }
 
 .ie-vital-value {
     font-size: 11px;
     font-weight: 600;
-    color: var(--ie-text-primary);
-    width: 40px;
+    color: var(--ie-text-primary, #e8e4de);
+    width: 30px;
     text-align: right;
     font-family: 'Courier New', monospace;
 }
