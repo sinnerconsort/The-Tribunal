@@ -217,15 +217,15 @@
 .ie-crt-container {
     flex: 1;
     min-width: 0;
+    max-width: 200px;
 }
 
 /* Watch positioning in new layout */
 .ie-header-row .tribunal-watch {
     flex-shrink: 0;
-    transform: scale(1.8);
+    transform: scale(1.6);
     transform-origin: top right;
-    margin-top: 8px;
-    margin-right: 4px;
+    margin-left: 10px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
