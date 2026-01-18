@@ -67,255 +67,390 @@
 
 .cabinet-pushpin {
     position: absolute;
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
-    z-index: 10;
+    z-index: 15;
     /* Pin head with highlight */
     box-shadow: 
         inset -1px -1px 2px rgba(0, 0, 0, 0.3),
         inset 2px 2px 3px rgba(255, 255, 255, 0.4),
-        0 2px 3px rgba(0, 0, 0, 0.3);
+        0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
 /* Intellect - Blue */
 .cabinet-pushpin-tl {
-    top: 14px;
-    left: 16px;
+    top: 12px;
+    left: 14px;
     background: linear-gradient(135deg, #5a8fba 0%, #3a6a9a 100%);
 }
 
 /* Psyche - Purple */
 .cabinet-pushpin-tr {
-    top: 14px;
-    right: 16px;
+    top: 12px;
+    right: 14px;
     background: linear-gradient(135deg, #9a6aaa 0%, #7a4a8a 100%);
 }
 
 /* Motorics - Amber */
 .cabinet-pushpin-bl {
-    bottom: 14px;
-    left: 16px;
+    bottom: 12px;
+    left: 14px;
     background: linear-gradient(135deg, #d4a84a 0%, #b08030 100%);
 }
 
 /* Physique - Red */
 .cabinet-pushpin-br {
-    bottom: 14px;
-    right: 16px;
+    bottom: 12px;
+    right: 14px;
     background: linear-gradient(135deg, #c45a5a 0%, #9a3a3a 100%);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   RED STRING - Conspiracy board connection
+   RED STRING - Thick yarn connecting items
    ═══════════════════════════════════════════════════════════════ */
 
-.cabinet-corkboard::before {
-    content: '';
+.cabinet-string {
     position: absolute;
-    top: 20px;
-    left: 22px;
-    width: 60%;
-    height: 40%;
-    border: none;
-    border-top: 1px solid rgba(180, 50, 50, 0.35);
-    border-right: 1px solid rgba(180, 50, 50, 0.35);
-    transform: rotate(8deg);
+    top: 19px;
+    left: 21px;
+    width: calc(100% - 42px);
+    height: 120px;
     pointer-events: none;
-    z-index: 1;
+    z-index: 3;
+}
+
+.cabinet-string svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.cabinet-string path {
+    fill: none;
+    stroke: #a83232;
+    stroke-width: 2;
+    stroke-linecap: round;
+    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.2));
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   POLAROID - Faded mysterious photo
+   POLAROID - Faded mysterious photo (3x bigger)
    ═══════════════════════════════════════════════════════════════ */
 
 .cabinet-polaroid {
     position: absolute;
-    top: 45px;
-    right: 40px;
-    width: 55px;
-    height: 65px;
-    background: linear-gradient(180deg, #f8f6f0 0%, #e8e4da 100%);
-    padding: 4px 4px 14px 4px;
-    transform: rotate(6deg);
-    box-shadow: 2px 3px 6px rgba(0, 0, 0, 0.2);
-    z-index: 2;
+    top: 50px;
+    right: 25px;
+    width: 100px;
+    height: 115px;
+    background: linear-gradient(180deg, #faf8f3 0%, #e8e4da 100%);
+    padding: 8px 8px 28px 8px;
+    transform: rotate(4deg);
+    box-shadow: 
+        3px 4px 8px rgba(0, 0, 0, 0.25),
+        0 0 1px rgba(0,0,0,0.1);
+    z-index: 5;
 }
 
 .cabinet-polaroid::before {
     content: '';
     display: block;
     width: 100%;
-    height: 38px;
+    height: 100%;
     background: 
-        /* Faded silhouette */
-        radial-gradient(ellipse 60% 80% at 50% 70%, 
-            rgba(60, 50, 40, 0.15) 0%, 
+        /* Mysterious silhouette */
+        radial-gradient(ellipse 50% 70% at 50% 60%, 
+            rgba(40, 35, 30, 0.2) 0%, 
             transparent 70%
         ),
-        /* Aged photo background */
+        /* Aged sepia photo background */
         linear-gradient(180deg, 
-            rgba(80, 70, 60, 0.08) 0%, 
-            rgba(100, 90, 75, 0.12) 100%
+            rgba(120, 100, 70, 0.1) 0%, 
+            rgba(90, 75, 55, 0.15) 100%
         );
+    border: 1px solid rgba(0,0,0,0.05);
 }
 
 /* Polaroid pin */
 .cabinet-polaroid::after {
     content: '';
     position: absolute;
-    top: -4px;
+    top: -5px;
     left: 50%;
     transform: translateX(-50%);
-    width: 8px;
-    height: 8px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background: linear-gradient(135deg, #c45a5a 0%, #9a3a3a 100%);
     box-shadow: 
         inset -1px -1px 2px rgba(0, 0, 0, 0.3),
         inset 1px 1px 2px rgba(255, 255, 255, 0.3),
-        0 1px 2px rgba(0, 0, 0, 0.2);
+        0 2px 3px rgba(0, 0, 0, 0.3);
+    z-index: 6;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MATCHBOOK - Whirling-in-Rags
+   MATCHBOOK - Casa Vega style (cream with red text)
    ═══════════════════════════════════════════════════════════════ */
 
 .cabinet-matchbook {
     position: absolute;
-    bottom: 60px;
-    left: 30px;
-    width: 40px;
-    height: 28px;
-    background: linear-gradient(180deg, #2a2520 0%, #1a1510 100%);
-    border-radius: 2px 2px 0 0;
-    transform: rotate(-12deg);
-    box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.3);
-    z-index: 3;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    bottom: 50px;
+    left: 20px;
+    width: 75px;
+    height: 55px;
+    background: linear-gradient(180deg, #f5efe5 0%, #e8e0d0 100%);
+    border-radius: 3px 3px 0 0;
+    transform: rotate(-8deg);
+    box-shadow: 
+        2px 3px 6px rgba(0, 0, 0, 0.25),
+        inset 0 -1px 0 rgba(0,0,0,0.05);
+    z-index: 6;
     overflow: hidden;
+    border: 1px solid rgba(180, 170, 150, 0.5);
+    border-bottom: none;
 }
 
+/* Main text area */
 .cabinet-matchbook::before {
-    content: 'WHIRLING';
+    content: 'WHIRLING IN RAGS';
+    position: absolute;
+    top: 8px;
+    left: 0;
+    right: 0;
     font-family: 'Impact', 'Arial Black', sans-serif;
-    font-size: 5px;
+    font-size: 9px;
+    font-weight: 700;
     letter-spacing: 0.5px;
-    color: rgba(200, 60, 70, 0.9);
+    line-height: 1.1;
+    color: #b82030;
+    text-align: center;
     text-transform: uppercase;
 }
 
-/* Strike strip */
+/* Strike strip at bottom */
 .cabinet-matchbook::after {
     content: '';
     position: absolute;
     bottom: 0;
-    left: 2px;
-    right: 2px;
-    height: 5px;
-    background: linear-gradient(90deg, 
-        #3a3530 0%, #4a4540 20%, #3a3530 40%, 
-        #4a4540 60%, #3a3530 80%, #4a4540 100%
-    );
+    left: 0;
+    right: 0;
+    height: 12px;
+    background: 
+        repeating-linear-gradient(90deg,
+            #4a4540 0px, #4a4540 2px,
+            #3a3530 2px, #3a3530 4px
+        );
+    border-top: 1px solid rgba(0,0,0,0.2);
+}
+
+/* Matchbook subtext */
+.cabinet-matchbook-sub {
+    position: absolute;
+    bottom: 16px;
+    left: 0;
+    right: 0;
+    font-family: 'Georgia', serif;
+    font-size: 5px;
+    font-style: italic;
+    color: #6a5a4a;
+    text-align: center;
+    letter-spacing: 0.5px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   BUSINESS CARD - Evrart Claire
+   BUSINESS CARD - Evrart Claire (bigger, worn)
    ═══════════════════════════════════════════════════════════════ */
 
 .cabinet-businesscard {
     position: absolute;
-    bottom: 90px;
-    right: 35px;
-    width: 70px;
-    height: 40px;
-    background: linear-gradient(135deg, #f5f3ed 0%, #e8e4da 100%);
-    border-radius: 2px;
-    transform: rotate(4deg);
-    box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.15);
-    z-index: 3;
-    padding: 5px 6px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    bottom: 130px;
+    right: 20px;
+    width: 120px;
+    height: 70px;
+    background: linear-gradient(135deg, #f8f6f0 0%, #ebe7dd 100%);
+    border-radius: 3px;
+    transform: rotate(6deg);
+    box-shadow: 
+        2px 3px 6px rgba(0, 0, 0, 0.2),
+        inset 0 0 0 1px rgba(0,0,0,0.05);
+    z-index: 4;
+    padding: 10px 12px;
+    overflow: hidden;
 }
 
+/* Name */
 .cabinet-businesscard::before {
     content: 'EVRART CLAIRE';
+    display: block;
     font-family: var(--ie-font-header);
-    font-size: 5px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
     color: #2a2520;
+    margin-bottom: 4px;
 }
 
+/* Title/company */
 .cabinet-businesscard::after {
-    content: "Dockworkers' Union";
+    content: "President, Dockworkers' Union";
+    display: block;
     font-family: var(--ie-font-body);
-    font-size: 4px;
-    font-style: italic;
+    font-size: 7px;
     color: #5a5045;
+    line-height: 1.4;
 }
 
-/* Bent corner effect */
+/* Bent corner */
 .cabinet-businesscard-bend {
     position: absolute;
     top: 0;
     right: 0;
-    width: 10px;
-    height: 10px;
+    width: 18px;
+    height: 18px;
     background: linear-gradient(135deg, 
         transparent 50%, 
-        rgba(0, 0, 0, 0.05) 50%,
-        rgba(200, 195, 185, 1) 50%
+        rgba(220, 215, 205, 1) 50%
     );
+    box-shadow: -1px 1px 2px rgba(0,0,0,0.1);
+}
+
+/* Union logo hint */
+.cabinet-businesscard-logo {
+    position: absolute;
+    bottom: 8px;
+    right: 10px;
+    width: 25px;
+    height: 25px;
+    border: 2px solid rgba(40, 60, 90, 0.2);
+    border-radius: 50%;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   NEWSPAPER CLIPPING
+   NEWSPAPER CLIPPING - Torn edges (bigger)
    ═══════════════════════════════════════════════════════════════ */
 
 .cabinet-clipping {
     position: absolute;
-    top: 120px;
-    left: 25px;
-    width: 65px;
-    height: 35px;
-    background: #f0ece0;
-    transform: rotate(-3deg);
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
-    z-index: 2;
-    padding: 4px;
+    top: 180px;
+    left: 15px;
+    width: 110px;
+    height: 70px;
+    background: #f5f1e6;
+    transform: rotate(-2deg);
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.15);
+    z-index: 5;
+    padding: 8px 10px;
     /* Torn edges */
     clip-path: polygon(
-        2% 0%, 10% 2%, 25% 0%, 40% 1%, 55% 0%, 70% 2%, 85% 0%, 98% 1%, 100% 3%,
-        99% 20%, 100% 40%, 98% 60%, 100% 80%, 99% 100%,
-        90% 98%, 75% 100%, 60% 99%, 45% 100%, 30% 98%, 15% 100%, 5% 99%, 0% 97%,
-        1% 80%, 0% 60%, 2% 40%, 0% 20%
+        0% 3%, 5% 0%, 12% 2%, 20% 0%, 30% 1%, 40% 0%, 
+        50% 2%, 60% 0%, 70% 1%, 80% 0%, 88% 2%, 95% 0%, 100% 3%,
+        99% 15%, 100% 30%, 98% 45%, 100% 60%, 99% 75%, 100% 90%, 98% 100%,
+        92% 99%, 85% 100%, 75% 98%, 65% 100%, 55% 99%, 45% 100%, 
+        35% 98%, 25% 100%, 15% 99%, 8% 100%, 0% 97%,
+        1% 85%, 0% 70%, 2% 55%, 0% 40%, 1% 25%, 0% 12%
     );
 }
 
+/* Headline */
 .cabinet-clipping::before {
     content: 'MARTINAISE';
     display: block;
     font-family: 'Times New Roman', Georgia, serif;
-    font-size: 6px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 1px;
-    color: #2a2520;
-    border-bottom: 1px solid #ccc;
-    padding-bottom: 2px;
-    margin-bottom: 2px;
+    letter-spacing: 2px;
+    color: #1a1a1a;
+    border-bottom: 1px solid #aaa;
+    padding-bottom: 4px;
+    margin-bottom: 5px;
 }
 
+/* Article text */
 .cabinet-clipping::after {
-    content: 'Strike enters 3rd week as tensions rise...';
+    content: 'Strike enters third week as union tensions rise in the district...';
     font-family: 'Times New Roman', Georgia, serif;
-    font-size: 4px;
-    color: #4a4540;
-    line-height: 1.3;
+    font-size: 6px;
+    color: #3a3a3a;
+    line-height: 1.4;
+    display: block;
+}
+
+/* Clipping pin */
+.cabinet-clipping-pin {
+    position: absolute;
+    top: -5px;
+    left: 20px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #d4a84a 0%, #b08030 100%);
+    box-shadow: 
+        inset -1px -1px 2px rgba(0, 0, 0, 0.3),
+        inset 1px 1px 2px rgba(255, 255, 255, 0.3),
+        0 2px 3px rgba(0, 0, 0, 0.3);
+    z-index: 6;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STICKY NOTE - Yellow with cryptic text
+   ═══════════════════════════════════════════════════════════════ */
+
+.cabinet-sticky {
+    position: absolute;
+    top: 170px;
+    right: 30px;
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(180deg, #f7e57a 0%, #f0da60 100%);
+    transform: rotate(3deg);
+    box-shadow: 
+        2px 3px 5px rgba(0, 0, 0, 0.2),
+        inset 0 -2px 4px rgba(0,0,0,0.05);
+    z-index: 4;
+    padding: 8px;
+    font-family: 'Comic Sans MS', 'Segoe Script', cursive;
+    font-size: 9px;
+    color: #4a4030;
+    line-height: 1.4;
+}
+
+.cabinet-sticky::before {
+    content: 'Who is the';
+    display: block;
+}
+
+.cabinet-sticky::after {
+    content: 'HANGED MAN?';
+    display: block;
+    font-weight: bold;
+    font-size: 10px;
+    margin-top: 4px;
+    color: #2a2520;
+    text-decoration: underline;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CIGARETTE BURN - Small detail
+   ═══════════════════════════════════════════════════════════════ */
+
+.cabinet-burn {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    width: 15px;
+    height: 12px;
+    background: radial-gradient(ellipse at center,
+        #3a3020 0%,
+        #5a4a35 40%,
+        #8a7a60 70%,
+        transparent 100%
+    );
+    border-radius: 50%;
+    opacity: 0.4;
+    transform: rotate(15deg);
+    z-index: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════════
