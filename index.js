@@ -95,6 +95,8 @@ const VOICES_TAB_HTML = `
                 <span>Waiting for something to happen...</span>
             </div>
         </div>
+        <!-- Drink stain decoration -->
+        <div class="napkin-stain"></div>
     </div>
     <div class="ie-section ie-manual-section">
         <button class="ie-btn ie-btn-primary ie-btn-trigger" id="ie-manual-trigger">
