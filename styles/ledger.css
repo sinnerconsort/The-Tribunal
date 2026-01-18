@@ -15,11 +15,11 @@
     --paper-aged: #e8dfd2;
     --paper-weathered: #ddd5c8;
     --paper-ink: #2c2416;
-    --paper-faded-ink: #8a7a6a;
+    --paper-faded-ink: #5a5045;
     
-    /* Ledger ink colors - lighter for readability on paper */
-    --ledger-ink-dark: #7a6a5a;
-    --ledger-ink-faded: #9a8a7a;
+    /* Ledger ink colors - matches voices header */
+    --ledger-ink-dark: #5a5045;
+    --ledger-ink-faded: #6a6055;
     --ledger-line: rgba(90, 74, 58, 0.15);
     --ledger-accent: #c9a227;
     --ledger-paper: #f4ede4;
@@ -348,7 +348,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    color: var(--ledger-ink-faded);
+    color: var(--ledger-ink-dark);
     border-bottom: 1px solid rgba(90, 74, 58, 0.15);
     padding-bottom: 4px;
     margin-bottom: 10px;
@@ -358,7 +358,7 @@
 
 .ledger-section-header::before {
     content: '// ';
-    opacity: 0.6;
+    opacity: 0.5;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1135,7 +1135,7 @@
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 2px;
-    color: var(--ledger-ink-faded);
+    color: var(--ledger-ink-dark);
     margin-bottom: 12px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--ledger-line);
