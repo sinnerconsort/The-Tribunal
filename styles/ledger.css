@@ -1112,12 +1112,28 @@
     padding-bottom: 20px;
 }
 
-/* Sub-content visibility */
+/* Sub-content visibility - now subcontents ARE the paper */
 .ledger-subcontent {
     display: none;
 }
 
 .ledger-subcontent-active {
+    display: block;
+}
+
+/* When subcontent is the paper element directly */
+.ledger-subcontent.ledger-paper {
+    flex: 1;
+    overflow-y: auto;
+    margin-left: -12px;
+    margin-right: 10px;
+    padding-left: 45px;
+    padding-right: 16px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+.ledger-subcontent.ledger-paper.ledger-subcontent-active {
     display: block;
 }
 
