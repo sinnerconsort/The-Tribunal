@@ -62,7 +62,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   PUSHPINS - Decorative corners
+   PUSHPINS - Voice attribute colors
    ═══════════════════════════════════════════════════════════════ */
 
 .cabinet-pushpin {
@@ -78,28 +78,244 @@
         0 2px 3px rgba(0, 0, 0, 0.3);
 }
 
+/* Intellect - Blue */
 .cabinet-pushpin-tl {
     top: 14px;
     left: 16px;
-    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    background: linear-gradient(135deg, #5a8fba 0%, #3a6a9a 100%);
 }
 
+/* Psyche - Purple */
 .cabinet-pushpin-tr {
     top: 14px;
     right: 16px;
-    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+    background: linear-gradient(135deg, #9a6aaa 0%, #7a4a8a 100%);
 }
 
+/* Motorics - Amber */
 .cabinet-pushpin-bl {
     bottom: 14px;
     left: 16px;
-    background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+    background: linear-gradient(135deg, #d4a84a 0%, #b08030 100%);
 }
 
+/* Physique - Red */
 .cabinet-pushpin-br {
     bottom: 14px;
     right: 16px;
-    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    background: linear-gradient(135deg, #c45a5a 0%, #9a3a3a 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RED STRING - Conspiracy board connection
+   ═══════════════════════════════════════════════════════════════ */
+
+.cabinet-corkboard::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    left: 22px;
+    width: 60%;
+    height: 40%;
+    border: none;
+    border-top: 1px solid rgba(180, 50, 50, 0.35);
+    border-right: 1px solid rgba(180, 50, 50, 0.35);
+    transform: rotate(8deg);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   POLAROID - Faded mysterious photo
+   ═══════════════════════════════════════════════════════════════ */
+
+.cabinet-polaroid {
+    position: absolute;
+    top: 45px;
+    right: 40px;
+    width: 55px;
+    height: 65px;
+    background: linear-gradient(180deg, #f8f6f0 0%, #e8e4da 100%);
+    padding: 4px 4px 14px 4px;
+    transform: rotate(6deg);
+    box-shadow: 2px 3px 6px rgba(0, 0, 0, 0.2);
+    z-index: 2;
+}
+
+.cabinet-polaroid::before {
+    content: '';
+    display: block;
+    width: 100%;
+    height: 38px;
+    background: 
+        /* Faded silhouette */
+        radial-gradient(ellipse 60% 80% at 50% 70%, 
+            rgba(60, 50, 40, 0.15) 0%, 
+            transparent 70%
+        ),
+        /* Aged photo background */
+        linear-gradient(180deg, 
+            rgba(80, 70, 60, 0.08) 0%, 
+            rgba(100, 90, 75, 0.12) 100%
+        );
+}
+
+/* Polaroid pin */
+.cabinet-polaroid::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #c45a5a 0%, #9a3a3a 100%);
+    box-shadow: 
+        inset -1px -1px 2px rgba(0, 0, 0, 0.3),
+        inset 1px 1px 2px rgba(255, 255, 255, 0.3),
+        0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MATCHBOOK - Whirling-in-Rags
+   ═══════════════════════════════════════════════════════════════ */
+
+.cabinet-matchbook {
+    position: absolute;
+    bottom: 60px;
+    left: 30px;
+    width: 40px;
+    height: 28px;
+    background: linear-gradient(180deg, #2a2520 0%, #1a1510 100%);
+    border-radius: 2px 2px 0 0;
+    transform: rotate(-12deg);
+    box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.3);
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.cabinet-matchbook::before {
+    content: 'WHIRLING';
+    font-family: 'Impact', 'Arial Black', sans-serif;
+    font-size: 5px;
+    letter-spacing: 0.5px;
+    color: rgba(200, 60, 70, 0.9);
+    text-transform: uppercase;
+}
+
+/* Strike strip */
+.cabinet-matchbook::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 2px;
+    right: 2px;
+    height: 5px;
+    background: linear-gradient(90deg, 
+        #3a3530 0%, #4a4540 20%, #3a3530 40%, 
+        #4a4540 60%, #3a3530 80%, #4a4540 100%
+    );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BUSINESS CARD - Evrart Claire
+   ═══════════════════════════════════════════════════════════════ */
+
+.cabinet-businesscard {
+    position: absolute;
+    bottom: 90px;
+    right: 35px;
+    width: 70px;
+    height: 40px;
+    background: linear-gradient(135deg, #f5f3ed 0%, #e8e4da 100%);
+    border-radius: 2px;
+    transform: rotate(4deg);
+    box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.15);
+    z-index: 3;
+    padding: 5px 6px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.cabinet-businesscard::before {
+    content: 'EVRART CLAIRE';
+    font-family: var(--ie-font-header);
+    font-size: 5px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: #2a2520;
+}
+
+.cabinet-businesscard::after {
+    content: "Dockworkers' Union";
+    font-family: var(--ie-font-body);
+    font-size: 4px;
+    font-style: italic;
+    color: #5a5045;
+}
+
+/* Bent corner effect */
+.cabinet-businesscard-bend {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 10px;
+    height: 10px;
+    background: linear-gradient(135deg, 
+        transparent 50%, 
+        rgba(0, 0, 0, 0.05) 50%,
+        rgba(200, 195, 185, 1) 50%
+    );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NEWSPAPER CLIPPING
+   ═══════════════════════════════════════════════════════════════ */
+
+.cabinet-clipping {
+    position: absolute;
+    top: 120px;
+    left: 25px;
+    width: 65px;
+    height: 35px;
+    background: #f0ece0;
+    transform: rotate(-3deg);
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+    z-index: 2;
+    padding: 4px;
+    /* Torn edges */
+    clip-path: polygon(
+        2% 0%, 10% 2%, 25% 0%, 40% 1%, 55% 0%, 70% 2%, 85% 0%, 98% 1%, 100% 3%,
+        99% 20%, 100% 40%, 98% 60%, 100% 80%, 99% 100%,
+        90% 98%, 75% 100%, 60% 99%, 45% 100%, 30% 98%, 15% 100%, 5% 99%, 0% 97%,
+        1% 80%, 0% 60%, 2% 40%, 0% 20%
+    );
+}
+
+.cabinet-clipping::before {
+    content: 'MARTINAISE';
+    display: block;
+    font-family: 'Times New Roman', Georgia, serif;
+    font-size: 6px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #2a2520;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 2px;
+    margin-bottom: 2px;
+}
+
+.cabinet-clipping::after {
+    content: 'Strike enters 3rd week as tensions rise...';
+    font-family: 'Times New Roman', Georgia, serif;
+    font-size: 4px;
+    color: #4a4540;
+    line-height: 1.3;
 }
 
 /* ═══════════════════════════════════════════════════════════════
