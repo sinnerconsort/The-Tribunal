@@ -1,387 +1,515 @@
 /**
  * The Tribunal - SillyTavern Extension
- * Main entry point - brings together all modular components
- * 
- * A Disco Elysium-inspired internal skill voice system for roleplay
- * Phase 2: Vitals Auto-Detection
- * Phase 3: Ledger Sub-Tabs & Fortune System
- * Phase 5: Thought Generation System
+ * REBUILD v0.2.2 - Ledger notebook paper redesign
  */
 
-// ═══════════════════════════════════════════════════════════════
-// IMPORTS
-// ═══════════════════════════════════════════════════════════════
-
-// Data
-import { SKILLS, ATTRIBUTES, ANCIENT_VOICES } from './src/data/skills.js';
-import { STATUS_EFFECTS } from './src/data/statuses.js';
-import { THEMES, THOUGHTS } from './src/data/thoughts.js';
-import { isDeepNight } from './src/data/fortune.js';
-
-// Core State
-import {
-    extensionSettings,
-    activeStatuses,
-    currentBuild,
-    savedProfiles,
-    themeCounters,
-    thoughtCabinet,
-    discoveryContext,
-    loadState,
-    saveState,
-    toggleStatus,
-    getAttributePoints,
-    applyAttributeAllocation,
-    getEffectiveSkillLevel,
-    updateSettings,
-    saveProfile,
-    loadProfile,
-    deleteProfile,
-    updateProfile,
-    initializeDefaultBuild,
-    vitals,
-    getVitals,
-    setHealth,
-    setMorale,
-    modifyHealth,
-    modifyMorale,
-    ledger,
-    getLedger,
-    inventory,
-    getInventory,
-    setMoney as setMoneyState,
-    // Phase 5: Thought generation - NEW
-    addDiscoveredThought,
-    getDiscoveredThoughts,
-    getThemeCounters,
-    getPlayerContext,
-    savePlayerContext
-} from './src/core/state.js';
-
-// Systems
-import { rollSkillCheck } from './src/systems/dice.js';
-
-import {
-    initializeThemeCounters,
-    trackThemesInMessage,
-    checkThoughtDiscovery,
-    startResearch,
-    incrementMessageCount,
-    getResearchPenalties,
-    getTopThemes,
-    MAX_INTERNALIZED_THOUGHTS
-} from './src/systems/cabinet.js';
-
-import {
-    analyzeContext,
-    selectSpeakingSkills,
-    generateVoices,
-    getAvailableProfiles
-} from './src/voice/generation.js';
-
-import {
-    createThoughtBubbleFAB,
-    createDiscoveryModal,
-    updateSceneContext,
-    toggleDiscoveryModal,
-    autoScan
-} from './src/voice/discovery.js';
-
-import {
-    initVitalsHooks,
-    processMessageForVitals,
-    getVitalsAPI,
-    analyzeTextForVitals
-} from './src/systems/vitals/hooks.js';
-
-// UI - Panel & Toasts
-import {
-    createPsychePanel,
-    createToggleFAB,
-    togglePanel,
-    switchTab,
-    updateHealth,
-    updateMorale,
-    updateCaseTitle,
-    updateMoney,
-    updateWeather,
-    populateConnectionProfiles,
-    initLedgerSubTabs,
-    updateCompartmentCrack,
-    renderCaseCard,
-    updateBadgeDisplay,
-    displayFortune,
-    generateCaseCode
-} from './src/ui/panel.js';
-
-import {
-    showToast,
-    hideToast,
-    showDiscoveryToast,
-    showInternalizedToast
-} from './src/ui/toasts.js';
-
-import {
-    renderVoices,
-    appendVoicesToChat,
-    renderAttributesDisplay,
-    renderBuildEditor,
-    updatePointsRemaining,
-    renderStatusGrid,
-    renderActiveEffectsSummary,
-    renderProfilesList,
-    renderThoughtCabinet,
-    renderThoughtModal
-} from './src/ui/render.js';
-
-// UI - Extracted Handlers
-import {
-    updateBuildPointsDisplay,
-    refreshAttributesDisplay,
-    refreshStatusTab as refreshStatusTabBase,
-    refreshCabinetTab as refreshCabinetTabBase,
-    refreshVitals,
-    refreshLedgerDisplay,
-    refreshInventoryDisplay,
-    refreshProfilesTab as refreshProfilesTabBase,
-    populateSettingsForm,
-    closeAllModals as closeAllModalsBase
-} from './src/ui/refresh.js';
-
-import {
-    handleAddCase as handleAddCaseBase,
-    handleDrawFortune as handleDrawFortuneBase,
-    checkCompartmentProgress as checkCompartmentProgressBase,
-    handleLedgerNotesChange as handleLedgerNotesChangeBase
-} from './src/ui/ledger-handlers.js';
-
-import {
-    createCabinetHandlers,
-    handleStartResearch,
-    handleAbandonResearch,
-    handleDismissThought,
-    handleForgetThought,
-    handleAutoThoughtGeneration
-} from './src/ui/cabinet-handlers.js';
-
-// Phase 5: Thought Generator Handlers - NEW
-import {
-    bindThoughtGeneratorEvents,
-    autoGenerateThought,
-    generateThoughtFromConcept
-} from './src/ui/thought-generator-handlers.js';
+const extensionName = 'the-tribunal';
 
 // ═══════════════════════════════════════════════════════════════
-// EXTENSION METADATA
+// HTML TEMPLATES
 // ═══════════════════════════════════════════════════════════════
 
-const extensionName = 'inland-empire';
-const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
+const PANEL_HEADER_HTML = `
+<div class="ie-right-ruler"></div>
+<div class="ie-film-bottom-text"></div>
+<span class="ie-panel-marker ie-panel-marker-first" style="top: 300px !important;">01A15</span>
+<span class="ie-panel-marker ie-panel-marker-bottom">01A15</span>
+<span class="ie-panel-marker-right">FELD ▼   DEVICE</span>
 
-let stContext = null;
-let messagesSinceAutoGen = 0;
+<div class="ie-panel-header">
+    <!-- Top row: Title + Watch -->
+    <div class="ie-header-row">
+        <div class="ie-panel-title" id="ie-close-trigger" title="Close Panel">
+            <i class="fa-solid fa-folder-open"></i>
+            <span>CASE FILE</span>
+        </div>
+        <div class="tribunal-watch real-mode" id="ie-header-watch" title="Click to toggle Real/RP time">
+            <div class="watch-clip"></div>
+            <div class="watch-case">
+                <div class="watch-bezel">
+                    <div class="watch-dial">
+                        <div class="watch-weather clear-day" id="ie-watch-weather">
+                            <i class="fa-solid fa-sun" id="ie-watch-weather-icon"></i>
+                        </div>
+                        <div class="watch-date" id="ie-watch-date">18</div>
+                        <div class="watch-hands">
+                            <div class="watch-hand watch-hand-hour" id="ie-watch-hour"></div>
+                            <div class="watch-hand watch-hand-minute" id="ie-watch-minute"></div>
+                            <div class="watch-hand watch-hand-second" id="ie-watch-second"></div>
+                            <div class="watch-center"></div>
+                        </div>
+                        <div class="watch-crack"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Vitals row: Health + Morale (NOT under watch) -->
+    <div class="ie-vitals-row">
+        <div class="ie-vital-bar ie-vital-health">
+            <span class="ie-vital-label">Health</span>
+            <div class="ie-vital-track">
+                <div class="ie-vital-fill" id="ie-health-fill" style="width: 100%;"></div>
+            </div>
+            <span class="ie-vital-value" id="ie-health-value">13</span>
+        </div>
+        <div class="ie-vital-bar ie-vital-morale">
+            <span class="ie-vital-label">Morale</span>
+            <div class="ie-vital-track">
+                <div class="ie-vital-fill" id="ie-morale-fill" style="width: 100%;"></div>
+            </div>
+            <span class="ie-vital-value" id="ie-morale-value">13</span>
+        </div>
+    </div>
+</div>`;
+
+const TAB_BAR_HTML = `
+<div class="ie-tabs">
+    <button class="ie-tab ie-tab-active" data-tab="voices" title="Inner Voices">
+        <i class="fa-solid fa-masks-theater"></i>
+    </button>
+    <button class="ie-tab" data-tab="cabinet" title="Thought Cabinet">
+        <i class="fa-solid fa-box-archive"></i>
+    </button>
+    <button class="ie-tab" data-tab="status" title="Status">
+        <i class="fa-solid fa-heart-pulse"></i>
+    </button>
+    <button class="ie-tab" data-tab="ledger" title="Ledger">
+        <i class="fa-solid fa-clipboard-list"></i>
+    </button>
+    <button class="ie-tab" data-tab="radio" title="Speedfreaks FM">
+        <i class="fa-solid fa-radio"></i>
+    </button>
+</div>`;
+
+const VOICES_TAB_HTML = `
+<div class="ie-tab-content ie-tab-content-active" data-tab-content="voices">
+    <div class="ie-section ie-voices-section">
+        <div class="ie-section-header">
+            <span>Inner Voices</span>
+        </div>
+        <div class="ie-voices-container" id="ie-voices-output">
+            <div class="ie-voices-empty">
+                <i class="fa-solid fa-comment-slash"></i>
+                <span>Waiting for something to happen...</span>
+            </div>
+        </div>
+    </div>
+    <div class="ie-section ie-manual-section">
+        <button class="ie-btn ie-btn-primary ie-btn-trigger" id="ie-manual-trigger">
+            <i class="fa-solid fa-bolt"></i>
+            <span>Consult Inner Voices</span>
+        </button>
+    </div>
+</div>`;
+
+const CABINET_TAB_HTML = `
+<div class="ie-tab-content" data-tab-content="cabinet">
+    <div class="ie-section">
+        <div class="ie-section-header"><span>Thought Cabinet</span></div>
+        <p class="ie-empty-state">No thoughts yet...</p>
+    </div>
+</div>`;
+
+const STATUS_TAB_HTML = `
+<div class="ie-tab-content" data-tab-content="status">
+    <div class="ie-section">
+        <div class="ie-section-header"><span>Status Effects</span></div>
+        <p class="ie-empty-state">No active effects</p>
+    </div>
+</div>`;
+
+const LEDGER_TAB_HTML = `
+<div class="ie-tab-content ledger-page" data-tab-content="ledger">
+    <!-- Sub-tabs bar -->
+    <div class="ledger-subtabs">
+        <button class="ledger-subtab ledger-subtab-active" data-ledger-tab="cases">CASES</button>
+        <button class="ledger-subtab" data-ledger-tab="map">MAP</button>
+    </div>
+    
+    <!-- Notebook paper background with content -->
+    <div class="ledger-paper notebook-paper">
+        <!-- CASES sub-content -->
+        <div class="ledger-subcontent ledger-subcontent-active" data-ledger-content="cases">
+            <div class="ledger-section-header">
+                <span class="ledger-header-prefix">//</span> ACTIVE CASES
+                <div class="ledger-coffee-ring"></div>
+            </div>
+            <p class="ledger-empty">No open cases</p>
+        </div>
+        
+        <!-- MAP sub-content -->
+        <div class="ledger-subcontent" data-ledger-content="map">
+            <div class="ledger-map-container">
+                <div class="ledger-map-placeholder">
+                    <span>District map coming soon...</span>
+                </div>
+            </div>
+            <div class="ledger-section-header">
+                <span class="ledger-header-prefix">//</span> POINTS OF INTEREST
+            </div>
+            <p class="ledger-empty">No locations discovered</p>
+            <div class="ledger-section-header">
+                <span class="ledger-header-prefix">//</span> NOTES
+            </div>
+            <textarea class="ledger-notes" placeholder="Write your notes here..."></textarea>
+        </div>
+    </div>
+</div>`;
+
+const RADIO_TAB_HTML = `
+<div class="ie-tab-content" data-tab-content="radio">
+    <div class="ie-section ie-radio-section">
+        <div class="ie-section-header"><span>Speedfreaks FM</span></div>
+        
+        <!-- Radio Component -->
+        <div class="tribunal-radio radio-compact" id="ie-radio">
+            <div class="radio-antenna"></div>
+            
+            <div class="radio-body">
+                <div class="radio-display">
+                    <div class="radio-display-header">
+                        <span class="radio-label-fm">FM</span>
+                        <span class="radio-label-brand">ULTRA POWER</span>
+                        <span class="radio-label-am">AM</span>
+                    </div>
+                    
+                    <div class="radio-dial">
+                        <div class="radio-dial-markers">
+                            <span class="radio-dial-marker">88</span>
+                            <span class="radio-dial-marker">92</span>
+                            <span class="radio-dial-marker">98</span>
+                            <span class="radio-dial-marker">104</span>
+                            <span class="radio-dial-marker">108</span>
+                        </div>
+                        <div class="radio-needle" id="ie-radio-needle" style="left: 50%;"></div>
+                        <div class="radio-station-display" id="ie-radio-station">98.3 — SPEEDFREAKS</div>
+                    </div>
+                    
+                    <div class="radio-scale">
+                        <span>LOG</span>
+                        <span>• 1 • 2 • 3 • 5 • 7 • 9 • 11 •</span>
+                        <span>SCALE</span>
+                    </div>
+                </div>
+                
+                <div class="radio-controls">
+                    <div class="radio-knob-group">
+                        <div class="radio-knob"><div class="radio-knob-indicator" style="transform: rotate(-30deg);"></div></div>
+                        <span class="radio-knob-label">FM</span>
+                    </div>
+                    <div class="radio-knob-group">
+                        <div class="radio-knob"><div class="radio-knob-indicator"></div></div>
+                        <span class="radio-knob-label">AFC</span>
+                    </div>
+                    <div class="radio-knob-group">
+                        <div class="radio-knob"><div class="radio-knob-indicator" style="transform: rotate(45deg);"></div></div>
+                        <span class="radio-knob-label">VOL</span>
+                    </div>
+                    <div class="radio-knob-group">
+                        <div class="radio-knob"><div class="radio-knob-indicator"></div></div>
+                        <span class="radio-knob-label">TUNE</span>
+                    </div>
+                </div>
+                
+                <div class="radio-speaker">
+                    <div class="radio-visualizer" id="ie-radio-viz">
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                    </div>
+                </div>
+                
+                <div class="radio-bottom">
+                    <div class="radio-on-air">
+                        <div class="radio-on-air-light"></div>
+                        <span class="radio-on-air-text">ON AIR</span>
+                    </div>
+                    <span class="radio-brand">SHAUN</span>
+                </div>
+            </div>
+        </div>
+        
+        <button class="ie-btn ie-btn-primary ie-radio-play-btn" id="ie-radio-play">
+            <i class="fa-solid fa-play"></i>
+            <span>PLAY</span>
+        </button>
+        
+        <div class="radio-station-list" id="ie-station-list">
+            <div class="radio-station-item" data-station="0">
+                <span class="radio-station-item-freq">87.5</span>
+                <span class="radio-station-item-name">STATIC</span>
+                <span class="radio-station-item-type">ambient</span>
+            </div>
+            <div class="radio-station-item" data-station="1">
+                <span class="radio-station-item-freq">92.3</span>
+                <span class="radio-station-item-name">WHIRLING</span>
+                <span class="radio-station-item-type">ambient</span>
+            </div>
+            <div class="radio-station-item active" data-station="2">
+                <span class="radio-station-item-freq">98.3</span>
+                <span class="radio-station-item-name">SPEEDFREAKS</span>
+                <span class="radio-station-item-type">music</span>
+            </div>
+            <div class="radio-station-item" data-station="3">
+                <span class="radio-station-item-freq">103.7</span>
+                <span class="radio-station-item-name">REVACHOL</span>
+                <span class="radio-station-item-type">music</span>
+            </div>
+            <div class="radio-station-item" data-station="4">
+                <span class="radio-station-item-freq">108.0</span>
+                <span class="radio-station-item-name">DOLORES DEI</span>
+                <span class="radio-station-item-type">ambient</span>
+            </div>
+        </div>
+    </div>
+</div>`;
+
+const SETTINGS_TAB_HTML = `
+<div class="ie-tab-content" data-tab-content="settings">
+    <div class="ie-section">
+        <div class="ie-section-header"><span>Settings</span></div>
+        <p class="ie-empty-state">Settings coming soon...</p>
+    </div>
+</div>`;
+
+const PROFILES_TAB_HTML = `
+<div class="ie-tab-content" data-tab-content="profiles">
+    <div class="ie-section">
+        <div class="ie-section-header"><span>Profiles</span></div>
+        <p class="ie-empty-state">Profiles coming soon...</p>
+    </div>
+</div>`;
+
+const BOTTOM_BUTTONS_HTML = `
+<div class="ie-bottom-buttons">
+    <button class="ie-bottom-btn" data-panel="settings" title="Settings">
+        <i class="fa-solid fa-gear"></i>
+        <span>Settings</span>
+    </button>
+    <button class="ie-bottom-btn" data-panel="profiles" title="Profiles">
+        <i class="fa-solid fa-user"></i>
+        <span>Profiles</span>
+    </button>
+</div>`;
 
 // ═══════════════════════════════════════════════════════════════
-// SILLYTAVERN INTEGRATION
+// WATCH FUNCTIONALITY
 // ═══════════════════════════════════════════════════════════════
 
-function getContext() {
-    if (stContext) return stContext;
-    if (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) {
-        stContext = SillyTavern.getContext();
+let watchMode = 'real';
+let watchInterval = null;
+let rpTime = { hours: 14, minutes: 30 };
+let rpWeather = 'rainy';
+
+const WEATHER_ICONS = {
+    'clear-day': 'fa-sun',
+    'clear-night': 'fa-moon',
+    'cloudy': 'fa-cloud',
+    'rainy': 'fa-cloud-rain',
+    'stormy': 'fa-cloud-bolt',
+    'snowy': 'fa-snowflake',
+    'foggy': 'fa-smog'
+};
+
+function updateWatch() {
+    const hourHand = document.getElementById('ie-watch-hour');
+    const minuteHand = document.getElementById('ie-watch-minute');
+    const secondHand = document.getElementById('ie-watch-second');
+    const dateEl = document.getElementById('ie-watch-date');
+    const weatherEl = document.getElementById('ie-watch-weather');
+    const weatherIcon = document.getElementById('ie-watch-weather-icon');
+    
+    if (!hourHand) return;
+    
+    let hours, minutes, seconds, day, weather;
+    
+    if (watchMode === 'real') {
+        const now = new Date();
+        hours = now.getHours() % 12;
+        minutes = now.getMinutes();
+        seconds = now.getSeconds();
+        day = now.getDate();
+        weather = getRealWeather();
+    } else {
+        hours = rpTime.hours % 12;
+        minutes = rpTime.minutes;
+        seconds = 0;
+        day = '??';
+        weather = rpWeather;
     }
-    return stContext;
+    
+    const hourDeg = (hours * 30) + (minutes * 0.5);
+    const minuteDeg = minutes * 6;
+    const secondDeg = seconds * 6;
+    
+    hourHand.style.transform = `rotate(${hourDeg}deg)`;
+    minuteHand.style.transform = `rotate(${minuteDeg}deg)`;
+    if (secondHand) secondHand.style.transform = `rotate(${secondDeg}deg)`;
+    if (dateEl) dateEl.textContent = day;
+    
+    if (weatherEl && weatherIcon) {
+        weatherEl.className = 'watch-weather ' + weather;
+        weatherIcon.className = 'fa-solid ' + (WEATHER_ICONS[weather] || 'fa-cloud');
+    }
 }
 
-function getLastMessage() {
-    const context = getContext();
-    if (!context?.chat?.length) return null;
-    return context.chat[context.chat.length - 1];
+function getRealWeather() {
+    const hour = new Date().getHours();
+    return (hour >= 6 && hour < 20) ? 'clear-day' : 'clear-night';
 }
 
-function getChatContainer() {
-    return document.getElementById('chat');
+function toggleWatchMode() {
+    const watchEl = document.getElementById('ie-header-watch');
+    if (!watchEl) return;
+    
+    watchMode = (watchMode === 'real') ? 'rp' : 'real';
+    watchEl.classList.toggle('real-mode', watchMode === 'real');
+    watchEl.classList.toggle('rp-mode', watchMode === 'rp');
+    updateWatch();
 }
 
-// ═══════════════════════════════════════════════════════════════
-// BOUND HANDLER WRAPPERS
-// ═══════════════════════════════════════════════════════════════
-
-// Bound versions of extracted handlers that include getContext
-function refreshStatusTab() {
-    refreshStatusTabBase((statusId) => {
-        toggleStatus(statusId);
-    }, () => saveState(getContext()));
-}
-
-function refreshCabinetTab() {
-    const handlers = createCabinetHandlers(getContext, refreshCabinetTab);
-    refreshCabinetTabBase(handlers);
-}
-
-function refreshProfilesTab() {
-    refreshProfilesTabBase({
-        loadProfile,
-        deleteProfile,
-        updateProfile,
-        saveState,
-        getContext
-    });
-}
-
-function closeAllModals() {
-    closeAllModalsBase(toggleDiscoveryModal);
-}
-
-function handleAddCase() {
-    handleAddCaseBase(getContext, refreshLedgerDisplay);
-}
-
-function handleDrawFortune() {
-    handleDrawFortuneBase(getContext);
-}
-
-function checkCompartmentProgress() {
-    checkCompartmentProgressBase(getContext);
-}
-
-function handleLedgerNotesChange(e) {
-    handleLedgerNotesChangeBase(e, getContext);
-}
-
-// Cabinet handler wrappers
-function onStartResearch(thoughtId) {
-    handleStartResearch(thoughtId, getContext, refreshCabinetTab);
-}
-
-function onAbandonResearch(thoughtId) {
-    handleAbandonResearch(thoughtId, getContext, refreshCabinetTab);
-}
-
-function onDismissThought(thoughtId) {
-    handleDismissThought(thoughtId, getContext, refreshCabinetTab);
-}
-
-function onForgetThought(thoughtId) {
-    handleForgetThought(thoughtId, getContext, refreshCabinetTab);
+function startWatch() {
+    updateWatch();
+    watchInterval = setInterval(updateWatch, 1000);
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FAB VISIBILITY MANAGEMENT
+// PANEL CREATION
 // ═══════════════════════════════════════════════════════════════
 
-function updateFABState() {
+function createPsychePanel() {
+    const panel = document.createElement('div');
+    panel.id = 'inland-empire-panel';
+    panel.className = 'inland-empire-panel';
+
+    panel.innerHTML = `
+        ${PANEL_HEADER_HTML}
+        ${TAB_BAR_HTML}
+        <div class="ie-panel-content">
+            ${VOICES_TAB_HTML}
+            ${CABINET_TAB_HTML}
+            ${STATUS_TAB_HTML}
+            ${LEDGER_TAB_HTML}
+            ${RADIO_TAB_HTML}
+            ${SETTINGS_TAB_HTML}
+            ${PROFILES_TAB_HTML}
+        </div>
+        ${BOTTOM_BUTTONS_HTML}
+    `;
+
+    return panel;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FAB CREATION
+// ═══════════════════════════════════════════════════════════════
+
+function createToggleFAB() {
+    const fab = document.createElement('div');
+    fab.id = 'inland-empire-fab';
+    fab.className = 'ie-fab';
+    fab.title = 'Toggle Psyche Panel';
+    fab.innerHTML = '<span class="ie-fab-icon"><i class="fa-solid fa-address-card"></i></span>';
+    fab.style.display = 'flex';
+    fab.style.top = '140px';
+    fab.style.left = '10px';
+
+    let isDragging = false;
+    let dragStartX, dragStartY, fabStartX, fabStartY;
+    let hasMoved = false;
+
+    function startDrag(e) {
+        isDragging = true;
+        hasMoved = false;
+        const touch = e.touches ? e.touches[0] : e;
+        dragStartX = touch.clientX;
+        dragStartY = touch.clientY;
+        fabStartX = fab.offsetLeft;
+        fabStartY = fab.offsetTop;
+        fab.style.transition = 'none';
+        document.addEventListener('mousemove', doDrag);
+        document.addEventListener('touchmove', doDrag, { passive: false });
+        document.addEventListener('mouseup', endDrag);
+        document.addEventListener('touchend', endDrag);
+    }
+
+    function doDrag(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const touch = e.touches ? e.touches[0] : e;
+        const deltaX = touch.clientX - dragStartX;
+        const deltaY = touch.clientY - dragStartY;
+        if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) hasMoved = true;
+        fab.style.left = `${Math.max(0, Math.min(window.innerWidth - fab.offsetWidth, fabStartX + deltaX))}px`;
+        fab.style.top = `${Math.max(0, Math.min(window.innerHeight - fab.offsetHeight, fabStartY + deltaY))}px`;
+    }
+
+    function endDrag() {
+        if (!isDragging) return;
+        isDragging = false;
+        fab.style.transition = 'all 0.3s ease';
+        document.removeEventListener('mousemove', doDrag);
+        document.removeEventListener('touchmove', doDrag);
+        document.removeEventListener('mouseup', endDrag);
+        document.removeEventListener('touchend', endDrag);
+        if (hasMoved) fab.dataset.justDragged = 'true';
+    }
+
+    fab.addEventListener('mousedown', startDrag);
+    fab.addEventListener('touchstart', startDrag, { passive: false });
+
+    return fab;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PANEL CONTROLS
+// ═══════════════════════════════════════════════════════════════
+
+function togglePanel() {
+    const panel = document.getElementById('inland-empire-panel');
     const fab = document.getElementById('inland-empire-fab');
-    const thoughtFab = document.getElementById('ie-thought-fab');
-    
-    if (fab) {
-        if (extensionSettings.enabled) {
-            fab.style.display = 'flex';
-            fab.classList.remove('ie-fab-disabled');
-            fab.title = 'Open Psyche Panel';
-        } else {
-            fab.style.display = 'none';
-            fab.classList.add('ie-fab-disabled');
-            fab.title = 'The Tribunal (Disabled)';
-        }
-    }
-    
-    if (thoughtFab) {
-        if (extensionSettings.enabled && extensionSettings.showInvestigationFab !== false) {
-            thoughtFab.style.display = 'flex';
-            thoughtFab.classList.remove('ie-thought-fab-disabled');
-        } else {
-            thoughtFab.style.display = 'none';
-            thoughtFab.classList.add('ie-thought-fab-disabled');
-        }
-    }
-}
+    if (!panel) return;
 
-function updateInvestigationFABVisibility() {
-    const thoughtFab = document.getElementById('ie-thought-fab');
-    
-    if (thoughtFab) {
-        if (extensionSettings.enabled && extensionSettings.showInvestigationFab !== false) {
-            thoughtFab.style.display = 'flex';
-            thoughtFab.classList.remove('ie-thought-fab-disabled');
-        } else {
-            thoughtFab.style.display = 'none';
-            thoughtFab.classList.add('ie-thought-fab-disabled');
-        }
-    }
+    const isOpen = panel.classList.contains('ie-panel-open');
+    panel.classList.toggle('ie-panel-open', !isOpen);
+    fab?.classList.toggle('ie-fab-active', !isOpen);
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MAIN TRIGGER FUNCTION
+// TAB SWITCHING
 // ═══════════════════════════════════════════════════════════════
 
-async function triggerVoices(externalContext = null) {
-    if (!extensionSettings.enabled) return;
-    
-    const context = externalContext || getContext();
-    const lastMsg = getLastMessage();
-    
-    if (!lastMsg?.mes) {
-        showToast('No message to analyze', 'info');
-        return;
+function switchTab(tabName) {
+    document.querySelectorAll('.ie-tab').forEach(tab =>
+        tab.classList.toggle('ie-tab-active', tab.dataset.tab === tabName)
+    );
+
+    document.querySelectorAll('.ie-bottom-btn').forEach(btn =>
+        btn.classList.toggle('ie-bottom-btn-active', btn.dataset.panel === tabName)
+    );
+
+    document.querySelectorAll('.ie-tab-content').forEach(content =>
+        content.classList.toggle('ie-tab-content-active', content.dataset.tabContent === tabName)
+    );
+
+    if (tabName === 'settings' || tabName === 'profiles') {
+        document.querySelectorAll('.ie-tab').forEach(tab => tab.classList.remove('ie-tab-active'));
     }
-    
-    const loadingToast = showToast('Consulting inner voices...', 'loading');
-    
-    try {
-        const themes = trackThemesInMessage(lastMsg.mes, THEMES);
-        incrementMessageCount();
-        
-        const thought = checkThoughtDiscovery(THOUGHTS);
-        if (thought) {
-            showDiscoveryToast(thought, onStartResearch, onDismissThought);
-        }
-        
-        const voiceContext = analyzeContext(lastMsg.mes, {
-            themes,
-            activeStatuses: [...activeStatuses],
-            vitals: getVitals(),
-            researchPenalties: getResearchPenalties()
-        });
-        
-        const selectedSkills = selectSpeakingSkills(voiceContext, {
-            currentBuild,
-            activeStatuses: [...activeStatuses],
-            settings: extensionSettings
-        });
-        
-        if (selectedSkills.length === 0) {
-            hideToast(loadingToast);
-            showToast('No skills triggered', 'info');
-            return;
-        }
-        
-        const voices = await generateVoices(selectedSkills, voiceContext, {
-            settings: extensionSettings,
-            researchPenalties: getResearchPenalties()
-        });
-        
-        hideToast(loadingToast);
-        
-        if (voices.length > 0) {
-            const container = document.getElementById('ie-voices-output');
-            if (container) {
-                renderVoices(voices, container);
-            }
-            
-            if (extensionSettings.appendToChat !== false) {
-                appendVoicesToChat(voices, getChatContainer());
-            }
-            
-            showToast(`${voices.length} voice${voices.length > 1 ? 's' : ''} spoke`, 'success');
-        } else {
-            showToast('Voices are silent...', 'info');
-        }
-        
-    } catch (error) {
-        hideToast(loadingToast);
-        console.error('[The Tribunal] Voice generation failed:', error);
-        showToast(`Error: ${error.message}`, 'error');
+
+    const mainTabs = ['voices', 'cabinet', 'status', 'ledger', 'radio'];
+    if (mainTabs.includes(tabName)) {
+        document.querySelectorAll('.ie-bottom-btn').forEach(btn => btn.classList.remove('ie-bottom-btn-active'));
     }
 }
 
@@ -397,701 +525,83 @@ function bindEvents() {
             return;
         }
         togglePanel();
-        
-        const panel = document.getElementById('inland-empire-panel');
-        if (panel?.classList.contains('ie-panel-open')) {
-            refreshVitals();
-        }
     });
 
-    // Close panel button
-    document.querySelector('.ie-btn-close-panel')?.addEventListener('click', togglePanel);
+    // Close button (clicking Case File title)
+    document.getElementById('ie-close-trigger')?.addEventListener('click', togglePanel);
 
-    // Tab switching (main 5 tabs)
+    // Tab switching
     document.querySelectorAll('.ie-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            switchTab(tab.dataset.tab, {
-                onProfiles: refreshProfilesTab,
-                onSettings: populateSettingsForm,
-                onStatus: refreshStatusTab,
-                onCabinet: refreshCabinetTab,
-                onVoices: refreshAttributesDisplay,
-                onLedger: refreshLedgerDisplay,
-                onInventory: refreshInventoryDisplay
-            });
-        });
+        tab.addEventListener('click', () => switchTab(tab.dataset.tab));
     });
 
-    // Bottom buttons (Settings/Profiles)
+    // Bottom buttons
     document.querySelectorAll('.ie-bottom-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const panel = btn.dataset.panel;
-            switchTab(panel, {
-                onProfiles: refreshProfilesTab,
-                onSettings: populateSettingsForm,
-                onStatus: refreshStatusTab,
-                onCabinet: refreshCabinetTab,
-                onVoices: refreshAttributesDisplay,
-                onLedger: refreshLedgerDisplay,
-                onInventory: refreshInventoryDisplay
-            });
+        btn.addEventListener('click', () => switchTab(btn.dataset.panel));
+    });
+
+    // Ledger sub-tabs
+    document.querySelectorAll('.ledger-subtab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.dataset.ledgerTab;
+            
+            // Update tab states
+            document.querySelectorAll('.ledger-subtab').forEach(t => t.classList.remove('ledger-subtab-active'));
+            tab.classList.add('ledger-subtab-active');
+            
+            // Update content visibility
+            document.querySelectorAll('.ledger-subcontent').forEach(c => c.classList.remove('ledger-subcontent-active'));
+            document.querySelector(`[data-ledger-content="${targetTab}"]`)?.classList.add('ledger-subcontent-active');
         });
     });
 
-    // Manual trigger button
-    document.getElementById('ie-manual-trigger')?.addEventListener('click', () => triggerVoices());
+    // Watch toggle
+    document.getElementById('ie-header-watch')?.addEventListener('click', toggleWatchMode);
 
-    // Clear voices
-    document.querySelector('.ie-btn-clear-voices')?.addEventListener('click', () => {
-        const container = document.getElementById('ie-voices-output');
-        if (container) {
-            container.innerHTML = `
-                <div class="ie-voices-empty">
-                    <i class="fa-solid fa-comment-slash"></i>
-                    <span>Waiting for something to happen...</span>
-                </div>
-            `;
-        }
+    // Manual trigger
+    document.getElementById('ie-manual-trigger')?.addEventListener('click', () => {
+        console.log('[The Tribunal] Manual trigger clicked');
+        if (typeof toastr !== 'undefined') toastr.info('Voice trigger (not implemented yet)');
     });
 
-    // Test API
-    document.getElementById('ie-test-api-btn')?.addEventListener('click', async () => {
-        const endpoint = document.getElementById('ie-api-endpoint')?.value;
-        const apiKey = document.getElementById('ie-api-key')?.value;
-        const model = document.getElementById('ie-model')?.value;
-
-        if (!endpoint || !apiKey) {
-            showToast('Please fill in API endpoint and key', 'error');
-            return;
-        }
-
-        const loadingToast = showToast('Testing API connection...', 'loading');
-
-        try {
-            const response = await fetch(endpoint + '/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: model || 'glm-4-plus',
-                    messages: [{ role: 'user', content: 'Say "connection successful" in exactly those words.' }],
-                    max_tokens: 20
-                })
-            });
-
-            hideToast(loadingToast);
-
-            if (response.ok) {
-                showToast('API connection successful!', 'success');
-            } else {
-                const error = await response.json().catch(() => ({}));
-                showToast(`API error: ${error.error?.message || response.statusText}`, 'error');
-            }
-        } catch (error) {
-            hideToast(loadingToast);
-            showToast(`Connection failed: ${error.message}`, 'error');
+    // ESC to close
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const panel = document.getElementById('inland-empire-panel');
+            if (panel?.classList.contains('ie-panel-open')) togglePanel();
         }
     });
-
-    // Save settings
-    document.querySelector('.ie-btn-save-settings')?.addEventListener('click', () => {
-        const newSettings = {
-            connectionProfile: document.getElementById('ie-connection-profile')?.value || 'current',
-            apiEndpoint: document.getElementById('ie-api-endpoint')?.value || '',
-            apiKey: document.getElementById('ie-api-key')?.value || '',
-            model: document.getElementById('ie-model')?.value || 'glm-4-plus',
-            temperature: parseFloat(document.getElementById('ie-temperature')?.value) || 0.9,
-            maxTokens: parseInt(document.getElementById('ie-max-tokens')?.value) || 300,
-            voicesPerMessage: {
-                min: parseInt(document.getElementById('ie-min-voices')?.value) || 1,
-                max: parseInt(document.getElementById('ie-max-voices')?.value) || 4
-            },
-            triggerDelay: parseInt(document.getElementById('ie-trigger-delay')?.value) || 1000,
-            enabled: document.getElementById('ie-enabled')?.checked ?? true,
-            showDiceRolls: document.getElementById('ie-show-dice-rolls')?.checked ?? true,
-            showFailedChecks: document.getElementById('ie-show-failed-checks')?.checked ?? true,
-            autoTrigger: document.getElementById('ie-auto-trigger')?.checked ?? false,
-            intrusiveEnabled: document.getElementById('ie-intrusive-enabled')?.checked ?? true,
-            intrusiveChance: (parseInt(document.getElementById('ie-intrusive-chance')?.value) || 15) / 100,
-            intrusiveInChat: document.getElementById('ie-intrusive-in-chat')?.checked ?? true,
-            povStyle: document.getElementById('ie-pov-style')?.value || 'second',
-            characterName: document.getElementById('ie-character-name')?.value || '',
-            characterPronouns: document.getElementById('ie-character-pronouns')?.value || 'they',
-            characterContext: document.getElementById('ie-character-context')?.value || '',
-            scenePerspective: document.getElementById('ie-scene-perspective')?.value || '',
-            showInvestigationFab: document.getElementById('ie-show-investigation-fab')?.checked ?? true,
-            autoDetectVitals: document.getElementById('ie-auto-detect-vitals')?.checked ?? false,
-            vitalsSensitivity: document.getElementById('ie-vitals-sensitivity')?.value || 'medium',
-            vitalsShowNotifications: document.getElementById('ie-vitals-notifications')?.checked ?? true
-        };
-
-        updateSettings(newSettings);
-        saveState(getContext());
-        updateFABState();
-        
-        const extCheckbox = document.getElementById('ie-ext-enabled');
-        if (extCheckbox) extCheckbox.checked = newSettings.enabled;
-
-        showToast('Settings saved!', 'success');
-    });
-
-    // Reset FAB position
-    document.querySelector('.ie-btn-reset-fab')?.addEventListener('click', () => {
-        const fab = document.getElementById('inland-empire-fab');
-        const thoughtFab = document.getElementById('ie-thought-fab');
-        
-        if (fab) {
-            fab.style.top = '140px';
-            fab.style.left = '10px';
-            extensionSettings.fabPositionTop = 140;
-            extensionSettings.fabPositionLeft = 10;
-        }
-        
-        if (thoughtFab) {
-            thoughtFab.style.top = '200px';
-            thoughtFab.style.left = '10px';
-            extensionSettings.discoveryFabTop = 200;
-            extensionSettings.discoveryFabLeft = 10;
-        }
-        
-        saveState(getContext());
-        showToast('Icon positions reset', 'info');
-    });
-
-    // Save profile
-    document.getElementById('ie-save-profile-btn')?.addEventListener('click', () => {
-        const nameInput = document.getElementById('ie-new-profile-name');
-        const name = nameInput?.value?.trim();
-        
-        if (!name) {
-            showToast('Please enter a profile name', 'error');
-            return;
-        }
-
-        saveProfile(name);
-        saveState(getContext());
-        nameInput.value = '';
-        refreshProfilesTab();
-        showToast(`Profile saved: ${name}`, 'success');
-    });
-
-    // Apply build
-    document.querySelector('.ie-btn-apply-build')?.addEventListener('click', () => {
-        const allocation = {};
-        
-        Object.keys(ATTRIBUTES).forEach(attrId => {
-            const valueEl = document.getElementById(`ie-attr-${attrId}`);
-            if (valueEl) {
-                allocation[attrId] = parseInt(valueEl.textContent) || 1;
-            }
-        });
-        
-        const result = applyAttributeAllocation(allocation);
-        
-        if (result.valid) {
-            saveState(getContext());
-            refreshAttributesDisplay();
-            refreshProfilesTab();
-            showToast('Build applied!', 'success');
-        } else {
-            showToast(`Invalid build: ${result.reason}`, 'error');
-        }
-    });
-
-    // Investigation FAB toggle in settings
-    document.getElementById('ie-show-investigation-fab')?.addEventListener('change', (e) => {
-        extensionSettings.showInvestigationFab = e.target.checked;
-        updateInvestigationFABVisibility();
-        saveState(getContext());
-    });
-    
-    // Ledger event bindings
-    document.getElementById('ie-add-case-btn')?.addEventListener('click', handleAddCase);
-    document.getElementById('ie-draw-fortune-btn')?.addEventListener('click', handleDrawFortune);
-    document.getElementById('ie-ledger-notes')?.addEventListener('blur', handleLedgerNotesChange);
-    
-    // Vitals detection toggle
-    document.getElementById('ie-auto-detect-vitals')?.addEventListener('change', (e) => {
-        extensionSettings.autoDetectVitals = e.target.checked;
-        saveState(getContext());
-        showToast(e.target.checked ? 'Auto-detection enabled' : 'Auto-detection disabled', 'info');
-    });
-    
-    // Manual vitals scan
-    document.getElementById('ie-scan-vitals-btn')?.addEventListener('click', () => {
-        const lastMsg = getLastMessage();
-        if (!lastMsg?.mes) {
-            showToast('No message to scan', 'info');
-            return;
-        }
-        
-        const result = analyzeTextForVitals(lastMsg.mes, {
-            protagonistName: extensionSettings.characterName,
-            sensitivity: extensionSettings.vitalsSensitivity || 'medium'
-        });
-        
-        if (result.healthDelta !== 0 || result.moraleDelta !== 0) {
-            if (result.healthDelta !== 0) modifyHealth(result.healthDelta, getContext());
-            if (result.moraleDelta !== 0) modifyMorale(result.moraleDelta, getContext());
-            refreshVitals();
-            
-            const parts = [];
-            if (result.healthDelta !== 0) {
-                const sign = result.healthDelta > 0 ? '+' : '';
-                parts.push(`Health ${sign}${result.healthDelta}`);
-            }
-            if (result.moraleDelta !== 0) {
-                const sign = result.moraleDelta > 0 ? '+' : '';
-                parts.push(`Morale ${sign}${result.moraleDelta}`);
-            }
-            showToast(`Detected: ${parts.join(', ')} [${result.severity}]`, 'info', 5000);
-        } else {
-            showToast('No vitals changes detected in last message', 'info');
-        }
-    });
-    
-    // Manual vitals adjustment buttons
-    document.getElementById('ie-health-minus')?.addEventListener('click', () => {
-        modifyHealth(-1, getContext());
-        refreshVitals();
-        showToast('Health -1', 'warning', 1500);
-    });
-    
-    document.getElementById('ie-health-plus')?.addEventListener('click', () => {
-        modifyHealth(1, getContext());
-        refreshVitals();
-        showToast('Health +1', 'success', 1500);
-    });
-    
-    document.getElementById('ie-morale-minus')?.addEventListener('click', () => {
-        modifyMorale(-1, getContext());
-        refreshVitals();
-        showToast('Morale -1', 'warning', 1500);
-    });
-    
-    document.getElementById('ie-morale-plus')?.addEventListener('click', () => {
-        modifyMorale(1, getContext());
-        refreshVitals();
-        showToast('Morale +1', 'success', 1500);
-    });
-    
-    // ═══════════════════════════════════════════════════════════════
-    // THOUGHT GENERATOR BINDINGS (Phase 5) - NEW
-    // ═══════════════════════════════════════════════════════════════
-    
-    // Bind thought generator events (perspective toggle, identity input, generate button)
-    bindThoughtGeneratorEvents(
-        getContext,
-        (thought) => {
-            // Add to discovered thoughts
-            addDiscoveredThought(thought);
-            saveState(getContext());
-        },
-        () => {
-            // Refresh cabinet display
-            refreshCabinetTab();
-        }
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════
-// AUTO TRIGGER SETUP
-// ═══════════════════════════════════════════════════════════════
-
-function setupAutoTrigger() {
-    const context = getContext();
-    if (!context?.eventSource) {
-        console.warn('[The Tribunal] Event source not available');
-        return;
-    }
-
-    context.eventSource.on('message_received', async () => {
-        if (!extensionSettings.enabled) return;
-        
-        await new Promise(r => setTimeout(r, extensionSettings.triggerDelay || 1000));
-        
-        if (extensionSettings.autoTrigger) {
-            triggerVoices();
-        }
-        
-        const lastMsg = getLastMessage();
-        if (lastMsg?.mes) {
-            autoScan(lastMsg.mes);
-            
-            if (extensionSettings.autoDetectVitals) {
-                processMessageForVitals(lastMsg.mes, lastMsg.send_date);
-            }
-            
-            // ═══════════════════════════════════════════════════════════════
-            // AUTO THOUGHT GENERATION (Phase 5) - NEW
-            // ═══════════════════════════════════════════════════════════════
-            if (extensionSettings.thoughtGeneration?.enableAutoThoughts) {
-                await checkAutoThoughtTrigger(lastMsg.mes);
-            }
-        }
-    });
-}
-
-/**
- * Check if conditions are met for auto thought generation
- * @param {string} messageText - The message text to analyze
- */
-async function checkAutoThoughtTrigger(messageText) {
-    const themeData = getThemeCounters();
-    const threshold = extensionSettings.thoughtGeneration?.autoTriggerThreshold || 5;
-    
-    // Find themes that crossed threshold
-    const triggeringThemes = Object.entries(themeData)
-        .filter(([theme, count]) => count >= threshold)
-        .map(([theme]) => theme);
-    
-    if (triggeringThemes.length === 0) return;
-    
-    // Check cooldown
-    const lastAutoGen = extensionSettings.thoughtGeneration?.lastAutoGenTime || 0;
-    const cooldownMs = (extensionSettings.thoughtGeneration?.cooldownMinutes || 10) * 60 * 1000;
-    
-    if (Date.now() - lastAutoGen < cooldownMs) return;
-    
-    // Trigger auto-generation
-    const thought = await autoGenerateThought(
-        triggeringThemes,
-        null, // emotionalTone - could extract from analyzeContext()
-        getContext,
-        (thought) => {
-            addDiscoveredThought(thought);
-            saveState(getContext());
-            refreshCabinetTab();
-        }
-    );
-    
-    if (thought) {
-        // Update cooldown
-        if (!extensionSettings.thoughtGeneration) {
-            extensionSettings.thoughtGeneration = {};
-        }
-        extensionSettings.thoughtGeneration.lastAutoGenTime = Date.now();
-        saveState(getContext());
-    }
 }
 
 // ═══════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
 
-async function init() {
-    console.log('[The Tribunal] Initializing...');
+function init() {
+    console.log('[The Tribunal] Initializing UI shell v0.2.1...');
 
-    await loadState(getContext);
-    initializeThemeCounters(THEMES);
-    initializeDefaultBuild(ATTRIBUTES, SKILLS);
-    
-    // Initialize Vitals Detection Hooks
-    initVitalsHooks({
-        modifyHealth: (delta, ctx) => modifyHealth(delta, ctx),
-        modifyMorale: (delta, ctx) => modifyMorale(delta, ctx),
-        getSettings: () => extensionSettings,
-        getContext: getContext,
-        showToast: showToast,
-        refreshVitals: refreshVitals
-    });
-
-    // Create extension settings panel entry
-    const extensionSettingsContainer = document.getElementById('extensions_settings');
-    if (extensionSettingsContainer) {
-        const settingsHtml = `
-            <div class="inline-drawer">
-                <div class="inline-drawer-toggle inline-drawer-header">
-                    <b><i class="fa-solid fa-address-card"></i> The Tribunal</b>
-                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
-                </div>
-                <div class="inline-drawer-content">
-                    <div class="flex-container">
-                        <label class="checkbox_label">
-                            <input id="ie-ext-enabled" type="checkbox" ${extensionSettings.enabled ? 'checked' : ''}>
-                            <span>Enable The Tribunal</span>
-                        </label>
-                        <small>When disabled, voices won't trigger and the FAB will be hidden.</small>
-                    </div>
-                </div>
-            </div>
-        `;
-        extensionSettingsContainer.insertAdjacentHTML('beforeend', settingsHtml);
-        
-        document.getElementById('ie-ext-enabled')?.addEventListener('change', (e) => {
-            extensionSettings.enabled = e.target.checked;
-            saveState(getContext());
-            updateFABState();
-            const settingsCheckbox = document.getElementById('ie-enabled');
-            if (settingsCheckbox) settingsCheckbox.checked = e.target.checked;
-            showToast(e.target.checked ? 'The Tribunal enabled' : 'The Tribunal disabled', 'info');
-        });
-    }
-
-    // Create UI
     const panel = createPsychePanel();
-    const fab = createToggleFAB(getContext);
+    const fab = createToggleFAB();
 
     document.body.appendChild(panel);
     document.body.appendChild(fab);
 
-    // Initialize Ledger Sub-Tabs
-    initLedgerSubTabs();
-
-    // Create Discovery UI
-    const thoughtFab = createThoughtBubbleFAB(getContext);
-    const discoveryModal = createDiscoveryModal();
-
-    document.body.appendChild(thoughtFab);
-    document.body.appendChild(discoveryModal);
-    
-    updateFABState();
-
-    // Initial renders
-    refreshAttributesDisplay();
-    refreshStatusTab();
-    refreshCabinetTab();
-    refreshVitals();
-    refreshLedgerDisplay();
-
-    // Bind events
     bindEvents();
+    startWatch();
 
-    // Global ESC key handler
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            closeAllModals();
-            const panel = document.getElementById('inland-empire-panel');
-            if (panel?.classList.contains('ie-panel-open')) {
-                togglePanel();
-            }
-        }
-    });
-
-    setupAutoTrigger();
-    
-    // Reset session tracking for compartment
-    const l = getLedger();
-    if (l.compartment) {
-        l.compartment.countedThisSession = false;
-    }
-    saveState(getContext());
-
-    console.log('[The Tribunal] Ready!');
+    console.log('[The Tribunal] UI shell ready!');
+    if (typeof toastr !== 'undefined') toastr.success('The Tribunal loaded!', 'Extension', { timeOut: 2000 });
 }
 
 // ═══════════════════════════════════════════════════════════════
-// JQUERY READY - ENTRY POINT
+// ENTRY POINT
 // ═══════════════════════════════════════════════════════════════
 
 jQuery(async () => {
     try {
-        await init();
-        
-        // Create global API
-        window.InlandEmpire = {
-            version: '3.2.0', // Updated version for Phase 5
-            _externalModifiers: {},
-            _modifierSources: {},
-            
-            // Getters
-            getSettings: () => ({ ...extensionSettings }),
-            isEnabled: () => extensionSettings.enabled,
-            getBuild: () => currentBuild ? { ...currentBuild } : null,
-            getAttributePoints: () => getAttributePoints(),
-            getActiveStatuses: () => [...activeStatuses],
-            getThemeCounters: () => getThemeCounters(),
-            getTopThemes: (n = 5) => getTopThemes(n),
-            getThoughtCabinet: () => ({ ...thoughtCabinet }),
-            getDiscoveryContext: () => ({ ...discoveryContext }),
-            getSkillLevel: (skillId) => currentBuild?.skills?.[skillId]?.level ?? 0,
-            getEffectiveSkillLevel: (skillId) => getEffectiveSkillLevel(skillId, getResearchPenalties()),
-            getVitals: () => getVitals(),
-            getLedger: () => getLedger(),
-            // Phase 5: Player context - NEW
-            getPlayerContext: () => getPlayerContext(),
-            getDiscoveredThoughts: () => getDiscoveredThoughts(),
-            
-            // Setters
-            setHealth: (value) => {
-                setHealth(value, getContext());
-                refreshVitals();
-            },
-            setMorale: (value) => {
-                setMorale(value, getContext());
-                refreshVitals();
-            },
-            modifyHealth: (delta) => {
-                modifyHealth(delta, getContext());
-                refreshVitals();
-            },
-            modifyMorale: (delta) => {
-                modifyMorale(delta, getContext());
-                refreshVitals();
-            },
-            
-            // External modifier system
-            applyModifiers: (sourceId, modifiers) => {
-                const api = window.InlandEmpire;
-                if (!api._modifierSources[sourceId]) {
-                    api._modifierSources[sourceId] = {};
-                }
-                
-                for (const [skillId, value] of Object.entries(modifiers)) {
-                    const oldValue = api._modifierSources[sourceId][skillId] || 0;
-                    api._modifierSources[sourceId][skillId] = value;
-                    api._externalModifiers[skillId] = (api._externalModifiers[skillId] || 0) - oldValue + value;
-                }
-                
-                document.dispatchEvent(new CustomEvent('ie:modifier-changed', {
-                    detail: { sourceId, modifiers, totals: { ...api._externalModifiers } }
-                }));
-            },
-            
-            removeModifiers: (sourceId) => {
-                const api = window.InlandEmpire;
-                if (!api._modifierSources[sourceId]) return;
-                
-                for (const [skillId, value] of Object.entries(api._modifierSources[sourceId])) {
-                    api._externalModifiers[skillId] = (api._externalModifiers[skillId] || 0) - value;
-                    if (api._externalModifiers[skillId] === 0) {
-                        delete api._externalModifiers[skillId];
-                    }
-                }
-                
-                delete api._modifierSources[sourceId];
-                
-                document.dispatchEvent(new CustomEvent('ie:modifier-changed', {
-                    detail: { sourceId, removed: true, totals: { ...api._externalModifiers } }
-                }));
-            },
-            
-            getModifiersFromSource: (sourceId) => {
-                return { ...window.InlandEmpire._modifierSources[sourceId] } || {};
-            },
-            
-            getExternalModifier: (skillId) => {
-                return window.InlandEmpire._externalModifiers[skillId] || 0;
-            },
-            
-            // Actions
-            rollCheck: (skillId, difficulty) => {
-                const effectiveLevel = window.InlandEmpire.getEffectiveSkillLevel(skillId);
-                const result = rollSkillCheck(effectiveLevel, difficulty);
-                
-                document.dispatchEvent(new CustomEvent('ie:skill-check', {
-                    detail: { skillId, difficulty, effectiveLevel, ...result }
-                }));
-                
-                if (result.isSnakeEyes && isDeepNight()) {
-                    checkCompartmentProgress();
-                }
-                
-                return result;
-            },
-            
-            triggerVoices: () => triggerVoices(getContext()),
-            togglePanel: () => togglePanel(),
-            updateFABState: () => updateFABState(),
-            
-            // Vitals detection
-            analyzeVitals: (text) => {
-                return analyzeTextForVitals(text, {
-                    protagonistName: extensionSettings.characterName,
-                    sensitivity: extensionSettings.vitalsSensitivity || 'medium'
-                });
-            },
-            
-            applyVitalsChange: (healthDelta, moraleDelta, reason = 'manual') => {
-                if (healthDelta !== 0) modifyHealth(healthDelta, getContext());
-                if (moraleDelta !== 0) modifyMorale(moraleDelta, getContext());
-                refreshVitals();
-                
-                if (extensionSettings.vitalsShowNotifications) {
-                    const parts = [];
-                    if (healthDelta !== 0) parts.push(`Health ${healthDelta > 0 ? '+' : ''}${healthDelta}`);
-                    if (moraleDelta !== 0) parts.push(`Morale ${moraleDelta > 0 ? '+' : ''}${moraleDelta}`);
-                    showToast(`${parts.join(', ')} (${reason})`, healthDelta < 0 || moraleDelta < 0 ? 'warning' : 'success');
-                }
-                
-                document.dispatchEvent(new CustomEvent('ie:vitals-changed', {
-                    detail: { healthDelta, moraleDelta, reason }
-                }));
-            },
-            
-            // Ledger API
-            addCase: (title, description = '') => {
-                const l = getLedger();
-                const caseCount = (l.activeCases?.length || 0) + (l.completedCases?.length || 0) + 1;
-                
-                const newCase = {
-                    id: `case_${Date.now()}`,
-                    code: generateCaseCode(41, caseCount),
-                    title: title.toUpperCase(),
-                    description,
-                    status: 'active',
-                    session: l.officerProfile?.sessions || 1,
-                    time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-                    created: Date.now()
-                };
-                
-                if (!l.activeCases) l.activeCases = [];
-                l.activeCases.push(newCase);
-                
-                saveState(getContext());
-                refreshLedgerDisplay();
-                return newCase;
-            },
-            
-            isCompartmentDiscovered: () => {
-                const l = getLedger();
-                return l.compartment?.discovered || false;
-            },
-            
-            revealCompartment: () => {
-                const l = getLedger();
-                if (!l.compartment) {
-                    l.compartment = { discovered: false, deepNightCritFails: 0, crackStage: 0 };
-                }
-                l.compartment.discovered = true;
-                l.compartment.crackStage = 3;
-                updateCompartmentCrack(3);
-                saveState(getContext());
-                showToast('Compartment revealed', 'info');
-            },
-            
-            // Phase 5: Thought generation API - NEW
-            generateThought: async (concept) => {
-                return await generateThoughtFromConcept(
-                    concept,
-                    getContext,
-                    (thought) => {
-                        addDiscoveredThought(thought);
-                        saveState(getContext());
-                        refreshCabinetTab();
-                    }
-                );
-            }
-        };
-        
-        console.log('[The Tribunal] Global API ready: window.InlandEmpire');
-        
-        document.dispatchEvent(new CustomEvent('ie:ready', { 
-            detail: { version: window.InlandEmpire.version } 
-        }));
-        
+        init();
     } catch (error) {
         console.error('[The Tribunal] Failed to initialize:', error);
+        if (typeof toastr !== 'undefined') toastr.error(`Init failed: ${error.message}`, 'The Tribunal');
     }
 });
-
-// Export for potential external use
-export {
-    triggerVoices,
-    togglePanel,
-    extensionSettings,
-    updateFABState,
-    updateInvestigationFABVisibility
-};
