@@ -1,12 +1,11 @@
 /**
  * The Tribunal - SillyTavern Extension
- * REBUILD v0.1.7 - Clean incremental changes
+ * REBUILD v0.1.8 - Better header layout
  * 
- * Changes from v0.1.3:
- * 1. Folder icon is now the close button (no X)
- * 2. Watch moved to right side where X was
- * 3. Health/Morale shortened to fit
- * 4. Radio tab added (5th tab)
+ * Header layout:
+ * [📁 CASE FILE]              [⌚]
+ * [❤️ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 13]
+ * [🧠 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 13]
  */
 
 const extensionName = 'the-tribunal';
@@ -23,32 +22,13 @@ const PANEL_HEADER_HTML = `
 <span class="ie-panel-marker-right">FELD ▼   DEVICE</span>
 
 <div class="ie-panel-header">
+    <!-- Top row: Case File + Watch -->
     <div class="ie-header-top">
-        <!-- Clickable folder to close (replaces X button) -->
         <button class="ie-panel-title ie-btn-close-panel" title="Close Panel">
             <i class="fa-solid fa-folder-open"></i>
             <span class="ie-case-title">CASE FILE</span>
         </button>
         
-        <!-- Shortened vitals in middle -->
-        <div class="ie-vitals-compact">
-            <div class="ie-vital-mini ie-vital-health">
-                <span class="ie-vital-icon"><i class="fa-solid fa-heart"></i></span>
-                <div class="ie-vital-track-mini">
-                    <div class="ie-vital-fill" id="ie-health-fill" style="width: 100%;"></div>
-                </div>
-                <span class="ie-vital-value-mini" id="ie-health-value">13</span>
-            </div>
-            <div class="ie-vital-mini ie-vital-morale">
-                <span class="ie-vital-icon"><i class="fa-solid fa-brain"></i></span>
-                <div class="ie-vital-track-mini">
-                    <div class="ie-vital-fill" id="ie-morale-fill" style="width: 100%;"></div>
-                </div>
-                <span class="ie-vital-value-mini" id="ie-morale-value">13</span>
-            </div>
-        </div>
-        
-        <!-- Watch on right (where X was) -->
         <div class="tribunal-watch real-mode" id="ie-header-watch" title="Click to toggle Real/RP time">
             <div class="watch-clip"></div>
             <div class="watch-case">
@@ -68,6 +48,24 @@ const PANEL_HEADER_HTML = `
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+    
+    <!-- Vitals rows below -->
+    <div class="ie-vitals-row">
+        <div class="ie-vital-bar ie-vital-health">
+            <span class="ie-vital-icon"><i class="fa-solid fa-heart"></i></span>
+            <div class="ie-vital-track">
+                <div class="ie-vital-fill" id="ie-health-fill" style="width: 100%;"></div>
+            </div>
+            <span class="ie-vital-value" id="ie-health-value">13</span>
+        </div>
+        <div class="ie-vital-bar ie-vital-morale">
+            <span class="ie-vital-icon"><i class="fa-solid fa-brain"></i></span>
+            <div class="ie-vital-track">
+                <div class="ie-vital-fill" id="ie-morale-fill" style="width: 100%;"></div>
+            </div>
+            <span class="ie-vital-value" id="ie-morale-value">13</span>
         </div>
     </div>
 </div>`;
@@ -541,7 +539,7 @@ function bindEvents() {
 // ═══════════════════════════════════════════════════════════════
 
 function init() {
-    console.log('[The Tribunal] Initializing UI shell v0.1.7...');
+    console.log('[The Tribunal] Initializing UI shell v0.1.8...');
 
     const panel = createPsychePanel();
     const fab = createToggleFAB();
