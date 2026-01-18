@@ -133,7 +133,7 @@ const LEDGER_TAB_HTML = `
         <!-- CASES sub-content -->
         <div class="ledger-subcontent ledger-subcontent-active" data-ledger-content="cases">
             <div class="ledger-section-header">
-                <span class="ledger-header-prefix">//</span> ACTIVE CASES
+                ACTIVE CASES
                 <div class="ledger-coffee-ring"></div>
             </div>
             <p class="ledger-empty">No open cases</p>
@@ -147,11 +147,11 @@ const LEDGER_TAB_HTML = `
                 </div>
             </div>
             <div class="ledger-section-header">
-                <span class="ledger-header-prefix">//</span> POINTS OF INTEREST
+                POINTS OF INTEREST
             </div>
             <p class="ledger-empty">No locations discovered</p>
             <div class="ledger-section-header">
-                <span class="ledger-header-prefix">//</span> NOTES
+                NOTES
             </div>
             <textarea class="ledger-notes" placeholder="Write your notes here..."></textarea>
         </div>
