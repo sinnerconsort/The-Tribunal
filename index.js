@@ -1,9 +1,12 @@
 /**
  * The Tribunal - SillyTavern Extension
- * REBUILD v0.1.6 - Binder tabs + Radio tab
+ * REBUILD v0.1.7 - Clean incremental changes
  * 
- * Fresh start. No state management, no saves.
- * Just the UI shell that opens and closes.
+ * Changes from v0.1.3:
+ * 1. Folder icon is now the close button (no X)
+ * 2. Watch moved to right side where X was
+ * 3. Health/Morale shortened to fit
+ * 4. Radio tab added (5th tab)
  */
 
 const extensionName = 'the-tribunal';
@@ -21,13 +24,31 @@ const PANEL_HEADER_HTML = `
 
 <div class="ie-panel-header">
     <div class="ie-header-top">
-        <!-- Clickable folder to close -->
+        <!-- Clickable folder to close (replaces X button) -->
         <button class="ie-panel-title ie-btn-close-panel" title="Close Panel">
             <i class="fa-solid fa-folder-open"></i>
             <span class="ie-case-title">CASE FILE</span>
         </button>
         
-        <!-- Watch Component (bigger!) -->
+        <!-- Shortened vitals in middle -->
+        <div class="ie-vitals-compact">
+            <div class="ie-vital-mini ie-vital-health">
+                <span class="ie-vital-icon"><i class="fa-solid fa-heart"></i></span>
+                <div class="ie-vital-track-mini">
+                    <div class="ie-vital-fill" id="ie-health-fill" style="width: 100%;"></div>
+                </div>
+                <span class="ie-vital-value-mini" id="ie-health-value">13</span>
+            </div>
+            <div class="ie-vital-mini ie-vital-morale">
+                <span class="ie-vital-icon"><i class="fa-solid fa-brain"></i></span>
+                <div class="ie-vital-track-mini">
+                    <div class="ie-vital-fill" id="ie-morale-fill" style="width: 100%;"></div>
+                </div>
+                <span class="ie-vital-value-mini" id="ie-morale-value">13</span>
+            </div>
+        </div>
+        
+        <!-- Watch on right (where X was) -->
         <div class="tribunal-watch real-mode" id="ie-header-watch" title="Click to toggle Real/RP time">
             <div class="watch-clip"></div>
             <div class="watch-case">
@@ -47,44 +68,25 @@ const PANEL_HEADER_HTML = `
                     </div>
                 </div>
             </div>
-            <div class="watch-mode-indicator"></div>
-        </div>
-        
-        <!-- Compact vitals on right -->
-        <div class="ie-vitals-compact">
-            <div class="ie-vital-mini ie-vital-health">
-                <span class="ie-vital-icon"><i class="fa-solid fa-heart"></i></span>
-                <div class="ie-vital-track-mini">
-                    <div class="ie-vital-fill" id="ie-health-fill" style="width: 100%;"></div>
-                </div>
-                <span class="ie-vital-value-mini" id="ie-health-value">13</span>
-            </div>
-            <div class="ie-vital-mini ie-vital-morale">
-                <span class="ie-vital-icon"><i class="fa-solid fa-brain"></i></span>
-                <div class="ie-vital-track-mini">
-                    <div class="ie-vital-fill" id="ie-morale-fill" style="width: 100%;"></div>
-                </div>
-                <span class="ie-vital-value-mini" id="ie-morale-value">13</span>
-            </div>
         </div>
     </div>
 </div>`;
 
 const TAB_BAR_HTML = `
 <div class="ie-tabs">
-    <button class="ie-tab ie-tab-active" data-tab="voices" data-label="Voices" title="Inner Voices">
+    <button class="ie-tab ie-tab-active" data-tab="voices" title="Inner Voices">
         <i class="fa-solid fa-masks-theater"></i>
     </button>
-    <button class="ie-tab" data-tab="cabinet" data-label="Cabinet" title="Thought Cabinet">
+    <button class="ie-tab" data-tab="cabinet" title="Thought Cabinet">
         <i class="fa-solid fa-box-archive"></i>
     </button>
-    <button class="ie-tab" data-tab="status" data-label="Status" title="Status">
+    <button class="ie-tab" data-tab="status" title="Status">
         <i class="fa-solid fa-heart-pulse"></i>
     </button>
-    <button class="ie-tab" data-tab="ledger" data-label="Ledger" title="Ledger">
+    <button class="ie-tab" data-tab="ledger" title="Ledger">
         <i class="fa-solid fa-clipboard-list"></i>
     </button>
-    <button class="ie-tab" data-tab="radio" data-label="Radio" title="Speedfreaks FM">
+    <button class="ie-tab" data-tab="radio" title="Speedfreaks FM">
         <i class="fa-solid fa-radio"></i>
     </button>
 </div>`;
@@ -144,7 +146,6 @@ const RADIO_TAB_HTML = `
             <div class="radio-antenna"></div>
             
             <div class="radio-body">
-                <!-- Display Panel -->
                 <div class="radio-display">
                     <div class="radio-display-header">
                         <span class="radio-label-fm">FM</span>
@@ -171,35 +172,25 @@ const RADIO_TAB_HTML = `
                     </div>
                 </div>
                 
-                <!-- Controls -->
                 <div class="radio-controls">
                     <div class="radio-knob-group">
-                        <div class="radio-knob" id="ie-radio-band">
-                            <div class="radio-knob-indicator" style="transform: rotate(-30deg);"></div>
-                        </div>
+                        <div class="radio-knob"><div class="radio-knob-indicator" style="transform: rotate(-30deg);"></div></div>
                         <span class="radio-knob-label">FM</span>
                     </div>
                     <div class="radio-knob-group">
-                        <div class="radio-knob" id="ie-radio-afc">
-                            <div class="radio-knob-indicator"></div>
-                        </div>
+                        <div class="radio-knob"><div class="radio-knob-indicator"></div></div>
                         <span class="radio-knob-label">AFC</span>
                     </div>
                     <div class="radio-knob-group">
-                        <div class="radio-knob" id="ie-radio-volume">
-                            <div class="radio-knob-indicator" style="transform: rotate(45deg);"></div>
-                        </div>
+                        <div class="radio-knob"><div class="radio-knob-indicator" style="transform: rotate(45deg);"></div></div>
                         <span class="radio-knob-label">VOL</span>
                     </div>
                     <div class="radio-knob-group">
-                        <div class="radio-knob" id="ie-radio-tune">
-                            <div class="radio-knob-indicator" style="transform: rotate(0deg);"></div>
-                        </div>
+                        <div class="radio-knob"><div class="radio-knob-indicator"></div></div>
                         <span class="radio-knob-label">TUNE</span>
                     </div>
                 </div>
                 
-                <!-- Speaker Grille with Visualizer -->
                 <div class="radio-speaker">
                     <div class="radio-visualizer" id="ie-radio-viz">
                         <div class="radio-viz-bar"></div>
@@ -217,7 +208,6 @@ const RADIO_TAB_HTML = `
                     </div>
                 </div>
                 
-                <!-- Bottom Panel -->
                 <div class="radio-bottom">
                     <div class="radio-on-air">
                         <div class="radio-on-air-light"></div>
@@ -228,13 +218,11 @@ const RADIO_TAB_HTML = `
             </div>
         </div>
         
-        <!-- Play Button -->
         <button class="ie-btn ie-btn-primary ie-radio-play-btn" id="ie-radio-play">
             <i class="fa-solid fa-play"></i>
             <span>PLAY</span>
         </button>
         
-        <!-- Station List -->
         <div class="radio-station-list" id="ie-station-list">
             <div class="radio-station-item" data-station="0">
                 <span class="radio-station-item-freq">87.5</span>
@@ -297,15 +285,11 @@ const BOTTOM_BUTTONS_HTML = `
 // WATCH FUNCTIONALITY
 // ═══════════════════════════════════════════════════════════════
 
-// Watch state
-let watchMode = 'real'; // 'real' or 'rp'
+let watchMode = 'real';
 let watchInterval = null;
+let rpTime = { hours: 14, minutes: 30 };
+let rpWeather = 'rainy';
 
-// RP time state (would be set by context/chat)
-let rpTime = { hours: 14, minutes: 30 }; // Default 2:30 PM
-let rpWeather = 'rainy'; // Default weather
-
-// Weather icon mapping
 const WEATHER_ICONS = {
     'clear-day': 'fa-sun',
     'clear-night': 'fa-moon',
@@ -329,109 +313,57 @@ function updateWatch() {
     let hours, minutes, seconds, day, weather;
     
     if (watchMode === 'real') {
-        // Real time mode
         const now = new Date();
         hours = now.getHours() % 12;
         minutes = now.getMinutes();
         seconds = now.getSeconds();
         day = now.getDate();
-        weather = getRealWeather(); // Would come from weather API
+        weather = getRealWeather();
     } else {
-        // RP context mode
         hours = rpTime.hours % 12;
         minutes = rpTime.minutes;
-        seconds = 0; // No seconds in RP mode
-        day = '??'; // Unknown in RP
+        seconds = 0;
+        day = '??';
         weather = rpWeather;
     }
     
-    // Calculate hand rotations
     const hourDeg = (hours * 30) + (minutes * 0.5);
     const minuteDeg = minutes * 6;
     const secondDeg = seconds * 6;
     
-    // Apply rotations
     hourHand.style.transform = `rotate(${hourDeg}deg)`;
     minuteHand.style.transform = `rotate(${minuteDeg}deg)`;
-    if (secondHand) {
-        secondHand.style.transform = `rotate(${secondDeg}deg)`;
-    }
+    if (secondHand) secondHand.style.transform = `rotate(${secondDeg}deg)`;
+    if (dateEl) dateEl.textContent = day;
     
-    // Update date
-    if (dateEl) {
-        dateEl.textContent = day;
-    }
-    
-    // Update weather
     if (weatherEl && weatherIcon) {
-        // Remove old weather classes
         weatherEl.className = 'watch-weather ' + weather;
-        // Update icon
         weatherIcon.className = 'fa-solid ' + (WEATHER_ICONS[weather] || 'fa-cloud');
     }
 }
 
 function getRealWeather() {
-    // Placeholder - would come from weather API or user location
-    // For now, just use time of day
     const hour = new Date().getHours();
-    if (hour >= 6 && hour < 20) {
-        return 'clear-day';
-    } else {
-        return 'clear-night';
-    }
+    return (hour >= 6 && hour < 20) ? 'clear-day' : 'clear-night';
 }
 
 function toggleWatchMode() {
     const watchEl = document.getElementById('ie-header-watch');
     if (!watchEl) return;
     
-    if (watchMode === 'real') {
-        watchMode = 'rp';
-        watchEl.classList.remove('real-mode');
-        watchEl.classList.add('rp-mode');
-        console.log('[The Tribunal] Watch: RP mode');
-    } else {
-        watchMode = 'real';
-        watchEl.classList.remove('rp-mode');
-        watchEl.classList.add('real-mode');
-        console.log('[The Tribunal] Watch: Real mode');
-    }
-    
-    // Immediate update
+    watchMode = (watchMode === 'real') ? 'rp' : 'real';
+    watchEl.classList.toggle('real-mode', watchMode === 'real');
+    watchEl.classList.toggle('rp-mode', watchMode === 'rp');
     updateWatch();
 }
 
 function startWatch() {
-    // Initial update
     updateWatch();
-    
-    // Update every second in real mode, every minute in RP mode
-    watchInterval = setInterval(() => {
-        updateWatch();
-    }, watchMode === 'real' ? 1000 : 60000);
-}
-
-function stopWatch() {
-    if (watchInterval) {
-        clearInterval(watchInterval);
-        watchInterval = null;
-    }
-}
-
-// Public API to set RP time/weather from other modules
-function setRPTime(hours, minutes) {
-    rpTime = { hours, minutes };
-    if (watchMode === 'rp') updateWatch();
-}
-
-function setRPWeather(weather) {
-    rpWeather = weather;
-    if (watchMode === 'rp') updateWatch();
+    watchInterval = setInterval(updateWatch, 1000);
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PANEL CREATION (Vanilla JS - matching working version)
+// PANEL CREATION
 // ═══════════════════════════════════════════════════════════════
 
 function createPsychePanel() {
@@ -458,7 +390,7 @@ function createPsychePanel() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FAB CREATION (Vanilla JS - matching working version EXACTLY)
+// FAB CREATION
 // ═══════════════════════════════════════════════════════════════
 
 function createToggleFAB() {
@@ -471,7 +403,6 @@ function createToggleFAB() {
     fab.style.top = '140px';
     fab.style.left = '10px';
 
-    // Dragging state
     let isDragging = false;
     let dragStartX, dragStartY, fabStartX, fabStartY;
     let hasMoved = false;
@@ -510,10 +441,7 @@ function createToggleFAB() {
         document.removeEventListener('touchmove', doDrag);
         document.removeEventListener('mouseup', endDrag);
         document.removeEventListener('touchend', endDrag);
-
-        if (hasMoved) {
-            fab.dataset.justDragged = 'true';
-        }
+        if (hasMoved) fab.dataset.justDragged = 'true';
     }
 
     fab.addEventListener('mousedown', startDrag);
@@ -529,18 +457,11 @@ function createToggleFAB() {
 function togglePanel() {
     const panel = document.getElementById('inland-empire-panel');
     const fab = document.getElementById('inland-empire-fab');
-
     if (!panel) return;
 
     const isOpen = panel.classList.contains('ie-panel-open');
-
-    if (isOpen) {
-        panel.classList.remove('ie-panel-open');
-        fab?.classList.remove('ie-fab-active');
-    } else {
-        panel.classList.add('ie-panel-open');
-        fab?.classList.add('ie-fab-active');
-    }
+    panel.classList.toggle('ie-panel-open', !isOpen);
+    fab?.classList.toggle('ie-fab-active', !isOpen);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -548,34 +469,25 @@ function togglePanel() {
 // ═══════════════════════════════════════════════════════════════
 
 function switchTab(tabName) {
-    // Handle main tabs
     document.querySelectorAll('.ie-tab').forEach(tab =>
         tab.classList.toggle('ie-tab-active', tab.dataset.tab === tabName)
     );
 
-    // Handle bottom buttons (settings/profiles)
     document.querySelectorAll('.ie-bottom-btn').forEach(btn =>
         btn.classList.toggle('ie-bottom-btn-active', btn.dataset.panel === tabName)
     );
 
-    // Show/hide tab content - NOTE: uses data-tab-content not data-tab
     document.querySelectorAll('.ie-tab-content').forEach(content =>
         content.classList.toggle('ie-tab-content-active', content.dataset.tabContent === tabName)
     );
 
-    // Clear active state from main tabs if switching to bottom panel
     if (tabName === 'settings' || tabName === 'profiles') {
-        document.querySelectorAll('.ie-tab').forEach(tab =>
-            tab.classList.remove('ie-tab-active')
-        );
+        document.querySelectorAll('.ie-tab').forEach(tab => tab.classList.remove('ie-tab-active'));
     }
 
-    // Clear active state from bottom buttons if switching to main tab
     const mainTabs = ['voices', 'cabinet', 'status', 'ledger', 'radio'];
     if (mainTabs.includes(tabName)) {
-        document.querySelectorAll('.ie-bottom-btn').forEach(btn =>
-            btn.classList.remove('ie-bottom-btn-active')
-        );
+        document.querySelectorAll('.ie-bottom-btn').forEach(btn => btn.classList.remove('ie-bottom-btn-active'));
     }
 }
 
@@ -593,7 +505,7 @@ function bindEvents() {
         togglePanel();
     });
 
-    // Close button
+    // Close button (now the folder)
     document.querySelector('.ie-btn-close-panel')?.addEventListener('click', togglePanel);
 
     // Tab switching
@@ -606,24 +518,20 @@ function bindEvents() {
         btn.addEventListener('click', () => switchTab(btn.dataset.panel));
     });
 
-    // Watch click to toggle mode
+    // Watch toggle
     document.getElementById('ie-header-watch')?.addEventListener('click', toggleWatchMode);
 
-    // Manual trigger (placeholder)
+    // Manual trigger
     document.getElementById('ie-manual-trigger')?.addEventListener('click', () => {
         console.log('[The Tribunal] Manual trigger clicked');
-        if (typeof toastr !== 'undefined') {
-            toastr.info('Voice trigger (not implemented yet)');
-        }
+        if (typeof toastr !== 'undefined') toastr.info('Voice trigger (not implemented yet)');
     });
 
     // ESC to close
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             const panel = document.getElementById('inland-empire-panel');
-            if (panel?.classList.contains('ie-panel-open')) {
-                togglePanel();
-            }
+            if (panel?.classList.contains('ie-panel-open')) togglePanel();
         }
     });
 }
@@ -633,26 +541,19 @@ function bindEvents() {
 // ═══════════════════════════════════════════════════════════════
 
 function init() {
-    console.log('[The Tribunal] Initializing UI shell v0.1.6...');
+    console.log('[The Tribunal] Initializing UI shell v0.1.7...');
 
-    // Create and append UI elements (vanilla JS style)
     const panel = createPsychePanel();
     const fab = createToggleFAB();
 
     document.body.appendChild(panel);
     document.body.appendChild(fab);
 
-    // Bind events
     bindEvents();
-
-    // Start watch
     startWatch();
 
     console.log('[The Tribunal] UI shell ready!');
-    
-    if (typeof toastr !== 'undefined') {
-        toastr.success('The Tribunal loaded!', 'Extension', { timeOut: 2000 });
-    }
+    if (typeof toastr !== 'undefined') toastr.success('The Tribunal loaded!', 'Extension', { timeOut: 2000 });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -664,8 +565,6 @@ jQuery(async () => {
         init();
     } catch (error) {
         console.error('[The Tribunal] Failed to initialize:', error);
-        if (typeof toastr !== 'undefined') {
-            toastr.error(`Init failed: ${error.message}`, 'The Tribunal');
-        }
+        if (typeof toastr !== 'undefined') toastr.error(`Init failed: ${error.message}`, 'The Tribunal');
     }
 });
