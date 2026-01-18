@@ -124,11 +124,22 @@ const CABINET_TAB_HTML = `
         <div class="cabinet-pushpin cabinet-pushpin-tr"></div>
         <div class="cabinet-pushpin cabinet-pushpin-bl"></div>
         <div class="cabinet-pushpin cabinet-pushpin-br"></div>
+        <!-- Red String SVG -->
+        <div class="cabinet-string">
+            <svg viewBox="0 0 300 120" preserveAspectRatio="none">
+                <path d="M 0,0 Q 80,60 150,45 T 300,0" />
+            </svg>
+        </div>
         <!-- Decorations -->
         <div class="cabinet-polaroid"></div>
-        <div class="cabinet-matchbook"></div>
-        <div class="cabinet-businesscard"><div class="cabinet-businesscard-bend"></div></div>
-        <div class="cabinet-clipping"></div>
+        <div class="cabinet-matchbook"><span class="cabinet-matchbook-sub">Martinaise</span></div>
+        <div class="cabinet-businesscard">
+            <div class="cabinet-businesscard-bend"></div>
+            <div class="cabinet-businesscard-logo"></div>
+        </div>
+        <div class="cabinet-clipping"><div class="cabinet-clipping-pin"></div></div>
+        <div class="cabinet-sticky"></div>
+        <div class="cabinet-burn"></div>
     </div>
 </div>`;
 
