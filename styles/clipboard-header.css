@@ -197,7 +197,7 @@
 
 .ie-clipboard-paper {
     background: #1a1a22;
-    padding: 12px 16px;
+    padding: 8px 12px 10px;
     border-left: 1px solid rgba(255, 255, 255, 0.03);
     border-right: 1px solid rgba(255, 255, 255, 0.03);
 }
@@ -222,9 +222,10 @@
 /* Watch positioning in new layout */
 .ie-header-row .tribunal-watch {
     flex-shrink: 0;
-    transform: scale(1.4);
+    transform: scale(1.8);
     transform-origin: top right;
-    margin-top: 4px;
+    margin-top: 8px;
+    margin-right: 4px;
 }
 
 /* ═══════════════════════════════════════════════════════════════

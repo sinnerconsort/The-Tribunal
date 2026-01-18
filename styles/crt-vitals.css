@@ -24,12 +24,12 @@
 .ie-crt-monitor {
     position: relative;
     background: var(--crt-housing);
-    border: 3px solid var(--crt-bezel);
-    border-radius: 8px;
-    padding: 10px;
+    border: 2px solid var(--crt-bezel);
+    border-radius: 6px;
+    padding: 6px;
     box-shadow:
-        inset 0 0 20px rgba(0, 0, 0, 0.5),
-        0 4px 8px rgba(0, 0, 0, 0.4);
+        inset 0 0 15px rgba(0, 0, 0, 0.5),
+        0 3px 6px rgba(0, 0, 0, 0.4);
     /* Slight curvature illusion */
     background-image: radial-gradient(
         ellipse at center,
@@ -54,9 +54,9 @@
 
 .ie-crt-screen {
     position: relative;
-    padding: 10px;
+    padding: 6px 8px;
     background: var(--crt-screen-bg);
-    border-radius: 4px;
+    border-radius: 3px;
     overflow: hidden;
 }
 
@@ -102,9 +102,9 @@
 
 /* Character name display */
 .ie-crt-name {
-    font-size: 11px;
-    letter-spacing: 1px;
-    margin-bottom: 8px;
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
     opacity: 0.9;
 }
 
@@ -120,8 +120,8 @@
 .ie-crt-vital-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 6px;
+    gap: 6px;
+    margin-bottom: 3px;
 }
 
 .ie-crt-vital-row:last-of-type {
@@ -129,11 +129,15 @@
 }
 
 .ie-crt-vital-label {
-    font-size: 9px;
-    min-width: 28px;
-    letter-spacing: 0.5px;
+    font-size: 10px;
+    min-width: 18px;
+    text-align: center;
     color: var(--crt-amber);
     text-shadow: 0 0 4px var(--crt-amber-glow);
+}
+
+.ie-crt-vital-label i {
+    font-size: 9px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -142,7 +146,7 @@
 
 .ie-crt-vital-bar {
     flex: 1;
-    height: 8px;
+    height: 6px;
     background: rgba(255, 176, 0, 0.08);
     border: 1px solid rgba(255, 176, 0, 0.3);
     position: relative;
@@ -167,17 +171,17 @@
     background: repeating-linear-gradient(
         90deg,
         transparent 0px,
-        transparent 8px,
-        rgba(0, 0, 0, 0.3) 8px,
-        rgba(0, 0, 0, 0.3) 9px
+        transparent 6px,
+        rgba(0, 0, 0, 0.3) 6px,
+        rgba(0, 0, 0, 0.3) 7px
     );
     z-index: 1;
     pointer-events: none;
 }
 
 .ie-crt-vital-value {
-    font-size: 10px;
-    min-width: 24px;
+    font-size: 9px;
+    min-width: 20px;
     text-align: right;
     color: var(--crt-amber);
     text-shadow: 0 0 4px var(--crt-amber-glow);
@@ -244,18 +248,18 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-crt-ekg {
-    height: 20px;
-    margin-top: 8px;
+    height: 14px;
+    margin-top: 4px;
     border-top: 1px solid rgba(255, 176, 0, 0.15);
-    padding-top: 6px;
+    padding-top: 3px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
 }
 
 .ie-ekg-line {
     flex: 1;
-    height: 14px;
+    height: 10px;
     position: relative;
     overflow: hidden;
 }
