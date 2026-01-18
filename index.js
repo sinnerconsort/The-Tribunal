@@ -126,14 +126,16 @@ const CABINET_TAB_HTML = `
         <div class="cabinet-pushpin cabinet-pushpin-br"></div>
         <!-- Red String - from clipping to business card -->
         <div class="cabinet-string">
-            <svg viewBox="0 0 400 800" preserveAspectRatio="none">
-                <path d="M 125,255 C 180,320 220,400 280,520 Q 310,580 290,620" />
+            <svg viewBox="0 0 400 900" preserveAspectRatio="none">
+                <path d="M 70,268 C 130,380 180,500 230,620 Q 270,700 268,720" />
             </svg>
         </div>
         <div class="cabinet-string-pin cabinet-string-pin-1"></div>
         <div class="cabinet-string-pin cabinet-string-pin-2"></div>
         <!-- Decorations -->
         <div class="cabinet-polaroid"></div>
+        <div class="cabinet-faln-poster"></div>
+        <div class="cabinet-faln-tape"></div>
         <div class="cabinet-matchbook"><span class="cabinet-matchbook-sub">Martinaise</span></div>
         <div class="cabinet-businesscard">
             <div class="cabinet-businesscard-bend"></div>
