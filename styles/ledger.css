@@ -15,7 +15,14 @@
     --paper-aged: #e8dfd2;
     --paper-weathered: #ddd5c8;
     --paper-ink: #2c2416;
-    --paper-faded-ink: #5a4a3a;
+    --paper-faded-ink: #8a7a6a;
+    
+    /* Ledger ink colors - lighter for readability on paper */
+    --ledger-ink-dark: #7a6a5a;
+    --ledger-ink-faded: #9a8a7a;
+    --ledger-line: rgba(90, 74, 58, 0.15);
+    --ledger-accent: #c9a227;
+    --ledger-paper: #f4ede4;
     
     /* RCM Badge blues */
     --rcm-blue-dark: #1a2a4a;
@@ -341,8 +348,8 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    color: var(--paper-faded-ink);
-    border-bottom: 1px solid rgba(90, 74, 58, 0.2);
+    color: var(--ledger-ink-faded);
+    border-bottom: 1px solid rgba(90, 74, 58, 0.15);
     padding-bottom: 4px;
     margin-bottom: 10px;
     position: relative;
@@ -351,7 +358,7 @@
 
 .ledger-section-header::before {
     content: '// ';
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1128,7 +1135,7 @@
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 2px;
-    color: var(--ledger-ink-dark);
+    color: var(--ledger-ink-faded);
     margin-bottom: 12px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--ledger-line);
@@ -1187,7 +1194,7 @@
     padding: 12px;
     font-family: var(--ie-font-body);
     font-size: 14px;
-    color: var(--ledger-ink-dark);
+    color: var(--ledger-ink-faded);
     resize: vertical;
 }
 
