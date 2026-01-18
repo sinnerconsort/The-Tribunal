@@ -1,11 +1,13 @@
 /**
  * The Tribunal - Style Loader
- * REBUILD v0.1.0
+ * REBUILD v0.2.0 - Clipboard header + CRT vitals
  */
 
 @import url('./styles/base.css');
 @import url('./styles/fab.css');
 @import url('./styles/panel.css');
+@import url('./styles/clipboard-header.css');
+@import url('./styles/crt-vitals.css');
 @import url('./styles/tabs.css');
 @import url('./styles/sections.css');
 @import url('./styles/forms.css');
