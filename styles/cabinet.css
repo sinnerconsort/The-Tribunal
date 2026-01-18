@@ -1,11 +1,258 @@
 /**
  * The Tribunal - Thought Cabinet
- * Themes, thought cards, modal, generator
- * REBUILD: Clean Thought Cabinet UI
+ * Cork board aesthetic with pinned index cards
+ * 
+ * Structure mirrors voices/ledger:
+ * .cabinet-page = container (flex, height 100%)
+ * .cabinet-corkboard = paper element (fills space)
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   THEMES TRACKER
+   CABINET PAGE - Container (mirrors .voices-page, .ledger-page)
+   ═══════════════════════════════════════════════════════════════ */
+
+.cabinet-page {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+    margin-left: -12px;
+    padding-left: 12px;
+    background: transparent;
+}
+
+.cabinet-page.ie-tab-content-active {
+    display: flex;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CORK BOARD - Main background
+   ═══════════════════════════════════════════════════════════════ */
+
+.cabinet-corkboard {
+    flex: 1;
+    overflow-y: auto;
+    margin-left: -12px;
+    margin-right: 10px;
+    padding: 24px 20px 20px 28px;
+    position: relative;
+    
+    /* Cork color */
+    background-color: #c49a6c;
+    
+    /* Cork texture - grainy, natural */
+    background-image:
+        /* Noise texture */
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='cork'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23cork)'/%3E%3C/svg%3E"),
+        /* Subtle color variation */
+        radial-gradient(ellipse at 30% 20%, rgba(180, 140, 90, 0.3) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 60%, rgba(160, 120, 70, 0.25) 0%, transparent 45%),
+        radial-gradient(ellipse at 20% 80%, rgba(140, 100, 60, 0.2) 0%, transparent 40%);
+    
+    background-blend-mode: overlay, normal, normal, normal;
+    
+    /* Soft inner shadow like board in frame */
+    box-shadow: 
+        inset 0 0 30px rgba(80, 50, 20, 0.25),
+        inset 0 2px 4px rgba(0, 0, 0, 0.15),
+        2px 3px 8px rgba(0, 0, 0, 0.2);
+    
+    /* Flex layout for content */
+    display: flex;
+    flex-direction: column;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PUSHPINS - Decorative corners
+   ═══════════════════════════════════════════════════════════════ */
+
+.cabinet-pushpin {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    z-index: 10;
+    /* Pin head with highlight */
+    box-shadow: 
+        inset -1px -1px 2px rgba(0, 0, 0, 0.3),
+        inset 2px 2px 3px rgba(255, 255, 255, 0.4),
+        0 2px 3px rgba(0, 0, 0, 0.3);
+}
+
+.cabinet-pushpin-tl {
+    top: 14px;
+    left: 16px;
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.cabinet-pushpin-tr {
+    top: 14px;
+    right: 16px;
+    background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+}
+
+.cabinet-pushpin-bl {
+    bottom: 14px;
+    left: 16px;
+    background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+}
+
+.cabinet-pushpin-br {
+    bottom: 14px;
+    right: 16px;
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER - Chalk/label style
+   ═══════════════════════════════════════════════════════════════ */
+
+.cabinet-header {
+    font-family: var(--ie-font-header);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #3a2a1a;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid rgba(60, 40, 20, 0.2);
+    position: relative;
+    z-index: 2;
+}
+
+/* // prefix */
+.cabinet-header span::before {
+    content: '// ';
+    opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THOUGHTS CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+
+.cabinet-corkboard .ie-thoughts-container {
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+    z-index: 2;
+}
+
+.cabinet-corkboard .ie-thoughts-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 40px 30px;
+    color: #5a4030;
+    font-style: italic;
+    font-size: 13px;
+}
+
+.cabinet-corkboard .ie-thoughts-empty i {
+    font-size: 24px;
+    opacity: 0.4;
+    color: #6a5040;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THOUGHT CARDS - Index card style on cork
+   ═══════════════════════════════════════════════════════════════ */
+
+.cabinet-corkboard .ie-thought-card,
+.cabinet-corkboard .ie-discovered-item,
+.cabinet-corkboard .ie-research-item,
+.cabinet-corkboard .ie-internalized-item {
+    background: linear-gradient(180deg, #fffef8 0%, #f8f6f0 100%);
+    border-radius: 2px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    position: relative;
+    
+    /* Index card lines */
+    background-image: 
+        repeating-linear-gradient(
+            transparent 0px,
+            transparent 23px,
+            rgba(180, 200, 220, 0.3) 23px,
+            rgba(180, 200, 220, 0.3) 24px
+        );
+    background-position: 0 12px;
+    
+    /* Card shadow - like pinned and slightly lifted */
+    box-shadow: 
+        2px 3px 6px rgba(0, 0, 0, 0.15),
+        0 1px 2px rgba(0, 0, 0, 0.1);
+    
+    /* Slight random tilt for organic feel */
+    transform: rotate(-0.5deg);
+}
+
+.cabinet-corkboard .ie-thought-card:nth-child(even) {
+    transform: rotate(0.3deg);
+}
+
+.cabinet-corkboard .ie-thought-card:nth-child(3n) {
+    transform: rotate(-0.8deg);
+}
+
+/* Red margin line on index card */
+.cabinet-corkboard .ie-thought-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 32px;
+    bottom: 0;
+    width: 1px;
+    background: rgba(220, 80, 80, 0.3);
+}
+
+/* Mini pushpin on each card */
+.cabinet-corkboard .ie-thought-card::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    box-shadow: 
+        inset -1px -1px 2px rgba(0, 0, 0, 0.3),
+        inset 1px 1px 2px rgba(255, 255, 255, 0.3),
+        0 2px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* Adjust text colors for light background */
+.cabinet-corkboard .ie-thought-name,
+.cabinet-corkboard .ie-discovered-name,
+.cabinet-corkboard .ie-research-name,
+.cabinet-corkboard .ie-internalized-name {
+    color: #6a4a9a;
+}
+
+.cabinet-corkboard .ie-thought-desc,
+.cabinet-corkboard .ie-discovered-desc {
+    color: #5a5045;
+}
+
+.cabinet-corkboard .ie-thought-flavor {
+    color: #7a7065;
+}
+
+.cabinet-corkboard .ie-thought-bonuses,
+.cabinet-corkboard .ie-internalized-bonus {
+    color: #4a7a4a;
+}
+
+.cabinet-corkboard .ie-research-penalty,
+.cabinet-corkboard .ie-thought-meta {
+    color: #9a4a4a;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THEMES TRACKER - On cork board
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-themes-tracker,

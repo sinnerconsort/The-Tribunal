@@ -21,13 +21,6 @@
     --rcm-blue-dark: #1a2a4a;
     --rcm-blue-mid: #2a4070;
     --rcm-blue-light: #3a5090;
-    
-    /* Ledger paper colors - for text on light paper */
-    --ledger-paper: #f2e9dc;
-    --ledger-ink-dark: #5a5045;
-    --ledger-ink-faded: #8a8075;
-    --ledger-line: rgba(100, 90, 80, 0.2);
-    --ledger-accent: #a07050;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1057,7 +1050,7 @@
     height: 100%;
     margin-left: -12px; /* Extend to cover grey gap */
     padding-left: 12px;
-    background: var(--ledger-paper); /* Paper color behind everything */
+    background: transparent; /* No color - papers handle their own backgrounds */
 }
 
 .ledger-page.ie-tab-content-active {
@@ -1107,7 +1100,7 @@
     background: var(--ledger-accent);
 }
 
-/* Paper fills remaining space */
+/* Paper fills remaining space - now subcontent IS the paper */
 .ledger-page .ledger-paper {
     flex: 1;
     overflow-y: auto;
@@ -1119,29 +1112,14 @@
     padding-bottom: 20px;
 }
 
-/* Sub-content visibility */
+/* Sub-content visibility - now they ARE the papers */
 .ledger-subcontent {
     display: none;
 }
 
-.ledger-subcontent-active {
-    display: block;
-}
-
-/* When subcontent IS the paper element directly (sibling structure) */
-.ledger-subcontent.ledger-paper {
-    flex: 1;
-    overflow-y: auto;
-    margin-left: -12px;
-    margin-right: 10px;
-    padding-left: 45px;
-    padding-right: 16px;
-    padding-top: 20px;
-    padding-bottom: 20px;
-}
-
-.ledger-subcontent.ledger-paper.ledger-subcontent-active {
-    display: block;
+.ledger-subcontent.ledger-subcontent-active {
+    display: flex;
+    flex-direction: column;
 }
 
 /* Section headers on paper */
