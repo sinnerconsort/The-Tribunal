@@ -17,7 +17,7 @@
     height: 100%;
     margin-left: -12px;
     padding-left: 12px;
-    background: #e8e0d4; /* Slightly darker edge color */
+    background: transparent; /* Don't add color here - napkin handles it */
 }
 
 .voices-page.ie-tab-content-active {
@@ -110,8 +110,9 @@
     letter-spacing: 3px;
     text-transform: uppercase;
     
-    /* Red neon with low opacity - like faded stamp */
-    color: rgba(180, 60, 70, 0.055);
+    /* Red neon - brighter red, still faded */
+    color: #cc3344;
+    opacity: 0.06;
     
     white-space: nowrap;
     pointer-events: none;
