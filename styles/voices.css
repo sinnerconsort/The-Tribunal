@@ -2,15 +2,14 @@
  * The Tribunal - Voices Output
  * Voice display styling
  * REBUILD: Napkin / Bar Receipt aesthetic
- * NOTE: Only styles appearance, does not change layout
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   VOICES SECTION - NAPKIN PAPER APPEARANCE
+   VOICES TAB - FULL HEIGHT NAPKIN
+   Apply napkin to entire tab content area
    ═══════════════════════════════════════════════════════════════ */
 
-/* The voices section becomes a napkin */
-.ie-voices-section {
+.ie-tab-content[data-tab-content="voices"] {
     background-color: #f0ebe3;
     /* Napkin texture - soft fibrous pattern */
     background-image: 
@@ -25,41 +24,123 @@
         );
     background-blend-mode: overlay, normal;
     position: relative;
-    /* Soft shadow like paper on surface */
-    box-shadow: 
-        inset 0 0 30px rgba(0, 0, 0, 0.02);
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.02);
+    /* Extend to edges like ledger */
+    margin-left: -12px;
+    margin-right: 10px;
+    padding-left: 20px;
+    padding-right: 16px;
+    padding-top: 16px;
+    padding-bottom: 16px;
 }
 
-/* Bar name watermark - VERY faint */
-.ie-voices-section::after {
+/* Bar name watermark - BARELY visible */
+.ie-tab-content[data-tab-content="voices"]::before {
     content: 'THE WHIRLING-IN-RAGS';
     position: absolute;
-    top: 45%;
+    top: 40%;
     left: 50%;
-    transform: translate(-50%, -50%) rotate(-20deg);
+    transform: translate(-50%, -50%) rotate(-18deg);
     font-family: var(--ie-font-header);
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     font-weight: 700;
     letter-spacing: 3px;
-    color: rgba(160, 140, 120, 0.06);
+    color: rgba(140, 120, 100, 0.035);
     white-space: nowrap;
     pointer-events: none;
     z-index: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   SECTION HEADER - Match ledger style
+   LIPSTICK KISS MARK
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-tab-content[data-tab-content="voices"]::after {
+    content: '';
+    position: absolute;
+    bottom: 80px;
+    right: 25px;
+    width: 35px;
+    height: 20px;
+    pointer-events: none;
+    z-index: 1;
+    /* Stylized lip print using gradients */
+    background: 
+        /* Upper lip */
+        radial-gradient(ellipse 60% 40% at 30% 35%, rgba(180, 60, 80, 0.15) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 70% 35%, rgba(180, 60, 80, 0.15) 0%, transparent 70%),
+        /* Lower lip */
+        radial-gradient(ellipse 90% 50% at 50% 70%, rgba(160, 50, 70, 0.12) 0%, transparent 60%);
+    transform: rotate(-15deg);
+    filter: blur(0.5px);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PHONE NUMBER SCRIBBLE
+   ═══════════════════════════════════════════════════════════════ */
+
+.napkin-phone-number {
+    position: absolute;
+    bottom: 50px;
+    right: 15px;
+    font-family: 'Comic Sans MS', 'Segoe Script', cursive, sans-serif;
+    font-size: 11px;
+    color: rgba(60, 80, 160, 0.25);
+    transform: rotate(-8deg);
+    pointer-events: none;
+    z-index: 1;
+    line-height: 1.3;
+}
+
+.napkin-phone-number::before {
+    content: 'Call me? ♡';
+    display: block;
+    font-size: 9px;
+    margin-bottom: 2px;
+    color: rgba(150, 60, 80, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTIONS - Transparent on napkin
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-voices-section {
+    background: transparent !important;
+    position: relative;
+    z-index: 2;
+}
+
+.ie-manual-section {
+    background: transparent !important;
+    border: none !important;
+    position: relative;
+    z-index: 2;
+    margin-top: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION HEADER - Match ledger style exactly
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-voices-section .ie-section-header {
     background: transparent;
     border-bottom: 1px dashed var(--ledger-line, rgba(100, 90, 80, 0.2));
-    position: relative;
-    z-index: 2;
+    padding-bottom: 4px;
+    margin-bottom: 10px;
 }
 
 .ie-voices-section .ie-section-header span {
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
     color: var(--ledger-ink-dark, #5a5045);
+}
+
+/* Add // prefix like ledger */
+.ie-voices-section .ie-section-header span::before {
+    content: '// ';
+    opacity: 0.5;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -308,13 +389,8 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MANUAL SECTION - Style button for napkin
+   BUTTON STYLING
    ═══════════════════════════════════════════════════════════════ */
-
-.ie-manual-section {
-    background: transparent !important;
-    border: none !important;
-}
 
 .ie-manual-section .ie-btn-trigger {
     background: rgba(160, 140, 120, 0.15);
@@ -325,27 +401,4 @@
 .ie-manual-section .ie-btn-trigger:hover {
     background: rgba(160, 140, 120, 0.25);
     border-style: solid;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   DRINK STAIN DECORATION
-   ═══════════════════════════════════════════════════════════════ */
-
-.napkin-stain {
-    position: absolute;
-    bottom: 15px;
-    right: 20px;
-    width: 45px;
-    height: 40px;
-    pointer-events: none;
-    z-index: 1;
-    background: 
-        radial-gradient(ellipse at 50% 50%, 
-            transparent 40%, 
-            rgba(139, 90, 60, 0.04) 45%,
-            rgba(139, 90, 60, 0.06) 50%,
-            rgba(139, 90, 60, 0.03) 55%,
-            transparent 60%
-        );
-    transform: rotate(-15deg);
 }
