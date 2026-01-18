@@ -124,14 +124,19 @@ const CABINET_TAB_HTML = `
         <div class="cabinet-pushpin cabinet-pushpin-tr"></div>
         <div class="cabinet-pushpin cabinet-pushpin-bl"></div>
         <div class="cabinet-pushpin cabinet-pushpin-br"></div>
-        <!-- Red String - from clipping to business card -->
+        <!-- Red String - from clipping to business card (all SVG) -->
         <div class="cabinet-string">
-            <svg viewBox="0 0 400 900" preserveAspectRatio="none">
-                <path d="M 70,268 C 130,380 180,500 230,620 Q 270,700 268,720" />
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+                <!-- String line -->
+                <path class="string-line" d="M 22,28 C 35,40 50,55 62,72 Q 68,80 67,82" />
+                <!-- Pin at clipping -->
+                <circle class="string-pin" cx="22" cy="28" r="1.5" />
+                <circle class="string-pin-highlight" cx="21.5" cy="27.5" r="0.6" />
+                <!-- Pin at business card -->
+                <circle class="string-pin" cx="67" cy="82" r="1.5" />
+                <circle class="string-pin-highlight" cx="66.5" cy="81.5" r="0.6" />
             </svg>
         </div>
-        <div class="cabinet-string-pin cabinet-string-pin-1"></div>
-        <div class="cabinet-string-pin cabinet-string-pin-2"></div>
         <!-- Decorations -->
         <div class="cabinet-polaroid"></div>
         <div class="cabinet-faln-poster"></div>
