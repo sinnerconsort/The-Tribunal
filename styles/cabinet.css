@@ -107,17 +107,17 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   RED STRING - Thick yarn connecting items
+   RED STRING - Connecting clipping to business card
    ═══════════════════════════════════════════════════════════════ */
 
 .cabinet-string {
     position: absolute;
-    top: 19px;
-    left: 21px;
-    width: calc(100% - 42px);
-    height: 120px;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
-    z-index: 3;
+    z-index: 7;
 }
 
 .cabinet-string svg {
@@ -129,13 +129,37 @@
 .cabinet-string path {
     fill: none;
     stroke: #a83232;
-    stroke-width: 2;
+    stroke-width: 2.5;
     stroke-linecap: round;
-    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.2));
+    filter: drop-shadow(1px 1px 1px rgba(0,0,0,0.25));
+}
+
+/* String pins at each end */
+.cabinet-string-pin {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #c45a5a 0%, #9a3a3a 100%);
+    box-shadow: 
+        inset -1px -1px 2px rgba(0, 0, 0, 0.3),
+        inset 1px 1px 2px rgba(255, 255, 255, 0.3),
+        0 2px 3px rgba(0, 0, 0, 0.3);
+    z-index: 8;
+}
+
+.cabinet-string-pin-1 {
+    top: 235px;
+    left: 118px;
+}
+
+.cabinet-string-pin-2 {
+    bottom: 180px;
+    right: 90px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   POLAROID - Faded mysterious photo (3x bigger)
+   POLAROID - Weathered mysterious photo
    ═══════════════════════════════════════════════════════════════ */
 
 .cabinet-polaroid {
@@ -144,7 +168,11 @@
     right: 25px;
     width: 100px;
     height: 115px;
-    background: linear-gradient(180deg, #faf8f3 0%, #e8e4da 100%);
+    background: 
+        /* Edge yellowing */
+        linear-gradient(180deg, #faf8f3 0%, #f0ead8 70%, #e5dcc5 100%),
+        /* Corner wear */
+        radial-gradient(circle at 0% 100%, rgba(180, 160, 120, 0.15) 0%, transparent 30%);
     padding: 8px 8px 28px 8px;
     transform: rotate(4deg);
     box-shadow: 
@@ -161,13 +189,18 @@
     background: 
         /* Mysterious silhouette */
         radial-gradient(ellipse 50% 70% at 50% 60%, 
-            rgba(40, 35, 30, 0.2) 0%, 
+            rgba(40, 35, 30, 0.22) 0%, 
             transparent 70%
         ),
+        /* Age spots/staining */
+        radial-gradient(circle at 85% 15%, rgba(139, 115, 85, 0.18) 0%, transparent 25%),
+        radial-gradient(circle at 10% 80%, rgba(120, 100, 70, 0.12) 0%, transparent 20%),
+        /* Faded/washed out center */
+        radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255, 250, 240, 0.1) 0%, transparent 50%),
         /* Aged sepia photo background */
         linear-gradient(180deg, 
-            rgba(120, 100, 70, 0.1) 0%, 
-            rgba(90, 75, 55, 0.15) 100%
+            rgba(120, 100, 70, 0.12) 0%, 
+            rgba(90, 75, 55, 0.18) 100%
         );
     border: 1px solid rgba(0,0,0,0.05);
 }
@@ -328,7 +361,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   NEWSPAPER CLIPPING - Torn edges (bigger)
+   NEWSPAPER CLIPPING - Weathered and aged
    ═══════════════════════════════════════════════════════════════ */
 
 .cabinet-clipping {
@@ -336,8 +369,26 @@
     top: 180px;
     left: 15px;
     width: 110px;
-    height: 70px;
-    background: #f5f1e6;
+    height: 75px;
+    background: 
+        /* Coffee/water stain */
+        radial-gradient(ellipse 50% 35% at 70% 75%, 
+            rgba(139, 110, 75, 0.15) 0%, 
+            transparent 60%
+        ),
+        /* Edge yellowing */
+        linear-gradient(to right, 
+            rgba(180, 160, 120, 0.1) 0%, 
+            transparent 15%,
+            transparent 85%,
+            rgba(180, 160, 120, 0.08) 100%
+        ),
+        /* Aged paper gradient */
+        linear-gradient(180deg, 
+            #f5f1e6 0%, 
+            #ebe5d5 50%,
+            #e0d8c5 100%
+        );
     transform: rotate(-2deg);
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.15);
     z-index: 5;
@@ -432,25 +483,41 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   CIGARETTE BURN - Small detail
+   RCM STAMP - Official Jamrock marking
    ═══════════════════════════════════════════════════════════════ */
 
-.cabinet-burn {
+.cabinet-rcm-stamp {
     position: absolute;
-    bottom: 100px;
+    bottom: 50px;
     left: 50%;
-    width: 15px;
-    height: 12px;
-    background: radial-gradient(ellipse at center,
-        #3a3020 0%,
-        #5a4a35 40%,
-        #8a7a60 70%,
-        transparent 100%
-    );
-    border-radius: 50%;
-    opacity: 0.4;
-    transform: rotate(15deg);
-    z-index: 1;
+    transform: translateX(-50%) rotate(-6deg);
+    width: 85px;
+    height: 42px;
+    border: 2.5px solid rgba(40, 60, 100, 0.3);
+    border-radius: 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.cabinet-rcm-stamp::before {
+    content: 'R.C.M.';
+    font-family: var(--ie-font-header);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: rgba(40, 60, 100, 0.35);
+}
+
+.cabinet-rcm-stamp::after {
+    content: 'JAMROCK';
+    font-family: var(--ie-font-header);
+    font-size: 7px;
+    letter-spacing: 2px;
+    color: rgba(40, 60, 100, 0.28);
+    margin-top: 1px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
