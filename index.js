@@ -214,9 +214,10 @@ const CABINET_TAB_HTML = `
         <!-- Decorations -->
         <div class="cabinet-decor-fingerprint"></div>
         
-        <div class="cabinet-decor-matchbook">
-            <div class="cabinet-decor-matchbook-title">WHIRLING<br>IN RAGS</div>
-            <div class="cabinet-decor-matchbook-sub">Martinaise</div>
+        <div class="cabinet-decor-businesscard">
+            <div class="cabinet-decor-businesscard-name">EVRART CLAIRE</div>
+            <div class="cabinet-decor-businesscard-title">President, Dockworkers' Union</div>
+            <div class="cabinet-decor-businesscard-logo"></div>
         </div>
         
         <div class="cabinet-decor-polaroid">
@@ -228,10 +229,9 @@ const CABINET_TAB_HTML = `
             <div class="cabinet-decor-faln-text">20% off</div>
         </div>
         
-        <div class="cabinet-decor-businesscard">
-            <div class="cabinet-decor-businesscard-name">EVRART CLAIRE</div>
-            <div class="cabinet-decor-businesscard-title">President, Dockworkers' Union</div>
-            <div class="cabinet-decor-businesscard-logo"></div>
+        <div class="cabinet-decor-matchbook">
+            <div class="cabinet-decor-matchbook-title">WHIRLING<br>IN RAGS</div>
+            <div class="cabinet-decor-matchbook-sub">Martinaise</div>
         </div>
         
         <!-- THEMES -->
