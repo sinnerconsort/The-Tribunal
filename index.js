@@ -146,9 +146,10 @@ const LEDGER_TAB_HTML = `
     <div class="ledger-subcontent ledger-subcontent-active ledger-paper notebook-paper" data-ledger-content="cases">
         <div class="ledger-section-header">
             ACTIVE CASES
-            <div class="ledger-coffee-ring"></div>
+            <div class="ledger-doodle"></div>
         </div>
         <p class="ledger-empty">No open cases</p>
+        <div class="ledger-coffee-ring"></div>
     </div>
     
     <!-- MAP sub-content - Grid paper -->
