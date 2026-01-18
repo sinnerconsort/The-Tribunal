@@ -262,54 +262,54 @@
 }
 
 /* INT - Blue card */
-.cabinet-cascade-card.card-int .cabinet-card-front,
-.cabinet-cascade-card.card-int .cabinet-card-back {
+.cabinet-cascade-card.card-int:not(.empty-slot) .cabinet-card-front,
+.cabinet-cascade-card.card-int:not(.empty-slot) .cabinet-card-back {
     background: 
         repeating-linear-gradient(
             transparent 0px, transparent 17px,
-            rgba(40, 80, 120, 0.35) 17px, rgba(40, 80, 120, 0.35) 18px
+            rgba(40, 80, 120, 0.4) 17px, rgba(40, 80, 120, 0.4) 18px
         ),
         linear-gradient(180deg, #a8d4f0 0%, #8ec4e8 100%);
 }
 .cabinet-cascade-card.card-int .cabinet-card-front::before { left: 12px; background: #5a8fba; }
 
 /* PSY - Purple card */
-.cabinet-cascade-card.card-psy .cabinet-card-front,
-.cabinet-cascade-card.card-psy .cabinet-card-back {
+.cabinet-cascade-card.card-psy:not(.empty-slot) .cabinet-card-front,
+.cabinet-cascade-card.card-psy:not(.empty-slot) .cabinet-card-back {
     background: 
         repeating-linear-gradient(
             transparent 0px, transparent 17px,
-            rgba(100, 60, 120, 0.35) 17px, rgba(100, 60, 120, 0.35) 18px
+            rgba(100, 60, 120, 0.4) 17px, rgba(100, 60, 120, 0.4) 18px
         ),
         linear-gradient(180deg, #d4b8e8 0%, #c4a0d8 100%);
 }
 .cabinet-cascade-card.card-psy .cabinet-card-front::before { left: 65px; background: #9a6aaa; }
 
 /* FYS - Red/Pink card */
-.cabinet-cascade-card.card-fys .cabinet-card-front,
-.cabinet-cascade-card.card-fys .cabinet-card-back {
+.cabinet-cascade-card.card-fys:not(.empty-slot) .cabinet-card-front,
+.cabinet-cascade-card.card-fys:not(.empty-slot) .cabinet-card-back {
     background: 
         repeating-linear-gradient(
             transparent 0px, transparent 17px,
-            rgba(140, 60, 60, 0.35) 17px, rgba(140, 60, 60, 0.35) 18px
+            rgba(140, 60, 60, 0.4) 17px, rgba(140, 60, 60, 0.4) 18px
         ),
         linear-gradient(180deg, #f0b8b8 0%, #e8a0a0 100%);
 }
 .cabinet-cascade-card.card-fys .cabinet-card-front::before { left: 118px; background: #c45a5a; }
 
 /* MOT - Yellow/Amber card */
-.cabinet-cascade-card.card-mot .cabinet-card-front,
-.cabinet-cascade-card.card-mot .cabinet-card-back {
+.cabinet-cascade-card.card-mot:not(.empty-slot) .cabinet-card-front,
+.cabinet-cascade-card.card-mot:not(.empty-slot) .cabinet-card-back {
     background: 
         repeating-linear-gradient(
             transparent 0px, transparent 17px,
-            rgba(140, 110, 40, 0.35) 17px, rgba(140, 110, 40, 0.35) 18px
+            rgba(140, 110, 40, 0.4) 17px, rgba(140, 110, 40, 0.4) 18px
         ),
         linear-gradient(180deg, #f0e0a0 0%, #e8d080 100%);
 }
 .cabinet-cascade-card.card-mot .cabinet-card-front::before { left: 171px; background: #d4a84a; }
 
-/* Empty slot */
+/* Empty slot - neutral beige, NOT transparent */
 .cabinet-cascade-card.empty-slot .cabinet-card-inner {
     box-shadow: none;
 }
@@ -318,14 +318,14 @@
     background: 
         repeating-linear-gradient(
             transparent 0px, transparent 17px,
-            rgba(100, 90, 70, 0.2) 17px, rgba(100, 90, 70, 0.2) 18px
+            rgba(100, 90, 70, 0.25) 17px, rgba(100, 90, 70, 0.25) 18px
         ),
-        linear-gradient(180deg, rgba(220,210,190,0.7) 0%, rgba(200,190,170,0.7) 100%);
-    border: 2px dashed rgba(60, 40, 20, 0.3);
+        linear-gradient(180deg, #d8d0c0 0%, #c8c0b0 100%);
+    border: 2px dashed rgba(60, 40, 20, 0.35);
 }
 
 .cabinet-cascade-card.empty-slot .cabinet-card-front::before {
-    background: rgba(150, 140, 130, 0.5);
+    background: #a09080;
 }
 
 .cabinet-empty-slot-text {
@@ -827,7 +827,7 @@
    DECORATIONS
    ═══════════════════════════════════════════════════════════════ */
 
-/* Polaroid - bottom right */
+/* Polaroid - right side */
 .cabinet-decor-polaroid {
     position: absolute;
     bottom: 320px;
@@ -867,15 +867,15 @@
         0 2px 3px rgba(0,0,0,0.3);
 }
 
-/* FALN Coupon - partially hidden bottom right */
+/* FALN Coupon - bottom left */
 .cabinet-decor-faln {
     position: absolute;
-    bottom: 250px;
-    right: -15px;
+    bottom: 200px;
+    left: 8px;
     width: 70px;
     height: 40px;
     background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-    transform: rotate(12deg);
+    transform: rotate(-8deg);
     box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
     z-index: 0;
     padding: 6px;
@@ -912,16 +912,60 @@
     transform: skewY(-8deg);
 }
 
-/* Matchbook - top right corner */
-.cabinet-decor-matchbook {
+/* Evrart Business Card - top right corner */
+.cabinet-decor-businesscard {
     position: absolute;
     top: 8px;
     right: 8px;
+    width: 100px;
+    height: 60px;
+    background: linear-gradient(135deg, #f8f6f0 0%, #ebe7dd 100%);
+    border-radius: 3px;
+    transform: rotate(5deg);
+    box-shadow: 2px 3px 5px rgba(0,0,0,0.2);
+    z-index: 6;
+    padding: 8px 10px;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.cabinet-decor-businesscard-name {
+    font-family: 'Georgia', serif;
+    font-size: 9px;
+    font-weight: 700;
+    color: #2a2520;
+    letter-spacing: 0.5px;
+}
+
+.cabinet-decor-businesscard-title {
+    font-family: 'Georgia', serif;
+    font-size: 7px;
+    color: #6a6560;
+    font-style: italic;
+    margin-top: 2px;
+}
+
+.cabinet-decor-businesscard-logo {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    width: 22px;
+    height: 22px;
+    border: 1.5px solid #8a8580;
+    border-radius: 50%;
+    opacity: 0.4;
+}
+
+/* Matchbook - bottom, under generate */
+.cabinet-decor-matchbook {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
     width: 65px;
     height: 48px;
     background: linear-gradient(180deg, #f5efe5 0%, #e8e0d0 100%);
     border-radius: 3px 3px 0 0;
-    transform: rotate(6deg);
+    transform: rotate(-6deg);
     box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
     z-index: 6;
     padding: 6px 4px;
@@ -956,50 +1000,6 @@
     height: 10px;
     background: repeating-linear-gradient(90deg, #4a4540 0px, #4a4540 2px, #3a3530 2px, #3a3530 4px);
     border-top: 1px solid rgba(0,0,0,0.2);
-}
-
-/* Evrart Business Card - visible bottom left */
-.cabinet-decor-businesscard {
-    position: absolute;
-    bottom: 180px;
-    left: 8px;
-    width: 100px;
-    height: 60px;
-    background: linear-gradient(135deg, #f8f6f0 0%, #ebe7dd 100%);
-    border-radius: 3px;
-    transform: rotate(-8deg);
-    box-shadow: 2px 3px 5px rgba(0,0,0,0.2);
-    z-index: 0;
-    padding: 8px 10px;
-    overflow: hidden;
-    pointer-events: none;
-}
-
-.cabinet-decor-businesscard-name {
-    font-family: 'Georgia', serif;
-    font-size: 9px;
-    font-weight: 700;
-    color: #2a2520;
-    letter-spacing: 0.5px;
-}
-
-.cabinet-decor-businesscard-title {
-    font-family: 'Georgia', serif;
-    font-size: 7px;
-    color: #6a6560;
-    font-style: italic;
-    margin-top: 2px;
-}
-
-.cabinet-decor-businesscard-logo {
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
-    width: 22px;
-    height: 22px;
-    border: 1.5px solid #8a8580;
-    border-radius: 50%;
-    opacity: 0.4;
 }
 
 /* Fingerprint smudge */
