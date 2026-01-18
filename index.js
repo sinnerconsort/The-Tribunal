@@ -95,6 +95,7 @@ const VOICES_TAB_HTML = `
                 <span>Waiting for something to happen...</span>
             </div>
         </div>
+        <div class="napkin-stain"></div>
     </div>
     <div class="ie-section ie-manual-section">
         <button class="ie-btn ie-btn-primary ie-btn-trigger" id="ie-manual-trigger">
@@ -102,8 +103,6 @@ const VOICES_TAB_HTML = `
             <span>Consult Inner Voices</span>
         </button>
     </div>
-    <!-- Bar napkin decorations -->
-    <div class="napkin-phone-number">555-0139</div>
 </div>`;
 
 const CABINET_TAB_HTML = `
