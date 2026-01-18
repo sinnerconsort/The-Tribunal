@@ -10,3 +10,16 @@
 @import url('./styles/sections.css');
 @import url('./styles/forms.css');
 @import url('./styles/voices.css');
+@import url('./styles/cabinet.css');
+@import url('./styles/status-cards.css');
+@import url('./styles/vitals-controls.css');
+@import url('./styles/investigation.css');
+@import url('./styles/profiles.css');
+@import url('./styles/responsive.css');
+@import url('./styles/chat.css');
+@import url('./styles/discovery.css');
+@import url('./styles/ledger.css');
+@import url('./styles/inventory.css');
+@import url('./styles/toasts.css');
+@import url('./styles/watch.css');
+@import url('./styles/radio.css');
