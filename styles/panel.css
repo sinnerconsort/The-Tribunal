@@ -194,6 +194,12 @@
     top: 380px !important;
 }
 
+/* Bottom marker - near the bottom of the panel */
+.ie-panel-marker-bottom {
+    top: auto !important;
+    bottom: 120px !important;
+}
+
 /* Second marker (lower) - with significant gap from first */
 .ie-panel-marker-second {
     top: 620px !important;
@@ -241,7 +247,6 @@
 
 /* Title - clickable to close */
 .ie-panel-title {
-    margin-top: 10px;    /
     display: flex;
     align-items: center;
     gap: 10px;
@@ -265,9 +270,9 @@
 /* Watch positioning - BIGGER to fill space */
 .ie-header-row .tribunal-watch {
     flex-shrink: 0;
-    transform: scale(1.6);
+    transform: scale(1.4);
     transform-origin: top right;
-    margin-left: 10px;
+    margin-right: 10px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
