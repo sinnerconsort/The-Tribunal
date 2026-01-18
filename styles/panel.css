@@ -233,7 +233,7 @@
     padding: 12px 16px 10px;
     border-bottom: 1px solid var(--ie-border);
     background: linear-gradient(180deg, rgba(30, 30, 35, 0.95) 0%, rgba(25, 25, 30, 0.9) 100%);
-    margin-left: 20px;
+    margin-left: 32px;
     margin-right: 30px;
 }
 
@@ -424,7 +424,7 @@
     overflow-y: auto;
     overflow-x: hidden;
     padding: 0;
-    margin-left: 20px;
+    margin-left: 32px;
     margin-right: 30px;
 }
 
@@ -438,7 +438,7 @@
     padding: 12px 16px;
     border-top: 1px solid var(--ie-border);
     background: var(--ie-bg-secondary);
-    margin-left: 20px;
+    margin-left: 32px;
     margin-right: 30px;
     flex-shrink: 0;
 }
