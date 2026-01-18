@@ -124,12 +124,14 @@ const CABINET_TAB_HTML = `
         <div class="cabinet-pushpin cabinet-pushpin-tr"></div>
         <div class="cabinet-pushpin cabinet-pushpin-bl"></div>
         <div class="cabinet-pushpin cabinet-pushpin-br"></div>
-        <!-- Red String SVG -->
+        <!-- Red String - from clipping to business card -->
         <div class="cabinet-string">
-            <svg viewBox="0 0 300 120" preserveAspectRatio="none">
-                <path d="M 0,0 Q 80,60 150,45 T 300,0" />
+            <svg viewBox="0 0 400 800" preserveAspectRatio="none">
+                <path d="M 125,255 C 180,320 220,400 280,520 Q 310,580 290,620" />
             </svg>
         </div>
+        <div class="cabinet-string-pin cabinet-string-pin-1"></div>
+        <div class="cabinet-string-pin cabinet-string-pin-2"></div>
         <!-- Decorations -->
         <div class="cabinet-polaroid"></div>
         <div class="cabinet-matchbook"><span class="cabinet-matchbook-sub">Martinaise</span></div>
@@ -139,7 +141,7 @@ const CABINET_TAB_HTML = `
         </div>
         <div class="cabinet-clipping"><div class="cabinet-clipping-pin"></div></div>
         <div class="cabinet-sticky"></div>
-        <div class="cabinet-burn"></div>
+        <div class="cabinet-rcm-stamp"></div>
     </div>
 </div>`;
 
