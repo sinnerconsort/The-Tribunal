@@ -173,7 +173,7 @@ const STATUS_TAB_HTML = `
 <div class="ie-tab-content status-page" data-tab-content="status">
     <div class="rcm-medical-form">
         <!-- Decorations -->
-        <div class="rcm-coffee-stain"></div>
+        <div class="rcm-ink-stain"></div>
         <div class="rcm-fold-mark"></div>
         
         <!-- Header -->
