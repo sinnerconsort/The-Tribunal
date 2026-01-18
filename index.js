@@ -1,6 +1,6 @@
 /**
  * The Tribunal - SillyTavern Extension
- * REBUILD v0.1.5 - Compact header with bigger watch
+ * REBUILD v0.1.6 - Binder tabs + Radio tab
  * 
  * Fresh start. No state management, no saves.
  * Just the UI shell that opens and closes.
@@ -72,17 +72,20 @@ const PANEL_HEADER_HTML = `
 
 const TAB_BAR_HTML = `
 <div class="ie-tabs">
-    <button class="ie-tab ie-tab-active" data-tab="voices" title="Inner Voices">
+    <button class="ie-tab ie-tab-active" data-tab="voices" data-label="Voices" title="Inner Voices">
         <i class="fa-solid fa-masks-theater"></i>
     </button>
-    <button class="ie-tab" data-tab="cabinet" title="Thought Cabinet">
+    <button class="ie-tab" data-tab="cabinet" data-label="Cabinet" title="Thought Cabinet">
         <i class="fa-solid fa-box-archive"></i>
     </button>
-    <button class="ie-tab" data-tab="status" title="Status">
+    <button class="ie-tab" data-tab="status" data-label="Status" title="Status">
         <i class="fa-solid fa-heart-pulse"></i>
     </button>
-    <button class="ie-tab" data-tab="ledger" title="Ledger">
+    <button class="ie-tab" data-tab="ledger" data-label="Ledger" title="Ledger">
         <i class="fa-solid fa-clipboard-list"></i>
+    </button>
+    <button class="ie-tab" data-tab="radio" data-label="Radio" title="Speedfreaks FM">
+        <i class="fa-solid fa-radio"></i>
     </button>
 </div>`;
 
@@ -128,6 +131,137 @@ const LEDGER_TAB_HTML = `
     <div class="ie-section">
         <div class="ie-section-header"><span>Case Ledger</span></div>
         <p class="ie-empty-state">No open cases</p>
+    </div>
+</div>`;
+
+const RADIO_TAB_HTML = `
+<div class="ie-tab-content" data-tab-content="radio">
+    <div class="ie-section ie-radio-section">
+        <div class="ie-section-header"><span>Speedfreaks FM</span></div>
+        
+        <!-- Radio Component -->
+        <div class="tribunal-radio radio-compact" id="ie-radio">
+            <div class="radio-antenna"></div>
+            
+            <div class="radio-body">
+                <!-- Display Panel -->
+                <div class="radio-display">
+                    <div class="radio-display-header">
+                        <span class="radio-label-fm">FM</span>
+                        <span class="radio-label-brand">ULTRA POWER</span>
+                        <span class="radio-label-am">AM</span>
+                    </div>
+                    
+                    <div class="radio-dial">
+                        <div class="radio-dial-markers">
+                            <span class="radio-dial-marker">88</span>
+                            <span class="radio-dial-marker">92</span>
+                            <span class="radio-dial-marker">98</span>
+                            <span class="radio-dial-marker">104</span>
+                            <span class="radio-dial-marker">108</span>
+                        </div>
+                        <div class="radio-needle" id="ie-radio-needle" style="left: 50%;"></div>
+                        <div class="radio-station-display" id="ie-radio-station">98.3 — SPEEDFREAKS</div>
+                    </div>
+                    
+                    <div class="radio-scale">
+                        <span>LOG</span>
+                        <span>• 1 • 2 • 3 • 5 • 7 • 9 • 11 •</span>
+                        <span>SCALE</span>
+                    </div>
+                </div>
+                
+                <!-- Controls -->
+                <div class="radio-controls">
+                    <div class="radio-knob-group">
+                        <div class="radio-knob" id="ie-radio-band">
+                            <div class="radio-knob-indicator" style="transform: rotate(-30deg);"></div>
+                        </div>
+                        <span class="radio-knob-label">FM</span>
+                    </div>
+                    <div class="radio-knob-group">
+                        <div class="radio-knob" id="ie-radio-afc">
+                            <div class="radio-knob-indicator"></div>
+                        </div>
+                        <span class="radio-knob-label">AFC</span>
+                    </div>
+                    <div class="radio-knob-group">
+                        <div class="radio-knob" id="ie-radio-volume">
+                            <div class="radio-knob-indicator" style="transform: rotate(45deg);"></div>
+                        </div>
+                        <span class="radio-knob-label">VOL</span>
+                    </div>
+                    <div class="radio-knob-group">
+                        <div class="radio-knob" id="ie-radio-tune">
+                            <div class="radio-knob-indicator" style="transform: rotate(0deg);"></div>
+                        </div>
+                        <span class="radio-knob-label">TUNE</span>
+                    </div>
+                </div>
+                
+                <!-- Speaker Grille with Visualizer -->
+                <div class="radio-speaker">
+                    <div class="radio-visualizer" id="ie-radio-viz">
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                        <div class="radio-viz-bar"></div>
+                    </div>
+                </div>
+                
+                <!-- Bottom Panel -->
+                <div class="radio-bottom">
+                    <div class="radio-on-air">
+                        <div class="radio-on-air-light"></div>
+                        <span class="radio-on-air-text">ON AIR</span>
+                    </div>
+                    <span class="radio-brand">SHAUN</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Play Button -->
+        <button class="ie-btn ie-btn-primary ie-radio-play-btn" id="ie-radio-play">
+            <i class="fa-solid fa-play"></i>
+            <span>PLAY</span>
+        </button>
+        
+        <!-- Station List -->
+        <div class="radio-station-list" id="ie-station-list">
+            <div class="radio-station-item" data-station="0">
+                <span class="radio-station-item-freq">87.5</span>
+                <span class="radio-station-item-name">STATIC</span>
+                <span class="radio-station-item-type">ambient</span>
+            </div>
+            <div class="radio-station-item" data-station="1">
+                <span class="radio-station-item-freq">92.3</span>
+                <span class="radio-station-item-name">WHIRLING</span>
+                <span class="radio-station-item-type">ambient</span>
+            </div>
+            <div class="radio-station-item active" data-station="2">
+                <span class="radio-station-item-freq">98.3</span>
+                <span class="radio-station-item-name">SPEEDFREAKS</span>
+                <span class="radio-station-item-type">music</span>
+            </div>
+            <div class="radio-station-item" data-station="3">
+                <span class="radio-station-item-freq">103.7</span>
+                <span class="radio-station-item-name">REVACHOL</span>
+                <span class="radio-station-item-type">music</span>
+            </div>
+            <div class="radio-station-item" data-station="4">
+                <span class="radio-station-item-freq">108.0</span>
+                <span class="radio-station-item-name">DOLORES DEI</span>
+                <span class="radio-station-item-type">ambient</span>
+            </div>
+        </div>
     </div>
 </div>`;
 
@@ -313,6 +447,7 @@ function createPsychePanel() {
             ${CABINET_TAB_HTML}
             ${STATUS_TAB_HTML}
             ${LEDGER_TAB_HTML}
+            ${RADIO_TAB_HTML}
             ${SETTINGS_TAB_HTML}
             ${PROFILES_TAB_HTML}
         </div>
@@ -436,7 +571,7 @@ function switchTab(tabName) {
     }
 
     // Clear active state from bottom buttons if switching to main tab
-    const mainTabs = ['voices', 'cabinet', 'status', 'ledger'];
+    const mainTabs = ['voices', 'cabinet', 'status', 'ledger', 'radio'];
     if (mainTabs.includes(tabName)) {
         document.querySelectorAll('.ie-bottom-btn').forEach(btn =>
             btn.classList.remove('ie-bottom-btn-active')
@@ -498,7 +633,7 @@ function bindEvents() {
 // ═══════════════════════════════════════════════════════════════
 
 function init() {
-    console.log('[The Tribunal] Initializing UI shell v0.1.5...');
+    console.log('[The Tribunal] Initializing UI shell v0.1.6...');
 
     // Create and append UI elements (vanilla JS style)
     const panel = createPsychePanel();
