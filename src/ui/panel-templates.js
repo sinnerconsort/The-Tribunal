@@ -312,6 +312,41 @@ export const CABINET_TAB_HTML = `
                 <div class="cabinet-internalized-empty">No internalized thoughts</div>
             </div>
         </div>
+        
+        <!-- GENERATE THOUGHT - Yellow Legal Pad -->
+        <div class="cabinet-generate-section">
+            <div class="cabinet-legal-pad">
+                <div class="cabinet-legal-pad-header-row">
+                    <div class="cabinet-legal-pad-header">Generate Thought</div>
+                </div>
+                
+                <div class="cabinet-controls-row">
+                    <label class="cabinet-from-chat-toggle">
+                        <input type="checkbox" id="cabinet-from-chat" />
+                        From chat
+                    </label>
+                    
+                    <div class="cabinet-perspective-toggle">
+                        <button class="cabinet-perspective-btn active" data-perspective="observer">
+                            <i class="fa-solid fa-magnifying-glass"></i> Observer
+                        </button>
+                        <button class="cabinet-perspective-btn" data-perspective="participant">
+                            <i class="fa-solid fa-masks-theater"></i> Participant
+                        </button>
+                    </div>
+                </div>
+                
+                <input type="text" class="cabinet-legal-input" id="cabinet-role-input" 
+                    placeholder="Who are you? (e.g. 'a survivor who escaped')" />
+                
+                <textarea class="cabinet-legal-textarea" id="cabinet-concept-input" 
+                    placeholder="Enter a concept, obsession, or idea to mull over..."></textarea>
+                
+                <button class="cabinet-btn-stamp cabinet-btn-stamp-green" id="cabinet-generate-btn">
+                    <i class="fa-solid fa-lightbulb"></i> Generate
+                </button>
+            </div>
+        </div>
     </div>
 </div>`;
 
