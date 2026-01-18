@@ -224,66 +224,58 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-panel-header {
-    padding: 10px 16px;
+    padding: 12px 16px 10px;
     border-bottom: 1px solid var(--ie-border);
     background: linear-gradient(180deg, rgba(30, 30, 35, 0.95) 0%, rgba(25, 25, 30, 0.9) 100%);
     margin-left: 32px;
     margin-right: 30px;
 }
 
-/* Top row: Case File + Watch */
-.ie-header-top {
+/* Top row: Title on left, Watch on right */
+.ie-header-row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     margin-bottom: 10px;
 }
 
-/* Clickable folder title (close button) */
+/* Title - clickable to close */
 .ie-panel-title {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     color: var(--ie-accent-orange);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1px;
-    background: transparent;
-    border: none;
     cursor: pointer;
-    padding: 6px 10px;
-    margin: -6px -10px;
-    border-radius: 4px;
-    transition: all 0.2s ease;
+    transition: opacity 0.2s ease;
 }
 
 .ie-panel-title:hover {
-    background: rgba(243, 101, 11, 0.15);
-}
-
-.ie-panel-title:active {
-    transform: scale(0.97);
+    opacity: 0.8;
 }
 
 .ie-panel-title i {
-    font-size: 14px;
-    opacity: 0.9;
+    font-size: 16px;
 }
 
-/* Watch in header */
-.ie-header-top .tribunal-watch {
+/* Watch positioning */
+.ie-header-row .tribunal-watch {
     flex-shrink: 0;
+    margin-top: -5px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   VITALS ROW (below title)
+   VITALS ROW
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-vitals-row {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    max-width: 220px; /* Don't extend under watch */
 }
 
 .ie-vital-bar {
@@ -292,18 +284,20 @@
     gap: 8px;
 }
 
-.ie-vital-icon {
-    font-size: 12px;
-    width: 16px;
-    text-align: center;
+.ie-vital-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 45px;
     flex-shrink: 0;
 }
 
-.ie-vital-health .ie-vital-icon {
+.ie-vital-health .ie-vital-label {
     color: var(--ie-accent-orange);
 }
 
-.ie-vital-morale .ie-vital-icon {
+.ie-vital-morale .ie-vital-label {
     color: var(--ie-accent-teal);
 }
 
@@ -345,13 +339,10 @@
     color: var(--ie-accent-teal);
 }
 
-/* Hide old compact vitals styles - no longer needed */
-.ie-vitals-compact {
-    display: none;
-}
-
-/* Hide old close button X - now using folder */
-.ie-panel-controls {
+/* Hide old styles */
+.ie-vitals-compact,
+.ie-panel-controls,
+.ie-header-top {
     display: none;
 }
 
