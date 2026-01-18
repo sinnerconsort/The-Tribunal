@@ -84,7 +84,7 @@ const TAB_BAR_HTML = `
 </div>`;
 
 const VOICES_TAB_HTML = `
-<div class="ie-tab-content voices-page" data-tab-content="voices">
+<div class="ie-tab-content voices-page ie-tab-content-active" data-tab-content="voices">
     <div class="voices-napkin">
         <div class="napkin-watermark">WHIRLING • IN • RAGS</div>
         <div class="voices-header">
@@ -103,6 +103,7 @@ const VOICES_TAB_HTML = `
             </button>
         </div>
         <div class="napkin-phone-number">555-0139</div>
+        <div class="napkin-lipstick"></div>
     </div>
 </div>`;
 
