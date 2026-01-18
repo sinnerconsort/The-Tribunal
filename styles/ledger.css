@@ -1045,12 +1045,16 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .ledger-page {
-    display: flex;
+    display: none; /* Hidden by default, shown when tab active */
     flex-direction: column;
     height: 100%;
     margin-left: -12px; /* Extend to cover grey gap */
     padding-left: 12px;
     background: var(--ledger-paper); /* Paper color behind everything */
+}
+
+.ledger-page.ie-tab-content-active {
+    display: flex;
 }
 
 /* Sub-tabs bar - dark bar at top */
@@ -1101,6 +1105,7 @@
     flex: 1;
     overflow-y: auto;
     margin-left: -12px;
+    margin-right: 10px; /* Gap between paper and right film strip */
     padding-left: 45px; /* Room for hole punches + margin */
     padding-right: 16px;
     padding-top: 20px;
