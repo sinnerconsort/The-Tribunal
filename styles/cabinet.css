@@ -177,78 +177,155 @@
 /* Card stack container */
 .cabinet-card-stack {
     position: relative;
-    height: 180px;
-    margin-left: 10px;
+    height: 200px;
+    margin-left: 5px;
 }
 
-/* Individual cascading card */
+/* Individual cascading card - wrapper for flip */
 .cabinet-cascade-card {
     position: absolute;
-    width: 280px;
-    height: 150px;
-    background: 
-        repeating-linear-gradient(
-            transparent 0px, transparent 18px,
-            rgba(100, 160, 200, 0.3) 18px, rgba(100, 160, 200, 0.3) 19px
-        ),
-        linear-gradient(180deg, #fff 0%, #f8f5f0 100%);
-    border-radius: 2px;
-    box-shadow: 2px 3px 6px rgba(0,0,0,0.2);
-    padding: 12px;
+    width: 260px;
+    height: 160px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    perspective: 800px;
 }
 
-/* Tab on top */
-.cabinet-cascade-card::before {
+/* Card positions - cascade effect (4 cards) */
+.cabinet-cascade-card:nth-child(1) { 
+    top: 0; left: 0; z-index: 4;
+}
+
+.cabinet-cascade-card:nth-child(2) { 
+    top: 8px; left: 12px; z-index: 3;
+}
+
+.cabinet-cascade-card:nth-child(3) { 
+    top: 16px; left: 24px; z-index: 2;
+}
+
+.cabinet-cascade-card:nth-child(4) { 
+    top: 24px; left: 36px; z-index: 1;
+}
+
+/* Hover to bring card forward */
+.cabinet-cascade-card:hover {
+    z-index: 10 !important;
+}
+
+.cabinet-cascade-card:hover .cabinet-card-inner {
+    transform: translateY(-5px);
+    box-shadow: 4px 8px 16px rgba(0,0,0,0.3);
+}
+
+/* Inner card for flip animation */
+.cabinet-card-inner {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transition: transform 0.5s ease, box-shadow 0.3s ease;
+    transform-style: preserve-3d;
+    border-radius: 2px;
+    box-shadow: 2px 3px 6px rgba(0,0,0,0.2);
+}
+
+.cabinet-cascade-card.flipped .cabinet-card-inner {
+    transform: rotateY(180deg);
+}
+
+/* Card front and back */
+.cabinet-card-front,
+.cabinet-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 2px;
+    padding: 12px;
+    overflow: hidden;
+}
+
+/* Card back (solution side) */
+.cabinet-card-back {
+    transform: rotateY(180deg);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Tab on top of front */
+.cabinet-card-front::before {
     content: '';
     position: absolute;
     top: -12px;
-    width: 50px;
-    height: 16px;
+    width: 45px;
+    height: 14px;
     border-radius: 4px 4px 0 0;
-    box-shadow: 0 -1px 3px rgba(0,0,0,0.1);
 }
 
-/* Card positions - cascade effect */
-.cabinet-cascade-card:nth-child(1) { 
-    top: 0; left: 0; z-index: 4;
-    transform: rotate(-1deg);
-}
-.cabinet-cascade-card:nth-child(1)::before { left: 15px; background: #5a8fba; }
-
-.cabinet-cascade-card:nth-child(2) { 
-    top: 5px; left: 8px; z-index: 3;
-    transform: rotate(0.5deg);
-}
-.cabinet-cascade-card:nth-child(2)::before { left: 75px; background: #9a6aaa; }
-
-.cabinet-cascade-card:nth-child(3) { 
-    top: 10px; left: 16px; z-index: 2;
-    transform: rotate(-0.5deg);
-}
-.cabinet-cascade-card:nth-child(3)::before { left: 135px; background: #c45a5a; }
-
-/* Tab colors by attribute */
-.cabinet-cascade-card.card-int::before { background: #5a8fba; }
-.cabinet-cascade-card.card-psy::before { background: #9a6aaa; }
-.cabinet-cascade-card.card-fys::before { background: #c45a5a; }
-.cabinet-cascade-card.card-mot::before { background: #d4a84a; }
-
-/* Empty slot */
-.cabinet-cascade-card.empty-slot {
+/* INT - Blue card */
+.cabinet-cascade-card.card-int .cabinet-card-front,
+.cabinet-cascade-card.card-int .cabinet-card-back {
     background: 
         repeating-linear-gradient(
-            transparent 0px, transparent 18px,
-            rgba(100, 100, 100, 0.15) 18px, rgba(100, 100, 100, 0.15) 19px
+            transparent 0px, transparent 17px,
+            rgba(40, 80, 120, 0.35) 17px, rgba(40, 80, 120, 0.35) 18px
         ),
-        linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(240,235,225,0.5) 100%);
-    border: 2px dashed rgba(60, 40, 20, 0.25);
+        linear-gradient(180deg, #a8d4f0 0%, #8ec4e8 100%);
+}
+.cabinet-cascade-card.card-int .cabinet-card-front::before { left: 12px; background: #5a8fba; }
+
+/* PSY - Purple card */
+.cabinet-cascade-card.card-psy .cabinet-card-front,
+.cabinet-cascade-card.card-psy .cabinet-card-back {
+    background: 
+        repeating-linear-gradient(
+            transparent 0px, transparent 17px,
+            rgba(100, 60, 120, 0.35) 17px, rgba(100, 60, 120, 0.35) 18px
+        ),
+        linear-gradient(180deg, #d4b8e8 0%, #c4a0d8 100%);
+}
+.cabinet-cascade-card.card-psy .cabinet-card-front::before { left: 65px; background: #9a6aaa; }
+
+/* FYS - Red/Pink card */
+.cabinet-cascade-card.card-fys .cabinet-card-front,
+.cabinet-cascade-card.card-fys .cabinet-card-back {
+    background: 
+        repeating-linear-gradient(
+            transparent 0px, transparent 17px,
+            rgba(140, 60, 60, 0.35) 17px, rgba(140, 60, 60, 0.35) 18px
+        ),
+        linear-gradient(180deg, #f0b8b8 0%, #e8a0a0 100%);
+}
+.cabinet-cascade-card.card-fys .cabinet-card-front::before { left: 118px; background: #c45a5a; }
+
+/* MOT - Yellow/Amber card */
+.cabinet-cascade-card.card-mot .cabinet-card-front,
+.cabinet-cascade-card.card-mot .cabinet-card-back {
+    background: 
+        repeating-linear-gradient(
+            transparent 0px, transparent 17px,
+            rgba(140, 110, 40, 0.35) 17px, rgba(140, 110, 40, 0.35) 18px
+        ),
+        linear-gradient(180deg, #f0e0a0 0%, #e8d080 100%);
+}
+.cabinet-cascade-card.card-mot .cabinet-card-front::before { left: 171px; background: #d4a84a; }
+
+/* Empty slot */
+.cabinet-cascade-card.empty-slot .cabinet-card-inner {
     box-shadow: none;
 }
 
-.cabinet-cascade-card.empty-slot::before {
-    background: rgba(150, 140, 130, 0.4) !important;
+.cabinet-cascade-card.empty-slot .cabinet-card-front {
+    background: 
+        repeating-linear-gradient(
+            transparent 0px, transparent 17px,
+            rgba(100, 90, 70, 0.2) 17px, rgba(100, 90, 70, 0.2) 18px
+        ),
+        linear-gradient(180deg, rgba(220,210,190,0.7) 0%, rgba(200,190,170,0.7) 100%);
+    border: 2px dashed rgba(60, 40, 20, 0.3);
+}
+
+.cabinet-cascade-card.empty-slot .cabinet-card-front::before {
+    background: rgba(150, 140, 130, 0.5);
 }
 
 .cabinet-empty-slot-text {
@@ -256,17 +333,42 @@
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: rgba(60, 40, 20, 0.35);
+    color: rgba(60, 40, 20, 0.4);
     font-family: 'Segoe Script', cursive, sans-serif;
     font-size: 12px;
     font-style: italic;
 }
 
-/* Hover to bring card forward */
-.cabinet-cascade-card:hover {
-    z-index: 10 !important;
-    transform: rotate(0deg) translateY(-5px) !important;
-    box-shadow: 3px 6px 12px rgba(0,0,0,0.25);
+/* Card back content */
+.cabinet-card-back-header {
+    font-family: 'Courier New', monospace;
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(50, 40, 30, 0.7);
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(50, 40, 30, 0.2);
+}
+
+.cabinet-card-back-content {
+    font-family: Georgia, serif;
+    font-size: 9px;
+    line-height: 1.5;
+    color: #3a3530;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.cabinet-card-back-modifiers {
+    font-family: 'Courier New', monospace;
+    font-size: 8px;
+    font-weight: 700;
+    color: #8a4a4a;
+    margin-top: 6px;
+    padding-top: 4px;
+    border-top: 1px solid rgba(50, 40, 30, 0.2);
 }
 
 .cabinet-card-icon {
@@ -578,15 +680,14 @@
 .cabinet-legal-pad {
     background: 
         repeating-linear-gradient(
-            transparent 0px, transparent 22px,
-            #91c4d4 22px, #91c4d4 23px
+            transparent 0px, transparent 20px,
+            #b8d4e0 20px, #b8d4e0 21px
         ),
-        linear-gradient(180deg, #fff9c4 0%, #fff59d 100%);
-    padding: 16px 14px 16px 44px;
+        linear-gradient(180deg, #fffde0 0%, #fff9b0 100%);
+    padding: 12px 14px 14px 44px;
     box-shadow: 2px 3px 8px rgba(0,0,0,0.25);
     position: relative;
     transform: rotate(0.5deg);
-    min-height: 180px;
 }
 
 /* Red margin line */
@@ -606,10 +707,18 @@
     top: -6px;
     left: 0; right: 0;
     height: 10px;
-    background: #fff9c4;
+    background: #fffde0;
     clip-path: polygon(
         0% 100%, 2% 50%, 5% 100%, 8% 40%, 11% 100%, 14% 60%, 17% 100%, 20% 45%, 23% 100%, 26% 55%, 29% 100%, 32% 40%, 35% 100%, 38% 65%, 41% 100%, 44% 50%, 47% 100%, 50% 40%, 53% 100%, 56% 60%, 59% 100%, 62% 45%, 65% 100%, 68% 55%, 71% 100%, 74% 40%, 77% 100%, 80% 65%, 83% 100%, 86% 50%, 89% 100%, 92% 40%, 95% 100%, 98% 55%, 100% 100%
     );
+}
+
+/* Header row with title and generate button */
+.cabinet-legal-pad-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
 }
 
 .cabinet-legal-pad-header {
@@ -618,105 +727,110 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
-    color: #5a5040;
-    margin-bottom: 12px;
+    color: #4a4030;
+}
+
+/* Controls row - from chat + perspective on same line */
+.cabinet-controls-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.cabinet-from-chat-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    color: #4a4030;
+}
+
+.cabinet-from-chat-toggle input {
+    accent-color: #5a6a4a;
 }
 
 .cabinet-perspective-toggle {
     display: flex;
-    gap: 8px;
-    margin-bottom: 12px;
+    gap: 4px;
 }
 
 .cabinet-perspective-btn {
-    font-family: 'Segoe Script', cursive, sans-serif;
-    font-size: 10px;
-    padding: 4px 10px;
-    border: 1px solid #8a8070;
-    background: rgba(255,255,255,0.5);
-    color: #5a5040;
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    padding: 3px 8px;
+    border: 1px solid #6a6050;
+    background: rgba(255,255,255,0.6);
+    color: #4a4030;
     cursor: pointer;
     border-radius: 2px;
     transition: all 0.15s ease;
 }
 
 .cabinet-perspective-btn:hover {
-    background: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.8);
 }
 
 .cabinet-perspective-btn.active {
-    background: #5a5040;
-    color: #fff9c4;
-    border-color: #5a5040;
+    background: #4a4030;
+    color: #fffde0;
+    border-color: #4a4030;
 }
 
 .cabinet-legal-input {
     width: 100%;
-    padding: 6px 8px;
-    margin-bottom: 10px;
+    padding: 5px 8px;
+    margin-bottom: 8px;
     border: none;
-    border-bottom: 1px dashed #aaa;
+    border-bottom: 1px dashed #8a8060;
     background: transparent;
-    font-family: 'Segoe Script', cursive, sans-serif;
+    font-family: 'Courier New', monospace;
     font-size: 11px;
-    color: #3a3530;
+    color: #3a3020;
 }
 
 .cabinet-legal-input::placeholder {
-    color: #8a8570;
+    color: #6a6050;
     font-style: italic;
 }
 
 .cabinet-legal-input:focus {
     outline: none;
-    border-bottom-color: #5a5040;
+    border-bottom-color: #4a4030;
 }
 
 .cabinet-legal-textarea {
     width: 100%;
     padding: 6px 8px;
-    border: 1px dashed #aaa;
-    background: rgba(255,255,255,0.3);
-    font-family: 'Segoe Script', cursive, sans-serif;
+    border: 1px dashed #8a8060;
+    background: rgba(255,255,255,0.25);
+    font-family: 'Courier New', monospace;
     font-size: 11px;
-    color: #3a3530;
+    color: #3a3020;
     resize: vertical;
-    min-height: 50px;
-    margin-bottom: 12px;
+    min-height: 45px;
 }
 
 .cabinet-legal-textarea::placeholder {
-    color: #8a8570;
+    color: #6a6050;
     font-style: italic;
 }
 
 .cabinet-legal-textarea:focus {
     outline: none;
-    border-color: #5a5040;
-}
-
-.cabinet-from-chat-toggle {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-family: 'Segoe Script', cursive, sans-serif;
-    font-size: 10px;
-    color: #5a5040;
-    margin-bottom: 10px;
-}
-
-.cabinet-from-chat-toggle input {
-    accent-color: #5a5040;
+    border-color: #4a4030;
 }
 
 /* ═══════════════════════════════════════════════════════════════
    DECORATIONS
    ═══════════════════════════════════════════════════════════════ */
 
-/* Polaroid */
+/* Polaroid - bottom right */
 .cabinet-decor-polaroid {
     position: absolute;
-    top: 200px;
+    bottom: 320px;
     right: 8px;
     width: 65px;
     height: 78px;
@@ -753,15 +867,15 @@
         0 2px 3px rgba(0,0,0,0.3);
 }
 
-/* FALN Coupon */
+/* FALN Coupon - partially hidden bottom right */
 .cabinet-decor-faln {
     position: absolute;
-    top: 320px;
-    right: 12px;
+    bottom: 250px;
+    right: -15px;
     width: 70px;
     height: 40px;
     background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-    transform: rotate(-5deg);
+    transform: rotate(12deg);
     box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
     z-index: 0;
     padding: 6px;
@@ -798,18 +912,18 @@
     transform: skewY(-8deg);
 }
 
-/* Matchbook */
+/* Matchbook - top right corner */
 .cabinet-decor-matchbook {
     position: absolute;
-    bottom: 250px;
-    left: 8px;
+    top: 8px;
+    right: 8px;
     width: 65px;
     height: 48px;
     background: linear-gradient(180deg, #f5efe5 0%, #e8e0d0 100%);
     border-radius: 3px 3px 0 0;
-    transform: rotate(-10deg);
+    transform: rotate(6deg);
     box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-    z-index: 0;
+    z-index: 6;
     padding: 6px 4px;
     text-align: center;
     border: 1px solid rgba(180, 170, 150, 0.5);
@@ -844,16 +958,16 @@
     border-top: 1px solid rgba(0,0,0,0.2);
 }
 
-/* Evrart Business Card */
+/* Evrart Business Card - visible bottom left */
 .cabinet-decor-businesscard {
     position: absolute;
-    bottom: 130px;
-    right: 10px;
+    bottom: 180px;
+    left: 8px;
     width: 100px;
     height: 60px;
     background: linear-gradient(135deg, #f8f6f0 0%, #ebe7dd 100%);
     border-radius: 3px;
-    transform: rotate(5deg);
+    transform: rotate(-8deg);
     box-shadow: 2px 3px 5px rgba(0,0,0,0.2);
     z-index: 0;
     padding: 8px 10px;
