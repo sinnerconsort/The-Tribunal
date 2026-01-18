@@ -1,51 +1,62 @@
 /**
- * The Tribunal - Voices Output
- * Voice display styling
- * REBUILD: Napkin / Bar Receipt aesthetic
+ * The Tribunal - Voices Tab
+ * Napkin / Bar aesthetic
+ * 
+ * Structure: .ie-tab-content > .ie-section.ie-voices-section > content
+ *            .ie-tab-content > .ie-section.ie-manual-section > button
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   VOICES TAB - FULL HEIGHT NAPKIN
-   Apply napkin to entire tab content area
+   VOICES TAB CONTENT - Full height napkin container
+   
+   Key: tabs.css only sets display:block, we need flex to fill space
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-tab-content[data-tab-content="voices"] {
+    /* Fill available space in .ie-panel-content */
+    display: flex !important;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0; /* Allow flex shrinking */
+    
+    /* Napkin background */
     background-color: #f0ebe3;
-    /* Napkin texture - soft fibrous pattern */
     background-image: 
         url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='napkin'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23napkin)'/%3E%3C/svg%3E"),
-        /* Subtle diagonal weave pattern */
         repeating-linear-gradient(
             45deg,
             transparent,
             transparent 2px,
-            rgba(200, 190, 175, 0.08) 2px,
-            rgba(200, 190, 175, 0.08) 4px
+            rgba(200, 190, 175, 0.06) 2px,
+            rgba(200, 190, 175, 0.06) 4px
         );
     background-blend-mode: overlay, normal;
-    position: relative;
-    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.02);
-    /* Extend to edges like ledger */
+    
+    /* Match ledger margins */
     margin-left: -12px;
     margin-right: 10px;
-    padding-left: 20px;
-    padding-right: 16px;
-    padding-top: 16px;
-    padding-bottom: 16px;
+    padding: 16px 16px 16px 24px;
+    
+    /* For positioned children (watermark, decorations) */
+    position: relative;
+    overflow: hidden;
 }
 
-/* Bar name watermark - BARELY visible */
+/* ═══════════════════════════════════════════════════════════════
+   WATERMARK - Barely visible
+   ═══════════════════════════════════════════════════════════════ */
+
 .ie-tab-content[data-tab-content="voices"]::before {
     content: 'THE WHIRLING-IN-RAGS';
     position: absolute;
-    top: 40%;
+    top: 38%;
     left: 50%;
     transform: translate(-50%, -50%) rotate(-18deg);
     font-family: var(--ie-font-header);
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 700;
-    letter-spacing: 3px;
-    color: rgba(140, 120, 100, 0.035);
+    letter-spacing: 2px;
+    color: rgba(120, 100, 80, 0.04);
     white-space: nowrap;
     pointer-events: none;
     z-index: 0;
@@ -58,21 +69,18 @@
 .ie-tab-content[data-tab-content="voices"]::after {
     content: '';
     position: absolute;
-    bottom: 80px;
+    bottom: 85px;
     right: 25px;
-    width: 35px;
-    height: 20px;
+    width: 30px;
+    height: 18px;
     pointer-events: none;
     z-index: 1;
-    /* Stylized lip print using gradients */
     background: 
-        /* Upper lip */
-        radial-gradient(ellipse 60% 40% at 30% 35%, rgba(180, 60, 80, 0.15) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 40% at 70% 35%, rgba(180, 60, 80, 0.15) 0%, transparent 70%),
-        /* Lower lip */
-        radial-gradient(ellipse 90% 50% at 50% 70%, rgba(160, 50, 70, 0.12) 0%, transparent 60%);
-    transform: rotate(-15deg);
-    filter: blur(0.5px);
+        radial-gradient(ellipse 55% 45% at 30% 40%, rgba(170, 50, 70, 0.12) 0%, transparent 65%),
+        radial-gradient(ellipse 55% 45% at 70% 40%, rgba(170, 50, 70, 0.12) 0%, transparent 65%),
+        radial-gradient(ellipse 85% 55% at 50% 65%, rgba(150, 40, 60, 0.1) 0%, transparent 55%);
+    transform: rotate(-12deg);
+    filter: blur(0.3px);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -81,111 +89,114 @@
 
 .napkin-phone-number {
     position: absolute;
-    bottom: 50px;
-    right: 15px;
+    bottom: 55px;
+    right: 18px;
     font-family: 'Comic Sans MS', 'Segoe Script', cursive, sans-serif;
-    font-size: 11px;
-    color: rgba(60, 80, 160, 0.25);
-    transform: rotate(-8deg);
+    font-size: 10px;
+    color: rgba(50, 70, 140, 0.22);
+    transform: rotate(-6deg);
     pointer-events: none;
     z-index: 1;
-    line-height: 1.3;
+    line-height: 1.2;
 }
 
 .napkin-phone-number::before {
     content: 'Call me? ♡';
     display: block;
-    font-size: 9px;
-    margin-bottom: 2px;
-    color: rgba(150, 60, 80, 0.2);
+    font-size: 8px;
+    margin-bottom: 1px;
+    color: rgba(140, 50, 70, 0.18);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   SECTIONS - Transparent on napkin
+   SECTIONS INSIDE VOICES - Override base styles
+   
+   sections.css gives .ie-section: border-left, background, padding
+   We need to remove all that for napkin transparency
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-voices-section {
-    background: transparent !important;
-    position: relative;
-    z-index: 2;
-}
-
-.ie-manual-section {
-    background: transparent !important;
-    border: none !important;
-    position: relative;
-    z-index: 2;
-    margin-top: auto;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   SECTION HEADER - Match ledger style exactly
-   ═══════════════════════════════════════════════════════════════ */
-
-.ie-voices-section .ie-section-header {
+.ie-tab-content[data-tab-content="voices"] .ie-section {
     background: transparent;
-    border-bottom: 1px dashed var(--ledger-line, rgba(100, 90, 80, 0.2));
-    padding-bottom: 4px;
-    margin-bottom: 10px;
+    border: none;
+    border-left: none;
+    border-radius: 0;
+    margin-bottom: 8px;
+    padding: 0;
+    position: relative;
+    z-index: 2;
 }
 
-.ie-voices-section .ie-section-header span {
-    font-size: 0.6rem;
+/* Voices section fills available space */
+.ie-tab-content[data-tab-content="voices"] .ie-voices-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Manual section stays at bottom */
+.ie-tab-content[data-tab-content="voices"] .ie-manual-section {
+    margin-top: auto;
+    padding-top: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION HEADER - Match ledger colors
+   
+   Ledger uses: --ledger-ink-dark (#5a5045)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-tab-content[data-tab-content="voices"] .ie-section-header {
+    background: transparent;
+    border-bottom: 1px dashed rgba(100, 90, 80, 0.25);
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+}
+
+.ie-tab-content[data-tab-content="voices"] .ie-section-header span {
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    color: var(--ledger-ink-dark, #5a5045);
+    color: #5a5045;
 }
 
-/* Add // prefix like ledger */
-.ie-voices-section .ie-section-header span::before {
-    content: '// ';
-    opacity: 0.5;
+/* Override the orange // from sections.css */
+.ie-tab-content[data-tab-content="voices"] .ie-section-header span::before {
+    color: #8a7a65;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   VOICES CONTAINER
+   VOICES CONTAINER & EMPTY STATE
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-voices-container {
-    max-height: none;
-    overflow-y: visible;
-    padding-bottom: 16px;
+.ie-tab-content[data-tab-content="voices"] .ie-voices-container {
+    flex: 1;
+    overflow-y: auto;
     position: relative;
     z-index: 2;
 }
 
-.ie-voices-empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 40px 30px;
-    color: var(--ledger-ink-faded, #8a8075);
-    font-style: italic;
-    font-size: 13px;
+.ie-tab-content[data-tab-content="voices"] .ie-voices-empty {
+    color: #8a8075;
 }
 
-.ie-voices-empty i {
-    font-size: 24px;
-    opacity: 0.4;
-    color: var(--ledger-ink-faded, #8a8075);
+.ie-tab-content[data-tab-content="voices"] .ie-voices-empty i {
+    color: #9a9085;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   VOICE CARDS - Scribbled Notes on Napkin
+   VOICE CARDS - Scribbled notes look
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-voice-line,
 .ie-voice-item {
-    background: rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.35);
     border-left: 3px solid;
     border-radius: 0;
     padding: 10px 12px;
     margin-bottom: 10px;
     position: relative;
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.06);
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .ie-voice-line:last-child,
@@ -193,14 +204,14 @@
     margin-bottom: 0;
 }
 
-/* Remove the dark gradient overlay - napkin is light */
+/* Remove any dark overlay from base styles */
 .ie-voice-line::before,
 .ie-voice-item::before {
     display: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   VOICE HEADER & SIGNATURE
+   VOICE HEADER & CONTENT
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-voice-header {
@@ -223,9 +234,78 @@
 .ie-voice-content {
     font-size: 12px;
     line-height: 1.55;
-    color: var(--ledger-ink-dark, #5a5045);
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    color: #5a5045;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VOICE TYPE COLORS - Pen colors on napkin
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Intellect - Blue ballpoint */
+.ie-voice-int,
+.ie-voice-intellect {
+    border-left-color: #4a6a8a;
+    background: rgba(74, 106, 138, 0.08);
+}
+.ie-voice-int .ie-voice-signature,
+.ie-voice-intellect .ie-voice-signature { color: #3a5a7a; }
+
+/* Psyche - Purple ink */
+.ie-voice-psy,
+.ie-voice-psyche {
+    border-left-color: #7a5a8a;
+    background: rgba(122, 90, 138, 0.08);
+}
+.ie-voice-psy .ie-voice-signature,
+.ie-voice-psyche .ie-voice-signature { color: #6a4a7a; }
+
+/* Physique - Red marker */
+.ie-voice-fys,
+.ie-voice-physique {
+    border-left-color: #9a5a5a;
+    background: rgba(154, 90, 90, 0.08);
+}
+.ie-voice-fys .ie-voice-signature,
+.ie-voice-physique .ie-voice-signature { color: #8a4a4a; }
+
+/* Motorics - Amber/brown pen */
+.ie-voice-mot,
+.ie-voice-motorics {
+    border-left-color: #8a7a4a;
+    background: rgba(138, 122, 74, 0.08);
+}
+.ie-voice-mot .ie-voice-signature,
+.ie-voice-motorics .ie-voice-signature { color: #7a6a3a; }
+
+/* ═══════════════════════════════════════════════════════════════
+   SPECIAL VOICE TYPES
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-voice-ancient {
+    background: rgba(80, 90, 80, 0.1);
+    border-left-color: #5a6a5a;
+}
+.ie-voice-ancient .ie-voice-content { color: #7a7570; }
+
+.ie-voice-intrusive {
+    background: rgba(100, 70, 100, 0.08);
+    border-left-color: #8a5a8a;
+}
+
+.ie-voice-object {
+    background: rgba(120, 110, 80, 0.08);
+    border-left-color: #9a8a5a;
+    font-style: italic;
+}
+
+.ie-voice-narrator {
+    background: rgba(180, 140, 100, 0.12);
+    border-left-width: 5px;
+    border-left-color: #a07040;
+}
+.ie-voice-narrator .ie-voice-signature {
+    text-decoration: underline;
+    color: #8a6030;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -257,10 +337,9 @@
     font-weight: bold;
     font-size: 10px;
     border: 1px solid rgba(100, 90, 80, 0.3);
-    color: var(--ledger-ink-dark, #5a5045);
+    color: #5a5045;
 }
 
-/* Success - green pen */
 .ie-success,
 .ie-check-result.ie-success {
     background: rgba(90, 130, 80, 0.15);
@@ -268,7 +347,6 @@
     border-color: rgba(90, 130, 80, 0.4);
 }
 
-/* Failure - red pen */
 .ie-fail,
 .ie-failure,
 .ie-check-result.ie-fail {
@@ -277,7 +355,6 @@
     border-color: rgba(160, 80, 70, 0.4);
 }
 
-/* Critical Success */
 .ie-crit-success,
 .ie-critical-success {
     background: rgba(180, 150, 60, 0.25);
@@ -287,7 +364,6 @@
     border-style: solid;
 }
 
-/* Critical Failure */
 .ie-crit-fail,
 .ie-critical-failure {
     background: rgba(140, 50, 50, 0.2);
@@ -297,108 +373,9 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   VOICE TYPE VARIANTS - Pen colors on napkin
+   BUTTON - Keep teal but soften for napkin
    ═══════════════════════════════════════════════════════════════ */
 
-/* Intellect voices - Blue ballpoint */
-.ie-voice-int,
-.ie-voice-intellect {
-    border-left-color: #4a6a8a;
-    background: rgba(74, 106, 138, 0.08);
-}
-
-.ie-voice-int .ie-voice-signature,
-.ie-voice-intellect .ie-voice-signature {
-    color: #3a5a7a;
-}
-
-/* Psyche voices - Purple ink */
-.ie-voice-psy,
-.ie-voice-psyche {
-    border-left-color: #7a5a8a;
-    background: rgba(122, 90, 138, 0.08);
-}
-
-.ie-voice-psy .ie-voice-signature,
-.ie-voice-psyche .ie-voice-signature {
-    color: #6a4a7a;
-}
-
-/* Physique voices - Red marker */
-.ie-voice-fys,
-.ie-voice-physique {
-    border-left-color: #9a5a5a;
-    background: rgba(154, 90, 90, 0.08);
-}
-
-.ie-voice-fys .ie-voice-signature,
-.ie-voice-physique .ie-voice-signature {
-    color: #8a4a4a;
-}
-
-/* Motorics voices - Amber/brown pen */
-.ie-voice-mot,
-.ie-voice-motorics {
-    border-left-color: #8a7a4a;
-    background: rgba(138, 122, 74, 0.08);
-}
-
-.ie-voice-mot .ie-voice-signature,
-.ie-voice-motorics .ie-voice-signature {
-    color: #7a6a3a;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   SPECIAL VOICE TYPES
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Ancient Reptilian Brain */
-.ie-voice-ancient {
-    background: rgba(80, 90, 80, 0.12);
-    border-left-color: #5a6a5a;
-}
-
-.ie-voice-ancient .ie-voice-content {
-    color: var(--ledger-ink-faded, #8a8075);
-}
-
-/* Intrusive thoughts */
-.ie-voice-intrusive {
-    background: rgba(100, 70, 100, 0.1);
-    border-left-color: #8a5a8a;
-}
-
-/* Object voices (Shivers-style) */
-.ie-voice-object {
-    background: rgba(120, 110, 80, 0.1);
-    border-left-color: #9a8a5a;
-    font-style: italic;
-}
-
-/* Narrator voice */
-.ie-voice-line.ie-narrator-voice,
-.ie-voice-narrator {
-    background: rgba(180, 140, 100, 0.15);
-    border-left-width: 5px;
-    border-left-color: #a07040;
-}
-
-.ie-voice-narrator .ie-voice-signature {
-    text-decoration: underline;
-    color: #8a6030;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   BUTTON STYLING
-   ═══════════════════════════════════════════════════════════════ */
-
-.ie-manual-section .ie-btn-trigger {
-    background: rgba(160, 140, 120, 0.15);
-    border: 1px dashed rgba(100, 90, 80, 0.3);
-    color: var(--ledger-ink-dark, #5a5045);
-}
-
-.ie-manual-section .ie-btn-trigger:hover {
-    background: rgba(160, 140, 120, 0.25);
-    border-style: solid;
+.ie-tab-content[data-tab-content="voices"] .ie-btn-trigger {
+    /* Keep the teal from sections.css, it works */
 }
