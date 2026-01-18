@@ -13,28 +13,25 @@
     --napkin-white: #f8f5f0;
     --napkin-cream: #f0ebe3;
     --napkin-shadow: #e5ddd2;
-    --napkin-ink: #2a2520;
-    --napkin-ink-faded: #6a6055;
-    
-    /* Receipt thermal paper */
-    --receipt-paper: #f4f2ed;
-    --receipt-fade: #d8d4cc;
-    --receipt-ink: #3a3632;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   VOICES TAB - NAPKIN PAPER BACKGROUND
+   VOICES TAB - FULL HEIGHT NAPKIN PAPER
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-tab-content[data-tab-content="voices"] {
-    overflow-y: auto;
-    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     padding: 0;
     background: transparent;
 }
 
-/* The voices section becomes the napkin */
+/* The voices section becomes the napkin - fills all space */
 .ie-tab-content[data-tab-content="voices"] .ie-voices-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     background-color: var(--napkin-cream);
     /* Napkin texture - soft fibrous pattern */
     background-image: 
@@ -48,17 +45,19 @@
             rgba(200, 190, 175, 0.1) 4px
         ),
         /* Slight color variation */
-        radial-gradient(ellipse at 30% 70%, rgba(220, 200, 170, 0.2) 0%, transparent 50%);
+        radial-gradient(ellipse at 30% 70%, rgba(220, 200, 170, 0.15) 0%, transparent 50%);
     background-blend-mode: overlay, normal, normal;
-    border-radius: 2px;
     position: relative;
-    min-height: 300px;
     padding: 16px;
-    margin: 8px;
+    margin: 0;
+    margin-left: -12px;
+    margin-right: 10px;
+    padding-left: 28px;
+    overflow-y: auto;
     /* Soft shadow like paper on surface */
     box-shadow: 
         2px 3px 8px rgba(0, 0, 0, 0.15),
-        inset 0 0 30px rgba(0, 0, 0, 0.03);
+        inset 0 0 30px rgba(0, 0, 0, 0.02);
 }
 
 /* Crinkle/fold marks */
@@ -70,23 +69,22 @@
         /* Diagonal fold line */
         linear-gradient(135deg, 
             transparent 30%, 
-            rgba(0, 0, 0, 0.02) 30.5%, 
-            rgba(0, 0, 0, 0.02) 31%, 
+            rgba(0, 0, 0, 0.015) 30.5%, 
+            rgba(0, 0, 0, 0.015) 31%, 
             transparent 31.5%
         ),
         /* Another subtle crease */
         linear-gradient(-45deg, 
             transparent 60%, 
-            rgba(255, 255, 255, 0.3) 60.2%, 
-            rgba(0, 0, 0, 0.02) 60.5%, 
+            rgba(255, 255, 255, 0.2) 60.2%, 
+            rgba(0, 0, 0, 0.01) 60.5%, 
             transparent 61%
         );
     pointer-events: none;
     z-index: 1;
-    border-radius: 2px;
 }
 
-/* Bar name watermark - very faint */
+/* Bar name watermark - VERY faint */
 .ie-tab-content[data-tab-content="voices"] .ie-voices-section::after {
     content: 'THE WHIRLING-IN-RAGS';
     position: absolute;
@@ -94,22 +92,22 @@
     left: 50%;
     transform: translate(-50%, -50%) rotate(-20deg);
     font-family: var(--ie-font-header);
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: 700;
     letter-spacing: 4px;
-    color: rgba(180, 160, 140, 0.08);
+    color: rgba(180, 160, 140, 0.04);
     white-space: nowrap;
     pointer-events: none;
     z-index: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   SECTION HEADER - Receipt Style
+   SECTION HEADER - Match ledger style
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-tab-content[data-tab-content="voices"] .ie-section-header {
     background: transparent;
-    border-bottom: 1px dashed rgba(100, 90, 80, 0.3);
+    border-bottom: 1px dashed rgba(100, 90, 80, 0.2);
     padding-bottom: 8px;
     margin-bottom: 12px;
     position: relative;
@@ -117,9 +115,15 @@
 }
 
 .ie-tab-content[data-tab-content="voices"] .ie-section-header span {
-    color: var(--napkin-ink);
-    font-size: 10px;
+    color: var(--ledger-ink-dark, #5a5045);
+    font-size: 11px;
     letter-spacing: 2px;
+}
+
+/* Add the // prefix to match ledger */
+.ie-tab-content[data-tab-content="voices"] .ie-section-header span::before {
+    content: '// ';
+    opacity: 0.5;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -127,7 +131,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-voices-container {
-    max-height: none;
+    flex: 1;
     overflow-y: visible;
     padding-bottom: 16px;
     position: relative;
@@ -149,7 +153,7 @@
     justify-content: center;
     gap: 8px;
     padding: 40px 30px;
-    color: var(--napkin-ink-faded);
+    color: var(--ledger-ink-faded, #8a8075);
     font-style: italic;
     font-size: 13px;
 }
@@ -157,7 +161,7 @@
 .ie-voices-empty i {
     font-size: 24px;
     opacity: 0.4;
-    color: var(--napkin-ink-faded);
+    color: var(--ledger-ink-faded, #8a8075);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -198,8 +202,8 @@
     height: 1px;
     background: repeating-linear-gradient(
         90deg,
-        rgba(100, 90, 80, 0.15) 0px,
-        rgba(100, 90, 80, 0.15) 4px,
+        rgba(100, 90, 80, 0.1) 0px,
+        rgba(100, 90, 80, 0.1) 4px,
         transparent 4px,
         transparent 8px
     );
@@ -229,7 +233,7 @@
 .ie-voice-content {
     font-size: 12px;
     line-height: 1.55;
-    color: var(--napkin-ink);
+    color: var(--ledger-ink-dark, #5a5045);
     word-wrap: break-word;
     overflow-wrap: break-word;
 }
@@ -263,7 +267,7 @@
     font-weight: bold;
     font-size: 10px;
     border: 1px solid rgba(100, 90, 80, 0.3);
-    color: var(--napkin-ink);
+    color: var(--ledger-ink-dark, #5a5045);
 }
 
 /* Success - green pen */
@@ -366,7 +370,7 @@
 }
 
 .ie-voice-ancient .ie-voice-content {
-    color: var(--napkin-ink-faded);
+    color: var(--ledger-ink-faded, #8a8075);
 }
 
 /* Intrusive thoughts - hasty scrawl */
@@ -397,28 +401,28 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MANUAL TRIGGER SECTION
+   MANUAL TRIGGER SECTION - ON THE NAPKIN
    ═══════════════════════════════════════════════════════════════ */
 
+/* Hide the separate manual section container */
 .ie-tab-content[data-tab-content="voices"] .ie-manual-section {
-    background: transparent;
-    padding: 12px 0 0 0;
-    margin-top: 8px;
-    border-top: 1px dashed rgba(100, 90, 80, 0.2);
+    display: none;
+}
+
+/* We'll put the button inside the voices section via JS, 
+   but for now style it to work on napkin */
+.ie-tab-content[data-tab-content="voices"] .ie-btn-trigger {
+    background: rgba(180, 160, 140, 0.15);
+    border: 1px dashed rgba(100, 90, 80, 0.3);
+    color: var(--ledger-ink-dark, #5a5045);
+    font-size: 11px;
+    margin-top: auto;
     position: relative;
     z-index: 2;
 }
 
-/* Style the button to match napkin aesthetic */
-.ie-tab-content[data-tab-content="voices"] .ie-btn-trigger {
-    background: rgba(180, 160, 140, 0.2);
-    border: 1px dashed rgba(100, 90, 80, 0.4);
-    color: var(--napkin-ink);
-    font-size: 11px;
-}
-
 .ie-tab-content[data-tab-content="voices"] .ie-btn-trigger:hover {
-    background: rgba(180, 160, 140, 0.35);
+    background: rgba(180, 160, 140, 0.25);
     border-style: solid;
 }
 
@@ -437,11 +441,12 @@
     background: 
         radial-gradient(ellipse at 50% 50%, 
             transparent 40%, 
-            rgba(139, 90, 60, 0.06) 45%,
-            rgba(139, 90, 60, 0.1) 50%,
-            rgba(139, 90, 60, 0.04) 55%,
+            rgba(139, 90, 60, 0.04) 45%,
+            rgba(139, 90, 60, 0.06) 50%,
+            rgba(139, 90, 60, 0.03) 55%,
             transparent 60%
         );
     transform: rotate(-15deg);
-    opacity: 0.8;
+    opacity: 0.7;
 }
+
