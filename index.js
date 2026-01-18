@@ -171,9 +171,138 @@ const CABINET_TAB_HTML = `
 
 const STATUS_TAB_HTML = `
 <div class="ie-tab-content" data-tab-content="status">
-    <div class="ie-section">
-        <div class="ie-section-header"><span>Status Effects</span></div>
-        <p class="ie-empty-state">No active effects</p>
+    <div class="rcm-medical-form">
+        <!-- Decorations -->
+        <div class="rcm-coffee-stain"></div>
+        <div class="rcm-fold-mark"></div>
+        
+        <!-- Header -->
+        <div class="rcm-form-header">
+            <div class="rcm-form-title">R.C.M. CITIZEN MILITIA<br>MEDICAL EVALUATION FORM</div>
+        </div>
+        
+        <!-- Patient Info -->
+        <div class="rcm-patient-info">
+            <div class="rcm-field">
+                <span class="rcm-field-label">PATIENT:</span>
+                <span class="rcm-field-value" id="rcm-patient-name">______________</span>
+            </div>
+            <div class="rcm-field">
+                <span class="rcm-field-label">BADGE #:</span>
+                <span class="rcm-field-value">41ST-______</span>
+            </div>
+        </div>
+        
+        <!-- Physical Status -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">PHYSICAL STATUS</div>
+            <div class="rcm-section-content">
+                <div class="rcm-vital-row" id="rcm-health-row">
+                    <span class="rcm-vital-label">HEALTH:</span>
+                    <div class="rcm-vital-bar-container">
+                        <span class="rcm-vital-bar-bracket">[</span>
+                        <div class="rcm-vital-bar">
+                            <div class="rcm-vital-bar-fill" id="rcm-health-fill" style="width: 100%"></div>
+                        </div>
+                        <span class="rcm-vital-bar-bracket">]</span>
+                    </div>
+                    <span class="rcm-vital-value" id="rcm-health-value">13/13</span>
+                </div>
+                <div class="rcm-vital-row" id="rcm-morale-row">
+                    <span class="rcm-vital-label">MORALE:</span>
+                    <div class="rcm-vital-bar-container">
+                        <span class="rcm-vital-bar-bracket">[</span>
+                        <div class="rcm-vital-bar">
+                            <div class="rcm-vital-bar-fill" id="rcm-morale-fill" style="width: 100%"></div>
+                        </div>
+                        <span class="rcm-vital-bar-bracket">]</span>
+                    </div>
+                    <span class="rcm-vital-value" id="rcm-morale-value">13/13</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Active Conditions -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">ACTIVE CONDITIONS</div>
+            <div class="rcm-section-content" id="rcm-conditions-container">
+                <span class="rcm-conditions-empty">(none reported)</span>
+            </div>
+        </div>
+        
+        <!-- Observed States -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">OBSERVED STATES (check all apply)</div>
+            <div class="rcm-section-content">
+                <div class="rcm-states-category">
+                    <div class="rcm-states-category-label">PHYSICAL:</div>
+                    <div class="rcm-states-grid" id="rcm-physical-states">
+                        <div class="rcm-checkbox" data-status="drunk">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Drunk</span>
+                        </div>
+                        <div class="rcm-checkbox" data-status="hungover">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Hungover</span>
+                        </div>
+                        <div class="rcm-checkbox" data-status="wounded">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Wounded</span>
+                        </div>
+                        <div class="rcm-checkbox" data-status="stimmed">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Stimmed</span>
+                        </div>
+                        <div class="rcm-checkbox" data-status="exhausted">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Exhausted</span>
+                        </div>
+                        <div class="rcm-checkbox" data-status="smoking">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Smoking</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="rcm-states-category">
+                    <div class="rcm-states-category-label">MENTAL:</div>
+                    <div class="rcm-states-grid" id="rcm-mental-states">
+                        <div class="rcm-checkbox" data-status="manic">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Manic</span>
+                        </div>
+                        <div class="rcm-checkbox" data-status="dissociated">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Dissociated</span>
+                        </div>
+                        <div class="rcm-checkbox" data-status="grieving">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Grieving</span>
+                        </div>
+                        <div class="rcm-checkbox" data-status="infatuated">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Infatuated</span>
+                        </div>
+                        <div class="rcm-checkbox" data-status="terrified">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Terrified</span>
+                        </div>
+                        <div class="rcm-checkbox" data-status="enraged">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Enraged</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="rcm-form-footer">
+            <div class="rcm-officer-field">
+                <span class="rcm-officer-label">EXAMINING OFFICER:</span>
+                <span class="rcm-officer-line"></span>
+            </div>
+            <div class="rcm-stamp">R.C.M.<br>MEDICAL<br>DIVISION</div>
+        </div>
     </div>
 </div>`;
 
@@ -557,6 +686,9 @@ function updateCRTVitals(health, maxHealth, morale, maxMorale, characterName) {
             monitor.classList.add('ie-vital-low');
         }
     }
+    
+    // Also update RCM Medical Form
+    updateRCMFormVitals(health, maxHealth, morale, maxMorale);
 }
 
 /**
@@ -585,6 +717,67 @@ function setCRTCharacterName(name) {
         nameEl.textContent = name || 'UNKNOWN';
     }
     currentVitals.characterName = name;
+    
+    // Also update RCM form
+    const rcmNameEl = document.getElementById('rcm-patient-name');
+    if (rcmNameEl) {
+        rcmNameEl.textContent = name || '______________';
+        rcmNameEl.classList.toggle('rcm-field-filled', !!name);
+    }
+}
+
+/**
+ * Update RCM Medical Form vitals display
+ */
+function updateRCMFormVitals(health, maxHealth, morale, maxMorale) {
+    const healthPercent = maxHealth > 0 ? (health / maxHealth) * 100 : 0;
+    const moralePercent = maxMorale > 0 ? (morale / maxMorale) * 100 : 0;
+    
+    // Update health
+    const rcmHealthFill = document.getElementById('rcm-health-fill');
+    const rcmHealthValue = document.getElementById('rcm-health-value');
+    const rcmHealthRow = document.getElementById('rcm-health-row');
+    
+    if (rcmHealthFill) rcmHealthFill.style.width = `${healthPercent}%`;
+    if (rcmHealthValue) rcmHealthValue.textContent = `${health}/${maxHealth}`;
+    
+    if (rcmHealthRow) {
+        rcmHealthRow.classList.remove('rcm-vital-low', 'rcm-vital-critical');
+        if (healthPercent < 15) {
+            rcmHealthRow.classList.add('rcm-vital-critical');
+        } else if (healthPercent < 30) {
+            rcmHealthRow.classList.add('rcm-vital-low');
+        }
+    }
+    
+    // Update morale
+    const rcmMoraleFill = document.getElementById('rcm-morale-fill');
+    const rcmMoraleValue = document.getElementById('rcm-morale-value');
+    const rcmMoraleRow = document.getElementById('rcm-morale-row');
+    
+    if (rcmMoraleFill) rcmMoraleFill.style.width = `${moralePercent}%`;
+    if (rcmMoraleValue) rcmMoraleValue.textContent = `${morale}/${maxMorale}`;
+    
+    if (rcmMoraleRow) {
+        rcmMoraleRow.classList.remove('rcm-vital-low', 'rcm-vital-critical');
+        if (moralePercent < 15) {
+            rcmMoraleRow.classList.add('rcm-vital-critical');
+        } else if (moralePercent < 30) {
+            rcmMoraleRow.classList.add('rcm-vital-low');
+        }
+    }
+}
+
+/**
+ * Toggle a status effect checkbox on the RCM form
+ * @param {string} status - Status ID (e.g., 'drunk', 'manic')
+ * @param {boolean} active - Whether the status is active
+ */
+function setRCMStatus(status, active) {
+    const checkbox = document.querySelector(`.rcm-checkbox[data-status="${status}"]`);
+    if (checkbox) {
+        checkbox.classList.toggle('rcm-checked', active);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -765,6 +958,17 @@ function bindEvents() {
     document.getElementById('ie-manual-trigger')?.addEventListener('click', () => {
         console.log('[The Tribunal] Manual trigger clicked');
         if (typeof toastr !== 'undefined') toastr.info('Voice trigger (not implemented yet)');
+    });
+
+    // RCM Medical Form checkboxes
+    document.querySelectorAll('.rcm-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('click', () => {
+            checkbox.classList.toggle('rcm-checked');
+            const status = checkbox.dataset.status;
+            const isChecked = checkbox.classList.contains('rcm-checked');
+            console.log(`[The Tribunal] Status ${status}: ${isChecked}`);
+            // TODO: Hook into state management
+        });
     });
 
     // ESC to close
