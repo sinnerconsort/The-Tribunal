@@ -119,10 +119,16 @@ const CABINET_TAB_HTML = `
                 <span>No thoughts yet...</span>
             </div>
         </div>
+        <!-- Pushpins -->
         <div class="cabinet-pushpin cabinet-pushpin-tl"></div>
         <div class="cabinet-pushpin cabinet-pushpin-tr"></div>
         <div class="cabinet-pushpin cabinet-pushpin-bl"></div>
         <div class="cabinet-pushpin cabinet-pushpin-br"></div>
+        <!-- Decorations -->
+        <div class="cabinet-polaroid"></div>
+        <div class="cabinet-matchbook"></div>
+        <div class="cabinet-businesscard"><div class="cabinet-businesscard-bend"></div></div>
+        <div class="cabinet-clipping"></div>
     </div>
 </div>`;
 
