@@ -87,7 +87,7 @@ const VOICES_TAB_HTML = `
 <div class="ie-tab-content ie-tab-content-active" data-tab-content="voices">
     <div class="ie-section ie-voices-section">
         <div class="ie-section-header">
-            <span>Inner Voices</span>
+            <span>INNER VOICES</span>
         </div>
         <div class="ie-voices-container" id="ie-voices-output">
             <div class="ie-voices-empty">
@@ -95,14 +95,13 @@ const VOICES_TAB_HTML = `
                 <span>Waiting for something to happen...</span>
             </div>
         </div>
-        <!-- Drink stain decoration -->
-        <div class="napkin-stain"></div>
-    </div>
-    <div class="ie-section ie-manual-section">
+        <!-- Button ON the napkin -->
         <button class="ie-btn ie-btn-primary ie-btn-trigger" id="ie-manual-trigger">
             <i class="fa-solid fa-bolt"></i>
             <span>Consult Inner Voices</span>
         </button>
+        <!-- Drink stain decoration -->
+        <div class="napkin-stain"></div>
     </div>
 </div>`;
 
