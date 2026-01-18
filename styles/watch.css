@@ -439,10 +439,12 @@
    When watch is in .ie-header-top
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-header-top .tribunal-watch {
-    transform: scale(0.95);
-}
-
 .ie-header-top .watch-mode-indicator {
     display: none; /* Hide mode indicator in header - too cramped */
+}
+
+/* Show mode indicator on hover in header */
+.ie-header-top .tribunal-watch:hover .watch-mode-indicator {
+    display: block;
+    bottom: -16px;
 }

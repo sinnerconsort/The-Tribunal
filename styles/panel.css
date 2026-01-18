@@ -224,7 +224,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-panel-header {
-    padding: 12px 16px 8px;
+    padding: 10px 16px;
     border-bottom: 1px solid var(--ie-border);
     background: linear-gradient(180deg, rgba(30, 30, 35, 0.95) 0%, rgba(25, 25, 30, 0.9) 100%);
     margin-left: 32px;
@@ -235,35 +235,123 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
-}
-
-.ie-panel-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: var(--ie-accent-orange);
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.ie-panel-title i {
-    font-size: 16px;
-    opacity: 0.9;
-}
-
-.ie-panel-controls {
-    display: flex;
-    align-items: center;
     gap: 8px;
 }
 
-/* Watch in header positioning */
-.ie-header-top .tribunal-watch {
-    margin: -8px 0; /* Overlap slightly for compact fit */
+/* Clickable folder title (now the close button) */
+.ie-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ie-accent-orange);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
     flex-shrink: 0;
+}
+
+.ie-panel-title:hover {
+    background: rgba(243, 101, 11, 0.15);
+}
+
+.ie-panel-title:active {
+    transform: scale(0.97);
+}
+
+.ie-panel-title i {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+/* Watch in header - BIGGER */
+.ie-header-top .tribunal-watch {
+    flex-shrink: 0;
+    transform: scale(1.1);
+    margin: 0 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPACT VITALS (right side of header)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-vitals-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-shrink: 0;
+    min-width: 80px;
+}
+
+.ie-vital-mini {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ie-vital-icon {
+    font-size: 10px;
+    width: 14px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.ie-vital-health .ie-vital-icon {
+    color: var(--ie-accent-orange);
+}
+
+.ie-vital-morale .ie-vital-icon {
+    color: var(--ie-accent-teal);
+}
+
+.ie-vital-track-mini {
+    flex: 1;
+    height: 6px;
+    background: var(--ie-bg-tertiary);
+    border-radius: 3px;
+    overflow: hidden;
+    min-width: 40px;
+}
+
+.ie-vital-mini .ie-vital-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.ie-vital-health .ie-vital-fill {
+    background: linear-gradient(90deg, var(--ie-accent-orange) 0%, #e07020 100%);
+}
+
+.ie-vital-morale .ie-vital-fill {
+    background: linear-gradient(90deg, var(--ie-accent-teal) 0%, #4ab8c2 100%);
+}
+
+.ie-vital-value-mini {
+    font-size: 10px;
+    font-weight: 600;
+    min-width: 18px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.ie-vital-health .ie-vital-value-mini {
+    color: var(--ie-accent-orange);
+}
+
+.ie-vital-morale .ie-vital-value-mini {
+    color: var(--ie-accent-teal);
+}
+
+/* Hide old close button styles - now using folder */
+.ie-panel-controls {
+    display: none;
 }
 
 .ie-btn-close-panel {
