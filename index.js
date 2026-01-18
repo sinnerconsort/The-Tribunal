@@ -1,6 +1,6 @@
 /**
  * The Tribunal - SillyTavern Extension
- * REBUILD v0.2.2 - Ledger notebook paper redesign
+ * REBUILD v0.3.0 - Clipboard header + CRT vitals
  */
 
 const extensionName = 'the-tribunal';
@@ -17,49 +17,79 @@ const PANEL_HEADER_HTML = `
 <span class="ie-panel-marker-right">FELD ▼   DEVICE</span>
 
 <div class="ie-panel-header">
-    <!-- Top row: Title + Watch -->
-    <div class="ie-header-row">
-        <div class="ie-panel-title" id="ie-close-trigger" title="Close Panel">
-            <i class="fa-solid fa-folder-open"></i>
-            <span>CASE FILE</span>
-        </div>
-        <div class="tribunal-watch real-mode" id="ie-header-watch" title="Click to toggle Real/RP time">
-            <div class="watch-clip"></div>
-            <div class="watch-case">
-                <div class="watch-bezel">
-                    <div class="watch-dial">
-                        <div class="watch-weather clear-day" id="ie-watch-weather">
-                            <i class="fa-solid fa-sun" id="ie-watch-weather-icon"></i>
+    <!-- Metal Clipboard Clip - Click to close panel -->
+    <div class="ie-clipboard-clip" id="ie-close-panel" title="Close Case File">
+        <div class="ie-clip-lever"></div>
+        <div class="ie-clip-rivet ie-clip-rivet-left"></div>
+        <div class="ie-clip-rivet ie-clip-rivet-right"></div>
+        <div class="ie-clip-grip ie-clip-grip-left"></div>
+        <div class="ie-clip-grip ie-clip-grip-right"></div>
+        <div class="ie-clip-label">Case File</div>
+    </div>
+    
+    <!-- Paper area with CRT monitor and Watch -->
+    <div class="ie-clipboard-paper">
+        <div class="ie-header-row">
+            <!-- CRT Vitals Monitor -->
+            <div class="ie-crt-container">
+                <div class="ie-crt-monitor" id="ie-crt-vitals">
+                    <div class="ie-crt-screen">
+                        <div class="ie-crt-text">
+                            <!-- Character name -->
+                            <div class="ie-crt-name" id="ie-crt-char-name">UNKNOWN</div>
+                            
+                            <!-- Health bar -->
+                            <div class="ie-crt-vital-row" id="ie-crt-health-row">
+                                <span class="ie-crt-vital-label">HP:</span>
+                                <div class="ie-crt-vital-bar">
+                                    <div class="ie-crt-vital-fill" id="ie-health-fill" style="width: 100%"></div>
+                                </div>
+                                <span class="ie-crt-vital-value" id="ie-health-value">13</span>
+                            </div>
+                            
+                            <!-- Morale bar -->
+                            <div class="ie-crt-vital-row" id="ie-crt-morale-row">
+                                <span class="ie-crt-vital-label">MP:</span>
+                                <div class="ie-crt-vital-bar">
+                                    <div class="ie-crt-vital-fill" id="ie-morale-fill" style="width: 100%"></div>
+                                </div>
+                                <span class="ie-crt-vital-value" id="ie-morale-value">13</span>
+                            </div>
+                            
+                            <!-- EKG heartbeat line -->
+                            <div class="ie-crt-ekg">
+                                <div class="ie-ekg-line">
+                                    <svg viewBox="0 0 200 14" preserveAspectRatio="none">
+                                        <path d="M0,7 L20,7 L25,7 L27,2 L30,12 L33,4 L36,7 L50,7 L70,7 L75,7 L77,2 L80,12 L83,4 L86,7 L100,7 L120,7 L125,7 L127,2 L130,12 L133,4 L136,7 L150,7 L170,7 L175,7 L177,2 L180,12 L183,4 L186,7 L200,7"/>
+                                    </svg>
+                                </div>
+                            </div>
                         </div>
-                        <div class="watch-date" id="ie-watch-date">18</div>
-                        <div class="watch-hands">
-                            <div class="watch-hand watch-hand-hour" id="ie-watch-hour"></div>
-                            <div class="watch-hand watch-hand-minute" id="ie-watch-minute"></div>
-                            <div class="watch-hand watch-hand-second" id="ie-watch-second"></div>
-                            <div class="watch-center"></div>
-                        </div>
-                        <div class="watch-crack"></div>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-    
-    <!-- Vitals row: Health + Morale (NOT under watch) -->
-    <div class="ie-vitals-row">
-        <div class="ie-vital-bar ie-vital-health">
-            <span class="ie-vital-label">Health</span>
-            <div class="ie-vital-track">
-                <div class="ie-vital-fill" id="ie-health-fill" style="width: 100%;"></div>
+            
+            <!-- Watch -->
+            <div class="tribunal-watch real-mode" id="ie-header-watch" title="Click to toggle Real/RP time">
+                <div class="watch-clip"></div>
+                <div class="watch-case">
+                    <div class="watch-bezel">
+                        <div class="watch-dial">
+                            <div class="watch-weather clear-day" id="ie-watch-weather">
+                                <i class="fa-solid fa-sun" id="ie-watch-weather-icon"></i>
+                            </div>
+                            <div class="watch-date" id="ie-watch-date">18</div>
+                            <div class="watch-hands">
+                                <div class="watch-hand watch-hand-hour" id="ie-watch-hour"></div>
+                                <div class="watch-hand watch-hand-minute" id="ie-watch-minute"></div>
+                                <div class="watch-hand watch-hand-second" id="ie-watch-second"></div>
+                                <div class="watch-center"></div>
+                            </div>
+                            <div class="watch-crack"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <span class="ie-vital-value" id="ie-health-value">13</span>
-        </div>
-        <div class="ie-vital-bar ie-vital-morale">
-            <span class="ie-vital-label">Morale</span>
-            <div class="ie-vital-track">
-                <div class="ie-vital-fill" id="ie-morale-fill" style="width: 100%;"></div>
-            </div>
-            <span class="ie-vital-value" id="ie-morale-value">13</span>
         </div>
     </div>
 </div>`;
@@ -443,6 +473,121 @@ function startWatch() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// CRT VITALS FUNCTIONALITY
+// ═══════════════════════════════════════════════════════════════
+
+let currentVitals = {
+    health: 13,
+    maxHealth: 13,
+    morale: 13,
+    maxMorale: 13,
+    characterName: 'UNKNOWN'
+};
+
+/**
+ * Update CRT vitals display
+ * @param {number} health - Current health
+ * @param {number} maxHealth - Max health
+ * @param {number} morale - Current morale
+ * @param {number} maxMorale - Max morale
+ * @param {string} characterName - Character name to display
+ */
+function updateCRTVitals(health, maxHealth, morale, maxMorale, characterName) {
+    // Store current values
+    currentVitals = { health, maxHealth, morale, maxMorale, characterName };
+    
+    // Update name
+    const nameEl = document.getElementById('ie-crt-char-name');
+    if (nameEl) {
+        nameEl.textContent = characterName || 'UNKNOWN';
+    }
+    
+    // Calculate percentages
+    const healthPercent = maxHealth > 0 ? (health / maxHealth) * 100 : 0;
+    const moralePercent = maxMorale > 0 ? (morale / maxMorale) * 100 : 0;
+    
+    // Update health bar
+    const healthFill = document.getElementById('ie-health-fill');
+    const healthValue = document.getElementById('ie-health-value');
+    const healthRow = document.getElementById('ie-crt-health-row');
+    
+    if (healthFill) healthFill.style.width = `${healthPercent}%`;
+    if (healthValue) healthValue.textContent = health;
+    
+    // Update morale bar
+    const moraleFill = document.getElementById('ie-morale-fill');
+    const moraleValue = document.getElementById('ie-morale-value');
+    const moraleRow = document.getElementById('ie-crt-morale-row');
+    
+    if (moraleFill) moraleFill.style.width = `${moralePercent}%`;
+    if (moraleValue) moraleValue.textContent = morale;
+    
+    // Apply low/critical states
+    const monitor = document.getElementById('ie-crt-vitals');
+    
+    // Health states
+    if (healthRow) {
+        healthRow.classList.remove('ie-vital-low', 'ie-vital-critical');
+        if (healthPercent < 15) {
+            healthRow.classList.add('ie-vital-critical');
+        } else if (healthPercent < 30) {
+            healthRow.classList.add('ie-vital-low');
+        }
+    }
+    
+    // Morale states
+    if (moraleRow) {
+        moraleRow.classList.remove('ie-vital-low', 'ie-vital-critical');
+        if (moralePercent < 15) {
+            moraleRow.classList.add('ie-vital-critical');
+        } else if (moralePercent < 30) {
+            moraleRow.classList.add('ie-vital-low');
+        }
+    }
+    
+    // Overall monitor state (affects EKG speed)
+    if (monitor) {
+        monitor.classList.remove('ie-vital-low', 'ie-vital-critical', 'ie-vital-dead');
+        const lowestPercent = Math.min(healthPercent, moralePercent);
+        if (health <= 0 || morale <= 0) {
+            monitor.classList.add('ie-vital-dead');
+        } else if (lowestPercent < 15) {
+            monitor.classList.add('ie-vital-critical');
+        } else if (lowestPercent < 30) {
+            monitor.classList.add('ie-vital-low');
+        }
+    }
+}
+
+/**
+ * Flash damage/heal effect on CRT
+ * @param {'damage'|'heal'} type - Effect type
+ */
+function flashCRTEffect(type) {
+    const monitor = document.getElementById('ie-crt-vitals');
+    if (!monitor) return;
+    
+    const className = type === 'damage' ? 'ie-crt-damage' : 'ie-crt-heal';
+    monitor.classList.add(className);
+    
+    setTimeout(() => {
+        monitor.classList.remove(className);
+    }, 300);
+}
+
+/**
+ * Set character name in CRT display
+ * @param {string} name - Character name
+ */
+function setCRTCharacterName(name) {
+    const nameEl = document.getElementById('ie-crt-char-name');
+    if (nameEl) {
+        nameEl.textContent = name || 'UNKNOWN';
+    }
+    currentVitals.characterName = name;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // PANEL CREATION
 // ═══════════════════════════════════════════════════════════════
 
@@ -585,8 +730,8 @@ function bindEvents() {
         togglePanel();
     });
 
-    // Close button (clicking Case File title)
-    document.getElementById('ie-close-trigger')?.addEventListener('click', togglePanel);
+    // Close button (clicking the metal clipboard clip)
+    document.getElementById('ie-close-panel')?.addEventListener('click', togglePanel);
 
     // Tab switching
     document.querySelectorAll('.ie-tab').forEach(tab => {
@@ -636,7 +781,7 @@ function bindEvents() {
 // ═══════════════════════════════════════════════════════════════
 
 function init() {
-    console.log('[The Tribunal] Initializing UI shell v0.2.1...');
+    console.log('[The Tribunal] Initializing UI shell v0.3.0...');
 
     const panel = createPsychePanel();
     const fab = createToggleFAB();
