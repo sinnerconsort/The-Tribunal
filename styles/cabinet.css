@@ -261,71 +261,61 @@
     border-radius: 4px 4px 0 0;
 }
 
-/* INT - Blue card */
-.cabinet-cascade-card.card-int:not(.empty-slot) .cabinet-card-front,
-.cabinet-cascade-card.card-int:not(.empty-slot) .cabinet-card-back {
+/* INT - Blue card - ALWAYS solid blue */
+.cabinet-cascade-card.card-int .cabinet-card-front,
+.cabinet-cascade-card.card-int .cabinet-card-back {
     background: 
         repeating-linear-gradient(
             transparent 0px, transparent 17px,
-            rgba(40, 80, 120, 0.4) 17px, rgba(40, 80, 120, 0.4) 18px
+            #4a7a9a 17px, #4a7a9a 18px
         ),
-        linear-gradient(180deg, #a8d4f0 0%, #8ec4e8 100%);
+        #a8d4f0;
 }
 .cabinet-cascade-card.card-int .cabinet-card-front::before { left: 12px; background: #5a8fba; }
 
-/* PSY - Purple card */
-.cabinet-cascade-card.card-psy:not(.empty-slot) .cabinet-card-front,
-.cabinet-cascade-card.card-psy:not(.empty-slot) .cabinet-card-back {
+/* PSY - Purple card - ALWAYS solid purple */
+.cabinet-cascade-card.card-psy .cabinet-card-front,
+.cabinet-cascade-card.card-psy .cabinet-card-back {
     background: 
         repeating-linear-gradient(
             transparent 0px, transparent 17px,
-            rgba(100, 60, 120, 0.4) 17px, rgba(100, 60, 120, 0.4) 18px
+            #7a5a8a 17px, #7a5a8a 18px
         ),
-        linear-gradient(180deg, #d4b8e8 0%, #c4a0d8 100%);
+        #d4b8e8;
 }
 .cabinet-cascade-card.card-psy .cabinet-card-front::before { left: 65px; background: #9a6aaa; }
 
-/* FYS - Red/Pink card */
-.cabinet-cascade-card.card-fys:not(.empty-slot) .cabinet-card-front,
-.cabinet-cascade-card.card-fys:not(.empty-slot) .cabinet-card-back {
+/* FYS - Red/Pink card - ALWAYS solid pink */
+.cabinet-cascade-card.card-fys .cabinet-card-front,
+.cabinet-cascade-card.card-fys .cabinet-card-back {
     background: 
         repeating-linear-gradient(
             transparent 0px, transparent 17px,
-            rgba(140, 60, 60, 0.4) 17px, rgba(140, 60, 60, 0.4) 18px
+            #a85a5a 17px, #a85a5a 18px
         ),
-        linear-gradient(180deg, #f0b8b8 0%, #e8a0a0 100%);
+        #f0b8b8;
 }
 .cabinet-cascade-card.card-fys .cabinet-card-front::before { left: 118px; background: #c45a5a; }
 
-/* MOT - Yellow/Amber card */
-.cabinet-cascade-card.card-mot:not(.empty-slot) .cabinet-card-front,
-.cabinet-cascade-card.card-mot:not(.empty-slot) .cabinet-card-back {
+/* MOT - Yellow/Amber card - ALWAYS solid yellow */
+.cabinet-cascade-card.card-mot .cabinet-card-front,
+.cabinet-cascade-card.card-mot .cabinet-card-back {
     background: 
         repeating-linear-gradient(
             transparent 0px, transparent 17px,
-            rgba(140, 110, 40, 0.4) 17px, rgba(140, 110, 40, 0.4) 18px
+            #a08040 17px, #a08040 18px
         ),
-        linear-gradient(180deg, #f0e0a0 0%, #e8d080 100%);
+        #f0e0a0;
 }
 .cabinet-cascade-card.card-mot .cabinet-card-front::before { left: 171px; background: #d4a84a; }
 
-/* Empty slot - neutral beige, NOT transparent */
+/* Empty slot styling - just changes the text style, NOT the card color */
 .cabinet-cascade-card.empty-slot .cabinet-card-inner {
-    box-shadow: none;
+    box-shadow: 2px 3px 6px rgba(0,0,0,0.15);
 }
 
 .cabinet-cascade-card.empty-slot .cabinet-card-front {
-    background: 
-        repeating-linear-gradient(
-            transparent 0px, transparent 17px,
-            rgba(100, 90, 70, 0.25) 17px, rgba(100, 90, 70, 0.25) 18px
-        ),
-        linear-gradient(180deg, #d8d0c0 0%, #c8c0b0 100%);
-    border: 2px dashed rgba(60, 40, 20, 0.35);
-}
-
-.cabinet-cascade-card.empty-slot .cabinet-card-front::before {
-    background: #a09080;
+    border: 2px dashed rgba(0, 0, 0, 0.15);
 }
 
 .cabinet-empty-slot-text {
@@ -956,16 +946,16 @@
     opacity: 0.4;
 }
 
-/* Matchbook - bottom, under generate */
+/* Matchbook - bottom right, under generate */
 .cabinet-decor-matchbook {
     position: absolute;
     bottom: 12px;
-    left: 12px;
+    right: 12px;
     width: 65px;
     height: 48px;
     background: linear-gradient(180deg, #f5efe5 0%, #e8e0d0 100%);
     border-radius: 3px 3px 0 0;
-    transform: rotate(-6deg);
+    transform: rotate(6deg);
     box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
     z-index: 6;
     padding: 6px 4px;
