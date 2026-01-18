@@ -1,11 +1,11 @@
 /**
  * The Tribunal - SillyTavern Extension
- * REBUILD v0.1.8 - Better header layout
+ * REBUILD v0.1.9 - Fixed header layout
  * 
  * Header layout:
  * [📁 CASE FILE]              [⌚]
- * [❤️ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 13]
- * [🧠 ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓ 13]
+ * [Health ▓▓▓▓▓▓▓▓▓ 13]
+ * [Morale ▓▓▓▓▓▓▓▓▓ 13]
  */
 
 const extensionName = 'the-tribunal';
@@ -22,13 +22,12 @@ const PANEL_HEADER_HTML = `
 <span class="ie-panel-marker-right">FELD ▼   DEVICE</span>
 
 <div class="ie-panel-header">
-    <!-- Top row: Case File + Watch -->
-    <div class="ie-header-top">
-        <button class="ie-panel-title ie-btn-close-panel" title="Close Panel">
+    <!-- Top row: Title + Watch -->
+    <div class="ie-header-row">
+        <div class="ie-panel-title ie-btn-close-panel" title="Close Panel">
             <i class="fa-solid fa-folder-open"></i>
-            <span class="ie-case-title">CASE FILE</span>
-        </button>
-        
+            <span>CASE FILE</span>
+        </div>
         <div class="tribunal-watch real-mode" id="ie-header-watch" title="Click to toggle Real/RP time">
             <div class="watch-clip"></div>
             <div class="watch-case">
@@ -51,17 +50,17 @@ const PANEL_HEADER_HTML = `
         </div>
     </div>
     
-    <!-- Vitals rows below -->
+    <!-- Vitals row: Health + Morale (NOT under watch) -->
     <div class="ie-vitals-row">
         <div class="ie-vital-bar ie-vital-health">
-            <span class="ie-vital-icon"><i class="fa-solid fa-heart"></i></span>
+            <span class="ie-vital-label">Health</span>
             <div class="ie-vital-track">
                 <div class="ie-vital-fill" id="ie-health-fill" style="width: 100%;"></div>
             </div>
             <span class="ie-vital-value" id="ie-health-value">13</span>
         </div>
         <div class="ie-vital-bar ie-vital-morale">
-            <span class="ie-vital-icon"><i class="fa-solid fa-brain"></i></span>
+            <span class="ie-vital-label">Morale</span>
             <div class="ie-vital-track">
                 <div class="ie-vital-fill" id="ie-morale-fill" style="width: 100%;"></div>
             </div>
@@ -539,7 +538,7 @@ function bindEvents() {
 // ═══════════════════════════════════════════════════════════════
 
 function init() {
-    console.log('[The Tribunal] Initializing UI shell v0.1.8...');
+    console.log('[The Tribunal] Initializing UI shell v0.1.9...');
 
     const panel = createPsychePanel();
     const fab = createToggleFAB();
