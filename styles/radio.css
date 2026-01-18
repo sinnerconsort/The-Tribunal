@@ -1,0 +1,592 @@
+/**
+ * The Tribunal - Radio Component
+ * Vintage leather portable radio with Speedfreaks FM
+ * REBUILD: Ambient/music player tied to weather/mood
+ * 
+ * Connects to: Spotify API (when available), ambient sound fallback
+ * Stations: STATIC, WHIRLING, SPEEDFREAKS, REVACHOL, DOLORES DEI
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   CSS VARIABLES
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+    /* Leather case */
+    --radio-leather: #5c4a3a;
+    --radio-leather-mid: #3d2e22;
+    --radio-leather-dark: #2a1f18;
+    
+    /* Display panel */
+    --radio-display: #f5e6c8;
+    --radio-display-mid: #e8d4a8;
+    --radio-display-dark: #dcc090;
+    
+    /* Frequency dial */
+    --radio-dial-bg: #1a1a2e;
+    --radio-dial-dark: #0d0d1a;
+    
+    /* Knob colors */
+    --radio-knob: #888;
+    --radio-knob-mid: #555;
+    --radio-knob-dark: #333;
+    
+    /* Speaker grille */
+    --radio-grille: #1a1412;
+    
+    /* Accent colors */
+    --radio-on-air: #ef4444;
+    --radio-playing: #4ade80;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RADIO CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+
+.tribunal-radio {
+    position: relative;
+    width: 280px;
+    background: linear-gradient(145deg, 
+        var(--radio-leather) 0%, 
+        var(--radio-leather-mid) 50%, 
+        var(--radio-leather-dark) 100%
+    );
+    border-radius: 12px;
+    padding: 8px;
+    box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    border: 1px solid #4a3828;
+}
+
+/* Leather texture overlay */
+.tribunal-radio::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 12px;
+    opacity: 0.3;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* Stitching detail */
+.tribunal-radio::after {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border-radius: 8px;
+    pointer-events: none;
+    border: 1px dashed rgba(139, 115, 85, 0.4);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANTENNA
+   ═══════════════════════════════════════════════════════════════ */
+
+.radio-antenna {
+    position: absolute;
+    right: 24px;
+    top: -10px;
+    width: 3px;
+    height: 20px;
+    background: linear-gradient(180deg, #888 0%, #666 50%, #444 100%);
+    border-radius: 2px;
+    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.3);
+    transition: all 0.7s ease-out;
+    z-index: 10;
+}
+
+/* Antenna tip */
+.radio-antenna::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 8px;
+    height: 8px;
+    background: #555;
+    border-radius: 50%;
+}
+
+/* Extended when playing */
+.tribunal-radio.is-playing .radio-antenna {
+    top: -80px;
+    height: 90px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HANDLE
+   ═══════════════════════════════════════════════════════════════ */
+
+.radio-handle {
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 16px;
+    background: linear-gradient(180deg, 
+        var(--radio-leather) 0%, 
+        var(--radio-leather-mid) 100%
+    );
+    border-radius: 8px 8px 0 0;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+    z-index: 5;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INNER BODY
+   ═══════════════════════════════════════════════════════════════ */
+
+.radio-body {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: linear-gradient(180deg, #4a3a2a 0%, #3a2a1a 100%);
+    z-index: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DISPLAY PANEL
+   ═══════════════════════════════════════════════════════════════ */
+
+.radio-display {
+    margin: 12px;
+    padding: 8px;
+    border-radius: 4px;
+    background: linear-gradient(180deg, 
+        var(--radio-display) 0%, 
+        var(--radio-display-mid) 50%, 
+        var(--radio-display-dark) 100%
+    );
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.2), 
+        0 1px 0 rgba(255, 255, 255, 0.1);
+    border: 2px solid #8b7355;
+}
+
+/* Top labels */
+.radio-display-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.radio-label-fm {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #c41e3a;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+.radio-label-brand {
+    font-size: 0.5rem;
+    letter-spacing: 1px;
+    color: #5a4a3a;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+.radio-label-am {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #1e4a8a;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FREQUENCY DIAL
+   ═══════════════════════════════════════════════════════════════ */
+
+.radio-dial {
+    position: relative;
+    height: 32px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 4px;
+    background: linear-gradient(180deg, 
+        var(--radio-dial-bg) 0%, 
+        var(--radio-dial-dark) 100%
+    );
+    border: 1px solid #4a4a5a;
+}
+
+/* Frequency markers */
+.radio-dial-markers {
+    position: absolute;
+    inset: 4px 8px auto;
+    display: flex;
+    justify-content: space-between;
+}
+
+.radio-dial-marker {
+    font-size: 0.45rem;
+    color: #8a9ab0;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+/* Moving needle */
+.radio-needle {
+    position: absolute;
+    top: 12px;
+    height: 16px;
+    width: 2px;
+    background: #ef4444;
+    box-shadow: 0 0 4px rgba(255, 0, 0, 0.5);
+    transition: left 0.3s ease;
+    /* Position controlled by JS: left: calc(5% + var(--needle-pos) * 0.9%) */
+}
+
+/* Station name display */
+.radio-station-display {
+    position: absolute;
+    bottom: 0;
+    inset-inline: 0;
+    text-align: center;
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 2px;
+    color: #666;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    transition: all 0.3s;
+}
+
+.tribunal-radio.is-playing .radio-station-display {
+    color: var(--radio-playing);
+    text-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+}
+
+/* Scale labels */
+.radio-scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.4rem;
+    color: #5a4a3a;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTROLS SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.radio-controls {
+    margin: 0 12px;
+    padding: 8px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    background: linear-gradient(180deg, #e8dcc8 0%, #d8c8a8 100%);
+    border: 1px solid #8b7355;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   KNOBS
+   ═══════════════════════════════════════════════════════════════ */
+
+.radio-knob-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.radio-knob {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    background: linear-gradient(145deg, 
+        var(--radio-knob) 0%, 
+        var(--radio-knob-mid) 50%, 
+        var(--radio-knob-dark) 100%
+    );
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.4), 
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s;
+}
+
+.radio-knob:hover {
+    transform: scale(1.05);
+}
+
+.radio-knob:active {
+    transform: scale(0.98);
+}
+
+/* Knob indicator line */
+.radio-knob-indicator {
+    width: 4px;
+    height: 12px;
+    background: #ccc;
+    border-radius: 2px;
+    transition: transform 0.3s;
+}
+
+/* Knob label */
+.radio-knob-label {
+    font-size: 0.45rem;
+    color: #5a4a3a;
+    margin-top: 4px;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SPEAKER GRILLE
+   ═══════════════════════════════════════════════════════════════ */
+
+.radio-speaker {
+    margin: 12px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--radio-grille);
+    height: 100px;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Visualizer container */
+.radio-visualizer {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 12px;
+}
+
+/* Visualizer bars */
+.radio-viz-bar {
+    width: 4px;
+    border-radius: 4px;
+    transition: height 0.15s ease;
+    background: linear-gradient(180deg, #3a2a20 0%, #2a1a10 100%);
+    height: 100%;
+}
+
+/* Bars when playing */
+.tribunal-radio.is-playing .radio-viz-bar {
+    background: linear-gradient(180deg, 
+        var(--radio-playing) 0%, 
+        #22c55e 50%, 
+        #166534 100%
+    );
+    box-shadow: 0 0 4px rgba(74, 222, 128, 0.3);
+    /* Height animated by JS */
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BOTTOM PANEL
+   ═══════════════════════════════════════════════════════════════ */
+
+.radio-bottom {
+    margin: 0 12px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* ON AIR indicator */
+.radio-on-air {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.radio-on-air-light {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #4a3a2a;
+    transition: all 0.3s;
+}
+
+.tribunal-radio.is-playing .radio-on-air-light {
+    background: var(--radio-on-air);
+    box-shadow: 
+        0 0 8px rgba(239, 68, 68, 0.8), 
+        0 0 16px rgba(239, 68, 68, 0.4);
+}
+
+.radio-on-air-text {
+    font-size: 0.55rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #5a4a3a;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    transition: color 0.3s;
+}
+
+.tribunal-radio.is-playing .radio-on-air-text {
+    color: var(--radio-on-air);
+}
+
+/* Brand label */
+.radio-brand {
+    font-size: 0.55rem;
+    letter-spacing: 2px;
+    color: #8b7355;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STATION INFO CARD (external)
+   ═══════════════════════════════════════════════════════════════ */
+
+.radio-station-info {
+    width: 280px;
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--ie-border, #3d3a36);
+    margin-top: 12px;
+}
+
+.radio-station-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--ie-accent, #d4a574);
+    text-align: center;
+}
+
+.radio-station-freq {
+    font-size: 0.75rem;
+    color: var(--ie-text-muted, #8a8580);
+    text-align: center;
+    margin-top: 2px;
+}
+
+.radio-station-desc {
+    font-size: 0.7rem;
+    color: var(--ie-text-secondary, #6a6560);
+    text-align: center;
+    font-style: italic;
+    margin-top: 4px;
+}
+
+/* Station list */
+.radio-station-list {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.radio-station-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    cursor: pointer;
+    color: var(--ie-text-muted, #6a6560);
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+.radio-station-item:hover {
+    background: rgba(212, 165, 116, 0.1);
+    color: var(--ie-accent, #d4a574);
+}
+
+.radio-station-item.active {
+    background: rgba(212, 165, 116, 0.2);
+    color: var(--ie-accent, #d4a574);
+    border-color: var(--ie-accent, #d4a574);
+}
+
+.radio-station-item-freq {
+    opacity: 0.7;
+}
+
+.radio-station-item-name {
+    font-weight: 600;
+}
+
+.radio-station-item-type {
+    opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPACT MODE (for panel integration)
+   ═══════════════════════════════════════════════════════════════ */
+
+.tribunal-radio.radio-compact {
+    width: 100%;
+    max-width: 320px;
+    padding: 6px;
+}
+
+.tribunal-radio.radio-compact .radio-handle {
+    display: none;
+}
+
+.tribunal-radio.radio-compact .radio-antenna {
+    right: 16px;
+}
+
+.tribunal-radio.radio-compact .radio-display {
+    margin: 8px;
+    padding: 6px;
+}
+
+.tribunal-radio.radio-compact .radio-speaker {
+    margin: 8px;
+    height: 70px;
+}
+
+.tribunal-radio.radio-compact .radio-controls {
+    margin: 0 8px;
+    padding: 6px;
+    gap: 12px;
+}
+
+.tribunal-radio.radio-compact .radio-knob {
+    width: 28px;
+    height: 28px;
+}
+
+.tribunal-radio.radio-compact .radio-bottom {
+    margin: 0 8px 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Visualizer bar bounce */
+@keyframes radio-viz-bounce {
+    0%, 100% { transform: scaleY(0.2); }
+    50% { transform: scaleY(1); }
+}
+
+/* ON AIR pulse */
+@keyframes radio-on-air-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.tribunal-radio.is-playing .radio-on-air-light {
+    animation: radio-on-air-pulse 1s ease-in-out infinite;
+}
+
+/* Static noise effect when tuning */
+@keyframes radio-static {
+    0%, 100% { opacity: 0.1; }
+    50% { opacity: 0.3; }
+}
+
+.tribunal-radio.is-tuning .radio-speaker::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    animation: radio-static 0.1s steps(2) infinite;
+}
