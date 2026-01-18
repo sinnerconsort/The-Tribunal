@@ -21,6 +21,13 @@
     --rcm-blue-dark: #1a2a4a;
     --rcm-blue-mid: #2a4070;
     --rcm-blue-light: #3a5090;
+    
+    /* Ledger paper colors - for text on light paper */
+    --ledger-paper: #f2e9dc;
+    --ledger-ink-dark: #5a5045;
+    --ledger-ink-faded: #8a8075;
+    --ledger-line: rgba(100, 90, 80, 0.2);
+    --ledger-accent: #a07050;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
