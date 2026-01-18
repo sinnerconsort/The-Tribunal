@@ -133,7 +133,7 @@ const LEDGER_TAB_HTML = `
     <!-- CASES sub-content - Notebook paper -->
     <div class="ledger-subcontent ledger-subcontent-active ledger-paper notebook-paper" data-ledger-content="cases">
         <div class="ledger-section-header">
-            <span class="ledger-header-prefix">//</span> ACTIVE CASES
+            ACTIVE CASES
             <div class="ledger-coffee-ring"></div>
         </div>
         <p class="ledger-empty">No open cases</p>
@@ -179,12 +179,12 @@ const LEDGER_TAB_HTML = `
         <div class="map-caption">DISTRICT MAP — NOT TO SCALE</div>
         
         <div class="ledger-section-header">
-            <span class="ledger-header-prefix">//</span> POINTS OF INTEREST
+            POINTS OF INTEREST
         </div>
         <p class="ledger-empty">No locations discovered</p>
         
         <div class="ledger-section-header">
-            <span class="ledger-header-prefix">//</span> NOTES
+            NOTES
         </div>
         <textarea class="ledger-notes" placeholder="Write your notes here..."></textarea>
     </div>
