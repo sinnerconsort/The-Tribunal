@@ -1,77 +1,286 @@
 /**
- * The Tribunal - Tab Styles
- * Tab bar and content switching
- * REBUILD v0.1.0
+ * The Tribunal - Binder Tabs
+ * Physical divider tabs sticking out from right edge
+ * REBUILD - Skill-colored tab system
+ * 
+ * Colors based on Disco Elysium attributes:
+ * - PSY (Purple) - Voices
+ * - INT (Blue) - Cabinet  
+ * - FYS (Red) - Status
+ * - MOT (Yellow) - Ledger
+ * - DE Orange - Radio (signature accent)
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   TAB BAR
+   TAB COLORS (matching skill attributes)
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-tabs {
-    display: flex;
-    gap: 2px;
-    padding: 8px 8px 0;
-    background: var(--ie-bg-panel);
-    margin-left: 32px;
-    margin-right: 30px;
-    border-bottom: 1px solid var(--ie-border);
-}
-
-.ie-tab {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 10px 8px;
-    background: var(--ie-bg-tertiary);
-    border: none;
-    border-radius: 6px 6px 0 0;
-    color: var(--ie-text-muted);
-    font-size: 10px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-}
-
-.ie-tab i {
-    font-size: 16px;
-    transition: transform 0.2s ease;
-}
-
-.ie-tab:hover {
-    background: var(--ie-bg-secondary);
-    color: var(--ie-text-secondary);
-}
-
-.ie-tab:hover i {
-    transform: scale(1.1);
-}
-
-/* Active tab */
-.ie-tab-active {
-    background: var(--ie-bg-secondary);
-    color: var(--ie-accent-orange);
-    border-bottom: 2px solid var(--ie-accent-orange);
-    margin-bottom: -1px;
-}
-
-.ie-tab-active i {
-    color: var(--ie-accent-orange);
+:root {
+    /* Tab colors - vibrant like real dividers */
+    --tab-psy: #9b6b9e;      /* Purple - Psyche */
+    --tab-psy-dark: #7a5480;
+    --tab-psy-light: #b88abb;
+    
+    --tab-int: #5b8fa8;      /* Blue - Intellect */
+    --tab-int-dark: #4a7a91;
+    --tab-int-light: #7eb3c9;
+    
+    --tab-fys: #c25a5a;      /* Red - Physique */
+    --tab-fys-dark: #a34848;
+    --tab-fys-light: #d87a7a;
+    
+    --tab-mot: #c9a227;      /* Yellow - Motorics */
+    --tab-mot-dark: #a8871f;
+    --tab-mot-light: #dfc044;
+    
+    --tab-radio: #d4784a;    /* Orange - DE Accent */
+    --tab-radio-dark: #b8623a;
+    --tab-radio-light: #e89468;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   TAB CONTENT (uses data-tab-content attribute)
+   TAB CONTAINER - Right edge positioning
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-tab-content {
-    display: none;
+.ie-tabs {
+    position: absolute;
+    right: -2px;  /* Stick out past the film strip */
+    top: 120px;   /* Below header */
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    z-index: 10001; /* Above film strip */
 }
 
-.ie-tab-content-active {
-    display: block;
+/* ═══════════════════════════════════════════════════════════════
+   INDIVIDUAL TAB - Binder divider style
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-tab {
+    position: relative;
+    width: 36px;
+    height: 52px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+    
+    /* Tab shape - rounded right edge */
+    border-radius: 0 8px 8px 0;
+    
+    /* Default gray (shouldn't show but fallback) */
+    background: linear-gradient(135deg, #666 0%, #555 100%);
+    box-shadow: 
+        2px 2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
+
+/* Paper texture overlay */
+.ie-tab::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    opacity: 0.15;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* Hole punch effect */
+.ie-tab::after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 6px;
+    height: 6px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 50%;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Icon positioning */
+.ie-tab i {
+    margin-left: 4px; /* Offset from hole punch */
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB COLORS BY TYPE
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Voices - PSY Purple */
+.ie-tab[data-tab="voices"] {
+    background: linear-gradient(135deg, var(--tab-psy-light) 0%, var(--tab-psy) 50%, var(--tab-psy-dark) 100%);
+}
+
+/* Cabinet - INT Blue */
+.ie-tab[data-tab="cabinet"] {
+    background: linear-gradient(135deg, var(--tab-int-light) 0%, var(--tab-int) 50%, var(--tab-int-dark) 100%);
+}
+
+/* Status - FYS Red */
+.ie-tab[data-tab="status"] {
+    background: linear-gradient(135deg, var(--tab-fys-light) 0%, var(--tab-fys) 50%, var(--tab-fys-dark) 100%);
+}
+
+/* Ledger - MOT Yellow */
+.ie-tab[data-tab="ledger"] {
+    background: linear-gradient(135deg, var(--tab-mot-light) 0%, var(--tab-mot) 50%, var(--tab-mot-dark) 100%);
+}
+
+/* Radio - DE Orange */
+.ie-tab[data-tab="radio"] {
+    background: linear-gradient(135deg, var(--tab-radio-light) 0%, var(--tab-radio) 50%, var(--tab-radio-dark) 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HOVER STATE
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-tab:hover {
+    width: 42px;
+    box-shadow: 
+        3px 3px 6px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACTIVE STATE - Tab extends further
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-tab.ie-tab-active {
+    width: 48px;
+    box-shadow: 
+        4px 2px 8px rgba(0, 0, 0, 0.4),
+        inset 0 2px 0 rgba(255, 255, 255, 0.25),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    z-index: 2;
+}
+
+/* Active tab label appears */
+.ie-tab.ie-tab-active::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    background: inherit;
+    padding: 2px 8px 2px 4px;
+    border-radius: 0 6px 6px 0;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Brighter icon when active */
+.ie-tab.ie-tab-active i {
+    color: #fff;
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTENT AREA ACCENT - Match active tab color
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Colored accent line at top of content when tab is active */
+.ie-tab-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.ie-tab-content.ie-tab-content-active::before {
+    opacity: 1;
+}
+
+/* Match content accent to tab color */
+.ie-tab-content[data-tab-content="voices"]::before {
+    background: linear-gradient(90deg, transparent 0%, var(--tab-psy) 20%, var(--tab-psy) 80%, transparent 100%);
+}
+
+.ie-tab-content[data-tab-content="cabinet"]::before {
+    background: linear-gradient(90deg, transparent 0%, var(--tab-int) 20%, var(--tab-int) 80%, transparent 100%);
+}
+
+.ie-tab-content[data-tab-content="status"]::before {
+    background: linear-gradient(90deg, transparent 0%, var(--tab-fys) 20%, var(--tab-fys) 80%, transparent 100%);
+}
+
+.ie-tab-content[data-tab-content="ledger"]::before {
+    background: linear-gradient(90deg, transparent 0%, var(--tab-mot) 20%, var(--tab-mot) 80%, transparent 100%);
+}
+
+.ie-tab-content[data-tab-content="radio"]::before {
+    background: linear-gradient(90deg, transparent 0%, var(--tab-radio) 20%, var(--tab-radio) 80%, transparent 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE - Smaller tabs
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .ie-tabs {
+        top: 100px;
+        gap: 1px;
+    }
+    
+    .ie-tab {
+        width: 32px;
+        height: 44px;
+        font-size: 12px;
+    }
+    
+    .ie-tab:hover {
+        width: 36px;
+    }
+    
+    .ie-tab.ie-tab-active {
+        width: 40px;
+    }
+    
+    .ie-tab::after {
+        width: 5px;
+        height: 5px;
+        left: 5px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATION - Tab slide in on panel open
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes tab-slide-in {
+    0% {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.ie-panel-open .ie-tab {
+    animation: tab-slide-in 0.3s ease-out backwards;
+}
+
+.ie-panel-open .ie-tab:nth-child(1) { animation-delay: 0.05s; }
+.ie-panel-open .ie-tab:nth-child(2) { animation-delay: 0.1s; }
+.ie-panel-open .ie-tab:nth-child(3) { animation-delay: 0.15s; }
+.ie-panel-open .ie-tab:nth-child(4) { animation-delay: 0.2s; }
+.ie-panel-open .ie-tab:nth-child(5) { animation-delay: 0.25s; }

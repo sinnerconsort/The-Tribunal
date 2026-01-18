@@ -590,3 +590,58 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
     animation: radio-static 0.1s steps(2) infinite;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   RADIO TAB SPECIFIC STYLES
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-radio-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ie-radio-play-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: linear-gradient(180deg, #22c55e 0%, #166534 100%);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.ie-radio-play-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+}
+
+.ie-radio-play-btn:active {
+    transform: translateY(0);
+}
+
+/* Playing state */
+.ie-radio-play-btn.is-playing {
+    background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
+}
+
+.ie-radio-play-btn.is-playing i::before {
+    content: "\f04d"; /* Stop icon */
+}
+
+.ie-radio-play-btn.is-playing span {
+    display: none;
+}
+
+.ie-radio-play-btn.is-playing::after {
+    content: "STOP";
+}
