@@ -1,6 +1,6 @@
 /**
  * The Tribunal - SillyTavern Extension
- * REBUILD v0.2.0 - Fixed Case File, bigger watch
+ * REBUILD v0.2.1 - Notebook paper + wider radio
  */
 
 const extensionName = 'the-tribunal';
@@ -12,7 +12,7 @@ const extensionName = 'the-tribunal';
 const PANEL_HEADER_HTML = `
 <div class="ie-right-ruler"></div>
 <div class="ie-film-bottom-text"></div>
-<span class="ie-panel-marker ie-panel-marker-first" style="top: 420px !important;">01A15</span>
+<span class="ie-panel-marker ie-panel-marker-first" style="top: 300px !important;">01A15</span>
 <span class="ie-panel-marker ie-panel-marker-bottom">01A15</span>
 <span class="ie-panel-marker-right">FELD ▼   DEVICE</span>
 
@@ -121,7 +121,7 @@ const STATUS_TAB_HTML = `
 </div>`;
 
 const LEDGER_TAB_HTML = `
-<div class="ie-tab-content" data-tab-content="ledger">
+<div class="ie-tab-content ledger-paper notebook-paper" data-tab-content="ledger">
     <div class="ie-section">
         <div class="ie-section-header"><span>Case Ledger</span></div>
         <p class="ie-empty-state">No open cases</p>
@@ -533,7 +533,7 @@ function bindEvents() {
 // ═══════════════════════════════════════════════════════════════
 
 function init() {
-    console.log('[The Tribunal] Initializing UI shell v0.2.0...');
+    console.log('[The Tribunal] Initializing UI shell v0.2.1...');
 
     const panel = createPsychePanel();
     const fab = createToggleFAB();
