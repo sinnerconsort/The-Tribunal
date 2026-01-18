@@ -1,6 +1,6 @@
 /**
  * The Tribunal - SillyTavern Extension
- * REBUILD v0.1.4 - Added watch component to header
+ * REBUILD v0.1.5 - Compact header with bigger watch
  * 
  * Fresh start. No state management, no saves.
  * Just the UI shell that opens and closes.
@@ -21,12 +21,13 @@ const PANEL_HEADER_HTML = `
 
 <div class="ie-panel-header">
     <div class="ie-header-top">
-        <div class="ie-panel-title">
+        <!-- Clickable folder to close -->
+        <button class="ie-panel-title ie-btn-close-panel" title="Close Panel">
             <i class="fa-solid fa-folder-open"></i>
             <span class="ie-case-title">CASE FILE</span>
-        </div>
+        </button>
         
-        <!-- Watch Component -->
+        <!-- Watch Component (bigger!) -->
         <div class="tribunal-watch real-mode" id="ie-header-watch" title="Click to toggle Real/RP time">
             <div class="watch-clip"></div>
             <div class="watch-case">
@@ -49,26 +50,22 @@ const PANEL_HEADER_HTML = `
             <div class="watch-mode-indicator"></div>
         </div>
         
-        <div class="ie-panel-controls">
-            <button class="ie-btn ie-btn-close-panel" title="Close">
-                <i class="fa-solid fa-times"></i>
-            </button>
-        </div>
-    </div>
-    <div class="ie-vitals-row">
-        <div class="ie-vital-bar ie-vital-health">
-            <span class="ie-vital-label">Health</span>
-            <div class="ie-vital-track">
-                <div class="ie-vital-fill" id="ie-health-fill" style="width: 100%;"></div>
+        <!-- Compact vitals on right -->
+        <div class="ie-vitals-compact">
+            <div class="ie-vital-mini ie-vital-health">
+                <span class="ie-vital-icon"><i class="fa-solid fa-heart"></i></span>
+                <div class="ie-vital-track-mini">
+                    <div class="ie-vital-fill" id="ie-health-fill" style="width: 100%;"></div>
+                </div>
+                <span class="ie-vital-value-mini" id="ie-health-value">13</span>
             </div>
-            <span class="ie-vital-value" id="ie-health-value">13</span>
-        </div>
-        <div class="ie-vital-bar ie-vital-morale">
-            <span class="ie-vital-label">Morale</span>
-            <div class="ie-vital-track">
-                <div class="ie-vital-fill" id="ie-morale-fill" style="width: 100%;"></div>
+            <div class="ie-vital-mini ie-vital-morale">
+                <span class="ie-vital-icon"><i class="fa-solid fa-brain"></i></span>
+                <div class="ie-vital-track-mini">
+                    <div class="ie-vital-fill" id="ie-morale-fill" style="width: 100%;"></div>
+                </div>
+                <span class="ie-vital-value-mini" id="ie-morale-value">13</span>
             </div>
-            <span class="ie-vital-value" id="ie-morale-value">13</span>
         </div>
     </div>
 </div>`;
@@ -501,7 +498,7 @@ function bindEvents() {
 // ═══════════════════════════════════════════════════════════════
 
 function init() {
-    console.log('[The Tribunal] Initializing UI shell v0.1.4...');
+    console.log('[The Tribunal] Initializing UI shell v0.1.5...');
 
     // Create and append UI elements (vanilla JS style)
     const panel = createPsychePanel();
