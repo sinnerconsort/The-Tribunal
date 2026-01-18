@@ -1,6 +1,6 @@
 /**
  * The Tribunal - SillyTavern Extension
- * REBUILD v0.2.1 - Notebook paper + wider radio
+ * REBUILD v0.2.2 - Ledger notebook paper redesign
  */
 
 const extensionName = 'the-tribunal';
@@ -121,10 +121,40 @@ const STATUS_TAB_HTML = `
 </div>`;
 
 const LEDGER_TAB_HTML = `
-<div class="ie-tab-content ledger-paper notebook-paper" data-tab-content="ledger">
-    <div class="ie-section">
-        <div class="ie-section-header"><span>Case Ledger</span></div>
-        <p class="ie-empty-state">No open cases</p>
+<div class="ie-tab-content ledger-page" data-tab-content="ledger">
+    <!-- Sub-tabs bar -->
+    <div class="ledger-subtabs">
+        <button class="ledger-subtab ledger-subtab-active" data-ledger-tab="cases">CASES</button>
+        <button class="ledger-subtab" data-ledger-tab="map">MAP</button>
+    </div>
+    
+    <!-- Notebook paper background with content -->
+    <div class="ledger-paper notebook-paper">
+        <!-- CASES sub-content -->
+        <div class="ledger-subcontent ledger-subcontent-active" data-ledger-content="cases">
+            <div class="ledger-section-header">
+                <span class="ledger-header-prefix">//</span> ACTIVE CASES
+                <div class="ledger-coffee-ring"></div>
+            </div>
+            <p class="ledger-empty">No open cases</p>
+        </div>
+        
+        <!-- MAP sub-content -->
+        <div class="ledger-subcontent" data-ledger-content="map">
+            <div class="ledger-map-container">
+                <div class="ledger-map-placeholder">
+                    <span>District map coming soon...</span>
+                </div>
+            </div>
+            <div class="ledger-section-header">
+                <span class="ledger-header-prefix">//</span> POINTS OF INTEREST
+            </div>
+            <p class="ledger-empty">No locations discovered</p>
+            <div class="ledger-section-header">
+                <span class="ledger-header-prefix">//</span> NOTES
+            </div>
+            <textarea class="ledger-notes" placeholder="Write your notes here..."></textarea>
+        </div>
     </div>
 </div>`;
 
@@ -508,6 +538,21 @@ function bindEvents() {
     // Bottom buttons
     document.querySelectorAll('.ie-bottom-btn').forEach(btn => {
         btn.addEventListener('click', () => switchTab(btn.dataset.panel));
+    });
+
+    // Ledger sub-tabs
+    document.querySelectorAll('.ledger-subtab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.dataset.ledgerTab;
+            
+            // Update tab states
+            document.querySelectorAll('.ledger-subtab').forEach(t => t.classList.remove('ledger-subtab-active'));
+            tab.classList.add('ledger-subtab-active');
+            
+            // Update content visibility
+            document.querySelectorAll('.ledger-subcontent').forEach(c => c.classList.remove('ledger-subcontent-active'));
+            document.querySelector(`[data-ledger-content="${targetTab}"]`)?.classList.add('ledger-subcontent-active');
+        });
     });
 
     // Watch toggle
