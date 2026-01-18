@@ -1009,3 +1009,183 @@
 .ledger-sticky-note.sticky-animate {
     animation: sticky-appear 0.4s ease-out forwards;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTEBOOK PAPER SECTION OVERRIDES
+   Sections on notebook paper should be transparent/styled for paper
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-paper .ie-section {
+    background: transparent;
+    border-radius: 0;
+    padding: 16px 16px 16px 45px; /* Extra left padding for margin line */
+}
+
+.notebook-paper .ie-section-header {
+    color: var(--ledger-ink-dark);
+    border-bottom: 1px solid var(--ledger-line);
+}
+
+.notebook-paper .ie-section-header span {
+    color: var(--ledger-ink-dark);
+}
+
+.notebook-paper .ie-section-header span::before {
+    color: var(--ledger-accent);
+}
+
+.notebook-paper .ie-empty-state {
+    color: var(--ledger-ink-faded);
+    font-style: italic;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   LEDGER PAGE LAYOUT
+   ═══════════════════════════════════════════════════════════════ */
+
+.ledger-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    margin-left: -12px; /* Extend to cover grey gap */
+    padding-left: 12px;
+    background: var(--ledger-paper); /* Paper color behind everything */
+}
+
+/* Sub-tabs bar - dark bar at top */
+.ledger-subtabs {
+    display: flex;
+    background: #1a1a22;
+    padding: 0;
+    gap: 0;
+    margin-bottom: 0;
+    margin-left: -12px;
+    padding-left: 12px;
+}
+
+.ledger-subtab {
+    background: transparent;
+    border: none;
+    color: var(--ledger-ink-faded);
+    font-family: var(--ie-font-header);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    padding: 12px 20px;
+    cursor: pointer;
+    position: relative;
+    transition: color 0.2s;
+}
+
+.ledger-subtab:hover {
+    color: var(--ledger-ink-dark);
+}
+
+.ledger-subtab-active {
+    color: var(--ledger-accent);
+}
+
+.ledger-subtab-active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 20px;
+    right: 20px;
+    height: 3px;
+    background: var(--ledger-accent);
+}
+
+/* Paper fills remaining space */
+.ledger-page .ledger-paper {
+    flex: 1;
+    overflow-y: auto;
+    margin-left: -12px;
+    padding-left: 45px; /* Room for hole punches + margin */
+    padding-right: 16px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+/* Sub-content visibility */
+.ledger-subcontent {
+    display: none;
+}
+
+.ledger-subcontent-active {
+    display: block;
+}
+
+/* Section headers on paper */
+.ledger-section-header {
+    font-family: var(--ie-font-header);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    color: var(--ledger-ink-dark);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--ledger-line);
+    position: relative;
+}
+
+.ledger-header-prefix {
+    color: var(--ledger-accent);
+    margin-right: 8px;
+}
+
+/* Coffee ring decoration */
+.ledger-coffee-ring {
+    position: absolute;
+    right: 0;
+    top: -10px;
+    width: 50px;
+    height: 50px;
+    border: 2px solid rgba(139, 115, 85, 0.2);
+    border-radius: 50%;
+}
+
+/* Empty state */
+.ledger-empty {
+    color: var(--ledger-ink-faded);
+    font-style: italic;
+    text-align: center;
+    padding: 40px 20px;
+}
+
+/* Map placeholder */
+.ledger-map-container {
+    background: #e8e0d0;
+    border: 1px solid var(--ledger-line);
+    border-radius: 2px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.ledger-map-placeholder {
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--ledger-ink-faded);
+    font-style: italic;
+}
+
+/* Notes textarea */
+.ledger-notes {
+    width: 100%;
+    min-height: 100px;
+    background: transparent;
+    border: 1px solid var(--ledger-line);
+    border-radius: 2px;
+    padding: 12px;
+    font-family: var(--ie-font-body);
+    font-size: 14px;
+    color: var(--ledger-ink-dark);
+    resize: vertical;
+}
+
+.ledger-notes::placeholder {
+    color: var(--ledger-ink-faded);
+    font-style: italic;
+}
