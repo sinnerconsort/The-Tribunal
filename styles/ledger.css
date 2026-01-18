@@ -1194,3 +1194,96 @@
     color: var(--ledger-ink-faded);
     font-style: italic;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   GRID PAPER - For Map tab
+   ═══════════════════════════════════════════════════════════════ */
+
+.ledger-paper.grid-paper {
+    background-color: #f5f3eb;
+    background-image:
+        linear-gradient(rgba(160, 185, 200, 0.3) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(160, 185, 200, 0.3) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+/* No ruled lines or margin on grid paper */
+.ledger-paper.grid-paper::before {
+    display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MARTINAISE MAP SVG
+   ═══════════════════════════════════════════════════════════════ */
+
+.district-map {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto 20px;
+    background: #e8e0d0;
+    border: 1px solid #c4b8a8;
+    border-radius: 2px;
+    overflow: visible;
+    position: relative;
+}
+
+.district-map svg {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Map caption */
+.map-caption {
+    text-align: center;
+    font-family: var(--ie-font-header);
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: #5a5347;
+    margin-top: 8px;
+    margin-bottom: 20px;
+}
+
+/* Sticky note overlay */
+.map-sticky-note {
+    position: absolute;
+    top: 10px;
+    right: -10px;
+    width: 90px;
+    padding: 10px;
+    background: linear-gradient(135deg, #f7e57a 0%, #f0d860 100%);
+    box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+    transform: rotate(3deg);
+    font-family: 'Comic Sans MS', cursive, sans-serif;
+    font-size: 11px;
+    color: #333;
+    line-height: 1.3;
+    z-index: 5;
+}
+
+.map-sticky-note::after {
+    content: '☆';
+    position: absolute;
+    bottom: 8px;
+    right: 10px;
+    font-size: 14px;
+    opacity: 0.4;
+}
+
+/* Location markers on map */
+.map-marker {
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.map-marker:hover {
+    transform: scale(1.3);
+}
+
+.map-marker-primary {
+    fill: #a34054;
+}
+
+.map-marker-secondary {
+    fill: #4a9090;
+}
