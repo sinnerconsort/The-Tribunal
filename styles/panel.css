@@ -261,10 +261,12 @@
     font-size: 16px;
 }
 
-/* Watch positioning */
+/* Watch positioning - BIGGER to fill space */
 .ie-header-row .tribunal-watch {
     flex-shrink: 0;
-    margin-top: -5px;
+    transform: scale(1.4);
+    transform-origin: top right;
+    margin-right: 10px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
