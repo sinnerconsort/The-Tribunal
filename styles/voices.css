@@ -2,37 +2,16 @@
  * The Tribunal - Voices Output
  * Voice display styling
  * REBUILD: Napkin / Bar Receipt aesthetic
+ * NOTE: Only styles appearance, does not change layout
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   NAPKIN PAPER VARIABLES
+   VOICES SECTION - NAPKIN PAPER APPEARANCE
    ═══════════════════════════════════════════════════════════════ */
 
-:root {
-    /* Napkin tones */
-    --napkin-white: #f8f5f0;
-    --napkin-cream: #f0ebe3;
-    --napkin-shadow: #e5ddd2;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   VOICES TAB - FULL HEIGHT NAPKIN PAPER
-   ═══════════════════════════════════════════════════════════════ */
-
-.ie-tab-content[data-tab-content="voices"] {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    padding: 0;
-    background: transparent;
-}
-
-/* The voices section becomes the napkin - fills all space */
-.ie-tab-content[data-tab-content="voices"] .ie-voices-section {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--napkin-cream);
+/* The voices section becomes a napkin */
+.ie-voices-section {
+    background-color: #f0ebe3;
     /* Napkin texture - soft fibrous pattern */
     background-image: 
         url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='napkin'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23napkin)'/%3E%3C/svg%3E"),
@@ -41,61 +20,28 @@
             45deg,
             transparent,
             transparent 2px,
-            rgba(200, 190, 175, 0.1) 2px,
-            rgba(200, 190, 175, 0.1) 4px
-        ),
-        /* Slight color variation */
-        radial-gradient(ellipse at 30% 70%, rgba(220, 200, 170, 0.15) 0%, transparent 50%);
-    background-blend-mode: overlay, normal, normal;
+            rgba(200, 190, 175, 0.08) 2px,
+            rgba(200, 190, 175, 0.08) 4px
+        );
+    background-blend-mode: overlay, normal;
     position: relative;
-    padding: 16px;
-    margin: 0;
-    margin-left: -12px;
-    margin-right: 10px;
-    padding-left: 28px;
-    overflow-y: auto;
     /* Soft shadow like paper on surface */
     box-shadow: 
-        2px 3px 8px rgba(0, 0, 0, 0.15),
         inset 0 0 30px rgba(0, 0, 0, 0.02);
 }
 
-/* Crinkle/fold marks */
-.ie-tab-content[data-tab-content="voices"] .ie-voices-section::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: 
-        /* Diagonal fold line */
-        linear-gradient(135deg, 
-            transparent 30%, 
-            rgba(0, 0, 0, 0.015) 30.5%, 
-            rgba(0, 0, 0, 0.015) 31%, 
-            transparent 31.5%
-        ),
-        /* Another subtle crease */
-        linear-gradient(-45deg, 
-            transparent 60%, 
-            rgba(255, 255, 255, 0.2) 60.2%, 
-            rgba(0, 0, 0, 0.01) 60.5%, 
-            transparent 61%
-        );
-    pointer-events: none;
-    z-index: 1;
-}
-
 /* Bar name watermark - VERY faint */
-.ie-tab-content[data-tab-content="voices"] .ie-voices-section::after {
+.ie-voices-section::after {
     content: 'THE WHIRLING-IN-RAGS';
     position: absolute;
-    top: 50%;
+    top: 45%;
     left: 50%;
     transform: translate(-50%, -50%) rotate(-20deg);
     font-family: var(--ie-font-header);
-    font-size: 1.6rem;
+    font-size: 1.4rem;
     font-weight: 700;
-    letter-spacing: 4px;
-    color: rgba(180, 160, 140, 0.04);
+    letter-spacing: 3px;
+    color: rgba(160, 140, 120, 0.06);
     white-space: nowrap;
     pointer-events: none;
     z-index: 0;
@@ -105,25 +51,15 @@
    SECTION HEADER - Match ledger style
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-tab-content[data-tab-content="voices"] .ie-section-header {
+.ie-voices-section .ie-section-header {
     background: transparent;
-    border-bottom: 1px dashed rgba(100, 90, 80, 0.2);
-    padding-bottom: 8px;
-    margin-bottom: 12px;
+    border-bottom: 1px dashed var(--ledger-line, rgba(100, 90, 80, 0.2));
     position: relative;
     z-index: 2;
 }
 
-.ie-tab-content[data-tab-content="voices"] .ie-section-header span {
+.ie-voices-section .ie-section-header span {
     color: var(--ledger-ink-dark, #5a5045);
-    font-size: 11px;
-    letter-spacing: 2px;
-}
-
-/* Add the // prefix to match ledger */
-.ie-tab-content[data-tab-content="voices"] .ie-section-header span::before {
-    content: '// ';
-    opacity: 0.5;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -131,19 +67,11 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-voices-container {
-    flex: 1;
+    max-height: none;
     overflow-y: visible;
     padding-bottom: 16px;
     position: relative;
     z-index: 2;
-}
-
-/* Scrollable variant if needed */
-.ie-voices-container.ie-scrollable {
-    max-height: 400px;
-    overflow-y: auto;
-    padding-bottom: 20px;
-    scroll-behavior: smooth;
 }
 
 .ie-voices-empty {
@@ -176,8 +104,7 @@
     padding: 10px 12px;
     margin-bottom: 10px;
     position: relative;
-    /* Slight paper lift effect */
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.08);
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .ie-voice-line:last-child,
@@ -189,24 +116,6 @@
 .ie-voice-line::before,
 .ie-voice-item::before {
     display: none;
-}
-
-/* Underline effect like hasty scribble */
-.ie-voice-line::after,
-.ie-voice-item::after {
-    content: '';
-    position: absolute;
-    bottom: 8px;
-    left: 12px;
-    right: 12px;
-    height: 1px;
-    background: repeating-linear-gradient(
-        90deg,
-        rgba(100, 90, 80, 0.1) 0px,
-        rgba(100, 90, 80, 0.1) 4px,
-        transparent 4px,
-        transparent 8px
-    );
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -239,7 +148,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   CHECK RESULTS (Dice rolls) - Receipt printout style
+   CHECK RESULTS (Dice rolls)
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-check-result {
@@ -262,7 +171,7 @@
     justify-content: center;
     width: 18px;
     height: 18px;
-    background: var(--napkin-white);
+    background: #f8f5f0;
     border-radius: 2px;
     font-weight: bold;
     font-size: 10px;
@@ -287,7 +196,7 @@
     border-color: rgba(160, 80, 70, 0.4);
 }
 
-/* Critical Success - circled emphatically */
+/* Critical Success */
 .ie-crit-success,
 .ie-critical-success {
     background: rgba(180, 150, 60, 0.25);
@@ -297,7 +206,7 @@
     border-style: solid;
 }
 
-/* Critical Failure - angry scribble */
+/* Critical Failure */
 .ie-crit-fail,
 .ie-critical-failure {
     background: rgba(140, 50, 50, 0.2);
@@ -362,32 +271,30 @@
    SPECIAL VOICE TYPES
    ═══════════════════════════════════════════════════════════════ */
 
-/* Ancient Reptilian Brain - smudged/old */
+/* Ancient Reptilian Brain */
 .ie-voice-ancient {
     background: rgba(80, 90, 80, 0.12);
     border-left-color: #5a6a5a;
-    opacity: 0.9;
 }
 
 .ie-voice-ancient .ie-voice-content {
     color: var(--ledger-ink-faded, #8a8075);
 }
 
-/* Intrusive thoughts - hasty scrawl */
+/* Intrusive thoughts */
 .ie-voice-intrusive {
     background: rgba(100, 70, 100, 0.1);
     border-left-color: #8a5a8a;
-    transform: rotate(-0.5deg);
 }
 
-/* Object voices (Shivers-style) - ethereal */
+/* Object voices (Shivers-style) */
 .ie-voice-object {
     background: rgba(120, 110, 80, 0.1);
     border-left-color: #9a8a5a;
     font-style: italic;
 }
 
-/* Narrator voice - bold underlined */
+/* Narrator voice */
 .ie-voice-line.ie-narrator-voice,
 .ie-voice-narrator {
     background: rgba(180, 140, 100, 0.15);
@@ -401,33 +308,27 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MANUAL TRIGGER SECTION - ON THE NAPKIN
+   MANUAL SECTION - Style button for napkin
    ═══════════════════════════════════════════════════════════════ */
 
-/* Hide the separate manual section container */
-.ie-tab-content[data-tab-content="voices"] .ie-manual-section {
-    display: none;
+.ie-manual-section {
+    background: transparent !important;
+    border: none !important;
 }
 
-/* We'll put the button inside the voices section via JS, 
-   but for now style it to work on napkin */
-.ie-tab-content[data-tab-content="voices"] .ie-btn-trigger {
-    background: rgba(180, 160, 140, 0.15);
+.ie-manual-section .ie-btn-trigger {
+    background: rgba(160, 140, 120, 0.15);
     border: 1px dashed rgba(100, 90, 80, 0.3);
     color: var(--ledger-ink-dark, #5a5045);
-    font-size: 11px;
-    margin-top: auto;
-    position: relative;
-    z-index: 2;
 }
 
-.ie-tab-content[data-tab-content="voices"] .ie-btn-trigger:hover {
-    background: rgba(180, 160, 140, 0.25);
+.ie-manual-section .ie-btn-trigger:hover {
+    background: rgba(160, 140, 120, 0.25);
     border-style: solid;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   COFFEE/DRINK STAIN DECORATION
+   DRINK STAIN DECORATION
    ═══════════════════════════════════════════════════════════════ */
 
 .napkin-stain {
@@ -447,6 +348,4 @@
             transparent 60%
         );
     transform: rotate(-15deg);
-    opacity: 0.7;
 }
-
