@@ -1,202 +1,110 @@
 /**
- * The Tribunal - Voices Tab
- * Napkin / Bar aesthetic
- * 
- * Structure: .ie-tab-content > .ie-section.ie-voices-section > content
- *            .ie-tab-content > .ie-section.ie-manual-section > button
+ * The Tribunal - Voices Output
+ * Voice display styling
+ * REBUILD: Napkin / Bar Receipt aesthetic
+ * NOTE: Only styles appearance, does not change layout
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   VOICES TAB CONTENT - Full height napkin container
-   
-   Key: tabs.css only sets display:block, we need flex to fill space
+   VOICES SECTION - NAPKIN PAPER APPEARANCE
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-tab-content[data-tab-content="voices"] {
-    /* Fill available space in .ie-panel-content */
-    display: flex !important;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0; /* Allow flex shrinking */
-    
-    /* Napkin background */
+/* The voices section becomes a napkin */
+.ie-voices-section {
     background-color: #f0ebe3;
+    /* Napkin texture - soft fibrous pattern */
     background-image: 
         url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='napkin'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23napkin)'/%3E%3C/svg%3E"),
+        /* Subtle diagonal weave pattern */
         repeating-linear-gradient(
             45deg,
             transparent,
             transparent 2px,
-            rgba(200, 190, 175, 0.06) 2px,
-            rgba(200, 190, 175, 0.06) 4px
+            rgba(200, 190, 175, 0.08) 2px,
+            rgba(200, 190, 175, 0.08) 4px
         );
     background-blend-mode: overlay, normal;
-    
-    /* Match ledger margins */
-    margin-left: -12px;
-    margin-right: 10px;
-    padding: 16px 16px 16px 24px;
-    
-    /* For positioned children (watermark, decorations) */
     position: relative;
-    overflow: hidden;
+    /* Soft shadow like paper on surface */
+    box-shadow: 
+        inset 0 0 30px rgba(0, 0, 0, 0.02);
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   WATERMARK - Barely visible
-   ═══════════════════════════════════════════════════════════════ */
-
-.ie-tab-content[data-tab-content="voices"]::before {
+/* Bar name watermark - VERY faint */
+.ie-voices-section::after {
     content: 'THE WHIRLING-IN-RAGS';
     position: absolute;
-    top: 38%;
+    top: 45%;
     left: 50%;
-    transform: translate(-50%, -50%) rotate(-18deg);
+    transform: translate(-50%, -50%) rotate(-20deg);
     font-family: var(--ie-font-header);
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     font-weight: 700;
-    letter-spacing: 2px;
-    color: rgba(120, 100, 80, 0.04);
+    letter-spacing: 3px;
+    color: rgba(160, 140, 120, 0.06);
     white-space: nowrap;
     pointer-events: none;
     z-index: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   LIPSTICK KISS MARK
+   SECTION HEADER - Match ledger style
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-tab-content[data-tab-content="voices"]::after {
-    content: '';
-    position: absolute;
-    bottom: 85px;
-    right: 25px;
-    width: 30px;
-    height: 18px;
-    pointer-events: none;
-    z-index: 1;
-    background: 
-        radial-gradient(ellipse 55% 45% at 30% 40%, rgba(170, 50, 70, 0.12) 0%, transparent 65%),
-        radial-gradient(ellipse 55% 45% at 70% 40%, rgba(170, 50, 70, 0.12) 0%, transparent 65%),
-        radial-gradient(ellipse 85% 55% at 50% 65%, rgba(150, 40, 60, 0.1) 0%, transparent 55%);
-    transform: rotate(-12deg);
-    filter: blur(0.3px);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   PHONE NUMBER SCRIBBLE
-   ═══════════════════════════════════════════════════════════════ */
-
-.napkin-phone-number {
-    position: absolute;
-    bottom: 55px;
-    right: 18px;
-    font-family: 'Comic Sans MS', 'Segoe Script', cursive, sans-serif;
-    font-size: 10px;
-    color: rgba(50, 70, 140, 0.22);
-    transform: rotate(-6deg);
-    pointer-events: none;
-    z-index: 1;
-    line-height: 1.2;
-}
-
-.napkin-phone-number::before {
-    content: 'Call me? ♡';
-    display: block;
-    font-size: 8px;
-    margin-bottom: 1px;
-    color: rgba(140, 50, 70, 0.18);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   SECTIONS INSIDE VOICES - Override base styles
-   
-   sections.css gives .ie-section: border-left, background, padding
-   We need to remove all that for napkin transparency
-   ═══════════════════════════════════════════════════════════════ */
-
-.ie-tab-content[data-tab-content="voices"] .ie-section {
+.ie-voices-section .ie-section-header {
     background: transparent;
-    border: none;
-    border-left: none;
-    border-radius: 0;
-    margin-bottom: 8px;
-    padding: 0;
+    border-bottom: 1px dashed var(--ledger-line, rgba(100, 90, 80, 0.2));
     position: relative;
     z-index: 2;
 }
 
-/* Voices section fills available space */
-.ie-tab-content[data-tab-content="voices"] .ie-voices-section {
-    flex: 1;
+.ie-voices-section .ie-section-header span {
+    color: var(--ledger-ink-dark, #5a5045);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VOICES CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-voices-container {
+    max-height: none;
+    overflow-y: visible;
+    padding-bottom: 16px;
+    position: relative;
+    z-index: 2;
+}
+
+.ie-voices-empty {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 40px 30px;
+    color: var(--ledger-ink-faded, #8a8075);
+    font-style: italic;
+    font-size: 13px;
 }
 
-/* Manual section stays at bottom */
-.ie-tab-content[data-tab-content="voices"] .ie-manual-section {
-    margin-top: auto;
-    padding-top: 8px;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   SECTION HEADER - Match ledger colors
-   
-   Ledger uses: --ledger-ink-dark (#5a5045)
-   ═══════════════════════════════════════════════════════════════ */
-
-.ie-tab-content[data-tab-content="voices"] .ie-section-header {
-    background: transparent;
-    border-bottom: 1px dashed rgba(100, 90, 80, 0.25);
-    padding-bottom: 6px;
-    margin-bottom: 12px;
-}
-
-.ie-tab-content[data-tab-content="voices"] .ie-section-header span {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: #5a5045;
-}
-
-/* Override the orange // from sections.css */
-.ie-tab-content[data-tab-content="voices"] .ie-section-header span::before {
-    color: #8a7a65;
+.ie-voices-empty i {
+    font-size: 24px;
+    opacity: 0.4;
+    color: var(--ledger-ink-faded, #8a8075);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   VOICES CONTAINER & EMPTY STATE
-   ═══════════════════════════════════════════════════════════════ */
-
-.ie-tab-content[data-tab-content="voices"] .ie-voices-container {
-    flex: 1;
-    overflow-y: auto;
-    position: relative;
-    z-index: 2;
-}
-
-.ie-tab-content[data-tab-content="voices"] .ie-voices-empty {
-    color: #8a8075;
-}
-
-.ie-tab-content[data-tab-content="voices"] .ie-voices-empty i {
-    color: #9a9085;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   VOICE CARDS - Scribbled notes look
+   VOICE CARDS - Scribbled Notes on Napkin
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-voice-line,
 .ie-voice-item {
-    background: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.4);
     border-left: 3px solid;
     border-radius: 0;
     padding: 10px 12px;
     margin-bottom: 10px;
     position: relative;
-    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.05);
+    box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .ie-voice-line:last-child,
@@ -204,14 +112,14 @@
     margin-bottom: 0;
 }
 
-/* Remove any dark overlay from base styles */
+/* Remove the dark gradient overlay - napkin is light */
 .ie-voice-line::before,
 .ie-voice-item::before {
     display: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   VOICE HEADER & CONTENT
+   VOICE HEADER & SIGNATURE
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-voice-header {
@@ -234,78 +142,9 @@
 .ie-voice-content {
     font-size: 12px;
     line-height: 1.55;
-    color: #5a5045;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   VOICE TYPE COLORS - Pen colors on napkin
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Intellect - Blue ballpoint */
-.ie-voice-int,
-.ie-voice-intellect {
-    border-left-color: #4a6a8a;
-    background: rgba(74, 106, 138, 0.08);
-}
-.ie-voice-int .ie-voice-signature,
-.ie-voice-intellect .ie-voice-signature { color: #3a5a7a; }
-
-/* Psyche - Purple ink */
-.ie-voice-psy,
-.ie-voice-psyche {
-    border-left-color: #7a5a8a;
-    background: rgba(122, 90, 138, 0.08);
-}
-.ie-voice-psy .ie-voice-signature,
-.ie-voice-psyche .ie-voice-signature { color: #6a4a7a; }
-
-/* Physique - Red marker */
-.ie-voice-fys,
-.ie-voice-physique {
-    border-left-color: #9a5a5a;
-    background: rgba(154, 90, 90, 0.08);
-}
-.ie-voice-fys .ie-voice-signature,
-.ie-voice-physique .ie-voice-signature { color: #8a4a4a; }
-
-/* Motorics - Amber/brown pen */
-.ie-voice-mot,
-.ie-voice-motorics {
-    border-left-color: #8a7a4a;
-    background: rgba(138, 122, 74, 0.08);
-}
-.ie-voice-mot .ie-voice-signature,
-.ie-voice-motorics .ie-voice-signature { color: #7a6a3a; }
-
-/* ═══════════════════════════════════════════════════════════════
-   SPECIAL VOICE TYPES
-   ═══════════════════════════════════════════════════════════════ */
-
-.ie-voice-ancient {
-    background: rgba(80, 90, 80, 0.1);
-    border-left-color: #5a6a5a;
-}
-.ie-voice-ancient .ie-voice-content { color: #7a7570; }
-
-.ie-voice-intrusive {
-    background: rgba(100, 70, 100, 0.08);
-    border-left-color: #8a5a8a;
-}
-
-.ie-voice-object {
-    background: rgba(120, 110, 80, 0.08);
-    border-left-color: #9a8a5a;
-    font-style: italic;
-}
-
-.ie-voice-narrator {
-    background: rgba(180, 140, 100, 0.12);
-    border-left-width: 5px;
-    border-left-color: #a07040;
-}
-.ie-voice-narrator .ie-voice-signature {
-    text-decoration: underline;
-    color: #8a6030;
+    color: var(--ledger-ink-dark, #5a5045);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -337,9 +176,10 @@
     font-weight: bold;
     font-size: 10px;
     border: 1px solid rgba(100, 90, 80, 0.3);
-    color: #5a5045;
+    color: var(--ledger-ink-dark, #5a5045);
 }
 
+/* Success - green pen */
 .ie-success,
 .ie-check-result.ie-success {
     background: rgba(90, 130, 80, 0.15);
@@ -347,6 +187,7 @@
     border-color: rgba(90, 130, 80, 0.4);
 }
 
+/* Failure - red pen */
 .ie-fail,
 .ie-failure,
 .ie-check-result.ie-fail {
@@ -355,6 +196,7 @@
     border-color: rgba(160, 80, 70, 0.4);
 }
 
+/* Critical Success */
 .ie-crit-success,
 .ie-critical-success {
     background: rgba(180, 150, 60, 0.25);
@@ -364,6 +206,7 @@
     border-style: solid;
 }
 
+/* Critical Failure */
 .ie-crit-fail,
 .ie-critical-failure {
     background: rgba(140, 50, 50, 0.2);
@@ -373,9 +216,136 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   BUTTON - Keep teal but soften for napkin
+   VOICE TYPE VARIANTS - Pen colors on napkin
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-tab-content[data-tab-content="voices"] .ie-btn-trigger {
-    /* Keep the teal from sections.css, it works */
+/* Intellect voices - Blue ballpoint */
+.ie-voice-int,
+.ie-voice-intellect {
+    border-left-color: #4a6a8a;
+    background: rgba(74, 106, 138, 0.08);
+}
+
+.ie-voice-int .ie-voice-signature,
+.ie-voice-intellect .ie-voice-signature {
+    color: #3a5a7a;
+}
+
+/* Psyche voices - Purple ink */
+.ie-voice-psy,
+.ie-voice-psyche {
+    border-left-color: #7a5a8a;
+    background: rgba(122, 90, 138, 0.08);
+}
+
+.ie-voice-psy .ie-voice-signature,
+.ie-voice-psyche .ie-voice-signature {
+    color: #6a4a7a;
+}
+
+/* Physique voices - Red marker */
+.ie-voice-fys,
+.ie-voice-physique {
+    border-left-color: #9a5a5a;
+    background: rgba(154, 90, 90, 0.08);
+}
+
+.ie-voice-fys .ie-voice-signature,
+.ie-voice-physique .ie-voice-signature {
+    color: #8a4a4a;
+}
+
+/* Motorics voices - Amber/brown pen */
+.ie-voice-mot,
+.ie-voice-motorics {
+    border-left-color: #8a7a4a;
+    background: rgba(138, 122, 74, 0.08);
+}
+
+.ie-voice-mot .ie-voice-signature,
+.ie-voice-motorics .ie-voice-signature {
+    color: #7a6a3a;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SPECIAL VOICE TYPES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Ancient Reptilian Brain */
+.ie-voice-ancient {
+    background: rgba(80, 90, 80, 0.12);
+    border-left-color: #5a6a5a;
+}
+
+.ie-voice-ancient .ie-voice-content {
+    color: var(--ledger-ink-faded, #8a8075);
+}
+
+/* Intrusive thoughts */
+.ie-voice-intrusive {
+    background: rgba(100, 70, 100, 0.1);
+    border-left-color: #8a5a8a;
+}
+
+/* Object voices (Shivers-style) */
+.ie-voice-object {
+    background: rgba(120, 110, 80, 0.1);
+    border-left-color: #9a8a5a;
+    font-style: italic;
+}
+
+/* Narrator voice */
+.ie-voice-line.ie-narrator-voice,
+.ie-voice-narrator {
+    background: rgba(180, 140, 100, 0.15);
+    border-left-width: 5px;
+    border-left-color: #a07040;
+}
+
+.ie-voice-narrator .ie-voice-signature {
+    text-decoration: underline;
+    color: #8a6030;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MANUAL SECTION - Style button for napkin
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-manual-section {
+    background: transparent !important;
+    border: none !important;
+}
+
+.ie-manual-section .ie-btn-trigger {
+    background: rgba(160, 140, 120, 0.15);
+    border: 1px dashed rgba(100, 90, 80, 0.3);
+    color: var(--ledger-ink-dark, #5a5045);
+}
+
+.ie-manual-section .ie-btn-trigger:hover {
+    background: rgba(160, 140, 120, 0.25);
+    border-style: solid;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DRINK STAIN DECORATION
+   ═══════════════════════════════════════════════════════════════ */
+
+.napkin-stain {
+    position: absolute;
+    bottom: 15px;
+    right: 20px;
+    width: 45px;
+    height: 40px;
+    pointer-events: none;
+    z-index: 1;
+    background: 
+        radial-gradient(ellipse at 50% 50%, 
+            transparent 40%, 
+            rgba(139, 90, 60, 0.04) 45%,
+            rgba(139, 90, 60, 0.06) 50%,
+            rgba(139, 90, 60, 0.03) 55%,
+            transparent 60%
+        );
+    transform: rotate(-15deg);
 }
