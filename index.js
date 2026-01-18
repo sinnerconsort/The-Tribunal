@@ -1,6 +1,6 @@
 /**
  * The Tribunal - SillyTavern Extension
- * REBUILD v0.1.3 - Matching working version patterns
+ * REBUILD v0.1.4 - Added watch component to header
  * 
  * Fresh start. No state management, no saves.
  * Just the UI shell that opens and closes.
@@ -25,6 +25,30 @@ const PANEL_HEADER_HTML = `
             <i class="fa-solid fa-folder-open"></i>
             <span class="ie-case-title">CASE FILE</span>
         </div>
+        
+        <!-- Watch Component -->
+        <div class="tribunal-watch real-mode" id="ie-header-watch" title="Click to toggle Real/RP time">
+            <div class="watch-clip"></div>
+            <div class="watch-case">
+                <div class="watch-bezel">
+                    <div class="watch-dial">
+                        <div class="watch-weather clear-day" id="ie-watch-weather">
+                            <i class="fa-solid fa-sun" id="ie-watch-weather-icon"></i>
+                        </div>
+                        <div class="watch-date" id="ie-watch-date">18</div>
+                        <div class="watch-hands">
+                            <div class="watch-hand watch-hand-hour" id="ie-watch-hour"></div>
+                            <div class="watch-hand watch-hand-minute" id="ie-watch-minute"></div>
+                            <div class="watch-hand watch-hand-second" id="ie-watch-second"></div>
+                            <div class="watch-center"></div>
+                        </div>
+                        <div class="watch-crack"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="watch-mode-indicator"></div>
+        </div>
+        
         <div class="ie-panel-controls">
             <button class="ie-btn ie-btn-close-panel" title="Close">
                 <i class="fa-solid fa-times"></i>
@@ -137,6 +161,143 @@ const BOTTOM_BUTTONS_HTML = `
         <span>Profiles</span>
     </button>
 </div>`;
+
+// ═══════════════════════════════════════════════════════════════
+// WATCH FUNCTIONALITY
+// ═══════════════════════════════════════════════════════════════
+
+// Watch state
+let watchMode = 'real'; // 'real' or 'rp'
+let watchInterval = null;
+
+// RP time state (would be set by context/chat)
+let rpTime = { hours: 14, minutes: 30 }; // Default 2:30 PM
+let rpWeather = 'rainy'; // Default weather
+
+// Weather icon mapping
+const WEATHER_ICONS = {
+    'clear-day': 'fa-sun',
+    'clear-night': 'fa-moon',
+    'cloudy': 'fa-cloud',
+    'rainy': 'fa-cloud-rain',
+    'stormy': 'fa-cloud-bolt',
+    'snowy': 'fa-snowflake',
+    'foggy': 'fa-smog'
+};
+
+function updateWatch() {
+    const hourHand = document.getElementById('ie-watch-hour');
+    const minuteHand = document.getElementById('ie-watch-minute');
+    const secondHand = document.getElementById('ie-watch-second');
+    const dateEl = document.getElementById('ie-watch-date');
+    const weatherEl = document.getElementById('ie-watch-weather');
+    const weatherIcon = document.getElementById('ie-watch-weather-icon');
+    
+    if (!hourHand) return;
+    
+    let hours, minutes, seconds, day, weather;
+    
+    if (watchMode === 'real') {
+        // Real time mode
+        const now = new Date();
+        hours = now.getHours() % 12;
+        minutes = now.getMinutes();
+        seconds = now.getSeconds();
+        day = now.getDate();
+        weather = getRealWeather(); // Would come from weather API
+    } else {
+        // RP context mode
+        hours = rpTime.hours % 12;
+        minutes = rpTime.minutes;
+        seconds = 0; // No seconds in RP mode
+        day = '??'; // Unknown in RP
+        weather = rpWeather;
+    }
+    
+    // Calculate hand rotations
+    const hourDeg = (hours * 30) + (minutes * 0.5);
+    const minuteDeg = minutes * 6;
+    const secondDeg = seconds * 6;
+    
+    // Apply rotations
+    hourHand.style.transform = `rotate(${hourDeg}deg)`;
+    minuteHand.style.transform = `rotate(${minuteDeg}deg)`;
+    if (secondHand) {
+        secondHand.style.transform = `rotate(${secondDeg}deg)`;
+    }
+    
+    // Update date
+    if (dateEl) {
+        dateEl.textContent = day;
+    }
+    
+    // Update weather
+    if (weatherEl && weatherIcon) {
+        // Remove old weather classes
+        weatherEl.className = 'watch-weather ' + weather;
+        // Update icon
+        weatherIcon.className = 'fa-solid ' + (WEATHER_ICONS[weather] || 'fa-cloud');
+    }
+}
+
+function getRealWeather() {
+    // Placeholder - would come from weather API or user location
+    // For now, just use time of day
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour < 20) {
+        return 'clear-day';
+    } else {
+        return 'clear-night';
+    }
+}
+
+function toggleWatchMode() {
+    const watchEl = document.getElementById('ie-header-watch');
+    if (!watchEl) return;
+    
+    if (watchMode === 'real') {
+        watchMode = 'rp';
+        watchEl.classList.remove('real-mode');
+        watchEl.classList.add('rp-mode');
+        console.log('[The Tribunal] Watch: RP mode');
+    } else {
+        watchMode = 'real';
+        watchEl.classList.remove('rp-mode');
+        watchEl.classList.add('real-mode');
+        console.log('[The Tribunal] Watch: Real mode');
+    }
+    
+    // Immediate update
+    updateWatch();
+}
+
+function startWatch() {
+    // Initial update
+    updateWatch();
+    
+    // Update every second in real mode, every minute in RP mode
+    watchInterval = setInterval(() => {
+        updateWatch();
+    }, watchMode === 'real' ? 1000 : 60000);
+}
+
+function stopWatch() {
+    if (watchInterval) {
+        clearInterval(watchInterval);
+        watchInterval = null;
+    }
+}
+
+// Public API to set RP time/weather from other modules
+function setRPTime(hours, minutes) {
+    rpTime = { hours, minutes };
+    if (watchMode === 'rp') updateWatch();
+}
+
+function setRPWeather(weather) {
+    rpWeather = weather;
+    if (watchMode === 'rp') updateWatch();
+}
 
 // ═══════════════════════════════════════════════════════════════
 // PANEL CREATION (Vanilla JS - matching working version)
@@ -313,6 +474,9 @@ function bindEvents() {
         btn.addEventListener('click', () => switchTab(btn.dataset.panel));
     });
 
+    // Watch click to toggle mode
+    document.getElementById('ie-header-watch')?.addEventListener('click', toggleWatchMode);
+
     // Manual trigger (placeholder)
     document.getElementById('ie-manual-trigger')?.addEventListener('click', () => {
         console.log('[The Tribunal] Manual trigger clicked');
@@ -337,7 +501,7 @@ function bindEvents() {
 // ═══════════════════════════════════════════════════════════════
 
 function init() {
-    console.log('[The Tribunal] Initializing UI shell v0.1.3...');
+    console.log('[The Tribunal] Initializing UI shell v0.1.4...');
 
     // Create and append UI elements (vanilla JS style)
     const panel = createPsychePanel();
@@ -348,6 +512,9 @@ function init() {
 
     // Bind events
     bindEvents();
+
+    // Start watch
+    startWatch();
 
     console.log('[The Tribunal] UI shell ready!');
     
