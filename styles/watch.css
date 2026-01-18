@@ -433,3 +433,16 @@
     0%, 100% { opacity: 0; }
     50% { opacity: 1; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER INTEGRATION
+   When watch is in .ie-header-top
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-header-top .tribunal-watch {
+    transform: scale(0.95);
+}
+
+.ie-header-top .watch-mode-indicator {
+    display: none; /* Hide mode indicator in header - too cramped */
+}
