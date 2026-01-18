@@ -346,25 +346,7 @@
     display: none;
 }
 
-.ie-btn-close-panel {
-    width: 28px;
-    height: 28px;
-    border-radius: 4px;
-    background: transparent;
-    border: 1px solid var(--ie-border-light);
-    color: var(--ie-text-secondary);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-}
-
-.ie-btn-close-panel:hover {
-    background: rgba(243, 101, 11, 0.2);
-    border-color: var(--ie-accent-orange);
-    color: var(--ie-accent-orange);
-}
+/* Old close button removed - title handles closing now */
 
 /* ═══════════════════════════════════════════════════════════════
    HEADER VITALS BARS
