@@ -170,7 +170,7 @@ const CABINET_TAB_HTML = `
 </div>`;
 
 const STATUS_TAB_HTML = `
-<div class="ie-tab-content" data-tab-content="status">
+<div class="ie-tab-content status-page" data-tab-content="status">
     <div class="rcm-medical-form">
         <!-- Decorations -->
         <div class="rcm-coffee-stain"></div>
@@ -222,73 +222,162 @@ const STATUS_TAB_HTML = `
             </div>
         </div>
         
-        <!-- Active Conditions -->
+        <!-- Active Conditions / Effects -->
         <div class="rcm-section">
             <div class="rcm-section-header">ACTIVE CONDITIONS</div>
             <div class="rcm-section-content" id="rcm-conditions-container">
-                <span class="rcm-conditions-empty">(none reported)</span>
+                <div class="rcm-active-effects" id="rcm-active-effects">
+                    <span class="rcm-conditions-empty">(none reported)</span>
+                </div>
             </div>
         </div>
         
-        <!-- Observed States -->
+        <!-- Observed States (Status Effects) -->
         <div class="rcm-section">
             <div class="rcm-section-header">OBSERVED STATES (check all apply)</div>
             <div class="rcm-section-content">
                 <div class="rcm-states-category">
                     <div class="rcm-states-category-label">PHYSICAL:</div>
                     <div class="rcm-states-grid" id="rcm-physical-states">
-                        <div class="rcm-checkbox" data-status="drunk">
+                        <div class="rcm-checkbox" data-status="drunk" data-label-off="Drunk" data-label-on="Revacholian Courage">
                             <span class="rcm-checkbox-box"></span>
                             <span class="rcm-checkbox-label">Drunk</span>
                         </div>
-                        <div class="rcm-checkbox" data-status="hungover">
-                            <span class="rcm-checkbox-box"></span>
-                            <span class="rcm-checkbox-label">Hungover</span>
-                        </div>
-                        <div class="rcm-checkbox" data-status="wounded">
-                            <span class="rcm-checkbox-box"></span>
-                            <span class="rcm-checkbox-label">Wounded</span>
-                        </div>
-                        <div class="rcm-checkbox" data-status="stimmed">
+                        <div class="rcm-checkbox" data-status="stimmed" data-label-off="Stimmed" data-label-on="Pyrholidon">
                             <span class="rcm-checkbox-box"></span>
                             <span class="rcm-checkbox-label">Stimmed</span>
                         </div>
-                        <div class="rcm-checkbox" data-status="exhausted">
+                        <div class="rcm-checkbox" data-status="smoking" data-label-off="Smoking" data-label-on="Nicotine Rush">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Smoking</span>
+                        </div>
+                        <div class="rcm-checkbox" data-status="hungover" data-label-off="Hungover" data-label-on="Volumetric Shit Compressor">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Hungover</span>
+                        </div>
+                        <div class="rcm-checkbox" data-status="wounded" data-label-off="Wounded" data-label-on="Finger on the Eject Button">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Wounded</span>
+                        </div>
+                        <div class="rcm-checkbox" data-status="exhausted" data-label-off="Exhausted" data-label-on="Waste Land">
                             <span class="rcm-checkbox-box"></span>
                             <span class="rcm-checkbox-label">Exhausted</span>
                         </div>
-                        <div class="rcm-checkbox" data-status="smoking">
+                        <div class="rcm-checkbox" data-status="dying" data-label-off="Dying" data-label-on="White Mourning">
                             <span class="rcm-checkbox-box"></span>
-                            <span class="rcm-checkbox-label">Smoking</span>
+                            <span class="rcm-checkbox-label">Dying</span>
                         </div>
                     </div>
                 </div>
                 <div class="rcm-states-category">
                     <div class="rcm-states-category-label">MENTAL:</div>
                     <div class="rcm-states-grid" id="rcm-mental-states">
-                        <div class="rcm-checkbox" data-status="manic">
+                        <div class="rcm-checkbox" data-status="manic" data-label-off="Manic" data-label-on="Tequila Sunset">
                             <span class="rcm-checkbox-box"></span>
                             <span class="rcm-checkbox-label">Manic</span>
                         </div>
-                        <div class="rcm-checkbox" data-status="dissociated">
+                        <div class="rcm-checkbox" data-status="dissociated" data-label-off="Dissociated" data-label-on="The Pale">
                             <span class="rcm-checkbox-box"></span>
                             <span class="rcm-checkbox-label">Dissociated</span>
                         </div>
-                        <div class="rcm-checkbox" data-status="grieving">
-                            <span class="rcm-checkbox-box"></span>
-                            <span class="rcm-checkbox-label">Grieving</span>
-                        </div>
-                        <div class="rcm-checkbox" data-status="infatuated">
+                        <div class="rcm-checkbox" data-status="infatuated" data-label-off="Infatuated" data-label-on="Homo-Sexual Underground">
                             <span class="rcm-checkbox-box"></span>
                             <span class="rcm-checkbox-label">Infatuated</span>
                         </div>
-                        <div class="rcm-checkbox" data-status="terrified">
+                        <div class="rcm-checkbox" data-status="lucky" data-label-off="Lucky" data-label-on="Jamrock Shuffle">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Lucky</span>
+                        </div>
+                        <div class="rcm-checkbox" data-status="terrified" data-label-off="Terrified" data-label-on="Caustic Echo">
                             <span class="rcm-checkbox-box"></span>
                             <span class="rcm-checkbox-label">Terrified</span>
                         </div>
-                        <div class="rcm-checkbox" data-status="enraged">
+                        <div class="rcm-checkbox" data-status="enraged" data-label-off="Enraged" data-label-on="Law-Jaw">
                             <span class="rcm-checkbox-box"></span>
                             <span class="rcm-checkbox-label">Enraged</span>
+                        </div>
+                        <div class="rcm-checkbox" data-status="grieving" data-label-off="Grieving" data-label-on="The Expression">
+                            <span class="rcm-checkbox-box"></span>
+                            <span class="rcm-checkbox-label">Grieving</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Copotypes -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">OFFICER CLASSIFICATION (copotype)</div>
+            <div class="rcm-section-content">
+                <div class="rcm-copotype-grid" id="rcm-copotypes">
+                    <div class="rcm-copotype-item" data-copotype="apocalypse-cop">
+                        <span class="rcm-copotype-box">□</span>
+                        <span class="rcm-copotype-label">Apocalypse Cop</span>
+                    </div>
+                    <div class="rcm-copotype-item" data-copotype="sorry-cop">
+                        <span class="rcm-copotype-box">□</span>
+                        <span class="rcm-copotype-label">Sorry Cop</span>
+                    </div>
+                    <div class="rcm-copotype-item" data-copotype="boring-cop">
+                        <span class="rcm-copotype-box">□</span>
+                        <span class="rcm-copotype-label">Boring Cop</span>
+                    </div>
+                    <div class="rcm-copotype-item" data-copotype="honour-cop">
+                        <span class="rcm-copotype-box">□</span>
+                        <span class="rcm-copotype-label">Honour Cop</span>
+                    </div>
+                    <div class="rcm-copotype-item" data-copotype="art-cop">
+                        <span class="rcm-copotype-box">□</span>
+                        <span class="rcm-copotype-label">Art Cop</span>
+                    </div>
+                    <div class="rcm-copotype-item" data-copotype="hobocop">
+                        <span class="rcm-copotype-box">□</span>
+                        <span class="rcm-copotype-label">Hobocop</span>
+                    </div>
+                    <div class="rcm-copotype-item" data-copotype="superstar-cop">
+                        <span class="rcm-copotype-box">□</span>
+                        <span class="rcm-copotype-label">Superstar Cop</span>
+                    </div>
+                    <div class="rcm-copotype-item" data-copotype="dick-mullen">
+                        <span class="rcm-copotype-box">□</span>
+                        <span class="rcm-copotype-label">Dick Mullen</span>
+                    </div>
+                    <div class="rcm-copotype-item" data-copotype="human-can-opener">
+                        <span class="rcm-copotype-box">□</span>
+                        <span class="rcm-copotype-label">Human Can-Opener</span>
+                    </div>
+                    <div class="rcm-copotype-item" data-copotype="innocence">
+                        <span class="rcm-copotype-box">□</span>
+                        <span class="rcm-copotype-label">Innocence</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Ancient Voices -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">PSYCHOLOGICAL ANOMALIES (ancient voices)</div>
+            <div class="rcm-section-content">
+                <div class="rcm-ancient-voices" id="rcm-ancient-voices">
+                    <div class="rcm-ancient-voice-entry">
+                        <i class="fa-solid fa-dragon rcm-ancient-voice-icon"></i>
+                        <div class="rcm-ancient-voice-details">
+                            <span class="rcm-ancient-voice-name">Ancient Reptilian Brain</span>
+                            <span class="rcm-ancient-voice-triggers">Triggers: The Pale</span>
+                        </div>
+                    </div>
+                    <div class="rcm-ancient-voice-entry">
+                        <i class="fa-solid fa-brain rcm-ancient-voice-icon"></i>
+                        <div class="rcm-ancient-voice-details">
+                            <span class="rcm-ancient-voice-name">Limbic System</span>
+                            <span class="rcm-ancient-voice-triggers">Triggers: The Pale</span>
+                        </div>
+                    </div>
+                    <div class="rcm-ancient-voice-entry rcm-ancient-combo">
+                        <i class="fa-solid fa-bone rcm-ancient-voice-icon"></i>
+                        <div class="rcm-ancient-voice-details">
+                            <span class="rcm-ancient-voice-name">Spinal Cord</span>
+                            <span class="rcm-ancient-voice-triggers">Triggers: Tequila Sunset + Revacholian Courage</span>
                         </div>
                     </div>
                 </div>
@@ -299,7 +388,7 @@ const STATUS_TAB_HTML = `
         <div class="rcm-form-footer">
             <div class="rcm-officer-field">
                 <span class="rcm-officer-label">EXAMINING OFFICER:</span>
-                <span class="rcm-officer-line"></span>
+                <span class="rcm-signature">Nix Gottlieb<span class="rcm-signature-title">Station Lazareth</span></span>
             </div>
             <div class="rcm-stamp">R.C.M.<br>MEDICAL<br>DIVISION</div>
         </div>
@@ -777,6 +866,94 @@ function setRCMStatus(status, active) {
     const checkbox = document.querySelector(`.rcm-checkbox[data-status="${status}"]`);
     if (checkbox) {
         checkbox.classList.toggle('rcm-checked', active);
+        const label = checkbox.querySelector('.rcm-checkbox-label');
+        if (label) {
+            const labelOff = checkbox.dataset.labelOff;
+            const labelOn = checkbox.dataset.labelOn;
+            label.textContent = active ? labelOn : labelOff;
+        }
+    }
+}
+
+/**
+ * Toggle a copotype on the RCM form
+ * @param {string} copotype - Copotype ID (e.g., 'sorry-cop', 'art-cop')
+ * @param {boolean} active - Whether it's active
+ */
+function setRCMCopotype(copotype, active) {
+    const item = document.querySelector(`.rcm-copotype-item[data-copotype="${copotype}"]`);
+    if (item) {
+        item.classList.toggle('rcm-copotype-active', active);
+        const box = item.querySelector('.rcm-copotype-box');
+        if (box) {
+            box.textContent = active ? '☒' : '□';
+        }
+    }
+}
+
+/**
+ * Add an ancient voice entry to the RCM form
+ * @param {string} name - Voice name
+ * @param {string} icon - FontAwesome icon class (e.g., 'fa-ghost')
+ * @param {string} triggers - Trigger description
+ * @param {boolean} isCombo - Whether this is a combo voice
+ */
+function addRCMAncientVoice(name, icon, triggers, isCombo = false) {
+    const container = document.getElementById('rcm-ancient-voices');
+    if (!container) return;
+    
+    // Remove empty message if present
+    const empty = container.querySelector('.rcm-conditions-empty');
+    if (empty) empty.remove();
+    
+    const entry = document.createElement('div');
+    entry.className = 'rcm-ancient-voice-entry' + (isCombo ? ' rcm-ancient-combo' : '');
+    entry.innerHTML = `
+        <i class="fa-solid ${icon} rcm-ancient-voice-icon"></i>
+        <div class="rcm-ancient-voice-details">
+            <span class="rcm-ancient-voice-name">${name}</span>
+            <span class="rcm-ancient-voice-triggers">${triggers}</span>
+        </div>
+    `;
+    container.appendChild(entry);
+}
+
+/**
+ * Add an active effect to the conditions display
+ * @param {string} text - Effect text
+ * @param {'boost'|'debuff'} type - Effect type
+ */
+function addRCMActiveEffect(text, type) {
+    const container = document.getElementById('rcm-active-effects');
+    if (!container) return;
+    
+    // Remove empty message if present
+    const empty = container.querySelector('.rcm-conditions-empty');
+    if (empty) empty.remove();
+    
+    const effect = document.createElement('span');
+    effect.className = `rcm-effect-item rcm-effect-${type}`;
+    effect.textContent = text;
+    container.appendChild(effect);
+}
+
+/**
+ * Clear all ancient voices
+ */
+function clearRCMAncientVoices() {
+    const container = document.getElementById('rcm-ancient-voices');
+    if (container) {
+        container.innerHTML = '<span class="rcm-conditions-empty">(no anomalies detected)</span>';
+    }
+}
+
+/**
+ * Clear all active effects
+ */
+function clearRCMActiveEffects() {
+    const container = document.getElementById('rcm-active-effects');
+    if (container) {
+        container.innerHTML = '<span class="rcm-conditions-empty">(none reported)</span>';
     }
 }
 
@@ -960,13 +1137,36 @@ function bindEvents() {
         if (typeof toastr !== 'undefined') toastr.info('Voice trigger (not implemented yet)');
     });
 
-    // RCM Medical Form checkboxes
+    // RCM Medical Form checkboxes - swap labels on toggle
     document.querySelectorAll('.rcm-checkbox').forEach(checkbox => {
         checkbox.addEventListener('click', () => {
             checkbox.classList.toggle('rcm-checked');
-            const status = checkbox.dataset.status;
             const isChecked = checkbox.classList.contains('rcm-checked');
+            const label = checkbox.querySelector('.rcm-checkbox-label');
+            
+            // Swap label text based on state
+            if (label) {
+                const labelOff = checkbox.dataset.labelOff;
+                const labelOn = checkbox.dataset.labelOn;
+                label.textContent = isChecked ? labelOn : labelOff;
+            }
+            
+            const status = checkbox.dataset.status;
             console.log(`[The Tribunal] Status ${status}: ${isChecked}`);
+        });
+    });
+
+    // Copotype selection
+    document.querySelectorAll('.rcm-copotype-item').forEach(item => {
+        item.addEventListener('click', () => {
+            item.classList.toggle('rcm-copotype-active');
+            const box = item.querySelector('.rcm-copotype-box');
+            if (box) {
+                box.textContent = item.classList.contains('rcm-copotype-active') ? '☒' : '□';
+            }
+            const copotype = item.dataset.copotype;
+            const isActive = item.classList.contains('rcm-copotype-active');
+            console.log(`[The Tribunal] Copotype ${copotype}: ${isActive}`);
             // TODO: Hook into state management
         });
     });
