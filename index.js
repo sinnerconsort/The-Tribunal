@@ -40,7 +40,7 @@ const PANEL_HEADER_HTML = `
                             
                             <!-- Health bar -->
                             <div class="ie-crt-vital-row" id="ie-crt-health-row">
-                                <span class="ie-crt-vital-label">HP:</span>
+                                <span class="ie-crt-vital-label"><i class="fa-solid fa-heart"></i></span>
                                 <div class="ie-crt-vital-bar">
                                     <div class="ie-crt-vital-fill" id="ie-health-fill" style="width: 100%"></div>
                                 </div>
@@ -49,7 +49,7 @@ const PANEL_HEADER_HTML = `
                             
                             <!-- Morale bar -->
                             <div class="ie-crt-vital-row" id="ie-crt-morale-row">
-                                <span class="ie-crt-vital-label">MP:</span>
+                                <span class="ie-crt-vital-label"><i class="fa-solid fa-brain"></i></span>
                                 <div class="ie-crt-vital-bar">
                                     <div class="ie-crt-vital-fill" id="ie-morale-fill" style="width: 100%"></div>
                                 </div>
