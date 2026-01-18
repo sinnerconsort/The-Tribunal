@@ -84,9 +84,10 @@ const TAB_BAR_HTML = `
 </div>`;
 
 const VOICES_TAB_HTML = `
-<div class="ie-tab-content ie-tab-content-active" data-tab-content="voices">
-    <div class="ie-section ie-voices-section">
-        <div class="ie-section-header">
+<div class="ie-tab-content voices-page" data-tab-content="voices">
+    <div class="voices-napkin">
+        <div class="napkin-watermark">WHIRLING • IN • RAGS</div>
+        <div class="voices-header">
             <span>Inner Voices</span>
         </div>
         <div class="ie-voices-container" id="ie-voices-output">
@@ -95,13 +96,13 @@ const VOICES_TAB_HTML = `
                 <span>Waiting for something to happen...</span>
             </div>
         </div>
-        <div class="napkin-stain"></div>
-    </div>
-    <div class="ie-section ie-manual-section">
-        <button class="ie-btn ie-btn-primary ie-btn-trigger" id="ie-manual-trigger">
-            <i class="fa-solid fa-bolt"></i>
-            <span>Consult Inner Voices</span>
-        </button>
+        <div class="voices-actions">
+            <button class="ie-btn ie-btn-primary ie-btn-trigger" id="ie-manual-trigger">
+                <i class="fa-solid fa-bolt"></i>
+                <span>Consult Inner Voices</span>
+            </button>
+        </div>
+        <div class="napkin-phone-number">555-0139</div>
     </div>
 </div>`;
 
