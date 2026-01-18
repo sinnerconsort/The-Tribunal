@@ -6,7 +6,7 @@
     "js": "index.js",
     "css": "styles.css",
     "author": "sinnerconsort",
-    "version": "0.1.0",
+    "version": "0.3.0",
     "homePage": "https://github.com/sinnerconsort/The-Tribunal",
     "auto_update": false
 }
