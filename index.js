@@ -1,11 +1,6 @@
 /**
  * The Tribunal - SillyTavern Extension
- * REBUILD v0.1.9 - Fixed header layout
- * 
- * Header layout:
- * [📁 CASE FILE]              [⌚]
- * [Health ▓▓▓▓▓▓▓▓▓ 13]
- * [Morale ▓▓▓▓▓▓▓▓▓ 13]
+ * REBUILD v0.2.0 - Fixed Case File, bigger watch
  */
 
 const extensionName = 'the-tribunal';
@@ -24,7 +19,7 @@ const PANEL_HEADER_HTML = `
 <div class="ie-panel-header">
     <!-- Top row: Title + Watch -->
     <div class="ie-header-row">
-        <div class="ie-panel-title ie-btn-close-panel" title="Close Panel">
+        <div class="ie-panel-title" id="ie-close-trigger" title="Close Panel">
             <i class="fa-solid fa-folder-open"></i>
             <span>CASE FILE</span>
         </div>
@@ -502,8 +497,8 @@ function bindEvents() {
         togglePanel();
     });
 
-    // Close button (now the folder)
-    document.querySelector('.ie-btn-close-panel')?.addEventListener('click', togglePanel);
+    // Close button (clicking Case File title)
+    document.getElementById('ie-close-trigger')?.addEventListener('click', togglePanel);
 
     // Tab switching
     document.querySelectorAll('.ie-tab').forEach(tab => {
@@ -538,7 +533,7 @@ function bindEvents() {
 // ═══════════════════════════════════════════════════════════════
 
 function init() {
-    console.log('[The Tribunal] Initializing UI shell v0.1.9...');
+    console.log('[The Tribunal] Initializing UI shell v0.2.0...');
 
     const panel = createPsychePanel();
     const fab = createToggleFAB();
