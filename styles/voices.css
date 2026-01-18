@@ -110,9 +110,9 @@
     letter-spacing: 3px;
     text-transform: uppercase;
     
-    /* Red neon - brighter red, still faded */
+    /* Red neon - more visible */
     color: #cc3344;
-    opacity: 0.06;
+    opacity: 0.09;
     
     white-space: nowrap;
     pointer-events: none;
@@ -209,6 +209,29 @@
     font-size: 9px;
     margin-bottom: 2px;
     color: rgba(160, 50, 80, 0.18);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIPSTICK KISS MARK
+   ═══════════════════════════════════════════════════════════════ */
+
+.napkin-lipstick {
+    position: absolute;
+    bottom: 75px;
+    right: 18px;
+    width: 32px;
+    height: 18px;
+    pointer-events: none;
+    z-index: 1;
+    /* Stylized lip print */
+    background: 
+        /* Upper lip - two curves */
+        radial-gradient(ellipse 55% 50% at 30% 40%, rgba(180, 50, 70, 0.14) 0%, transparent 60%),
+        radial-gradient(ellipse 55% 50% at 70% 40%, rgba(180, 50, 70, 0.14) 0%, transparent 60%),
+        /* Lower lip - fuller curve */
+        radial-gradient(ellipse 80% 55% at 50% 70%, rgba(160, 40, 60, 0.12) 0%, transparent 55%);
+    transform: rotate(-15deg);
+    filter: blur(0.4px);
 }
 
 /* ═══════════════════════════════════════════════════════════════
