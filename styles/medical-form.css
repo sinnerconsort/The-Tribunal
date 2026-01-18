@@ -252,24 +252,24 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   OBSERVED STATES - Checkbox style
+   OBSERVED STATES - Checkbox style (matches copotype)
    ═══════════════════════════════════════════════════════════════ */
 
 .rcm-states-category {
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
 .rcm-states-category-label {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     text-decoration: underline;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 
 .rcm-states-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px 14px;
+    gap: 8px 16px;
 }
 
 .rcm-checkbox {
@@ -286,30 +286,25 @@
 }
 
 .rcm-checkbox-box {
-    width: 14px;
-    height: 14px;
-    border: 2px solid #1a1a1a;
-    background: #f4f1e8;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
     font-weight: 700;
-    flex-shrink: 0;
-}
-
-.rcm-checkbox.rcm-checked .rcm-checkbox-box {
-    background: #1a1a1a;
-    color: #f4f1e8;
+    line-height: 1;
 }
 
 .rcm-checkbox.rcm-checked .rcm-checkbox-box::after {
-    content: '✓';
+    content: '☒';
+}
+
+.rcm-checkbox:not(.rcm-checked) .rcm-checkbox-box::after {
+    content: '□';
 }
 
 .rcm-checkbox-label {
     user-select: none;
-    font-weight: 500;
+    font-weight: 600;
+    color: #1a1a1a;
+    letter-spacing: 0.3px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -358,24 +353,55 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DECORATIONS - Coffee stain, wear marks
+   DECORATIONS - Ink stain, wear marks
    ═══════════════════════════════════════════════════════════════ */
 
-.rcm-coffee-stain {
+.rcm-ink-stain {
     position: absolute;
-    bottom: 80px;
-    right: 30px;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
+    top: 15px;
+    right: 40px;
+    width: 35px;
+    height: 45px;
     background: radial-gradient(
-        ellipse at center,
-        transparent 30%,
-        rgba(101, 67, 33, 0.15) 50%,
-        rgba(101, 67, 33, 0.08) 70%,
-        transparent 80%
+        ellipse 60% 80% at 50% 40%,
+        rgba(20, 20, 40, 0.25) 0%,
+        rgba(20, 20, 40, 0.15) 30%,
+        rgba(20, 20, 40, 0.08) 50%,
+        transparent 70%
     );
     pointer-events: none;
+    transform: rotate(15deg);
+    filter: blur(1px);
+}
+
+/* Small ink splatter drops */
+.rcm-ink-stain::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    right: 10px;
+    width: 8px;
+    height: 10px;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(20, 20, 40, 0.2) 0%,
+        transparent 70%
+    );
+    transform: rotate(-20deg);
+}
+
+.rcm-ink-stain::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 5px;
+    width: 12px;
+    height: 8px;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(20, 20, 40, 0.15) 0%,
+        transparent 70%
+    );
 }
 
 .rcm-fold-mark {
@@ -406,14 +432,14 @@
 .rcm-copotype-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px 14px;
+    gap: 8px 16px;
 }
 
 .rcm-copotype-item {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: 12px;
     cursor: pointer;
     transition: opacity 0.15s ease;
 }
@@ -424,8 +450,9 @@
 
 .rcm-copotype-box {
     font-family: 'Courier New', monospace;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 700;
+    line-height: 1;
 }
 
 .rcm-copotype-item.rcm-copotype-active {
@@ -434,6 +461,9 @@
 
 .rcm-copotype-label {
     user-select: none;
+    font-weight: 600;
+    color: #1a1a1a;
+    letter-spacing: 0.3px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
