@@ -1,0 +1,628 @@
+/**
+ * The Tribunal - Toast Notifications
+ * Sticky note style for notebook vibe
+ * REBUILD: Clean toast system
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10020;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+    max-width: 320px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STICKY NOTE BASE
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast {
+    position: relative;
+    padding: 14px 16px 16px 16px;
+    min-width: 200px;
+    max-width: 300px;
+    pointer-events: auto;
+    
+    /* Paper texture & color */
+    background: linear-gradient(
+        135deg,
+        #fff9b1 0%,
+        #fff176 50%,
+        #ffee58 100%
+    );
+    
+    /* Subtle paper grain */
+    background-image: 
+        linear-gradient(135deg, #fff9b1 0%, #fff176 50%, #ffee58 100%),
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
+    background-blend-mode: normal, overlay;
+    
+    /* Sticky note shape */
+    border: none;
+    border-radius: 2px;
+    
+    /* That "stuck on" shadow */
+    box-shadow: 
+        2px 3px 8px rgba(0, 0, 0, 0.15),
+        0 1px 3px rgba(0, 0, 0, 0.1),
+        inset 0 -2px 6px rgba(0, 0, 0, 0.03);
+    
+    /* Slight casual tilt */
+    transform: rotate(-1deg);
+    transform-origin: top left;
+    
+    /* Smooth transitions */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Alternating tilts for stacked notes */
+.ie-toast:nth-child(even) {
+    transform: rotate(1.5deg);
+    transform-origin: top right;
+}
+
+.ie-toast:nth-child(3n) {
+    transform: rotate(-0.5deg);
+}
+
+/* Hover lifts the note slightly */
+.ie-toast:hover {
+    transform: rotate(0deg) translateY(-2px);
+    box-shadow: 
+        4px 6px 16px rgba(0, 0, 0, 0.2),
+        0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STICKY TAPE EFFECT (top edge)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 12px;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.7) 0%,
+        rgba(255, 255, 255, 0.4) 100%
+    );
+    border-radius: 1px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    opacity: 0.8;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CORNER CURL EFFECT
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(
+        135deg,
+        transparent 50%,
+        rgba(0, 0, 0, 0.03) 50%,
+        rgba(0, 0, 0, 0.08) 100%
+    );
+    border-radius: 0 0 2px 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST CONTENT
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.ie-toast-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.ie-toast-text {
+    flex: 1;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #3d3520;
+    font-family: var(--ie-font-body, system-ui, sans-serif);
+    /* Slightly informal feel */
+    letter-spacing: 0.01em;
+}
+
+.ie-toast-title {
+    font-weight: 700;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    color: #2d2510;
+}
+
+.ie-toast-message {
+    color: #4a4030;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DISMISS BUTTON
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-dismiss {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 18px;
+    height: 18px;
+    border: none;
+    background: transparent;
+    color: rgba(60, 50, 30, 0.4);
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.15s ease;
+    opacity: 0;
+}
+
+.ie-toast:hover .ie-toast-dismiss {
+    opacity: 1;
+}
+
+.ie-toast-dismiss:hover {
+    color: rgba(60, 50, 30, 0.8);
+    background: rgba(0, 0, 0, 0.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COLOR VARIANTS - Different sticky note colors
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Success - Mint green */
+.ie-toast.ie-toast-success {
+    background: linear-gradient(135deg, #b8f5c9 0%, #8be8a5 50%, #6ddb88 100%);
+}
+
+.ie-toast.ie-toast-success .ie-toast-icon {
+    color: #1b5e20;
+}
+
+.ie-toast.ie-toast-success .ie-toast-title {
+    color: #1b5e20;
+}
+
+.ie-toast.ie-toast-success .ie-toast-message {
+    color: #2e5a32;
+}
+
+/* Error - Salmon pink */
+.ie-toast.ie-toast-error {
+    background: linear-gradient(135deg, #ffcdd2 0%, #f8a0a8 50%, #f48490 100%);
+}
+
+.ie-toast.ie-toast-error .ie-toast-icon {
+    color: #b71c1c;
+}
+
+.ie-toast.ie-toast-error .ie-toast-title {
+    color: #b71c1c;
+}
+
+.ie-toast.ie-toast-error .ie-toast-message {
+    color: #6d2a2a;
+}
+
+/* Warning - Orange */
+.ie-toast.ie-toast-warning {
+    background: linear-gradient(135deg, #ffe0b2 0%, #ffcc80 50%, #ffb74d 100%);
+}
+
+.ie-toast.ie-toast-warning .ie-toast-icon {
+    color: #e65100;
+}
+
+.ie-toast.ie-toast-warning .ie-toast-title {
+    color: #bf360c;
+}
+
+.ie-toast.ie-toast-warning .ie-toast-message {
+    color: #5d3a1a;
+}
+
+/* Info - Light blue */
+.ie-toast.ie-toast-info {
+    background: linear-gradient(135deg, #b3e5fc 0%, #81d4fa 50%, #4fc3f7 100%);
+}
+
+.ie-toast.ie-toast-info .ie-toast-icon {
+    color: #01579b;
+}
+
+.ie-toast.ie-toast-info .ie-toast-title {
+    color: #01579b;
+}
+
+.ie-toast.ie-toast-info .ie-toast-message {
+    color: #1a4a5e;
+}
+
+/* Purple - For psyche/thought related */
+.ie-toast.ie-toast-psyche {
+    background: linear-gradient(135deg, #e1bee7 0%, #ce93d8 50%, #ba68c8 100%);
+}
+
+.ie-toast.ie-toast-psyche .ie-toast-icon {
+    color: #4a148c;
+}
+
+.ie-toast.ie-toast-psyche .ie-toast-title {
+    color: #4a148c;
+}
+
+.ie-toast.ie-toast-psyche .ie-toast-message {
+    color: #4a3050;
+}
+
+/* Teal - For morale related */
+.ie-toast.ie-toast-morale {
+    background: linear-gradient(135deg, #b2dfdb 0%, #80cbc4 50%, #4db6ac 100%);
+}
+
+.ie-toast.ie-toast-morale .ie-toast-icon {
+    color: #004d40;
+}
+
+.ie-toast.ie-toast-morale .ie-toast-title {
+    color: #004d40;
+}
+
+.ie-toast.ie-toast-morale .ie-toast-message {
+    color: #1d4a44;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Slide in and "stick" */
+@keyframes ie-toast-stick {
+    0% {
+        opacity: 0;
+        transform: translateX(100px) rotate(5deg);
+    }
+    70% {
+        opacity: 1;
+        transform: translateX(-8px) rotate(-2deg);
+    }
+    85% {
+        transform: translateX(4px) rotate(1deg);
+    }
+    100% {
+        transform: translateX(0) rotate(-1deg);
+    }
+}
+
+/* Peel off and fly away */
+@keyframes ie-toast-peel {
+    0% {
+        opacity: 1;
+        transform: rotate(-1deg);
+    }
+    30% {
+        transform: rotate(-3deg) translateY(-5px);
+    }
+    100% {
+        opacity: 0;
+        transform: rotate(10deg) translateX(100px) translateY(-20px);
+    }
+}
+
+.ie-toast.ie-toast-enter {
+    animation: ie-toast-stick 0.4s ease-out forwards;
+}
+
+.ie-toast.ie-toast-exit {
+    animation: ie-toast-peel 0.35s ease-in forwards;
+}
+
+/* Legacy show/hide classes (backwards compatibility) */
+.ie-toast-show {
+    animation: ie-toast-stick 0.4s ease-out forwards;
+}
+
+.ie-toast-hide {
+    animation: ie-toast-peel 0.35s ease-in forwards;
+}
+
+/* Even notes get opposite animation direction */
+.ie-toast:nth-child(even).ie-toast-enter {
+    animation-name: ie-toast-stick-alt;
+}
+
+@keyframes ie-toast-stick-alt {
+    0% {
+        opacity: 0;
+        transform: translateX(100px) rotate(-5deg);
+    }
+    70% {
+        opacity: 1;
+        transform: translateX(-8px) rotate(2deg);
+    }
+    85% {
+        transform: translateX(4px) rotate(-1deg);
+    }
+    100% {
+        transform: translateX(0) rotate(1.5deg);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PROGRESS BAR (auto-dismiss timer)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 0 0 2px 2px;
+    transform-origin: left;
+}
+
+.ie-toast-progress.ie-toast-progress-animate {
+    animation: ie-toast-progress-shrink var(--toast-duration, 4s) linear forwards;
+}
+
+@keyframes ie-toast-progress-shrink {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HANDWRITTEN VARIANT (optional class)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast.ie-toast-handwritten .ie-toast-text {
+    font-family: 'Segoe Script', 'Comic Sans MS', cursive;
+    font-size: 14px;
+    letter-spacing: 0;
+}
+
+.ie-toast.ie-toast-handwritten .ie-toast-title {
+    font-family: 'Segoe Script', 'Comic Sans MS', cursive;
+    text-transform: none;
+    font-size: 15px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE ADJUSTMENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .ie-toast-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .ie-toast {
+        max-width: none;
+        transform: rotate(0deg);
+    }
+    
+    .ie-toast:nth-child(even) {
+        transform: rotate(0deg);
+    }
+    
+    .ie-toast:nth-child(3n) {
+        transform: rotate(0deg);
+    }
+    
+    .ie-toast-dismiss {
+        opacity: 1;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INTRUSIVE THOUGHT TOAST
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-intrusive {
+    background: linear-gradient(135deg, #e1bee7 0%, #ce93d8 50%, #ba68c8 100%);
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.ie-toast-intrusive .ie-toast-content {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.ie-intrusive-header,
+.ie-object-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ie-intrusive-signature,
+.ie-object-name {
+    font-family: var(--ie-font-header);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #4a148c;
+}
+
+.ie-intrusive-content,
+.ie-object-content {
+    font-size: 13px;
+    font-style: italic;
+    margin: 8px 0;
+    line-height: 1.5;
+    color: #4a3050;
+}
+
+.ie-intrusive-dismiss,
+.ie-object-dismiss {
+    align-self: flex-end;
+    background: transparent;
+    border: none;
+    color: rgba(74, 20, 140, 0.6);
+    cursor: pointer;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 8px;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+}
+
+.ie-intrusive-dismiss:hover,
+.ie-object-dismiss:hover {
+    color: #4a148c;
+    background: rgba(74, 20, 140, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OBJECT VOICE TOAST
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-object {
+    background: linear-gradient(135deg, #fff9c4 0%, #fff59d 50%, #ffee58 100%);
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.ie-toast-object .ie-object-name {
+    color: #f57f17;
+}
+
+.ie-toast-object .ie-object-content {
+    color: #5d4a1a;
+}
+
+.ie-toast-object .ie-object-dismiss {
+    color: rgba(245, 127, 23, 0.6);
+}
+
+.ie-toast-object .ie-object-dismiss:hover {
+    color: #f57f17;
+    background: rgba(245, 127, 23, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THOUGHT DISCOVERY TOAST
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-discovery {
+    background: linear-gradient(135deg, #e1bee7 0%, #ce93d8 50%, #ba68c8 100%);
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.ie-toast-discovery-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #4a148c;
+}
+
+.ie-toast-discovery-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.ie-toast-discovery-name {
+    font-weight: 700;
+    margin: 6px 0;
+    color: #4a148c;
+}
+
+.ie-toast-discovery-desc {
+    font-size: 12px;
+    color: #4a3050;
+    margin-bottom: 10px;
+}
+
+.ie-toast-discovery-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INTERNALIZED THOUGHT TOAST
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-internalized {
+    background: linear-gradient(135deg, #fff9b1 0%, #ffd54f 50%, #ffca28 100%);
+    flex-direction: column;
+    align-items: stretch;
+    /* Extra fancy for completed thoughts */
+    box-shadow: 
+        2px 3px 8px rgba(0, 0, 0, 0.15),
+        0 1px 3px rgba(0, 0, 0, 0.1),
+        inset 0 0 20px rgba(255, 215, 0, 0.2);
+}
+
+.ie-internalized-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #f57f17;
+}
+
+.ie-internalized-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.ie-internalized-name {
+    font-weight: 700;
+    margin: 6px 0;
+    color: #5d4a00;
+}
+
+.ie-internalized-flavor {
+    font-size: 12px;
+    font-style: italic;
+    color: #6d5a1a;
+    margin-bottom: 6px;
+}
+
+.ie-internalized-bonuses {
+    font-size: 11px;
+    color: #2e7d32;
+    font-weight: 600;
+}
+
+.ie-internalized-caps {
+    font-size: 11px;
+    color: #c62828;
+    font-weight: 600;
+}

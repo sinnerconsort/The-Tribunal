@@ -1,0 +1,150 @@
+/**
+ * The Tribunal - Responsive / Mobile
+ * Mobile breakpoints and adaptations
+ * REBUILD: Clean mobile support
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE BREAKPOINT (768px)
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    /* Full width panel on mobile */
+    .inland-empire-panel {
+        width: 100%;
+        right: 0;
+        transform: translateX(100%);
+    }
+
+    .ie-panel-open {
+        transform: translateX(0);
+    }
+
+    /* Single column attributes */
+    .ie-attributes-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* 2-column status grid */
+    .ie-status-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    /* Discovery modal sizing */
+    .ie-discovery-modal {
+        width: 95%;
+        max-height: 85vh;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DISCOVERY OVERLAY MOBILE
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .ie-discovery-overlay {
+        align-items: flex-start;
+        padding-top: 40px;
+        padding-bottom: 20px;
+    }
+    
+    .ie-discovery-modal {
+        width: 95%;
+        max-height: calc(100vh - 80px);
+        margin: 0 auto;
+    }
+    
+    .ie-quick-scan-btn {
+        opacity: 1;
+        transform: scale(1);
+    }
+    
+    .ie-discovery-actions {
+        flex-direction: column;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VITALS & BOTTOM BUTTONS MOBILE
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .ie-vitals-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .ie-vital-label {
+        width: 60px;
+    }
+    
+    .ie-bottom-buttons {
+        padding: 8px 12px 10px 24px;
+    }
+    
+    .ie-bottom-btn {
+        padding: 8px 10px;
+    }
+    
+    .ie-bottom-btn span {
+        font-size: 10px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THOUGHT MODAL MOBILE
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .ie-thought-modal {
+        width: 95%;
+        max-height: 80vh;
+        margin-top: 40px;
+    }
+    
+    .ie-thought-modal-header {
+        padding: 12px;
+    }
+    
+    .ie-thought-icon-large {
+        font-size: 24px;
+    }
+    
+    .ie-thought-modal-name {
+        font-size: 14px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VOICES MOBILE
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .ie-voice-line,
+    .ie-voice-item {
+        padding: 10px 12px;
+    }
+    
+    .ie-voice-signature {
+        font-size: 10px;
+    }
+    
+    .ie-voice-content {
+        font-size: 12px;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FAB MOBILE
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .ie-fab {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .ie-fab-icon {
+        font-size: 18px;
+    }
+}
