@@ -1,0 +1,594 @@
+/**
+ * The Tribunal - RCM Medical Form
+ * Status tab styled as official Citizen Militia paperwork
+ * REBUILD v0.1.1 - Fixed containment & readability
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   STATUS PAGE - Container (mirrors .voices-page pattern)
+   ═══════════════════════════════════════════════════════════════ */
+
+.status-page {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+    margin-left: -12px;
+    padding-left: 12px;
+    background: transparent;
+}
+
+.status-page.ie-tab-content-active {
+    display: flex;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FORM CONTAINER - Weathered paper look
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-medical-form {
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+    background: #f4f1e8;
+    background-image: 
+        /* Paper texture noise */
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-blend-mode: multiply;
+    border: 2px solid #2a2a2a;
+    padding: 20px;
+    margin-left: -12px;
+    margin-right: 10px;
+    font-family: 'Courier New', Courier, monospace;
+    color: #1a1a1a;
+    box-shadow: 
+        inset 0 0 30px rgba(0, 0, 0, 0.05),
+        2px 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Clip holes on right side */
+.rcm-medical-form::before {
+    content: '';
+    position: absolute;
+    top: 20px;
+    right: -1px;
+    width: 4px;
+    height: calc(100% - 40px);
+    background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 15px,
+        #1a1a22 15px,
+        #1a1a22 20px
+    );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FORM HEADER
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-form-header {
+    text-align: left;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #1a1a1a;
+}
+
+.rcm-form-title {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PATIENT INFO SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-patient-info {
+    margin-bottom: 18px;
+}
+
+.rcm-field {
+    display: flex;
+    align-items: baseline;
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.rcm-field-label {
+    font-weight: 700;
+    margin-right: 10px;
+    white-space: nowrap;
+}
+
+.rcm-field-value {
+    flex: 1;
+    border-bottom: 1px solid #1a1a1a;
+    min-width: 100px;
+    padding-bottom: 2px;
+    font-weight: 400;
+}
+
+.rcm-field-value.rcm-field-filled {
+    font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-section {
+    margin-bottom: 16px;
+}
+
+.rcm-section-header {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rcm-section-header::before {
+    content: '▸';
+    font-size: 9px;
+}
+
+.rcm-section-content {
+    padding-left: 14px;
+    font-size: 11px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VITALS DISPLAY (typewriter style)
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-vital-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 11px;
+}
+
+.rcm-vital-label {
+    font-weight: 700;
+    min-width: 70px;
+}
+
+.rcm-vital-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rcm-vital-bar-bracket {
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.rcm-vital-bar {
+    width: 120px;
+    height: 12px;
+    background: #e8e5dc;
+    border: 1px solid #1a1a1a;
+    position: relative;
+    overflow: hidden;
+}
+
+.rcm-vital-bar-fill {
+    height: 100%;
+    background: repeating-linear-gradient(
+        90deg,
+        #1a1a1a 0px,
+        #1a1a1a 6px,
+        transparent 6px,
+        transparent 8px
+    );
+    transition: width 0.3s ease;
+}
+
+.rcm-vital-value {
+    font-weight: 700;
+    margin-left: 8px;
+    min-width: 50px;
+    font-size: 11px;
+}
+
+/* Low/Critical states */
+.rcm-vital-row.rcm-vital-low .rcm-vital-bar-fill {
+    background: repeating-linear-gradient(
+        90deg,
+        #8a4a00 0px,
+        #8a4a00 6px,
+        transparent 6px,
+        transparent 8px
+    );
+}
+
+.rcm-vital-row.rcm-vital-critical .rcm-vital-bar-fill {
+    background: repeating-linear-gradient(
+        90deg,
+        #6a1a1a 0px,
+        #6a1a1a 6px,
+        transparent 6px,
+        transparent 8px
+    );
+    animation: rcm-vital-blink 0.8s ease-in-out infinite;
+}
+
+@keyframes rcm-vital-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACTIVE CONDITIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-conditions-empty {
+    font-style: italic;
+    color: #666;
+    font-size: 11px;
+}
+
+.rcm-conditions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rcm-condition-item {
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rcm-condition-item::before {
+    content: '•';
+    font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OBSERVED STATES - Checkbox style (matches copotype)
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-states-category {
+    margin-bottom: 12px;
+}
+
+.rcm-states-category-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-decoration: underline;
+    margin-bottom: 8px;
+}
+
+.rcm-states-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+}
+
+.rcm-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.rcm-checkbox:hover {
+    opacity: 0.7;
+}
+
+.rcm-checkbox-box {
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.rcm-checkbox.rcm-checked .rcm-checkbox-box::after {
+    content: '☒';
+}
+
+.rcm-checkbox:not(.rcm-checked) .rcm-checkbox-box::after {
+    content: '□';
+}
+
+.rcm-checkbox-label {
+    user-select: none;
+    font-weight: 600;
+    color: #1a1a1a;
+    letter-spacing: 0.3px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FOOTER - Examining Officer & Stamp
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-form-footer {
+    margin-top: 24px;
+    padding-top: 14px;
+    border-top: 1px dashed #999;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.rcm-officer-field {
+    font-size: 11px;
+}
+
+.rcm-officer-label {
+    font-weight: 700;
+}
+
+.rcm-officer-line {
+    display: inline-block;
+    min-width: 120px;
+    border-bottom: 1px solid #1a1a1a;
+}
+
+/* RCM Stamp */
+.rcm-stamp {
+    width: 60px;
+    height: 60px;
+    border: 3px solid #8b0000;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: 700;
+    color: #8b0000;
+    text-align: center;
+    transform: rotate(-15deg);
+    opacity: 0.7;
+    line-height: 1.2;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DECORATIONS - Ink stain, wear marks
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-ink-stain {
+    position: absolute;
+    top: 15px;
+    right: 40px;
+    width: 35px;
+    height: 45px;
+    background: radial-gradient(
+        ellipse 60% 80% at 50% 40%,
+        rgba(20, 20, 40, 0.25) 0%,
+        rgba(20, 20, 40, 0.15) 30%,
+        rgba(20, 20, 40, 0.08) 50%,
+        transparent 70%
+    );
+    pointer-events: none;
+    transform: rotate(15deg);
+    filter: blur(1px);
+}
+
+/* Small ink splatter drops */
+.rcm-ink-stain::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    right: 10px;
+    width: 8px;
+    height: 10px;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(20, 20, 40, 0.2) 0%,
+        transparent 70%
+    );
+    transform: rotate(-20deg);
+}
+
+.rcm-ink-stain::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 5px;
+    width: 12px;
+    height: 8px;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(20, 20, 40, 0.15) 0%,
+        transparent 70%
+    );
+}
+
+.rcm-fold-mark {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 1px;
+    height: 100%;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(0, 0, 0, 0.05) 20%,
+        rgba(0, 0, 0, 0.08) 50%,
+        rgba(0, 0, 0, 0.05) 80%,
+        transparent 100%
+    );
+    pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCROLLABLE CONTENT - handled by .status-page pattern
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════
+   COPOTYPES - Officer classification checkboxes
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-copotype-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+}
+
+.rcm-copotype-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.rcm-copotype-item:hover {
+    opacity: 0.7;
+}
+
+.rcm-copotype-box {
+    font-family: 'Courier New', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.rcm-copotype-item.rcm-copotype-active {
+    font-weight: 700;
+}
+
+.rcm-copotype-label {
+    user-select: none;
+    font-weight: 600;
+    color: #1a1a1a;
+    letter-spacing: 0.3px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANCIENT VOICES - Psychological anomalies list
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-ancient-voices {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.rcm-ancient-voice-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.03);
+    border-left: 3px solid #654321;
+    font-size: 10px;
+}
+
+.rcm-ancient-voice-entry.rcm-ancient-combo {
+    border-left-color: #8B4513;
+    background: rgba(139, 69, 19, 0.05);
+}
+
+.rcm-ancient-voice-icon {
+    font-size: 12px;
+    min-width: 18px;
+    text-align: center;
+    color: #654321;
+}
+
+.rcm-ancient-voice-details {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.rcm-ancient-voice-name {
+    font-weight: 700;
+    font-size: 11px;
+}
+
+.rcm-ancient-voice-triggers {
+    font-size: 9px;
+    color: #666;
+    font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACTIVE EFFECTS - Boost/debuff display
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-active-effects {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+}
+
+.rcm-effect-item {
+    font-size: 10px;
+    padding: 2px 6px;
+    font-family: 'Courier New', monospace;
+}
+
+.rcm-effect-boost {
+    color: #2d5a2d;
+    background: rgba(45, 90, 45, 0.1);
+    border: 1px solid rgba(45, 90, 45, 0.3);
+}
+
+.rcm-effect-boost::before {
+    content: '+';
+}
+
+.rcm-effect-debuff {
+    color: #8b0000;
+    background: rgba(139, 0, 0, 0.1);
+    border: 1px solid rgba(139, 0, 0, 0.3);
+}
+
+.rcm-effect-debuff::before {
+    content: '−';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SIGNATURE - Nix Gottlieb, Station Lazareth
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-signature {
+    font-family: 'Brush Script MT', 'Segoe Script', 'Bradley Hand', cursive;
+    font-size: 18px;
+    color: #1a1a1a;
+    transform: rotate(-3deg);
+    margin-left: 10px;
+    opacity: 0.85;
+    /* Ink bleed effect */
+    text-shadow: 0.5px 0.5px 0px rgba(0, 0, 0, 0.2);
+}
+
+.rcm-signature-title {
+    display: block;
+    font-family: 'Courier New', monospace;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #555;
+    transform: rotate(0deg);
+    margin-top: 2px;
+    font-style: normal;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BUFF/DEBUFF INLINE DISPLAY - Active Conditions summary
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-buff {
+    color: #2d5a2d;
+    font-weight: 600;
+}
+
+.rcm-debuff {
+    color: #8b3a3a;
+    font-weight: 600;
+}
