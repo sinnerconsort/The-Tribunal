@@ -1,196 +1,286 @@
 /**
- * The Tribunal - Investigation v2
- * Narrator + Reactor styles, check badges
+ * The Tribunal - Investigation Panel CSS
+ * v1.0.0 - MINIMAL: Dead simple, override everything
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   INVESTIGATION v2 - Narrator + Reactor Styles
+   PANEL OVERLAY - Fullscreen dark backdrop
    ═══════════════════════════════════════════════════════════════ */
 
-/* Investigation Results Container */
-.ie-investigation-results {
-    flex: 1;
-    overflow-y: auto;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+#tribunal-investigation-panel {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 99999 !important;
+    background: rgba(0, 0, 0, 0.9) !important;
+    display: none;
+    justify-content: center !important;
+    align-items: flex-start !important;
+    padding: 20px !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+}
+
+#tribunal-investigation-panel.open {
+    display: flex !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   NARRATOR BLOCK - The main scene description
+   BOX - The actual content container
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-narrator-block {
-    background: linear-gradient(135deg, rgba(40, 35, 30, 0.9) 0%, rgba(30, 25, 20, 0.95) 100%);
-    border-left: 4px solid #888;
-    border-radius: 4px;
-    padding: 14px 16px;
-    box-shadow: 
-        0 2px 8px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.03);
-}
-
-.ie-narrator-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-    flex-wrap: wrap;
-}
-
-.ie-narrator-name {
-    font-family: var(--ie-font-header, 'Courier New', monospace);
-    font-size: 14px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.ie-narrator-label {
-    font-size: 9px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: rgba(255, 255, 255, 0.4);
-    background: rgba(255, 255, 255, 0.08);
-    padding: 2px 8px;
-    border-radius: 3px;
-    margin-left: auto;
-}
-
-.ie-narrator-content {
-    font-style: italic;
-    line-height: 1.6;
-    color: rgba(255, 255, 255, 0.9);
-    font-size: 14px;
+.tribunal-inv-box {
+    position: relative !important;
+    width: 100% !important;
+    max-width: 500px !important;
+    background: #1e1e2e !important;
+    border: 1px solid #444 !important;
+    border-radius: 8px !important;
+    padding: 20px !important;
+    box-sizing: border-box !important;
+    margin-top: 40px !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   CHECK BADGES
+   CLOSE BUTTON
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-check-badge {
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 3px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+.tribunal-inv-close {
+    position: absolute !important;
+    top: -15px !important;
+    right: -15px !important;
+    width: 36px !important;
+    height: 36px !important;
+    background: #e94560 !important;
+    border: 2px solid #1e1e2e !important;
+    border-radius: 50% !important;
+    color: white !important;
+    font-size: 16px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 100000 !important;
+    transition: transform 0.2s ease !important;
 }
 
-.ie-check-badge.ie-success {
-    background: rgba(76, 175, 80, 0.2);
-    color: #81c784;
-    border: 1px solid rgba(76, 175, 80, 0.3);
-}
-
-.ie-check-badge.ie-failure {
-    background: rgba(244, 67, 54, 0.2);
-    color: #e57373;
-    border: 1px solid rgba(244, 67, 54, 0.3);
-}
-
-.ie-check-badge.ie-critical-success {
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(255, 193, 7, 0.2) 100%);
-    color: #ffd54f;
-    border: 1px solid rgba(255, 215, 0, 0.4);
-    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
-    animation: critical-glow 2s ease-in-out infinite;
-}
-
-.ie-check-badge.ie-critical-failure {
-    background: linear-gradient(135deg, rgba(183, 28, 28, 0.3) 0%, rgba(244, 67, 54, 0.2) 100%);
-    color: #ff8a80;
-    border: 1px solid rgba(244, 67, 54, 0.5);
-    text-shadow: 0 0 8px rgba(244, 67, 54, 0.5);
-    animation: critical-pulse 1.5s ease-in-out infinite;
-}
-
-@keyframes critical-glow {
-    0%, 100% { box-shadow: 0 0 4px rgba(255, 215, 0, 0.3); }
-    50% { box-shadow: 0 0 12px rgba(255, 215, 0, 0.5); }
-}
-
-@keyframes critical-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.8; }
+.tribunal-inv-close:hover {
+    transform: scale(1.1) !important;
+    background: #ff6b6b !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   REACTORS SECTION
+   HEADER
    ═══════════════════════════════════════════════════════════════ */
 
-.ie-reactors-section {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+.tribunal-inv-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    font-size: 18px !important;
+    font-weight: bold !important;
+    color: #e94560 !important;
+    margin-bottom: 15px !important;
+    padding-bottom: 10px !important;
+    border-bottom: 1px solid #333 !important;
 }
 
-.ie-reactors-divider {
-    height: 1px;
-    background: linear-gradient(90deg, transparent 0%, rgba(208, 189, 97, 0.3) 20%, rgba(208, 189, 97, 0.3) 80%, transparent 100%);
-    margin: 4px 0 8px 0;
+/* ═══════════════════════════════════════════════════════════════
+   CONTEXT PREVIEW
+   ═══════════════════════════════════════════════════════════════ */
+
+.tribunal-inv-context {
+    font-size: 12px !important;
+    color: #888 !important;
+    font-style: italic !important;
+    margin-bottom: 15px !important;
+    padding: 10px !important;
+    background: rgba(0, 0, 0, 0.3) !important;
+    border-radius: 4px !important;
+    max-height: 60px !important;
+    overflow: hidden !important;
 }
 
-/* Individual Reactor Line */
-.ie-reactor-line {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    padding: 8px 12px;
-    background: rgba(30, 25, 20, 0.6);
-    border-left: 3px solid #888;
-    border-radius: 0 4px 4px 0;
-    flex-wrap: wrap;
+/* ═══════════════════════════════════════════════════════════════
+   ACTION BUTTONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.tribunal-inv-actions {
+    display: flex !important;
+    gap: 10px !important;
+    margin-bottom: 15px !important;
 }
 
-.ie-reactor-icon {
-    font-size: 14px;
-    flex-shrink: 0;
+.tribunal-inv-btn {
+    flex: 1 !important;
+    padding: 12px 16px !important;
+    border: none !important;
+    border-radius: 4px !important;
+    font-size: 14px !important;
+    font-weight: bold !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    transition: all 0.2s ease !important;
 }
 
-.ie-reactor-name {
-    font-family: var(--ie-font-header, 'Courier New', monospace);
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    flex-shrink: 0;
+.tribunal-inv-btn.primary {
+    background: #e94560 !important;
+    color: white !important;
 }
 
-.ie-reactor-type {
-    font-size: 8px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: rgba(255, 255, 255, 0.4);
-    background: rgba(255, 255, 255, 0.08);
-    padding: 1px 6px;
-    border-radius: 2px;
-    flex-shrink: 0;
+.tribunal-inv-btn.primary:hover:not(:disabled) {
+    background: #ff6b6b !important;
 }
 
-.ie-reactor-dash {
-    color: rgba(255, 255, 255, 0.3);
-    flex-shrink: 0;
+.tribunal-inv-btn.secondary {
+    background: #333 !important;
+    color: #ccc !important;
 }
 
-.ie-reactor-content {
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 13px;
-    line-height: 1.4;
-    flex: 1;
-    min-width: 150px;
+.tribunal-inv-btn.secondary:hover:not(:disabled) {
+    background: #444 !important;
+    color: white !important;
 }
 
-/* Object Reactor - Special styling */
-.ie-reactor-line.ie-reactor-object {
-    background: linear-gradient(135deg, rgba(40, 30, 25, 0.7) 0%, rgba(35, 25, 20, 0.8) 100%);
-    border-left-width: 3px;
+.tribunal-inv-btn:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
 }
 
-.ie-reactor-line.ie-reactor-object .ie-reactor-content {
-    font-style: italic;
+/* ═══════════════════════════════════════════════════════════════
+   RESULTS AREA
+   ═══════════════════════════════════════════════════════════════ */
+
+.tribunal-inv-results {
+    min-height: 100px !important;
+    max-height: 50vh !important;
+    overflow-y: auto !important;
 }
 
+.tribunal-inv-empty,
+.tribunal-inv-loading {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    padding: 30px !important;
+    color: #666 !important;
+    font-style: italic !important;
+}
+
+.tribunal-inv-loading {
+    display: none;
+}
+
+.tribunal-inv-empty i,
+.tribunal-inv-loading i {
+    font-size: 24px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ARTICLES / VOICE RESULTS
+   ═══════════════════════════════════════════════════════════════ */
+
+.tribunal-inv-articles {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+}
+
+.tribunal-inv-article {
+    padding: 10px !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-radius: 4px !important;
+    border-left: 3px solid #666 !important;
+}
+
+.tribunal-inv-article.narrator {
+    border-left-color: #f4d03f !important;
+    background: rgba(244, 208, 63, 0.1) !important;
+}
+
+.tribunal-inv-article.object {
+    border-left-color: #9b59b6 !important;
+    background: rgba(155, 89, 182, 0.1) !important;
+}
+
+.tribunal-inv-voice-header {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-bottom: 6px !important;
+}
+
+.tribunal-inv-voice-name {
+    font-weight: bold !important;
+    font-size: 12px !important;
+    text-transform: uppercase !important;
+}
+
+.tribunal-inv-voice-text {
+    color: #ddd !important;
+    font-size: 13px !important;
+    line-height: 1.4 !important;
+}
+
+.tribunal-inv-sep {
+    color: #555 !important;
+    margin: 0 4px !important;
+}
+
+.tribunal-inv-icon {
+    margin-right: 4px !important;
+}
+
+/* Check badges */
+.tribunal-inv-check {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+    border-radius: 3px !important;
+    font-weight: bold !important;
+}
+
+.tribunal-inv-check.success {
+    background: #27ae60 !important;
+    color: white !important;
+}
+
+.tribunal-inv-check.failure {
+    background: #c0392b !important;
+    color: white !important;
+}
+
+.tribunal-inv-check.crit-success {
+    background: #f39c12 !important;
+    color: #1a1a18 !important;
+}
+
+.tribunal-inv-check.crit-fail {
+    background: #8e44ad !important;
+    color: white !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════════════════════ */
+
+.tribunal-inv-results::-webkit-scrollbar {
+    width: 6px !important;
+}
+
+.tribunal-inv-results::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2) !important;
+}
+
+.tribunal-inv-results::-webkit-scrollbar-thumb {
+    background: #e94560 !important;
+    border-radius: 3px !important;
+}
