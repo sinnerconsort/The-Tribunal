@@ -1,15 +1,27 @@
 /**
  * The Tribunal - Thought Generation
- * AI-powered custom thought creation for the Thought Cabinet
  * 
- * Restored from original Inland Empire implementation
+ * AI-powered custom thought creation for the Thought Cabinet.
+ * Generates Disco Elysium-style thoughts based on chat context,
+ * player persona, and tracked themes.
+ * 
+ * Lives in voice/ because it shares API infrastructure with voice generation.
  */
 
 import { SKILLS } from '../data/skills.js';
-import { extensionSettings, thoughtCabinet, saveState } from '../core/state.js';
-import { callAPI, getContext } from './api-helpers.js';
-import { addCustomThought, getTopThemes } from '../systems/cabinet.js';
-import { showToast } from '../ui/toasts.js';
+import { getChatState, getSettings } from '../core/state.js';
+import { 
+    addCustomThought, 
+    getTopThemes, 
+    getPlayerContext,
+    getThemeCounters 
+} from '../systems/cabinet.js';
+import { 
+    buildThoughtSystemPrompt, 
+    buildThoughtUserPrompt, 
+    parseThoughtResponse 
+} from './thought-prompt-builder.js';
+import { callAPI } from './api-helpers.js';
 
 // ═══════════════════════════════════════════════════════════════
 // THOUGHT GENERATION
@@ -17,211 +29,292 @@ import { showToast } from '../ui/toasts.js';
 
 /**
  * Generate a custom thought via AI
- * @param {string} prompt - User-provided concept/obsession
- * @param {boolean} fromContext - Whether to include recent chat context
- * @param {string} perspective - 'observer' or 'participant'
- * @param {string} playerContext - Optional player identity context
- * @returns {object|null} - Generated thought or null on failure
+ * @param {object} options
+ * @param {string} options.concept - User-provided concept (optional)
+ * @param {boolean} options.fromContext - Include recent chat context
+ * @param {string} options.perspective - Override perspective ('observer'|'participant')
+ * @param {string} options.playerIdentity - Override player identity
+ * @param {string} options.lorebookContext - Additional lorebook context
+ * @returns {object|null} Generated thought or null on failure
  */
-export async function generateThought(prompt, fromContext = false, perspective = 'observer', playerContext = '') {
-    const ctx = getContext();
+export async function generateThought(options = {}) {
+    const {
+        concept = '',
+        fromContext = true,
+        perspective = null,
+        playerIdentity = null,
+        lorebookContext = ''
+    } = options;
+    
+    const state = getChatState();
+    if (!state) {
+        console.error('[Tribunal] Cannot generate thought - no chat state');
+        return null;
+    }
     
     // Get context from chat if requested
     let contextText = '';
-    if (fromContext && ctx?.chat) {
-        const recentMessages = ctx.chat.slice(-5) || [];
-        contextText = recentMessages.map(m => m.mes).join('\n');
+    if (fromContext) {
+        try {
+            // Try to get SillyTavern context
+            const stContext = window.SillyTavern?.getContext?.() || window.getContext?.();
+            if (stContext?.chat) {
+                const recentMessages = stContext.chat.slice(-5) || [];
+                contextText = recentMessages.map(m => m.mes).join('\n\n');
+            }
+        } catch (e) {
+            console.warn('[Tribunal] Could not get chat context:', e);
+        }
     }
     
-    if (!prompt && !contextText) {
-        showToast('Enter a concept or check "From chat"', 'error');
-        return null;
+    if (!concept && !contextText) {
+        throw new Error('Enter a concept or enable "From chat"');
     }
-
-    // Build skill list for the prompt
-    const skillList = Object.entries(SKILLS)
-        .map(([id, s]) => `${id}: ${s.name}`)
-        .join(', ');
-
-    // Get theme hints from current tracking
-    const topThemes = getTopThemes(3);
-    const themeHint = topThemes.length > 0 
-        ? topThemes.map(t => t.name).join(', ')
-        : 'none tracked yet';
-
-    // Player identity context
-    const playerIdentity = playerContext 
-        ? `The player identifies as: ${playerContext}`
-        : 'The player is an unnamed protagonist observing events.';
-
-    // Perspective-specific instructions
-    const perspectiveInstructions = perspective === 'observer'
-        ? `CRITICAL PERSPECTIVE - OBSERVER MODE:
-${playerIdentity}
-
-IMPORTANT: The thought belongs to the PLAYER CHARACTER, NOT any NPC in the scene.
-- If there's a killer/villain/antagonist in the scene, the player is NOT that character
-- The thought is about the player's REACTION to witnessing this NPC's behavior
-- "Why does part of you understand them?" NOT "Why do you do this?"
-- "What does it mean that you can see their logic?" NOT "The hunt is boring"
-- The player observes, questions, wrestles with what they've seen
-- They might be disturbed, fascinated, horrified, or darkly intrigued - but they are OUTSIDE looking IN
-- Never write from the perpetrator's POV - write from the witness's POV
-- Example: Instead of "You feel the thrill of the hunt" write "You watched them hunt. And something in you understood the thrill. That's what disturbs you."`
-        : `CRITICAL PERSPECTIVE - PARTICIPANT MODE:
-${playerIdentity}
-
-- The thought emerges FROM the mindset shown in the scene
-- The player IS the character having these thoughts naturally
-- If they're a killer, the thought is about their philosophy of killing
-- No external judgment or wrestling - this is how they genuinely think
-- Second person "you" is someone fully inhabiting this headspace`;
-
-    const systemPrompt = `You are a Disco Elysium thought generator. Create a single thought for the Thought Cabinet system.
-
-Available skills for bonuses: ${skillList}
-
-${perspectiveInstructions}
-
-The dominant themes in this conversation are: ${themeHint}
-
-Output ONLY valid JSON with this exact structure:
-{
-  "name": "Evocative 2-4 word name",
-  "icon": "single emoji",
-  "category": "philosophy|identity|obsession|survival|mental|social|emotion",
-  "researchTime": 8,
-  "researchBonus": {
-    "skill_id": {"value": -1, "flavor": "Short reason for penalty"}
-  },
-  "internalizedBonus": {
-    "skill_id": {"value": 2, "flavor": "Short thematic label"}
-  },
-  "problemText": "3-4 paragraphs of stream-of-consciousness questioning. Rambling, uncertain, philosophical. Written in second person. This is wrestling with the concept.",
-  "solutionText": "2-3 paragraphs of resolution. The conclusion reached. More grounded but still poetic. What is realized after mulling it over."
-}
-
-TONE REQUIREMENTS:
-- Problem text should be LONG and RAMBLING - stream of consciousness, full of questions, philosophical tangents
-- Use paragraph breaks (\\n\\n) between thoughts
-- Names should be evocative and slightly absurd like "Volumetric Shit Compressor" or "Finger on the Eject Button"
-- Solution text is the ANSWER - more conclusive, sometimes bittersweet, often with dark humor
-- Match Disco Elysium's darkly humorous, deeply philosophical, self-aware tone
-- Second person throughout ("You", "Your")
-- Research bonuses are penalties while researching (-1 to -2)
-- Internalized bonuses are rewards (+1 to +3) with short flavor text explaining the bonus
-- Research time 6-15 (higher = more profound/complex thoughts)`;
-
-    const userPrompt = prompt 
-        ? `Create a thought about: ${prompt}${contextText ? `\n\nScene context:\n${contextText}` : ''}`
-        : `Generate a thought based on this scene:\n${contextText}`;
-
+    
+    // Get player context (auto-detects perspective from POV)
+    const defaultPlayerContext = getPlayerContext();
+    const playerContext = {
+        perspective: perspective || defaultPlayerContext.perspective,
+        identity: playerIdentity || defaultPlayerContext.identity
+    };
+    
+    // Get theme data
+    const themeData = getThemeCounters();
+    
+    // Build prompts
+    const systemPrompt = buildThoughtSystemPrompt(playerContext, themeData);
+    const userPrompt = buildThoughtUserPrompt(
+        concept, 
+        contextText, 
+        {
+            autoGenerated: !concept,
+            triggeringThemes: getTopThemes(3).map(t => t.name),
+            lorebookContext
+        }
+    );
+    
+    console.log('[Tribunal] Generating thought...');
+    console.log('[Tribunal] Perspective:', playerContext.perspective);
+    console.log('[Tribunal] Identity:', playerContext.identity || '(none)');
+    console.log('[Tribunal] Top themes:', getTopThemes(3).map(t => t.name).join(', '));
+    
     try {
+        // Call the API
         const response = await callAPI(systemPrompt, userPrompt);
         
-        console.log('[The Tribunal] Raw response length:', response?.length);
-        console.log('[The Tribunal] Response preview:', response?.substring(0, 100));
+        console.log('[Tribunal] Raw response length:', response?.length);
         
-        // Parse JSON from response
-        let jsonStr = response;
+        // Parse the response
+        const thought = parseThoughtResponse(response);
         
-        // Try to extract JSON if wrapped in markdown code blocks
-        const jsonMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/);
-        if (jsonMatch) {
-            jsonStr = jsonMatch[1];
-            console.log('[The Tribunal] Extracted from code block');
+        if (!thought) {
+            throw new Error('Failed to parse thought from API response');
         }
         
-        // Also try to find JSON object directly if no code blocks
-        if (!jsonMatch) {
-            const objectMatch = response.match(/\{[\s\S]*\}/);
-            if (objectMatch) {
-                jsonStr = objectMatch[0];
-                console.log('[The Tribunal] Extracted JSON object directly');
-            }
-        }
-        
-        // Clean up common issues
-        jsonStr = jsonStr.trim();
-        
-        console.log('[The Tribunal] Attempting to parse JSON, length:', jsonStr.length);
-        
-        // Parse the thought
-        let thought;
-        try {
-            thought = JSON.parse(jsonStr);
-        } catch (parseError) {
-            console.error('[The Tribunal] JSON parse failed:', parseError.message);
-            console.error('[The Tribunal] JSON string was:', jsonStr.substring(0, 200));
-            throw new Error(`JSON parse failed: ${parseError.message}`);
-        }
-        
-        console.log('[The Tribunal] Parsed thought name:', thought.name);
-        
-        // Validate required fields
-        if (!thought.name || !thought.problemText) {
-            throw new Error('Missing required thought fields (name or problemText)');
-        }
-        
-        // Set defaults for optional fields
-        thought.icon = thought.icon || '💭';
-        thought.category = thought.category || 'philosophy';
-        thought.researchTime = thought.researchTime || 8;
-        thought.researchBonus = thought.researchBonus || {};
-        thought.internalizedBonus = thought.internalizedBonus || {};
-        thought.solutionText = thought.solutionText || thought.problemText;
-        
+        console.log('[Tribunal] Generated thought:', thought.name);
         return thought;
         
     } catch (error) {
-        console.error('[The Tribunal] Thought generation failed:', error);
+        console.error('[Tribunal] Thought generation failed:', error);
         throw error;
     }
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// HIGH-LEVEL HANDLERS
+// ═══════════════════════════════════════════════════════════════
+
 /**
- * Handle the Generate Thought button click
- * Called from cabinet UI via callbacks
+ * Generate and add a thought to the cabinet
+ * Full flow: generate -> parse -> add to discovered
+ * @param {object} options - Same as generateThought
+ * @param {function} onSuccess - Callback with thought
+ * @param {function} onError - Callback with error
+ * @returns {object|null} Added thought
  */
-export async function handleGenerateThought(prompt, fromContext, perspective, playerContext, refreshCabinetTab) {
-    showToast('Generating thought...', 'info', 5000);
+export async function generateAndAddThought(options = {}, onSuccess = null, onError = null) {
+    try {
+        const thought = await generateThought(options);
+        
+        if (!thought) {
+            throw new Error('Generation returned empty');
+        }
+        
+        // Add to cabinet
+        const addedThought = addCustomThought(thought);
+        
+        if (!addedThought) {
+            throw new Error('Failed to add thought to cabinet');
+        }
+        
+        console.log('[Tribunal] Added thought:', addedThought.name, 'ID:', addedThought.id);
+        
+        if (onSuccess) {
+            onSuccess(addedThought);
+        }
+        
+        return addedThought;
+        
+    } catch (error) {
+        console.error('[Tribunal] generateAndAddThought failed:', error);
+        
+        if (onError) {
+            onError(error);
+        }
+        
+        return null;
+    }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// LOREBOOK INTEGRATION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Try to extract relevant lorebook entries for thought generation
+ * @param {string} concept - The concept being explored
+ * @returns {string} Formatted lorebook context
+ */
+export function extractLorebookContext(concept) {
+    try {
+        const stContext = window.SillyTavern?.getContext?.() || window.getContext?.();
+        
+        if (!stContext?.characters) {
+            return '';
+        }
+        
+        // Get current character's lorebook if available
+        const char = stContext.characters?.[stContext.characterId];
+        if (!char) {
+            return '';
+        }
+        
+        // Build context from character description and personality
+        let context = '';
+        
+        if (char.description) {
+            context += `Character Description:\n${char.description.substring(0, 500)}\n\n`;
+        }
+        
+        if (char.personality) {
+            context += `Character Personality:\n${char.personality.substring(0, 300)}\n\n`;
+        }
+        
+        return context;
+        
+    } catch (e) {
+        console.warn('[Tribunal] Could not extract lorebook context:', e);
+        return '';
+    }
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// UI HANDLER (for panel integration)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Handle Generate Thought button click
+ * Called from cabinet UI
+ * @param {object} formData - { concept, fromContext, perspective, playerIdentity }
+ * @param {function} refreshCabinetTab - Callback to refresh UI
+ * @param {function} showToast - Toast notification function
+ * @returns {object|null}
+ */
+export async function handleGenerateThought(formData, refreshCabinetTab, showToast) {
+    const { concept, fromContext, perspective, playerIdentity } = formData;
+    
+    if (showToast) {
+        showToast('Generating thought...', 'info', 5000);
+    }
     
     try {
-        const thought = await generateThought(prompt, fromContext, perspective, playerContext);
+        // Try to get lorebook context
+        const lorebookContext = extractLorebookContext(concept);
+        
+        const thought = await generateAndAddThought({
+            concept,
+            fromContext,
+            perspective,
+            playerIdentity,
+            lorebookContext
+        });
         
         if (thought) {
-            console.log('[The Tribunal] Generated thought:', thought.name);
-            
-            // Add to discovered thoughts
-            const ctx = getContext();
-            const addedThought = addCustomThought(thought, ctx);
-            
-            console.log('[The Tribunal] Added thought with ID:', addedThought?.id);
-            console.log('[The Tribunal] Discovered array now has:', 
-                (ctx?.extensionSettings?.inland_empire?.thoughtCabinet?.discovered?.length || 'unknown') + ' items');
-            
-            // Force save
-            saveState(ctx);
-            
-            showToast(`Discovered: ${thought.name}`, 'success');
-            
-            // Refresh the cabinet UI
-            if (refreshCabinetTab) {
-                console.log('[The Tribunal] Calling refreshCabinetTab');
-                refreshCabinetTab();
-            } else {
-                console.warn('[The Tribunal] No refreshCabinetTab callback provided!');
+            if (showToast) {
+                showToast(`Discovered: ${thought.name}`, 'success');
             }
             
-            return addedThought;
+            if (refreshCabinetTab) {
+                refreshCabinetTab();
+            }
+            
+            return thought;
         } else {
-            showToast('Generation returned empty', 'error');
+            if (showToast) {
+                showToast('Generation failed', 'error');
+            }
         }
+        
     } catch (error) {
         const errorMsg = error.message || 'Unknown error';
-        showToast(`Failed: ${errorMsg.substring(0, 50)}`, 'error');
-        console.error('[The Tribunal] Generate thought error:', error);
+        
+        if (showToast) {
+            showToast(`Failed: ${errorMsg.substring(0, 50)}`, 'error');
+        }
+        
+        console.error('[Tribunal] handleGenerateThought error:', error);
     }
     
     return null;
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// AUTO-SUGGEST (Future feature)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Check if conditions are right to suggest a thought
+ * @returns {boolean}
+ */
+export function shouldSuggestThought() {
+    const topThemes = getTopThemes(1);
+    
+    if (topThemes.length > 0 && topThemes[0].count >= 10) {
+        return true;
+    }
+    
+    return false;
+}
+
+/**
+ * Get suggested thought prompt based on current themes
+ * @returns {string|null}
+ */
+export function getSuggestedPrompt() {
+    const topThemes = getTopThemes(3);
+    
+    if (topThemes.length === 0) {
+        return null;
+    }
+    
+    const themeNames = topThemes.map(t => t.name.toLowerCase());
+    
+    if (themeNames.includes('death') && themeNames.includes('identity')) {
+        return "What dies when you forget who you were?";
+    }
+    
+    if (themeNames.includes('love') && themeNames.includes('failure')) {
+        return "Why do you keep reaching for what always slips away?";
+    }
+    
+    if (themeNames.includes('violence') && themeNames.includes('authority')) {
+        return "Is force the only language that matters?";
+    }
+    
+    const topTheme = topThemes[0].name;
+    return `What does ${topTheme.toLowerCase()} mean to someone like you?`;
 }
