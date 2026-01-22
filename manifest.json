@@ -1,13 +1,12 @@
 {
     "display_name": "The Tribunal",
-    "loading_order": 100,
+    "loading_order": 10,
     "requires": [],
     "optional": [],
     "js": "index.js",
     "css": "styles.css",
     "author": "sinnerconsort",
-    "version": "1.0.0",
+    "version": "0.5.0",
     "homePage": "https://github.com/sinnerconsort/The-Tribunal",
-    "auto_update": true,
-    "icon": "disco-ball-icon.svg"
+    "description": "A standalone text-based Disco Elysium system - internal voice generation, thought cabinet, and RCM paperwork aesthetic"
 }

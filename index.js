@@ -1,1097 +1,591 @@
 /**
  * The Tribunal - SillyTavern Extension
- * Main entry point - brings together all modular components
+ * A standalone text based Disco Elysium system
  * 
- * A Disco Elysium-inspired internal skill voice system for roleplay
- * Phase 2: Vitals Auto-Detection
- * Phase 3: Ledger Sub-Tabs & Fortune System
- * Phase 5: Thought Generation System
+ * v0.9.6 - Fixed character name display, settings wiring
  */
 
 // ═══════════════════════════════════════════════════════════════
-// IMPORTS
+// IMPORTS - SillyTavern
 // ═══════════════════════════════════════════════════════════════
 
-// Data
-import { SKILLS, ATTRIBUTES, ANCIENT_VOICES } from './src/data/skills.js';
-import { STATUS_EFFECTS } from './src/data/statuses.js';
-import { THEMES, THOUGHTS } from './src/data/thoughts.js';
-import { isDeepNight } from './src/data/fortune.js';
+import { getContext } from '../../../extensions.js';
+import { eventSource, event_types } from '../../../../script.js';
 
-// Core State
-import {
-    extensionSettings,
-    activeStatuses,
-    currentBuild,
-    savedProfiles,
-    themeCounters,
-    thoughtCabinet,
-    discoveryContext,
-    loadState,
-    saveState,
-    toggleStatus,
-    getAttributePoints,
-    applyAttributeAllocation,
-    getEffectiveSkillLevel,
-    updateSettings,
-    saveProfile,
-    loadProfile,
-    deleteProfile,
-    updateProfile,
-    initializeDefaultBuild,
-    vitals,
-    getVitals,
-    setHealth,
-    setMorale,
-    modifyHealth,
-    modifyMorale,
-    ledger,
-    getLedger,
-    inventory,
-    getInventory,
-    setMoney as setMoneyState,
-    // Phase 5: Thought generation - NEW
-    addDiscoveredThought,
-    getDiscoveredThoughts,
-    getThemeCounters,
-    getPlayerContext,
-    savePlayerContext
+// ═══════════════════════════════════════════════════════════════
+// IMPORTS - State Management
+// ═══════════════════════════════════════════════════════════════
+
+import { 
+    initSettings, 
+    loadChatState, 
+    hasActiveChat,
+    getChatState,
+    exportDebugState
+} from './src/core/persistence.js';
+
+import { registerEvents, onStateRefresh } from './src/core/events.js';
+import { getSettings, saveSettings, setPersona } from './src/core/state.js';
+
+// ═══════════════════════════════════════════════════════════════
+// IMPORTS - UI Components
+// ═══════════════════════════════════════════════════════════════
+
+import { createPsychePanel, createToggleFAB } from './src/ui/panel.js';
+import { bindEvents, openPanel, closePanel, switchTab, togglePanel } from './src/ui/panel-helpers.js';
+import { startWatch, setRPTime, setRPWeather } from './src/ui/watch.js';
+import { updateCRTVitals, setRCMCopotype, setCRTCharacterName } from './src/ui/crt-vitals.js';
+import { initProfiles, refreshProfilesFromState } from './src/ui/profiles-handlers.js';
+import { initStatus, refreshStatusFromState } from './src/ui/status-handlers.js';
+import { initSettingsTab } from './src/ui/settings-handlers.js';
+
+// ═══════════════════════════════════════════════════════════════
+// IMPORTS - Voice Generation
+// ═══════════════════════════════════════════════════════════════
+
+import { generateVoicesForMessage } from './src/voice/generation.js';
+import { renderVoices, appendVoicesToChat, clearVoices } from './src/voice/render-voices.js';
+
+// ═══════════════════════════════════════════════════════════════
+// IMPORTS - Investigation (standalone module)
+// ═══════════════════════════════════════════════════════════════
+
+import { 
+    initInvestigation, 
+    updateSceneContext,
+    openInvestigation,
+    closeInvestigation 
+} from './src/systems/investigation.js';
+
+// ═══════════════════════════════════════════════════════════════
+// RE-EXPORTS - For external access
+// ═══════════════════════════════════════════════════════════════
+
+// UI functions
+export { togglePanel, switchTab, openPanel, closePanel } from './src/ui/panel-helpers.js';
+export { updateCRTVitals, flashCRTEffect, setCRTCharacterName } from './src/ui/crt-vitals.js';
+export { setRCMStatus, setRCMCopotype, addRCMAncientVoice, addRCMActiveEffect } from './src/ui/crt-vitals.js';
+export { setRPTime, setRPWeather, getWatchMode } from './src/ui/watch.js';
+
+// State accessors
+export { 
+    getVitals, updateVitals, setHealth, setMorale, applyDamage, applyHealing,
+    setCopotype, addActiveEffect, removeActiveEffect,
+    getAttributes, setAttribute, getSkillLevel, setSkillBonus,
+    getThoughtCabinet, discoverThought, startResearch, progressResearch, internalizeThought, forgetThought, addTheme,
+    getInventory, addItem, removeItem, moveItem, updateMoney, setMoneyUnit,
+    getLedger, addCase, updateCase, addNote, setWeather, setTime, addLocation,
+    getRelationships, getRelationship, addRelationship, updateFavor, setVoiceOpinion, getDominantVoice,
+    getVoiceState, setLastGeneratedVoices, awakenVoice, setActiveInvestigation, addDiscoveredClue,
+    getPersona, setPersona,
+    incrementMessageCount, getMessageCount
 } from './src/core/state.js';
 
-// Systems
-import { rollSkillCheck } from './src/systems/dice.js';
+// Voice functions
+export { generateVoicesForMessage, renderVoices, appendVoicesToChat };
 
-import {
-    initializeThemeCounters,
-    trackThemesInMessage,
-    checkThoughtDiscovery,
-    startResearch,
-    incrementMessageCount,
-    getResearchPenalties,
-    getTopThemes,
-    MAX_INTERNALIZED_THOUGHTS
-} from './src/systems/cabinet.js';
-
-import {
-    analyzeContext,
-    selectSpeakingSkills,
-    generateVoices,
-    getAvailableProfiles
-} from './src/voice/generation.js';
-
-import {
-    createThoughtBubbleFAB,
-    createDiscoveryModal,
-    updateSceneContext,
-    toggleDiscoveryModal,
-    autoScan
-} from './src/voice/discovery.js';
-
-import {
-    initVitalsHooks,
-    processMessageForVitals,
-    getVitalsAPI,
-    analyzeTextForVitals
-} from './src/systems/vitals/hooks.js';
-
-// UI - Panel & Toasts
-import {
-    createPsychePanel,
-    createToggleFAB,
-    togglePanel,
-    switchTab,
-    updateHealth,
-    updateMorale,
-    updateCaseTitle,
-    updateMoney,
-    updateWeather,
-    populateConnectionProfiles,
-    initLedgerSubTabs,
-    updateCompartmentCrack,
-    renderCaseCard,
-    updateBadgeDisplay,
-    displayFortune,
-    generateCaseCode
-} from './src/ui/panel.js';
-
-import {
-    showToast,
-    hideToast,
-    showDiscoveryToast,
-    showInternalizedToast
-} from './src/ui/toasts.js';
-
-import {
-    renderVoices,
-    appendVoicesToChat,
-    renderAttributesDisplay,
-    renderBuildEditor,
-    updatePointsRemaining,
-    renderStatusGrid,
-    renderActiveEffectsSummary,
-    renderProfilesList,
-    renderThoughtCabinet,
-    renderThoughtModal
-} from './src/ui/render.js';
-
-// UI - Extracted Handlers
-import {
-    updateBuildPointsDisplay,
-    refreshAttributesDisplay,
-    refreshStatusTab as refreshStatusTabBase,
-    refreshCabinetTab as refreshCabinetTabBase,
-    refreshVitals,
-    refreshLedgerDisplay,
-    refreshInventoryDisplay,
-    refreshProfilesTab as refreshProfilesTabBase,
-    populateSettingsForm,
-    closeAllModals as closeAllModalsBase
-} from './src/ui/refresh.js';
-
-import {
-    handleAddCase as handleAddCaseBase,
-    handleDrawFortune as handleDrawFortuneBase,
-    checkCompartmentProgress as checkCompartmentProgressBase,
-    handleLedgerNotesChange as handleLedgerNotesChangeBase
-} from './src/ui/ledger-handlers.js';
-
-import {
-    createCabinetHandlers,
-    handleStartResearch,
-    handleAbandonResearch,
-    handleDismissThought,
-    handleForgetThought,
-    handleAutoThoughtGeneration
-} from './src/ui/cabinet-handlers.js';
-
-// Phase 5: Thought Generator Handlers - NEW
-import {
-    bindThoughtGeneratorEvents,
-    autoGenerateThought,
-    generateThoughtFromConcept
-} from './src/ui/thought-generator-handlers.js';
+// Investigation functions
+export { initInvestigation, updateSceneContext, openInvestigation, closeInvestigation } from './src/systems/investigation.js';
 
 // ═══════════════════════════════════════════════════════════════
 // EXTENSION METADATA
 // ═══════════════════════════════════════════════════════════════
 
-const extensionName = 'inland-empire';
-const extensionFolderPath = `scripts/extensions/third-party/${extensionName}`;
-
-let stContext = null;
-let messagesSinceAutoGen = 0;
+const extensionName = 'the-tribunal';
+const extensionVersion = '0.9.6';
 
 // ═══════════════════════════════════════════════════════════════
-// SILLYTAVERN INTEGRATION
+// CHAT-ONLY FAB VISIBILITY
 // ═══════════════════════════════════════════════════════════════
 
-function getContext() {
-    if (stContext) return stContext;
-    if (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) {
-        stContext = SillyTavern.getContext();
-    }
-    return stContext;
-}
-
-function getLastMessage() {
-    const context = getContext();
-    if (!context?.chat?.length) return null;
-    return context.chat[context.chat.length - 1];
-}
-
-function getChatContainer() {
-    return document.getElementById('chat');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// BOUND HANDLER WRAPPERS
-// ═══════════════════════════════════════════════════════════════
-
-// Bound versions of extracted handlers that include getContext
-function refreshStatusTab() {
-    refreshStatusTabBase((statusId) => {
-        toggleStatus(statusId);
-    }, () => saveState(getContext()));
-}
-
-function refreshCabinetTab() {
-    const handlers = createCabinetHandlers(getContext, refreshCabinetTab);
-    refreshCabinetTabBase(handlers);
-}
-
-function refreshProfilesTab() {
-    refreshProfilesTabBase({
-        loadProfile,
-        deleteProfile,
-        updateProfile,
-        saveState,
-        getContext
-    });
-}
-
-function closeAllModals() {
-    closeAllModalsBase(toggleDiscoveryModal);
-}
-
-function handleAddCase() {
-    handleAddCaseBase(getContext, refreshLedgerDisplay);
-}
-
-function handleDrawFortune() {
-    handleDrawFortuneBase(getContext);
-}
-
-function checkCompartmentProgress() {
-    checkCompartmentProgressBase(getContext);
-}
-
-function handleLedgerNotesChange(e) {
-    handleLedgerNotesChangeBase(e, getContext);
-}
-
-// Cabinet handler wrappers
-function onStartResearch(thoughtId) {
-    handleStartResearch(thoughtId, getContext, refreshCabinetTab);
-}
-
-function onAbandonResearch(thoughtId) {
-    handleAbandonResearch(thoughtId, getContext, refreshCabinetTab);
-}
-
-function onDismissThought(thoughtId) {
-    handleDismissThought(thoughtId, getContext, refreshCabinetTab);
-}
-
-function onForgetThought(thoughtId) {
-    handleForgetThought(thoughtId, getContext, refreshCabinetTab);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// FAB VISIBILITY MANAGEMENT
-// ═══════════════════════════════════════════════════════════════
-
-function updateFABState() {
-    const fab = document.getElementById('inland-empire-fab');
-    const thoughtFab = document.getElementById('ie-thought-fab');
+/**
+ * Check if we're currently in a chat view (no drawers/menus/panels open)
+ * @returns {boolean}
+ */
+function isInChatView() {
+    // Must have chat element
+    const chat = document.getElementById('chat');
+    if (!chat) return false;
     
-    if (fab) {
-        if (extensionSettings.enabled) {
-            fab.style.display = 'flex';
-            fab.classList.remove('ie-fab-disabled');
-            fab.title = 'Open Psyche Panel';
-        } else {
-            fab.style.display = 'none';
-            fab.classList.add('ie-fab-disabled');
-            fab.title = 'The Tribunal (Disabled)';
-        }
+    // Must have active character/group
+    const ctx = getContext();
+    if (!ctx?.characterId && !ctx?.groupId) return false;
+    
+    // Hide if ANY ST drawer is open
+    const anyOpenDrawer = document.querySelector('.openDrawer');
+    if (anyOpenDrawer) {
+        return false;
     }
     
-    if (thoughtFab) {
-        if (extensionSettings.enabled && extensionSettings.showInvestigationFab !== false) {
-            thoughtFab.style.display = 'flex';
-            thoughtFab.classList.remove('ie-thought-fab-disabled');
-        } else {
-            thoughtFab.style.display = 'none';
-            thoughtFab.classList.add('ie-thought-fab-disabled');
-        }
-    }
-}
-
-function updateInvestigationFABVisibility() {
-    const thoughtFab = document.getElementById('ie-thought-fab');
-    
-    if (thoughtFab) {
-        if (extensionSettings.enabled && extensionSettings.showInvestigationFab !== false) {
-            thoughtFab.style.display = 'flex';
-            thoughtFab.classList.remove('ie-thought-fab-disabled');
-        } else {
-            thoughtFab.style.display = 'none';
-            thoughtFab.classList.add('ie-thought-fab-disabled');
-        }
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// MAIN TRIGGER FUNCTION
-// ═══════════════════════════════════════════════════════════════
-
-async function triggerVoices(externalContext = null) {
-    if (!extensionSettings.enabled) return;
-    
-    const context = externalContext || getContext();
-    const lastMsg = getLastMessage();
-    
-    if (!lastMsg?.mes) {
-        showToast('No message to analyze', 'info');
-        return;
+    // Hide if Tribunal panel is open
+    const tribunalPanel = document.getElementById('inland-empire-panel');
+    if (tribunalPanel && tribunalPanel.classList.contains('ie-panel-open')) {
+        return false;
     }
     
-    const loadingToast = showToast('Consulting inner voices...', 'loading');
-    
-    try {
-        const themes = trackThemesInMessage(lastMsg.mes, THEMES);
-        incrementMessageCount();
-        
-        const thought = checkThoughtDiscovery(THOUGHTS);
-        if (thought) {
-            showDiscoveryToast(thought, onStartResearch, onDismissThought);
-        }
-        
-        const voiceContext = analyzeContext(lastMsg.mes, {
-            themes,
-            activeStatuses: [...activeStatuses],
-            vitals: getVitals(),
-            researchPenalties: getResearchPenalties()
-        });
-        
-        const selectedSkills = selectSpeakingSkills(voiceContext, {
-            currentBuild,
-            activeStatuses: [...activeStatuses],
-            settings: extensionSettings
-        });
-        
-        if (selectedSkills.length === 0) {
-            hideToast(loadingToast);
-            showToast('No skills triggered', 'info');
-            return;
-        }
-        
-        const voices = await generateVoices(selectedSkills, voiceContext, {
-            settings: extensionSettings,
-            researchPenalties: getResearchPenalties()
-        });
-        
-        hideToast(loadingToast);
-        
-        if (voices.length > 0) {
-            const container = document.getElementById('ie-voices-output');
-            if (container) {
-                renderVoices(voices, container);
-            }
-            
-            if (extensionSettings.appendToChat !== false) {
-                appendVoicesToChat(voices, getChatContainer());
-            }
-            
-            showToast(`${voices.length} voice${voices.length > 1 ? 's' : ''} spoke`, 'success');
-        } else {
-            showToast('Voices are silent...', 'info');
-        }
-        
-    } catch (error) {
-        hideToast(loadingToast);
-        console.error('[The Tribunal] Voice generation failed:', error);
-        showToast(`Error: ${error.message}`, 'error');
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// EVENT BINDING
-// ═══════════════════════════════════════════════════════════════
-
-function bindEvents() {
-    // FAB click
-    document.getElementById('inland-empire-fab')?.addEventListener('click', function(e) {
-        if (this.dataset.justDragged === 'true') {
-            this.dataset.justDragged = 'false';
-            return;
-        }
-        togglePanel();
-        
-        const panel = document.getElementById('inland-empire-panel');
-        if (panel?.classList.contains('ie-panel-open')) {
-            refreshVitals();
-        }
-    });
-
-    // Close panel button
-    document.querySelector('.ie-btn-close-panel')?.addEventListener('click', togglePanel);
-
-    // Tab switching (main 5 tabs)
-    document.querySelectorAll('.ie-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            switchTab(tab.dataset.tab, {
-                onProfiles: refreshProfilesTab,
-                onSettings: populateSettingsForm,
-                onStatus: refreshStatusTab,
-                onCabinet: refreshCabinetTab,
-                onVoices: refreshAttributesDisplay,
-                onLedger: refreshLedgerDisplay,
-                onInventory: refreshInventoryDisplay
-            });
-        });
-    });
-
-    // Bottom buttons (Settings/Profiles)
-    document.querySelectorAll('.ie-bottom-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const panel = btn.dataset.panel;
-            switchTab(panel, {
-                onProfiles: refreshProfilesTab,
-                onSettings: populateSettingsForm,
-                onStatus: refreshStatusTab,
-                onCabinet: refreshCabinetTab,
-                onVoices: refreshAttributesDisplay,
-                onLedger: refreshLedgerDisplay,
-                onInventory: refreshInventoryDisplay
-            });
-        });
-    });
-
-    // Manual trigger button
-    document.getElementById('ie-manual-trigger')?.addEventListener('click', () => triggerVoices());
-
-    // Clear voices
-    document.querySelector('.ie-btn-clear-voices')?.addEventListener('click', () => {
-        const container = document.getElementById('ie-voices-output');
-        if (container) {
-            container.innerHTML = `
-                <div class="ie-voices-empty">
-                    <i class="fa-solid fa-comment-slash"></i>
-                    <span>Waiting for something to happen...</span>
-                </div>
-            `;
-        }
-    });
-
-    // Test API
-    document.getElementById('ie-test-api-btn')?.addEventListener('click', async () => {
-        const endpoint = document.getElementById('ie-api-endpoint')?.value;
-        const apiKey = document.getElementById('ie-api-key')?.value;
-        const model = document.getElementById('ie-model')?.value;
-
-        if (!endpoint || !apiKey) {
-            showToast('Please fill in API endpoint and key', 'error');
-            return;
-        }
-
-        const loadingToast = showToast('Testing API connection...', 'loading');
-
-        try {
-            const response = await fetch(endpoint + '/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKey}`
-                },
-                body: JSON.stringify({
-                    model: model || 'glm-4-plus',
-                    messages: [{ role: 'user', content: 'Say "connection successful" in exactly those words.' }],
-                    max_tokens: 20
-                })
-            });
-
-            hideToast(loadingToast);
-
-            if (response.ok) {
-                showToast('API connection successful!', 'success');
-            } else {
-                const error = await response.json().catch(() => ({}));
-                showToast(`API error: ${error.error?.message || response.statusText}`, 'error');
-            }
-        } catch (error) {
-            hideToast(loadingToast);
-            showToast(`Connection failed: ${error.message}`, 'error');
-        }
-    });
-
-    // Save settings
-    document.querySelector('.ie-btn-save-settings')?.addEventListener('click', () => {
-        const newSettings = {
-            connectionProfile: document.getElementById('ie-connection-profile')?.value || 'current',
-            apiEndpoint: document.getElementById('ie-api-endpoint')?.value || '',
-            apiKey: document.getElementById('ie-api-key')?.value || '',
-            model: document.getElementById('ie-model')?.value || 'glm-4-plus',
-            temperature: parseFloat(document.getElementById('ie-temperature')?.value) || 0.9,
-            maxTokens: parseInt(document.getElementById('ie-max-tokens')?.value) || 300,
-            voicesPerMessage: {
-                min: parseInt(document.getElementById('ie-min-voices')?.value) || 1,
-                max: parseInt(document.getElementById('ie-max-voices')?.value) || 4
-            },
-            triggerDelay: parseInt(document.getElementById('ie-trigger-delay')?.value) || 1000,
-            enabled: document.getElementById('ie-enabled')?.checked ?? true,
-            showDiceRolls: document.getElementById('ie-show-dice-rolls')?.checked ?? true,
-            showFailedChecks: document.getElementById('ie-show-failed-checks')?.checked ?? true,
-            autoTrigger: document.getElementById('ie-auto-trigger')?.checked ?? false,
-            intrusiveEnabled: document.getElementById('ie-intrusive-enabled')?.checked ?? true,
-            intrusiveChance: (parseInt(document.getElementById('ie-intrusive-chance')?.value) || 15) / 100,
-            intrusiveInChat: document.getElementById('ie-intrusive-in-chat')?.checked ?? true,
-            povStyle: document.getElementById('ie-pov-style')?.value || 'second',
-            characterName: document.getElementById('ie-character-name')?.value || '',
-            characterPronouns: document.getElementById('ie-character-pronouns')?.value || 'they',
-            characterContext: document.getElementById('ie-character-context')?.value || '',
-            scenePerspective: document.getElementById('ie-scene-perspective')?.value || '',
-            showInvestigationFab: document.getElementById('ie-show-investigation-fab')?.checked ?? true,
-            autoDetectVitals: document.getElementById('ie-auto-detect-vitals')?.checked ?? false,
-            vitalsSensitivity: document.getElementById('ie-vitals-sensitivity')?.value || 'medium',
-            vitalsShowNotifications: document.getElementById('ie-vitals-notifications')?.checked ?? true
-        };
-
-        updateSettings(newSettings);
-        saveState(getContext());
-        updateFABState();
-        
-        const extCheckbox = document.getElementById('ie-ext-enabled');
-        if (extCheckbox) extCheckbox.checked = newSettings.enabled;
-
-        showToast('Settings saved!', 'success');
-    });
-
-    // Reset FAB position
-    document.querySelector('.ie-btn-reset-fab')?.addEventListener('click', () => {
-        const fab = document.getElementById('inland-empire-fab');
-        const thoughtFab = document.getElementById('ie-thought-fab');
-        
-        if (fab) {
-            fab.style.top = '140px';
-            fab.style.left = '10px';
-            extensionSettings.fabPositionTop = 140;
-            extensionSettings.fabPositionLeft = 10;
-        }
-        
-        if (thoughtFab) {
-            thoughtFab.style.top = '200px';
-            thoughtFab.style.left = '10px';
-            extensionSettings.discoveryFabTop = 200;
-            extensionSettings.discoveryFabLeft = 10;
-        }
-        
-        saveState(getContext());
-        showToast('Icon positions reset', 'info');
-    });
-
-    // Save profile
-    document.getElementById('ie-save-profile-btn')?.addEventListener('click', () => {
-        const nameInput = document.getElementById('ie-new-profile-name');
-        const name = nameInput?.value?.trim();
-        
-        if (!name) {
-            showToast('Please enter a profile name', 'error');
-            return;
-        }
-
-        saveProfile(name);
-        saveState(getContext());
-        nameInput.value = '';
-        refreshProfilesTab();
-        showToast(`Profile saved: ${name}`, 'success');
-    });
-
-    // Apply build
-    document.querySelector('.ie-btn-apply-build')?.addEventListener('click', () => {
-        const allocation = {};
-        
-        Object.keys(ATTRIBUTES).forEach(attrId => {
-            const valueEl = document.getElementById(`ie-attr-${attrId}`);
-            if (valueEl) {
-                allocation[attrId] = parseInt(valueEl.textContent) || 1;
-            }
-        });
-        
-        const result = applyAttributeAllocation(allocation);
-        
-        if (result.valid) {
-            saveState(getContext());
-            refreshAttributesDisplay();
-            refreshProfilesTab();
-            showToast('Build applied!', 'success');
-        } else {
-            showToast(`Invalid build: ${result.reason}`, 'error');
-        }
-    });
-
-    // Investigation FAB toggle in settings
-    document.getElementById('ie-show-investigation-fab')?.addEventListener('change', (e) => {
-        extensionSettings.showInvestigationFab = e.target.checked;
-        updateInvestigationFABVisibility();
-        saveState(getContext());
-    });
-    
-    // Ledger event bindings
-    document.getElementById('ie-add-case-btn')?.addEventListener('click', handleAddCase);
-    document.getElementById('ie-draw-fortune-btn')?.addEventListener('click', handleDrawFortune);
-    document.getElementById('ie-ledger-notes')?.addEventListener('blur', handleLedgerNotesChange);
-    
-    // Vitals detection toggle
-    document.getElementById('ie-auto-detect-vitals')?.addEventListener('change', (e) => {
-        extensionSettings.autoDetectVitals = e.target.checked;
-        saveState(getContext());
-        showToast(e.target.checked ? 'Auto-detection enabled' : 'Auto-detection disabled', 'info');
-    });
-    
-    // Manual vitals scan
-    document.getElementById('ie-scan-vitals-btn')?.addEventListener('click', () => {
-        const lastMsg = getLastMessage();
-        if (!lastMsg?.mes) {
-            showToast('No message to scan', 'info');
-            return;
-        }
-        
-        const result = analyzeTextForVitals(lastMsg.mes, {
-            protagonistName: extensionSettings.characterName,
-            sensitivity: extensionSettings.vitalsSensitivity || 'medium'
-        });
-        
-        if (result.healthDelta !== 0 || result.moraleDelta !== 0) {
-            if (result.healthDelta !== 0) modifyHealth(result.healthDelta, getContext());
-            if (result.moraleDelta !== 0) modifyMorale(result.moraleDelta, getContext());
-            refreshVitals();
-            
-            const parts = [];
-            if (result.healthDelta !== 0) {
-                const sign = result.healthDelta > 0 ? '+' : '';
-                parts.push(`Health ${sign}${result.healthDelta}`);
-            }
-            if (result.moraleDelta !== 0) {
-                const sign = result.moraleDelta > 0 ? '+' : '';
-                parts.push(`Morale ${sign}${result.moraleDelta}`);
-            }
-            showToast(`Detected: ${parts.join(', ')} [${result.severity}]`, 'info', 5000);
-        } else {
-            showToast('No vitals changes detected in last message', 'info');
-        }
-    });
-    
-    // Manual vitals adjustment buttons
-    document.getElementById('ie-health-minus')?.addEventListener('click', () => {
-        modifyHealth(-1, getContext());
-        refreshVitals();
-        showToast('Health -1', 'warning', 1500);
-    });
-    
-    document.getElementById('ie-health-plus')?.addEventListener('click', () => {
-        modifyHealth(1, getContext());
-        refreshVitals();
-        showToast('Health +1', 'success', 1500);
-    });
-    
-    document.getElementById('ie-morale-minus')?.addEventListener('click', () => {
-        modifyMorale(-1, getContext());
-        refreshVitals();
-        showToast('Morale -1', 'warning', 1500);
-    });
-    
-    document.getElementById('ie-morale-plus')?.addEventListener('click', () => {
-        modifyMorale(1, getContext());
-        refreshVitals();
-        showToast('Morale +1', 'success', 1500);
-    });
-    
-    // ═══════════════════════════════════════════════════════════════
-    // THOUGHT GENERATOR BINDINGS (Phase 5) - NEW
-    // ═══════════════════════════════════════════════════════════════
-    
-    // Bind thought generator events (perspective toggle, identity input, generate button)
-    bindThoughtGeneratorEvents(
-        getContext,
-        (thought) => {
-            // Add to discovered thoughts
-            addDiscoveredThought(thought);
-            saveState(getContext());
-        },
-        () => {
-            // Refresh cabinet display
-            refreshCabinetTab();
-        }
-    );
-}
-
-// ═══════════════════════════════════════════════════════════════
-// AUTO TRIGGER SETUP
-// ═══════════════════════════════════════════════════════════════
-
-function setupAutoTrigger() {
-    const context = getContext();
-    if (!context?.eventSource) {
-        console.warn('[The Tribunal] Event source not available');
-        return;
-    }
-
-    context.eventSource.on('message_received', async () => {
-        if (!extensionSettings.enabled) return;
-        
-        await new Promise(r => setTimeout(r, extensionSettings.triggerDelay || 1000));
-        
-        if (extensionSettings.autoTrigger) {
-            triggerVoices();
-        }
-        
-        const lastMsg = getLastMessage();
-        if (lastMsg?.mes) {
-            autoScan(lastMsg.mes);
-            
-            if (extensionSettings.autoDetectVitals) {
-                processMessageForVitals(lastMsg.mes, lastMsg.send_date);
-            }
-            
-            // ═══════════════════════════════════════════════════════════════
-            // AUTO THOUGHT GENERATION (Phase 5) - NEW
-            // ═══════════════════════════════════════════════════════════════
-            if (extensionSettings.thoughtGeneration?.enableAutoThoughts) {
-                await checkAutoThoughtTrigger(lastMsg.mes);
-            }
-        }
-    });
+    return true;
 }
 
 /**
- * Check if conditions are met for auto thought generation
- * @param {string} messageText - The message text to analyze
+ * Update FAB visibility based on current view AND settings
  */
-async function checkAutoThoughtTrigger(messageText) {
-    const themeData = getThemeCounters();
-    const threshold = extensionSettings.thoughtGeneration?.autoTriggerThreshold || 5;
+function updateFABVisibility() {
+    const settings = getSettings();
+    const mainFab = document.getElementById('inland-empire-fab');
+    const invFab = document.getElementById('tribunal-investigation-fab');
     
-    // Find themes that crossed threshold
-    const triggeringThemes = Object.entries(themeData)
-        .filter(([theme, count]) => count >= threshold)
-        .map(([theme]) => theme);
+    // Check if extension is enabled
+    const extensionEnabled = settings?.enabled !== false;
+    const inChatView = isInChatView();
     
-    if (triggeringThemes.length === 0) return;
-    
-    // Check cooldown
-    const lastAutoGen = extensionSettings.thoughtGeneration?.lastAutoGenTime || 0;
-    const cooldownMs = (extensionSettings.thoughtGeneration?.cooldownMinutes || 10) * 60 * 1000;
-    
-    if (Date.now() - lastAutoGen < cooldownMs) return;
-    
-    // Trigger auto-generation
-    const thought = await autoGenerateThought(
-        triggeringThemes,
-        null, // emotionalTone - could extract from analyzeContext()
-        getContext,
-        (thought) => {
-            addDiscoveredThought(thought);
-            saveState(getContext());
-            refreshCabinetTab();
-        }
-    );
-    
-    if (thought) {
-        // Update cooldown
-        if (!extensionSettings.thoughtGeneration) {
-            extensionSettings.thoughtGeneration = {};
-        }
-        extensionSettings.thoughtGeneration.lastAutoGenTime = Date.now();
-        saveState(getContext());
+    // Main FAB visibility
+    if (mainFab) {
+        const showMainFab = extensionEnabled && (settings?.ui?.showFab !== false) && inChatView;
+        mainFab.style.display = showMainFab ? 'flex' : 'none';
     }
+    
+    // Investigation FAB visibility - check both old and new setting paths
+    if (invFab) {
+        const showInvFab = extensionEnabled && 
+            (settings?.investigation?.showFab !== false) && 
+            (settings?.ui?.showInvestigationFab !== false) && 
+            inChatView;
+        invFab.style.display = showInvFab ? 'flex' : 'none';
+    }
+}
+
+/**
+ * Set up observers and listeners for FAB visibility
+ */
+function setupFABVisibilityWatchers() {
+    // Initial check (delayed to let ST finish loading)
+    setTimeout(updateFABVisibility, 500);
+    
+    // Watch for SillyTavern events
+    const stEvents = [
+        event_types.CHAT_CHANGED,
+        event_types.CHARACTER_MESSAGE_RENDERED,
+        event_types.GROUP_UPDATED
+    ];
+    
+    stEvents.forEach(eventType => {
+        if (eventType) {
+            eventSource.on(eventType, () => {
+                setTimeout(updateFABVisibility, 100);
+            });
+        }
+    });
+    
+    // Watch for ANY class changes in the document (catches drawer open/close)
+    const globalObserver = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                updateFABVisibility();
+                return;
+            }
+        }
+    });
+    
+    // Observe the entire body for class changes (subtree catches all elements)
+    globalObserver.observe(document.body, { 
+        attributes: true, 
+        attributeFilter: ['class'],
+        subtree: true 
+    });
+    
+    // Periodic check as fallback (every 1 second)
+    setInterval(updateFABVisibility, 1000);
+    
+    console.log('[Tribunal] FAB visibility watchers initialized');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VOICE GENERATION SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+let isGenerating = false;
+
+function showVoicesLoading() {
+    const container = document.getElementById('tribunal-voices-output');
+    if (container) {
+        container.innerHTML = `
+            <div class="tribunal-voices-loading">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <span>The voices are deliberating...</span>
+            </div>
+        `;
+    }
+}
+
+function showVoicesError(message) {
+    const container = document.getElementById('tribunal-voices-output');
+    if (container) {
+        container.innerHTML = `
+            <div class="tribunal-voices-error">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>${message}</span>
+            </div>
+        `;
+    }
+}
+
+/**
+ * FIXED: Append voices to chat with retry logic
+ * Sometimes the chat container isn't ready immediately
+ */
+function appendVoicesToChatWithRetry(voices, maxRetries = 3, delay = 200) {
+    let attempts = 0;
+    
+    function tryAppend() {
+        attempts++;
+        const settings = getSettings();
+        
+        // Check if chat injection is enabled
+        if (settings?.voices?.injectInChat === false) {
+            console.log('[Tribunal] Chat injection disabled');
+            return;
+        }
+        
+        try {
+            appendVoicesToChat(voices);
+            console.log('[Tribunal] Voices appended to chat');
+        } catch (error) {
+            if (attempts < maxRetries) {
+                console.log(`[Tribunal] Chat append failed, retrying... (${attempts}/${maxRetries})`);
+                setTimeout(tryAppend, delay);
+            } else {
+                console.error('[Tribunal] Failed to append voices to chat:', error);
+            }
+        }
+    }
+    
+    tryAppend();
+}
+
+export async function triggerVoiceGeneration(messageText, options = {}) {
+    if (isGenerating) {
+        console.log('[Tribunal] Generation already in progress');
+        return;
+    }
+    
+    isGenerating = true;
+    const voicesContainer = document.getElementById('tribunal-voices-output');
+    
+    try {
+        showVoicesLoading();
+        
+        if (options.openPanel !== false) {
+            openPanel();
+            switchTab('voices');
+        }
+        
+        console.log('[Tribunal] Generating voices for:', messageText.substring(0, 50) + '...');
+        const voices = await generateVoicesForMessage(messageText, options);
+        
+        // Render to panel
+        renderVoices(voices, voicesContainer);
+        
+        // FIXED: Use retry logic for chat injection
+        appendVoicesToChatWithRetry(voices);
+        
+        console.log('[Tribunal] Voices generated:', voices.length);
+        
+        if (typeof toastr !== 'undefined' && voices.length > 0) {
+            toastr.info(`${voices.length} voices speak`, 'The Tribunal', { timeOut: 2000 });
+        }
+        
+        return voices;
+        
+    } catch (error) {
+        console.error('[Tribunal] Voice generation failed:', error);
+        showVoicesError(error.message || 'Generation failed');
+        
+        if (typeof toastr !== 'undefined') {
+            toastr.error(error.message || 'Voice generation failed', 'The Tribunal');
+        }
+        
+        throw error;
+    } finally {
+        isGenerating = false;
+    }
+}
+
+async function onNewAIMessage(messageIndex) {
+    // Check if auto-trigger is enabled
+    const settings = getSettings();
+    if (!settings?.voices?.autoGenerate) {
+        console.log('[Tribunal] Auto-trigger disabled, skipping voice generation');
+        return;
+    }
+    
+    const ctx = getContext();
+    const message = ctx?.chat?.[messageIndex];
+    
+    if (!message || message.is_user || message.is_system) {
+        return;
+    }
+    
+    // Update investigation scene context
+    updateSceneContext(message.mes);
+    
+    // Apply trigger delay if set
+    const delay = settings?.voices?.triggerDelay || 0;
+    if (delay > 0) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
+    await triggerVoiceGeneration(message.mes, { openPanel: false });
+}
+
+export async function rescanLastMessage() {
+    const ctx = getContext();
+    if (!ctx?.chat?.length) {
+        if (typeof toastr !== 'undefined') {
+            toastr.warning('No chat messages to scan', 'The Tribunal');
+        }
+        return;
+    }
+    
+    for (let i = ctx.chat.length - 1; i >= 0; i--) {
+        const msg = ctx.chat[i];
+        if (!msg.is_user && !msg.is_system) {
+            await triggerVoiceGeneration(msg.mes);
+            return;
+        }
+    }
+    
+    if (typeof toastr !== 'undefined') {
+        toastr.warning('No AI messages found', 'The Tribunal');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UI REFRESH - Sync UI with state
+// ═══════════════════════════════════════════════════════════════
+
+function parseTimeString(timeStr) {
+    if (!timeStr || typeof timeStr !== 'string') return { hours: 12, minutes: 0 };
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return { hours: isNaN(hours) ? 12 : hours, minutes: isNaN(minutes) ? 0 : minutes };
+}
+
+/**
+ * Get character name - tries state.persona first, falls back to ST context
+ * @returns {string} Character name
+ */
+function getCharacterName() {
+    const state = getChatState();
+    
+    // Try state.persona.name first
+    if (state?.persona?.name && state.persona.name !== 'UNKNOWN' && state.persona.name !== '') {
+        return state.persona.name;
+    }
+    
+    // Fallback to SillyTavern context - use name1 (persona) not name2 (AI character)
+    const ctx = getContext();
+    const contextName = ctx?.name1;
+    
+    if (contextName && contextName !== '') {
+        // Save to state for future use
+        if (state?.persona) {
+            state.persona.name = contextName;
+        }
+        return contextName;
+    }
+    
+    return 'UNKNOWN';
+}
+
+/**
+ * Generate a consistent badge number from character ID
+ * @param {string} charId - Character identifier
+ * @returns {string} Badge number like "41ST-7B3F2A"
+ */
+function generateBadgeNumber(charId) {
+    if (!charId) return '41ST-______';
+    
+    // Simple hash function
+    let hash = 0;
+    for (let i = 0; i < charId.length; i++) {
+        const char = charId.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    
+    // Convert to hex and take 6 characters
+    const hex = Math.abs(hash).toString(16).toUpperCase().padStart(6, '0').slice(0, 6);
+    return `41ST-${hex}`;
+}
+
+/**
+ * Update badge number display
+ * @param {string} badgeNumber - Badge to display
+ */
+function updateBadgeDisplay(badgeNumber) {
+    const el = document.getElementById('rcm-badge-number');
+    if (el) {
+        el.textContent = badgeNumber;
+    }
+}
+
+/**
+ * Update character info from ST context
+ */
+function updateCharacterInfo() {
+    const ctx = getContext();
+    const charName = ctx?.name1 || 'UNKNOWN';  // Use persona name, not AI character
+    const charId = ctx?.characterId || '';
+    
+    // Update CRT header
+    setCRTCharacterName(charName);
+    
+    // Update badge
+    const badge = generateBadgeNumber(charId);
+    updateBadgeDisplay(badge);
+    
+    console.log(`[Tribunal] Character info: ${charName} (${badge})`);
+}
+
+function refreshAllPanels() {
+    const state = getChatState();
+    if (!state) return;
+    
+    // Update character info (name + badge) from ST context
+    updateCharacterInfo();
+    
+    // Get character name with fallback
+    const characterName = getCharacterName();
+    
+    const v = state.vitals;
+    updateCRTVitals(v.health, v.maxHealth, v.morale, v.maxMorale, characterName);
+    
+    // Also update the CRT character name display directly
+    setCRTCharacterName(characterName);
+    
+    if (state.ledger?.time?.display) {
+        const { hours, minutes } = parseTimeString(state.ledger.time.display);
+        setRPTime(hours, minutes);
+    }
+    if (state.ledger?.weather?.condition) {
+        setRPWeather(state.ledger.weather.condition);
+    }
+    
+    if (state.vitals?.copotype) {
+        setRCMCopotype(state.vitals.copotype, true);
+    }
+    
+    if (state.attributes) {
+        const a = state.attributes;
+        const intEl = document.getElementById('napkin-int-score');
+        const psyEl = document.getElementById('napkin-psy-score');
+        const fysEl = document.getElementById('napkin-fys-score');
+        const motEl = document.getElementById('napkin-mot-score');
+        if (intEl) intEl.textContent = a.intellect || 3;
+        if (psyEl) psyEl.textContent = a.psyche || 3;
+        if (fysEl) fysEl.textContent = a.physique || 3;
+        if (motEl) motEl.textContent = a.motorics || 3;
+    }
+    
+    refreshProfilesFromState();
+    refreshStatusFromState();
+    
+    console.log('[Tribunal] UI refreshed from state');
 }
 
 // ═══════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
 
-async function init() {
-    console.log('[The Tribunal] Initializing...');
+function init() {
+    console.log(`[The Tribunal] Initializing v${extensionVersion}...`);
 
-    await loadState(getContext);
-    initializeThemeCounters(THEMES);
-    initializeDefaultBuild(ATTRIBUTES, SKILLS);
-    
-    // Initialize Vitals Detection Hooks
-    initVitalsHooks({
-        modifyHealth: (delta, ctx) => modifyHealth(delta, ctx),
-        modifyMorale: (delta, ctx) => modifyMorale(delta, ctx),
-        getSettings: () => extensionSettings,
-        getContext: getContext,
-        showToast: showToast,
-        refreshVitals: refreshVitals
-    });
+    initSettings();
 
-    // Create extension settings panel entry
-    const extensionSettingsContainer = document.getElementById('extensions_settings');
-    if (extensionSettingsContainer) {
-        const settingsHtml = `
-            <div class="inline-drawer">
-                <div class="inline-drawer-toggle inline-drawer-header">
-                    <b><i class="fa-solid fa-address-card"></i> The Tribunal</b>
-                    <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
-                </div>
-                <div class="inline-drawer-content">
-                    <div class="flex-container">
-                        <label class="checkbox_label">
-                            <input id="ie-ext-enabled" type="checkbox" ${extensionSettings.enabled ? 'checked' : ''}>
-                            <span>Enable The Tribunal</span>
-                        </label>
-                        <small>When disabled, voices won't trigger and the FAB will be hidden.</small>
-                    </div>
-                </div>
-            </div>
-        `;
-        extensionSettingsContainer.insertAdjacentHTML('beforeend', settingsHtml);
-        
-        document.getElementById('ie-ext-enabled')?.addEventListener('change', (e) => {
-            extensionSettings.enabled = e.target.checked;
-            saveState(getContext());
-            updateFABState();
-            const settingsCheckbox = document.getElementById('ie-enabled');
-            if (settingsCheckbox) settingsCheckbox.checked = e.target.checked;
-            showToast(e.target.checked ? 'The Tribunal enabled' : 'The Tribunal disabled', 'info');
-        });
-    }
-
-    // Create UI
     const panel = createPsychePanel();
-    const fab = createToggleFAB(getContext);
+    const mainFab = createToggleFAB();
 
     document.body.appendChild(panel);
-    document.body.appendChild(fab);
+    document.body.appendChild(mainFab);
 
-    // Initialize Ledger Sub-Tabs
-    initLedgerSubTabs();
+    // Initialize investigation module (standalone)
+    initInvestigation();
 
-    // Create Discovery UI
-    const thoughtFab = createThoughtBubbleFAB(getContext);
-    const discoveryModal = createDiscoveryModal();
+    setupFABVisibilityWatchers();
 
-    document.body.appendChild(thoughtFab);
-    document.body.appendChild(discoveryModal);
-    
-    updateFABState();
-
-    // Initial renders
-    refreshAttributesDisplay();
-    refreshStatusTab();
-    refreshCabinetTab();
-    refreshVitals();
-    refreshLedgerDisplay();
-
-    // Bind events
     bindEvents();
+    initProfiles();
+    initStatus();
+    initSettingsTab();
+    startWatch();
+    registerEvents();
+    
+    eventSource.on(event_types.MESSAGE_RECEIVED, onNewAIMessage);
+    console.log('[Tribunal] Voice trigger registered for MESSAGE_RECEIVED');
+    
+    const rescanBtn = document.getElementById('tribunal-rescan-btn');
+    if (rescanBtn) {
+        rescanBtn.addEventListener('click', rescanLastMessage);
+        console.log('[Tribunal] Rescan button wired');
+    }
+    
+    onStateRefresh(refreshAllPanels);
 
-    // Global ESC key handler
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            closeAllModals();
-            const panel = document.getElementById('inland-empire-panel');
-            if (panel?.classList.contains('ie-panel-open')) {
-                togglePanel();
+    const ctx = getContext();
+    if (ctx?.chat?.length > 0) {
+        loadChatState();
+        refreshAllPanels();
+    }
+
+    // Debug helpers
+    window.tribunalDebug = exportDebugState;
+    window.tribunalRefresh = refreshAllPanels;
+    window.tribunalRescan = rescanLastMessage;
+    window.tribunalGenerate = triggerVoiceGeneration;
+    window.tribunalUpdateFabVisibility = updateFABVisibility;
+    window.tribunalIsInChatView = isInChatView;
+    window.tribunalOpenInv = openInvestigation;
+    window.tribunalCloseInv = closeInvestigation;
+    window.tribunalUpdateCharacter = updateCharacterInfo;
+    
+    import('./src/voice/api-helpers.js').then(api => {
+        window.tribunalTestAPI = async () => {
+            try {
+                const result = await api.callAPI(
+                    'You are a test. Respond with exactly: "Connection OK"',
+                    'Test. Reply: "Connection OK"'
+                );
+                console.log('[Tribunal] API Test Result:', result);
+                if (typeof toastr !== 'undefined') {
+                    toastr.success(`API: ${result.substring(0, 50)}`, 'Test Passed');
+                }
+                return result;
+            } catch (e) {
+                console.error('[Tribunal] API Test Failed:', e);
+                if (typeof toastr !== 'undefined') {
+                    toastr.error(e.message, 'API Test Failed');
+                }
+                throw e;
             }
-        }
+        };
     });
 
-    setupAutoTrigger();
-    
-    // Reset session tracking for compartment
-    const l = getLedger();
-    if (l.compartment) {
-        l.compartment.countedThisSession = false;
+    console.log('[The Tribunal] UI ready!');
+    if (typeof toastr !== 'undefined') {
+        toastr.success('The Tribunal loaded!', 'Extension', { timeOut: 2000 });
     }
-    saveState(getContext());
-
-    console.log('[The Tribunal] Ready!');
 }
 
 // ═══════════════════════════════════════════════════════════════
-// JQUERY READY - ENTRY POINT
+// ENTRY POINT
 // ═══════════════════════════════════════════════════════════════
 
 jQuery(async () => {
     try {
-        await init();
-        
-        // Create global API
-        window.InlandEmpire = {
-            version: '3.2.0', // Updated version for Phase 5
-            _externalModifiers: {},
-            _modifierSources: {},
-            
-            // Getters
-            getSettings: () => ({ ...extensionSettings }),
-            isEnabled: () => extensionSettings.enabled,
-            getBuild: () => currentBuild ? { ...currentBuild } : null,
-            getAttributePoints: () => getAttributePoints(),
-            getActiveStatuses: () => [...activeStatuses],
-            getThemeCounters: () => getThemeCounters(),
-            getTopThemes: (n = 5) => getTopThemes(n),
-            getThoughtCabinet: () => ({ ...thoughtCabinet }),
-            getDiscoveryContext: () => ({ ...discoveryContext }),
-            getSkillLevel: (skillId) => currentBuild?.skills?.[skillId]?.level ?? 0,
-            getEffectiveSkillLevel: (skillId) => getEffectiveSkillLevel(skillId, getResearchPenalties()),
-            getVitals: () => getVitals(),
-            getLedger: () => getLedger(),
-            // Phase 5: Player context - NEW
-            getPlayerContext: () => getPlayerContext(),
-            getDiscoveredThoughts: () => getDiscoveredThoughts(),
-            
-            // Setters
-            setHealth: (value) => {
-                setHealth(value, getContext());
-                refreshVitals();
-            },
-            setMorale: (value) => {
-                setMorale(value, getContext());
-                refreshVitals();
-            },
-            modifyHealth: (delta) => {
-                modifyHealth(delta, getContext());
-                refreshVitals();
-            },
-            modifyMorale: (delta) => {
-                modifyMorale(delta, getContext());
-                refreshVitals();
-            },
-            
-            // External modifier system
-            applyModifiers: (sourceId, modifiers) => {
-                const api = window.InlandEmpire;
-                if (!api._modifierSources[sourceId]) {
-                    api._modifierSources[sourceId] = {};
-                }
-                
-                for (const [skillId, value] of Object.entries(modifiers)) {
-                    const oldValue = api._modifierSources[sourceId][skillId] || 0;
-                    api._modifierSources[sourceId][skillId] = value;
-                    api._externalModifiers[skillId] = (api._externalModifiers[skillId] || 0) - oldValue + value;
-                }
-                
-                document.dispatchEvent(new CustomEvent('ie:modifier-changed', {
-                    detail: { sourceId, modifiers, totals: { ...api._externalModifiers } }
-                }));
-            },
-            
-            removeModifiers: (sourceId) => {
-                const api = window.InlandEmpire;
-                if (!api._modifierSources[sourceId]) return;
-                
-                for (const [skillId, value] of Object.entries(api._modifierSources[sourceId])) {
-                    api._externalModifiers[skillId] = (api._externalModifiers[skillId] || 0) - value;
-                    if (api._externalModifiers[skillId] === 0) {
-                        delete api._externalModifiers[skillId];
-                    }
-                }
-                
-                delete api._modifierSources[sourceId];
-                
-                document.dispatchEvent(new CustomEvent('ie:modifier-changed', {
-                    detail: { sourceId, removed: true, totals: { ...api._externalModifiers } }
-                }));
-            },
-            
-            getModifiersFromSource: (sourceId) => {
-                return { ...window.InlandEmpire._modifierSources[sourceId] } || {};
-            },
-            
-            getExternalModifier: (skillId) => {
-                return window.InlandEmpire._externalModifiers[skillId] || 0;
-            },
-            
-            // Actions
-            rollCheck: (skillId, difficulty) => {
-                const effectiveLevel = window.InlandEmpire.getEffectiveSkillLevel(skillId);
-                const result = rollSkillCheck(effectiveLevel, difficulty);
-                
-                document.dispatchEvent(new CustomEvent('ie:skill-check', {
-                    detail: { skillId, difficulty, effectiveLevel, ...result }
-                }));
-                
-                if (result.isSnakeEyes && isDeepNight()) {
-                    checkCompartmentProgress();
-                }
-                
-                return result;
-            },
-            
-            triggerVoices: () => triggerVoices(getContext()),
-            togglePanel: () => togglePanel(),
-            updateFABState: () => updateFABState(),
-            
-            // Vitals detection
-            analyzeVitals: (text) => {
-                return analyzeTextForVitals(text, {
-                    protagonistName: extensionSettings.characterName,
-                    sensitivity: extensionSettings.vitalsSensitivity || 'medium'
-                });
-            },
-            
-            applyVitalsChange: (healthDelta, moraleDelta, reason = 'manual') => {
-                if (healthDelta !== 0) modifyHealth(healthDelta, getContext());
-                if (moraleDelta !== 0) modifyMorale(moraleDelta, getContext());
-                refreshVitals();
-                
-                if (extensionSettings.vitalsShowNotifications) {
-                    const parts = [];
-                    if (healthDelta !== 0) parts.push(`Health ${healthDelta > 0 ? '+' : ''}${healthDelta}`);
-                    if (moraleDelta !== 0) parts.push(`Morale ${moraleDelta > 0 ? '+' : ''}${moraleDelta}`);
-                    showToast(`${parts.join(', ')} (${reason})`, healthDelta < 0 || moraleDelta < 0 ? 'warning' : 'success');
-                }
-                
-                document.dispatchEvent(new CustomEvent('ie:vitals-changed', {
-                    detail: { healthDelta, moraleDelta, reason }
-                }));
-            },
-            
-            // Ledger API
-            addCase: (title, description = '') => {
-                const l = getLedger();
-                const caseCount = (l.activeCases?.length || 0) + (l.completedCases?.length || 0) + 1;
-                
-                const newCase = {
-                    id: `case_${Date.now()}`,
-                    code: generateCaseCode(41, caseCount),
-                    title: title.toUpperCase(),
-                    description,
-                    status: 'active',
-                    session: l.officerProfile?.sessions || 1,
-                    time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-                    created: Date.now()
-                };
-                
-                if (!l.activeCases) l.activeCases = [];
-                l.activeCases.push(newCase);
-                
-                saveState(getContext());
-                refreshLedgerDisplay();
-                return newCase;
-            },
-            
-            isCompartmentDiscovered: () => {
-                const l = getLedger();
-                return l.compartment?.discovered || false;
-            },
-            
-            revealCompartment: () => {
-                const l = getLedger();
-                if (!l.compartment) {
-                    l.compartment = { discovered: false, deepNightCritFails: 0, crackStage: 0 };
-                }
-                l.compartment.discovered = true;
-                l.compartment.crackStage = 3;
-                updateCompartmentCrack(3);
-                saveState(getContext());
-                showToast('Compartment revealed', 'info');
-            },
-            
-            // Phase 5: Thought generation API - NEW
-            generateThought: async (concept) => {
-                return await generateThoughtFromConcept(
-                    concept,
-                    getContext,
-                    (thought) => {
-                        addDiscoveredThought(thought);
-                        saveState(getContext());
-                        refreshCabinetTab();
-                    }
-                );
-            }
-        };
-        
-        console.log('[The Tribunal] Global API ready: window.InlandEmpire');
-        
-        document.dispatchEvent(new CustomEvent('ie:ready', { 
-            detail: { version: window.InlandEmpire.version } 
-        }));
-        
+        init();
     } catch (error) {
         console.error('[The Tribunal] Failed to initialize:', error);
+        if (typeof toastr !== 'undefined') {
+            toastr.error(`Init failed: ${error.message}`, 'The Tribunal');
+        }
     }
 });
-
-// Export for potential external use
-export {
-    triggerVoices,
-    togglePanel,
-    extensionSettings,
-    updateFABState,
-    updateInvestigationFABVisibility
-};

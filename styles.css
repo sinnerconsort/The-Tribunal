@@ -1,26 +1,27 @@
 /**
  * The Tribunal - Style Loader
- * Imports all modular stylesheets
- * 
- * This replaces the old 4000+ line monolith!
- * Updated: Added ledger.css and inventory.css (extracted from tabs.css)
+ * REBUILD v0.3.0 - Clipboard header + CRT vitals
  */
 
 @import url('./styles/base.css');
 @import url('./styles/fab.css');
 @import url('./styles/panel.css');
+@import url('./styles/clipboard-header.css');
+@import url('./styles/crt-vitals.css');
 @import url('./styles/tabs.css');
-@import url('./styles/ledger.css');
-@import url('./styles/inventory.css');
 @import url('./styles/sections.css');
-@import url('./styles/status-cards.css');
 @import url('./styles/forms.css');
 @import url('./styles/voices.css');
 @import url('./styles/cabinet.css');
-@import url('./styles/profiles.css');
-@import url('./styles/toasts.css');
-@import url('./styles/chat.css');
-@import url('./styles/discovery.css');
-@import url('./styles/investigation.css');
+@import url('./styles/status-cards.css');
+@import url('./styles/medical-form.css');
 @import url('./styles/vitals-controls.css');
+@import url('./styles/profiles.css');
+@import url('./styles/settings.css');
+@import url('./styles/chat.css');
+@import url('./styles/ledger.css');
+@import url('./styles/inventory.css');
+@import url('./styles/toasts.css');
+@import url('./styles/watch.css');
+@import url('./styles/radio.css');
 @import url('./styles/responsive.css');

@@ -1,0 +1,552 @@
+/**
+ * The Tribunal - Settings CSS
+ * RCM Configuration Form - Typewriter aesthetic
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   CSS VARIABLES
+   ═══════════════════════════════════════════════════════════════ */
+
+.settings-page {
+    --paper-cream: #f4f1e8;
+    --paper-aged: #e8e4d4;
+    --paper-shadow: #d4d0c0;
+    --ink-black: #1a1a1a;
+    --ink-faded: #3a3a3a;
+    --ink-light: #5a5a5a;
+    --typewriter-font: 'Special Elite', 'Courier New', Courier, monospace;
+    --stamp-red: #8b2020;
+    --stamp-blue: #1a3a5c;
+    --carbon-blue: #2a4a6a;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PAGE CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+
+.settings-page {
+    padding: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: none; /* Hidden by default */
+}
+
+.settings-page.ie-tab-content-active {
+    display: block !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THE FORM (Paper)
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-config-form {
+    background: var(--paper-cream);
+    margin: 12px;
+    padding: 24px 20px;
+    border-radius: 2px;
+    position: relative;
+    min-height: 600px;
+    
+    /* Paper shadow */
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.12),
+        0 4px 8px rgba(0, 0, 0, 0.08),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+    
+    /* Slight paper curl */
+    transform: rotate(-0.3deg);
+}
+
+/* Paper texture overlay */
+.config-paper-texture {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Fold marks */
+.config-fold-horizontal {
+    position: absolute;
+    top: 33%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        var(--paper-shadow) 20%, 
+        var(--paper-shadow) 80%, 
+        transparent 100%
+    );
+    opacity: 0.5;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.config-fold-vertical {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1px;
+    background: linear-gradient(180deg, 
+        transparent 0%, 
+        var(--paper-shadow) 20%, 
+        var(--paper-shadow) 80%, 
+        transparent 100%
+    );
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Coffee ring */
+.config-coffee-ring {
+    position: absolute;
+    bottom: 80px;
+    right: 30px;
+    width: 60px;
+    height: 60px;
+    border: 2px solid rgba(101, 67, 33, 0.15);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.config-coffee-ring::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid rgba(101, 67, 33, 0.1);
+    border-radius: 50%;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LETTERHEAD
+   ═══════════════════════════════════════════════════════════════ */
+
+.config-letterhead {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 15px;
+    position: relative;
+    z-index: 2;
+}
+
+.config-letterhead-logo {
+    flex-shrink: 0;
+}
+
+.config-rcm-shield {
+    width: 50px;
+    height: 55px;
+    background: linear-gradient(135deg, var(--stamp-blue) 0%, #0d1f2d 100%);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--typewriter-font);
+    font-size: 12px;
+    font-weight: bold;
+    color: #c9a227;
+    letter-spacing: 1px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.config-letterhead-text {
+    flex: 1;
+}
+
+.config-letterhead-title {
+    font-family: var(--typewriter-font);
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--ink-black);
+    letter-spacing: 2px;
+    margin-bottom: 2px;
+}
+
+.config-letterhead-subtitle {
+    font-family: var(--typewriter-font);
+    font-size: 10px;
+    color: var(--ink-faded);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.config-letterhead-doc {
+    font-family: var(--typewriter-font);
+    font-size: 9px;
+    color: var(--ink-light);
+    letter-spacing: 1px;
+}
+
+/* Classified stamp */
+.config-classified-stamp {
+    position: absolute;
+    top: 5px;
+    right: 0;
+    font-family: var(--typewriter-font);
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--stamp-red);
+    letter-spacing: 3px;
+    padding: 4px 10px;
+    border: 2px solid var(--stamp-red);
+    transform: rotate(12deg);
+    opacity: 0.7;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DIVIDERS
+   ═══════════════════════════════════════════════════════════════ */
+
+.config-divider-double {
+    height: 4px;
+    border-top: 1px solid var(--ink-black);
+    border-bottom: 1px solid var(--ink-black);
+    margin: 15px 0;
+    position: relative;
+    z-index: 2;
+}
+
+.config-divider-single {
+    height: 1px;
+    background: var(--ink-faded);
+    margin: 20px 0;
+    position: relative;
+    z-index: 2;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.config-section {
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 2;
+}
+
+.config-section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--ink-light);
+    padding-bottom: 4px;
+}
+
+.config-section-number {
+    font-family: var(--typewriter-font);
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--ink-black);
+}
+
+.config-section-title {
+    font-family: var(--typewriter-font);
+    font-size: 12px;
+    font-weight: bold;
+    color: var(--ink-black);
+    letter-spacing: 2px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.config-section-warning {
+    font-family: var(--typewriter-font);
+    font-size: 9px;
+    color: var(--stamp-red);
+    margin-left: auto;
+    letter-spacing: 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FORM FIELDS
+   ═══════════════════════════════════════════════════════════════ */
+
+.config-field {
+    margin-bottom: 12px;
+}
+
+.config-field-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 12px;
+}
+
+.config-field-half {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.config-label {
+    display: block;
+    font-family: var(--typewriter-font);
+    font-size: 10px;
+    color: var(--ink-faded);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.config-field-note {
+    font-family: var(--typewriter-font);
+    font-size: 9px;
+    color: var(--ink-light);
+    font-style: italic;
+    margin-top: 2px;
+    margin-left: 24px;
+}
+
+/* Text inputs */
+.config-input {
+    width: 100%;
+    font-family: var(--typewriter-font);
+    font-size: 12px;
+    color: var(--ink-black);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--ink-faded);
+    padding: 4px 2px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.config-input:focus {
+    border-bottom-color: var(--ink-black);
+    border-bottom-width: 2px;
+}
+
+.config-input::placeholder {
+    color: var(--ink-light);
+    font-style: italic;
+}
+
+/* Number inputs - narrower */
+.config-input[type="number"] {
+    width: 80px;
+    text-align: center;
+}
+
+/* Select dropdowns */
+.config-select {
+    width: 100%;
+    font-family: var(--typewriter-font);
+    font-size: 11px;
+    color: var(--ink-black);
+    background: var(--paper-aged);
+    border: 1px solid var(--ink-light);
+    padding: 6px 8px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%233a3a3a' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+}
+
+.config-select:focus {
+    border-color: var(--ink-black);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CHECKBOXES (Typewriter style)
+   ═══════════════════════════════════════════════════════════════ */
+
+.config-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.config-checkbox input {
+    display: none;
+}
+
+.config-checkbox-box {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--ink-faded);
+    background: var(--paper-cream);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--typewriter-font);
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--ink-black);
+    flex-shrink: 0;
+    transition: all 0.15s;
+}
+
+.config-checkbox input:checked + .config-checkbox-box::before {
+    content: '✓';
+}
+
+.config-checkbox input:checked + .config-checkbox-box {
+    background: var(--paper-aged);
+}
+
+.config-checkbox-label {
+    font-family: var(--typewriter-font);
+    font-size: 11px;
+    color: var(--ink-black);
+    letter-spacing: 0.5px;
+}
+
+.config-checkbox:hover .config-checkbox-box {
+    border-color: var(--ink-black);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BUTTONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.config-btn {
+    font-family: var(--typewriter-font);
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 10px 16px;
+    border: 1px solid var(--ink-faded);
+    background: var(--paper-cream);
+    color: var(--ink-black);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.15s;
+}
+
+.config-btn:hover {
+    background: var(--paper-aged);
+    border-color: var(--ink-black);
+}
+
+.config-btn:active {
+    transform: translateY(1px);
+}
+
+.config-btn-icon {
+    font-size: 12px;
+}
+
+/* Test connection button */
+.config-btn-test {
+    width: 100%;
+    justify-content: center;
+    border-style: dashed;
+}
+
+/* Primary action button */
+.config-btn-primary {
+    background: var(--stamp-blue);
+    color: var(--paper-cream);
+    border-color: var(--stamp-blue);
+}
+
+.config-btn-primary:hover {
+    background: #0d1f2d;
+}
+
+/* Secondary action button */
+.config-btn-secondary {
+    background: transparent;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACTIONS SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.config-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+    position: relative;
+    z-index: 2;
+}
+
+.config-actions .config-btn {
+    width: 100%;
+    justify-content: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════════════════════════════ */
+
+.config-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px solid var(--ink-light);
+    position: relative;
+    z-index: 2;
+}
+
+.config-footer-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.config-footer-form,
+.config-footer-date {
+    font-family: var(--typewriter-font);
+    font-size: 8px;
+    color: var(--ink-light);
+    letter-spacing: 1px;
+}
+
+.config-internal-stamp {
+    font-family: var(--typewriter-font);
+    font-size: 9px;
+    font-weight: bold;
+    color: var(--stamp-red);
+    letter-spacing: 2px;
+    padding: 3px 8px;
+    border: 1px solid var(--stamp-red);
+    opacity: 0.6;
+    transform: rotate(-3deg);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 380px) {
+    .rcm-config-form {
+        margin: 8px;
+        padding: 16px 14px;
+    }
+    
+    .config-letterhead {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .config-classified-stamp {
+        position: relative;
+        top: 0;
+        right: 0;
+        transform: rotate(0);
+        margin-top: 10px;
+    }
+    
+    .config-field-row {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .config-field-half {
+        width: 100%;
+    }
+}
