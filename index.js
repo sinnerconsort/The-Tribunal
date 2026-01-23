@@ -2,7 +2,7 @@
  * The Tribunal - SillyTavern Extension
  * A standalone text based Disco Elysium system
  * 
- * v0.9.9 - Added Contacts Phase 1 (display only)
+ * v0.9.8 - Fixed voice chat injection + voice persistence
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -40,9 +40,6 @@ import { initProfiles, refreshProfilesFromState } from './src/ui/profiles-handle
 import { initStatus, refreshStatusFromState } from './src/ui/status-handlers.js';
 import { initSettingsTab } from './src/ui/settings-handlers.js';
 import { initCabinetHandlers, refreshCabinet } from './src/ui/cabinet-handler.js';
-
-// NEW: Contacts handlers (Phase 1 - display only)
-import { initContacts, refreshContacts } from './src/ui/contacts-handlers.js';
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Voice Generation
@@ -92,15 +89,12 @@ export { generateVoicesForMessage, renderVoices, appendVoicesToChat };
 // Investigation functions
 export { initInvestigation, updateSceneContext, openInvestigation, closeInvestigation } from './src/systems/investigation.js';
 
-// NEW: Contacts functions
-export { refreshContacts } from './src/ui/contacts-handlers.js';
-
 // ═══════════════════════════════════════════════════════════════
 // EXTENSION METADATA
 // ═══════════════════════════════════════════════════════════════
 
 const extensionName = 'the-tribunal';
-const extensionVersion = '0.9.9';
+const extensionVersion = '0.9.8';
 
 // ═══════════════════════════════════════════════════════════════
 // CHAT-ONLY FAB VISIBILITY
@@ -513,7 +507,6 @@ function refreshAllPanels() {
     refreshProfilesFromState();
     refreshStatusFromState();
     refreshCabinet();
-    refreshContacts();  // NEW: Refresh contacts display
     
     // FIX: Restore last generated voices from state (persistence!)
     const voiceState = getVoiceState();
@@ -552,8 +545,7 @@ function init() {
     initProfiles();
     initStatus();
     initSettingsTab();
-    initCabinetHandlers();
-    initContacts();  // NEW: Initialize contacts (Phase 1 - display only)
+    initCabinetHandlers();  // <-- NEW: Initialize cabinet tab handlers
     startWatch();
     registerEvents();
     
@@ -584,8 +576,7 @@ function init() {
     window.tribunalOpenInv = openInvestigation;
     window.tribunalCloseInv = closeInvestigation;
     window.tribunalUpdateCharacter = updateCharacterInfo;
-    window.tribunalRefreshCabinet = refreshCabinet;
-    window.tribunalRefreshContacts = refreshContacts;  // NEW: Debug helper
+    window.tribunalRefreshCabinet = refreshCabinet;  // <-- NEW: Debug helper
     
     import('./src/voice/api-helpers.js').then(api => {
         window.tribunalTestAPI = async () => {
