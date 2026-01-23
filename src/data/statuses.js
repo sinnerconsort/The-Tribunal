@@ -79,7 +79,7 @@ export const STATUS_EFFECTS = {
         debuffs: ['composure', 'savoir_faire', 'hand_eye_coordination', 'authority'],
         difficultyMod: 2,
         keywords: ['hurt', 'wounded', 'injured', 'bleeding', 'pain', 'cut', 'bruise', 'broken'],
-        ancientVoice: null,
+        ancientVoice: null, // Does NOT trigger ancient voices - only The Pale does
         intrusiveBoost: ['pain_threshold', 'half_light', 'volition']
     },
     waste_land: {
@@ -107,7 +107,7 @@ export const STATUS_EFFECTS = {
         debuffs: ['logic', 'rhetoric', 'authority', 'physical_instrument'],
         difficultyMod: 4,
         keywords: ['dying', 'death', 'fading', 'bleeding out', 'critical', 'end', 'final'],
-        ancientVoice: null,
+        ancientVoice: null, // Does NOT trigger ancient voices - only The Pale does
         intrusiveBoost: ['inland_empire', 'shivers']
     },
 
@@ -125,7 +125,7 @@ export const STATUS_EFFECTS = {
         debuffs: ['composure', 'logic', 'volition', 'authority'],
         difficultyMod: 1,
         keywords: ['manic', 'hyper', 'racing', 'unstoppable', 'wired', 'frantic', 'bender', 'party'],
-        ancientVoice: null,
+        ancientVoice: null, // Part of Spinal Cord combo
         intrusiveBoost: ['electrochemistry', 'conceptualization', 'drama']
     },
     the_pale: {
@@ -141,7 +141,7 @@ export const STATUS_EFFECTS = {
         debuffs: ['perception', 'reaction_speed', 'empathy', 'logic', 'authority'],
         difficultyMod: 3,
         keywords: ['dissociate', 'unreal', 'floating', 'numb', 'detached', 'distant', 'unconscious', 'blackout', 'void', 'pale', 'coma', 'asleep', 'passed out', 'fading', 'dreaming'],
-        ancientVoice: 'both',
+        ancientVoice: 'both', // Triggers BOTH Ancient Reptilian Brain + Limbic System
         intrusiveBoost: ['inland_empire', 'shivers', 'conceptualization']
     },
     homo_sexual_underground: {
@@ -155,7 +155,7 @@ export const STATUS_EFFECTS = {
         debuffs: ['logic', 'volition', 'composure', 'authority'],
         difficultyMod: 2,
         keywords: ['aroused', 'desire', 'attraction', 'lust', 'seduction', 'beautiful', 'sexuality', 'obsess', 'love', 'crush', 'infatuated'],
-        ancientVoice: null,
+        ancientVoice: null, // Does NOT trigger ancient voices - only The Pale does
         intrusiveBoost: ['electrochemistry', 'suggestion', 'inland_empire']
     },
     jamrock_shuffle: {
@@ -211,7 +211,7 @@ export const STATUS_EFFECTS = {
         debuffs: ['authority', 'electrochemistry', 'savoir_faire', 'composure'],
         difficultyMod: 2,
         keywords: ['grief', 'loss', 'mourning', 'tears', 'sad', 'crying', 'sob', 'heartbreak', 'sorrow'],
-        ancientVoice: null,
+        ancientVoice: null, // Does NOT trigger ancient voices - only The Pale does
         intrusiveBoost: ['empathy', 'inland_empire', 'drama']
     },
 
@@ -380,6 +380,73 @@ export const STATUS_EFFECTS = {
     }
 };
 
+// ═══════════════════════════════════════════════════════════════
+// ANCIENT VOICES - Primal consciousness beneath the 24 skills
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Ancient Voices represent the deepest layers of consciousness
+ * They speak during extreme states - unconsciousness, crisis, ecstasy
+ * These are older than the 24 skills and represent base-level awareness
+ * 
+ * TRIGGER RULES:
+ * - The Pale (the_pale) → BOTH Ancient Reptilian Brain AND Limbic System
+ * - Party Combo (any 2 of drunk/stimmed/manic) → Spinal Cord
+ */
+export const ANCIENT_VOICES = {
+    ancient_reptilian_brain: {
+        id: 'ancient_reptilian_brain',
+        name: 'Ancient Reptilian Brain',
+        signature: 'ANCIENT REPTILIAN BRAIN',
+        icon: 'fa-solid fa-brain',
+        color: '#4a5568', // Dark gray - ancient, primal
+        category: 'ancient',
+        description: 'The oldest part of you. Survival. Fear. Hunger. The cold logic of a predator.',
+        // ONLY triggered by The Pale - always speaks with Limbic System
+        trigger: 'the_pale',
+        triggerCondition: 'pale_only',
+        triggerConditions: ['void', 'nothing', 'dark', 'cold', 'survive', 'death', 'end'], // Keywords for relevance
+        personality: 'Cold, calculating, survival-focused. Speaks in primal imperatives. No emotion, only assessment of threat and resource. Ancient and patient.',
+        voiceStyle: 'Terse. Imperative. Threat analysis. *Survive. Endure. The body continues.*',
+        attribute: 'physique', // Loosely associated
+        relevanceBonus: 0.3
+    },
+    limbic_system: {
+        id: 'limbic_system',
+        name: 'Limbic System',
+        signature: 'LIMBIC SYSTEM',
+        icon: 'fa-solid fa-heart-pulse',
+        color: '#e53e3e', // Red - emotional, raw
+        category: 'ancient',
+        description: 'Your emotional core. Memory. Feeling. The things that make you human.',
+        // ONLY triggered by The Pale - always speaks with Ancient Reptilian Brain
+        trigger: 'the_pale',
+        triggerCondition: 'pale_only',
+        triggerConditions: ['feel', 'memory', 'love', 'loss', 'remember', 'forget', 'emotion'], // Keywords for relevance
+        personality: 'Raw emotion, memory fragments, overwhelming sensation. Speaks in feelings and half-remembered moments. The seat of love and loss.',
+        voiceStyle: 'Fragmented. Emotional. Memory flashes. *You felt this before. In the dark. When she—*',
+        attribute: 'psyche', // Loosely associated
+        relevanceBonus: 0.3
+    },
+    spinal_cord: {
+        id: 'spinal_cord',
+        name: 'Spinal Cord',
+        signature: 'SPINAL CORD',
+        icon: 'fa-solid fa-bolt',
+        color: '#d69e2e', // Gold - disco energy
+        category: 'ancient',
+        description: 'Pure reaction. No thought, only motion. The party never stops.',
+        // Triggered by any 2 of: drunk, stimmed, manic
+        triggerCombo: ['revacholian_courage', 'pyrholidon', 'tequila_sunset'],
+        triggerCondition: 'any_two', // Requires ANY 2 of the combo
+        triggerConditions: ['dance', 'move', 'party', 'music', 'rhythm', 'disco', 'body'], // Keywords for relevance
+        personality: 'Manic energy, disco fever, unstoppable momentum. The body moves without the mind. PARTY. DANCE. MOVE.',
+        voiceStyle: 'Exclamatory! Rhythmic! No thinking! *YES! MOVE! THE BEAT CONTINUES! DISCO!*',
+        attribute: 'motorics', // Loosely associated
+        relevanceBonus: 0.4
+    }
+};
+
 // Helper to get copotype statuses (for mutual exclusivity)
 export const COPOTYPE_IDS = Object.entries(STATUS_EFFECTS)
     .filter(([_, status]) => status.category === 'copotype')
@@ -389,10 +456,14 @@ export const COPOTYPE_IDS = Object.entries(STATUS_EFFECTS)
 export const ARCHETYPE_IDS = COPOTYPE_IDS;
 
 // Statuses that trigger BOTH ancient voices (Ancient Reptilian Brain + Limbic System)
+// ONLY The Pale triggers both - this is the sole gateway to the ancient consciousness
 export const DUAL_ANCIENT_TRIGGERS = ['the_pale'];
 
-// Combo triggers for Spinal Cord (party state)
-export const SPINAL_CORD_COMBO = ['tequila_sunset', 'revacholian_courage'];
+// Party states for Spinal Cord - needs ANY 2 of these
+export const SPINAL_CORD_PARTY_STATES = ['revacholian_courage', 'pyrholidon', 'tequila_sunset'];
+
+// Legacy alias (kept for backwards compatibility)
+export const SPINAL_CORD_COMBO = SPINAL_CORD_PARTY_STATES;
 
 // Helper to get display name based on active state
 export function getStatusDisplayName(statusId, isActive = false) {
@@ -412,4 +483,35 @@ export function getStatusIcon(statusId, isActive = false) {
     }
     
     return status.icon;
+}
+
+/**
+ * Get which ancient voices should be active based on current status effects
+ * 
+ * TRIGGER RULES:
+ * - The Pale (the_pale) → BOTH Ancient Reptilian Brain AND Limbic System
+ * - Party Combo (any 2 of drunk/stimmed/manic) → Spinal Cord
+ * 
+ * @param {string[]} activeEffectIds - Array of active status effect IDs
+ * @returns {Array} Array of active ancient voice objects
+ */
+export function getActiveAncientVoices(activeEffectIds = []) {
+    const activeVoices = [];
+    
+    // The Pale → ARB + Limbic (BOTH, always together)
+    if (activeEffectIds.includes('the_pale')) {
+        activeVoices.push({ ...ANCIENT_VOICES.ancient_reptilian_brain });
+        activeVoices.push({ ...ANCIENT_VOICES.limbic_system });
+    }
+    
+    // Party combo → Spinal Cord (any 2 of drunk/stimmed/manic)
+    const activePartyCount = SPINAL_CORD_PARTY_STATES.filter(state => 
+        activeEffectIds.includes(state)
+    ).length;
+    
+    if (activePartyCount >= 2) {
+        activeVoices.push({ ...ANCIENT_VOICES.spinal_cord });
+    }
+    
+    return activeVoices;
 }

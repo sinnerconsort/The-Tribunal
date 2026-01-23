@@ -1,9 +1,17 @@
 /**
- * The Tribunal - Investigation Module v5.2
+ * The Tribunal - Investigation Module v5.4
  * "La Revacholière" - Environmental Scanner & Item Discovery
  * 
  * PURPOSE: Scan environments for objects, items, and details to populate inventory
  * NOT FOR: Character analysis or dialogue reactions (that's the voice system)
+ * 
+ * CHANGES v5.4:
+ * - FIXED: FAB visibility now reads from getSettings() directly (not just data attribute)
+ * - FIXED: Reduced interval watcher from 1s to 5s to prevent toggle fighting
+ * 
+ * CHANGES v5.3:
+ * - Added position lock support (checks data-position-locked attribute)
+ * - FAB visibility now respects settings toggle (checks data-settings-hidden)
  * 
  * CHANGES v5.2:
  * - NEW: Dynamic object voices - objects speak directly to the player
@@ -294,6 +302,11 @@ function createFAB() {
     let hasMoved = false;
 
     function startDrag(e) {
+        // Check if positions are locked
+        if (fab.dataset.positionLocked === 'true') {
+            return;
+        }
+        
         isDragging = true;
         hasMoved = false;
         const touch = e.touches ? e.touches[0] : e;
@@ -414,7 +427,20 @@ function updateInvestigationFABVisibility() {
     const invFab = document.getElementById('tribunal-investigation-fab');
     if (!invFab) return;
     
-    // Hide if main Tribunal panel is open
+    // FIXED: Read from saved settings directly (more reliable than data attribute)
+    const settings = getSettings();
+    const showFabSetting = settings?.investigation?.showFab ?? true;
+    
+    // Update data attribute to match settings
+    invFab.dataset.settingsHidden = showFabSetting ? 'false' : 'true';
+    
+    // If settings say hide, hide and return immediately
+    if (!showFabSetting) {
+        invFab.style.display = 'none';
+        return;
+    }
+    
+    // Otherwise, check if main Tribunal panel is open
     const tribunalPanel = document.getElementById('inland-empire-panel');
     const mainPanelOpen = tribunalPanel?.classList.contains('ie-panel-open');
     
@@ -443,8 +469,9 @@ function setupFABVisibilityWatcher() {
     // Initial check
     setTimeout(updateInvestigationFABVisibility, 500);
     
-    // Periodic fallback
-    setInterval(updateInvestigationFABVisibility, 1000);
+    // FIXED: Reduced from 1s to 5s - the MutationObserver handles most cases,
+    // this is just a fallback for edge cases
+    setInterval(updateInvestigationFABVisibility, 5000);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -933,6 +960,15 @@ export function initInvestigation() {
     
     document.body.appendChild(fab);
     document.body.appendChild(panel);
+    
+    // Check saved settings for initial FAB visibility
+    const settings = getSettings();
+    const showFab = settings?.investigation?.showFab ?? true;
+    if (!showFab) {
+        fab.dataset.settingsHidden = 'true';
+        fab.style.display = 'none';
+        console.log('[Investigation] FAB hidden per saved settings');
+    }
     
     // Set up visibility watcher (hide when main panel open)
     setupFABVisibilityWatcher();

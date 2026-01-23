@@ -1,7 +1,7 @@
 /**
  * The Tribunal - Settings Tab Template
  * RC-41-CFG Configuration Form
- * v0.3.2 - Restored Investigation FAB toggle
+ * v0.3.3 - Added Lock Positions toggle
  */
 
 export const SETTINGS_TAB_HTML = `
@@ -127,6 +127,14 @@ export const SETTINGS_TAB_HTML = `
         
         <!-- Actions -->
         <div class="rcm-section rcm-actions">
+            <label class="rcm-checkbox-row">
+                <input type="checkbox" id="cfg-lock-positions">
+                <span>Lock icon positions</span>
+            </label>
+            <div class="rcm-field-note">
+                <em>Prevent accidental dragging of FAB and panel</em>
+            </div>
+            
             <button id="cfg-save-settings" class="rcm-btn rcm-btn-primary">
                 💾 SAVE SETTINGS
             </button>

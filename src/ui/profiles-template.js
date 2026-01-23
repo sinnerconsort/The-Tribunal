@@ -4,6 +4,23 @@
  */
 
 // ═══════════════════════════════════════════════════════════════
+// COPOTYPE ID TO DISPLAY NAME MAP
+// ═══════════════════════════════════════════════════════════════
+
+const COPOTYPE_DISPLAY_NAMES = {
+    'apocalypse_cop': 'Apocalypse Cop',
+    'sorry_cop': 'Sorry Cop',
+    'boring_cop': 'Boring Cop',
+    'honour_cop': 'Honour Cop',
+    'art_cop': 'Art Cop',
+    'hobocop': 'Hobocop',
+    'superstar_cop': 'Superstar Cop',
+    'dick_mullen': 'Dick Mullen',
+    'human_can_opener': 'Human Can-Opener',
+    'innocence': 'Innocence'
+};
+
+// ═══════════════════════════════════════════════════════════════
 // MAIN PROFILES TAB HTML
 // ═══════════════════════════════════════════════════════════════
 
@@ -292,9 +309,45 @@ export function generateBadgeNumber(personaId) {
 }
 
 /**
- * Determine copotype from scores
+ * Get copotype display name from ID or scores
+ * @param {string|object|null} copotype - Either a copotype ID string or score object
+ * @returns {string} Display name
  */
-export function determineCopotype(scores) {
+export function getCopotypeDisplayName(copotype) {
+    // If null/undefined
+    if (!copotype) return 'Unknown';
+    
+    // If it's a direct ID string (from vitals.copotype)
+    if (typeof copotype === 'string') {
+        return COPOTYPE_DISPLAY_NAMES[copotype] || formatCopotypeId(copotype);
+    }
+    
+    // If it's a scores object (legacy/fallback)
+    if (typeof copotype === 'object') {
+        return determineCopotypeFromScores(copotype);
+    }
+    
+    return 'Unknown';
+}
+
+/**
+ * Format a copotype ID as display name (fallback)
+ * e.g., 'human_can_opener' -> 'Human Can-Opener'
+ */
+function formatCopotypeId(id) {
+    if (!id) return 'Unknown';
+    return id
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+        .replace('Can Opener', 'Can-Opener');
+}
+
+/**
+ * Determine copotype from scores (legacy)
+ * @deprecated Use direct copotype ID instead
+ */
+function determineCopotypeFromScores(scores) {
     if (!scores) return 'Unknown';
     
     const { superstar = 0, sorry = 0, hobo = 0, apocalypse = 0 } = scores;
@@ -406,9 +459,13 @@ export function updateCardDisplay(persona) {
     const pointsEl = document.getElementById('tribunal-build-points');
     if (pointsEl) pointsEl.textContent = total;
     
-    // Copotype
-    const copotype = document.getElementById('tribunal-copotype');
-    if (copotype) copotype.textContent = determineCopotype(persona.copotypes);
+    // Copotype - now handles both ID string (from vitals) and score object (legacy)
+    const copotypeEl = document.getElementById('tribunal-copotype');
+    if (copotypeEl) {
+        // Prefer direct copotype ID, fall back to scores-based
+        const displayName = getCopotypeDisplayName(persona.copotype || persona.copotypes);
+        copotypeEl.textContent = displayName;
+    }
     
     // POV and context (back of card)
     const povSelect = document.getElementById('tribunal-pov-style');

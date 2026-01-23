@@ -15,6 +15,8 @@ import {
 import { 
     STATUS_EFFECTS, 
     COPOTYPE_IDS,
+    DUAL_ANCIENT_TRIGGERS,
+    SPINAL_CORD_COMBO,
     getStatusDisplayName 
 } from '../data/statuses.js';
 
@@ -24,6 +26,68 @@ import {
     setRCMStatus,
     setRCMCopotype 
 } from './crt-vitals.js';
+
+// ═══════════════════════════════════════════════════════════════
+// ANCIENT VOICES DATA
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Ancient Voices - Primal psychological constructs that speak during extreme states
+ * These are older than the 24 skills - they represent base-level consciousness
+ * 
+ * TRIGGER RULES:
+ * - The Pale (the_pale) → BOTH Ancient Reptilian Brain AND Limbic System
+ * - Party Combo (any 2 of drunk/stimmed/manic) → Spinal Cord
+ */
+const ANCIENT_VOICES = {
+    ancient_reptilian_brain: {
+        id: 'ancient_reptilian_brain',
+        name: 'Ancient Reptilian Brain',
+        icon: 'fa-solid fa-brain',
+        description: 'The oldest part of you. Survival. Fear. Hunger. The cold logic of a predator.',
+        // ONLY triggered by The Pale - always speaks with Limbic System
+        trigger: 'the_pale',
+        triggerCondition: 'pale_only',
+        personality: 'Cold, calculating, survival-focused. Speaks in primal imperatives.'
+    },
+    limbic_system: {
+        id: 'limbic_system',
+        name: 'Limbic System',
+        icon: 'fa-solid fa-heart-pulse',
+        description: 'Your emotional core. Memory. Feeling. The things that make you human.',
+        // ONLY triggered by The Pale - always speaks with Ancient Reptilian Brain
+        trigger: 'the_pale',
+        triggerCondition: 'pale_only',
+        personality: 'Raw emotion, memory fragments, overwhelming sensation. Speaks in feelings.'
+    },
+    spinal_cord: {
+        id: 'spinal_cord',
+        name: 'Spinal Cord',
+        icon: 'fa-solid fa-bolt',
+        description: 'Pure reaction. No thought, only motion. The party never stops.',
+        // Triggered by any 2 of: drunk, stimmed, manic
+        triggerCombo: ['revacholian_courage', 'pyrholidon', 'tequila_sunset'],
+        triggerCondition: 'any_two', // Needs ANY 2 of the combo
+        personality: 'Manic energy, disco fever, unstoppable momentum. PARTY.'
+    }
+};
+
+/**
+ * The Pale status ID - the ONLY trigger for ARB and Limbic
+ */
+const PALE_TRIGGER = 'the_pale';
+
+/**
+ * Party states for Spinal Cord - needs any 2
+ */
+const PARTY_STATES = ['revacholian_courage', 'pyrholidon', 'tequila_sunset'];
+const SPINAL_CORD_MIN_PARTY_STATES = 2;
+
+/**
+ * Track previously active ancient voices to detect activation changes
+ * Used to prevent toast spam - only show toast when voice NEWLY activates
+ */
+let previouslyActiveAncientVoiceIds = new Set();
 
 // ═══════════════════════════════════════════════════════════════
 // STATUS ID MAPPING
@@ -81,6 +145,23 @@ const COPOTYPE_ID_TO_UI = Object.fromEntries(
 );
 
 // ═══════════════════════════════════════════════════════════════
+// COPOTYPE DISPLAY NAME MAP (for profile card sync)
+// ═══════════════════════════════════════════════════════════════
+
+const COPOTYPE_DISPLAY_NAMES = {
+    'apocalypse_cop': 'Apocalypse Cop',
+    'sorry_cop': 'Sorry Cop',
+    'boring_cop': 'Boring Cop',
+    'honour_cop': 'Honour Cop',
+    'art_cop': 'Art Cop',
+    'hobocop': 'Hobocop',
+    'superstar_cop': 'Superstar Cop',
+    'dick_mullen': 'Dick Mullen',
+    'human_can_opener': 'Human Can-Opener',
+    'innocence': 'Innocence'
+};
+
+// ═══════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
 
@@ -90,6 +171,10 @@ const COPOTYPE_ID_TO_UI = Object.fromEntries(
 export function initStatus() {
     // Load current state into UI
     refreshStatusFromState();
+    
+    // Initialize the ancient voice tracking from current state
+    const currentVoices = getActiveAncientVoices();
+    previouslyActiveAncientVoiceIds = new Set(currentVoices.map(v => v.id));
     
     // Bind checkbox handlers
     bindStatusCheckboxes();
@@ -150,6 +235,9 @@ export function refreshStatusFromState() {
     
     // Update Active Conditions display
     updateActiveConditionsDisplay();
+    
+    // Update Ancient Voices display
+    updateAncientVoicesDisplay();
 }
 
 /**
@@ -227,6 +315,153 @@ function updateActiveConditionsDisplay() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// ANCIENT VOICES DETECTION & DISPLAY
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get currently active ancient voices based on status effects
+ * 
+ * TRIGGER RULES:
+ * - The Pale (the_pale) → BOTH Ancient Reptilian Brain AND Limbic System
+ * - Party Combo (any 2 of drunk/stimmed/manic) → Spinal Cord
+ * 
+ * @returns {Array} Array of active ancient voice objects
+ */
+export function getActiveAncientVoices() {
+    const vitals = getVitals();
+    const activeEffects = vitals.activeEffects || [];
+    const activeEffectIds = activeEffects.map(e => 
+        typeof e === 'string' ? e : e.id
+    ).filter(Boolean);
+    
+    const activeVoices = [];
+    
+    // ═══════════════════════════════════════════════════════════
+    // THE PALE → Ancient Reptilian Brain + Limbic System (BOTH)
+    // This is the ONLY way these two voices can speak
+    // ═══════════════════════════════════════════════════════════
+    if (activeEffectIds.includes(PALE_TRIGGER)) {
+        activeVoices.push({ 
+            ...ANCIENT_VOICES.ancient_reptilian_brain, 
+            triggerType: 'pale',
+            activatedBy: 'the_pale'
+        });
+        activeVoices.push({ 
+            ...ANCIENT_VOICES.limbic_system, 
+            triggerType: 'pale',
+            activatedBy: 'the_pale'
+        });
+    }
+    
+    // ═══════════════════════════════════════════════════════════
+    // PARTY COMBO → Spinal Cord
+    // Requires any 2 of: drunk, stimmed, manic
+    // ═══════════════════════════════════════════════════════════
+    const activePartyStates = PARTY_STATES.filter(state => 
+        activeEffectIds.includes(state)
+    );
+    
+    if (activePartyStates.length >= SPINAL_CORD_MIN_PARTY_STATES) {
+        // Get the display names for the trigger tooltip
+        const triggerNames = activePartyStates.map(id => 
+            STATUS_EFFECTS[id]?.simpleName || id
+        ).join(' + ');
+        
+        activeVoices.push({ 
+            ...ANCIENT_VOICES.spinal_cord, 
+            triggerType: 'party_combo',
+            activatedBy: triggerNames
+        });
+    }
+    
+    return activeVoices;
+}
+
+/**
+ * Update the Psychological Anomalies (ancient voices) section in the UI
+ */
+function updateAncientVoicesDisplay() {
+    const container = document.getElementById('rcm-ancient-voices');
+    if (!container) {
+        // Try alternate ID
+        const altContainer = document.querySelector('.rcm-ancient-voices-list');
+        if (!altContainer) {
+            console.log('[Tribunal] Ancient voices container not found');
+            return;
+        }
+        updateAncientVoicesContainer(altContainer);
+        return;
+    }
+    
+    updateAncientVoicesContainer(container);
+}
+
+/**
+ * Update a specific ancient voices container element
+ */
+function updateAncientVoicesContainer(container) {
+    const activeVoices = getActiveAncientVoices();
+    
+    if (activeVoices.length === 0) {
+        container.innerHTML = '<span class="rcm-anomalies-empty"><em>(no anomalies detected)</em></span>';
+        return;
+    }
+    
+    // Build display HTML for each active voice
+    const voiceElements = activeVoices.map(voice => {
+        const triggerInfo = voice.activatedBy 
+            ? STATUS_EFFECTS[voice.activatedBy]?.name || voice.activatedBy
+            : voice.triggerCombo?.map(id => STATUS_EFFECTS[id]?.simpleName || id).join(' + ');
+        
+        return `
+            <div class="rcm-ancient-voice ${voice.id}">
+                <div class="ancient-voice-header">
+                    <i class="${voice.icon}"></i>
+                    <span class="ancient-voice-name">${voice.name}</span>
+                </div>
+                <div class="ancient-voice-trigger">
+                    <small>triggered by: ${triggerInfo}</small>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = voiceElements;
+}
+
+/**
+ * Check for NEWLY activated ancient voices and show toast
+ * Only shows toast when a voice transitions from inactive to active
+ */
+function checkAncientVoiceActivation() {
+    const currentVoices = getActiveAncientVoices();
+    const currentVoiceIds = new Set(currentVoices.map(v => v.id));
+    
+    // Find voices that are NOW active but WEREN'T before
+    const newlyActivated = currentVoices.filter(v => 
+        !previouslyActiveAncientVoiceIds.has(v.id)
+    );
+    
+    // Update tracking for next check
+    previouslyActiveAncientVoiceIds = currentVoiceIds;
+    
+    // Show toasts only for newly activated voices
+    if (newlyActivated.length > 0 && typeof toastr !== 'undefined') {
+        // Check for The Pale trigger (ARB + Limbic together)
+        const paleVoice = newlyActivated.find(v => v.triggerType === 'pale');
+        if (paleVoice) {
+            toastr.warning('🧠 ANCIENT VOICES STIR - Reality dissolves...', 'The Pale', { timeOut: 3000 });
+        }
+        
+        // Check for Spinal Cord (party combo)
+        const spinalVoice = newlyActivated.find(v => v.id === 'spinal_cord');
+        if (spinalVoice) {
+            toastr.warning('⚡ SPINAL CORD AWAKENS - The party never stops!', 'DISCO', { timeOut: 3000 });
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // STATUS CHECKBOX BINDINGS
 // ═══════════════════════════════════════════════════════════════
 
@@ -272,16 +507,14 @@ function bindStatusCheckboxes() {
                 console.log(`[Tribunal] Added status: ${statusId}`);
             }
             
-            // Show toast feedback
-            const statusData = STATUS_EFFECTS[statusId];
-            if (typeof toastr !== 'undefined' && statusData) {
-                const name = isCurrentlyChecked ? statusData.simpleName : statusData.name;
-                const action = isCurrentlyChecked ? 'Removed' : 'Applied';
-                toastr.info(`${action}: ${name}`, 'Status Effect', { timeOut: 1500 });
-            }
-            
             // Update Active Conditions display
             updateActiveConditionsDisplay();
+            
+            // Update Ancient Voices display
+            updateAncientVoicesDisplay();
+            
+            // Check for ancient voice activation (smart toast - only on NEW activation)
+            checkAncientVoiceActivation();
         });
     });
 }
@@ -333,20 +566,44 @@ function bindCopotypeSelection() {
                 console.log(`[Tribunal] Set copotype: ${copytypeId}`);
             }
             
-            // Show toast feedback
-            const copytypeData = STATUS_EFFECTS[copytypeId];
-            if (typeof toastr !== 'undefined' && copytypeData) {
-                if (isCurrentlyActive) {
-                    toastr.info('Copotype cleared', 'Identity', { timeOut: 1500 });
-                } else {
-                    toastr.success(`You are now: ${copytypeData.name}`, 'Copotype', { timeOut: 2000 });
-                }
-            }
-            
             // Update Active Conditions display
             updateActiveConditionsDisplay();
+            
+            // Update profile card copotype display
+            updateProfileCopotype(copytypeId, isCurrentlyActive);
         });
     });
+}
+
+/**
+ * Update the profile card's copotype display when changed in status tab
+ */
+function updateProfileCopotype(copytypeId, wasCleared) {
+    const copytypeEl = document.getElementById('tribunal-copotype');
+    if (!copytypeEl) return;
+    
+    if (wasCleared || !copytypeId) {
+        copytypeEl.textContent = 'Unknown';
+    } else {
+        // Get display name from lookup or STATUS_EFFECTS
+        const displayName = COPOTYPE_DISPLAY_NAMES[copytypeId] 
+            || STATUS_EFFECTS[copytypeId]?.name 
+            || formatCopotypeId(copytypeId);
+        copytypeEl.textContent = displayName;
+    }
+}
+
+/**
+ * Format a copotype ID for display (fallback)
+ * e.g., 'human_can_opener' -> 'Human Can-Opener'
+ */
+function formatCopotypeId(id) {
+    if (!id) return 'Unknown';
+    return id
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+        .replace('Can Opener', 'Can-Opener');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -454,4 +711,18 @@ export function setStatusByUIName(uiStatus, active) {
     
     // Update UI
     setRCMStatus(uiStatus, active);
+    
+    // Update ancient voices
+    updateAncientVoicesDisplay();
+    
+    // Check for ancient voice activation (smart toast)
+    checkAncientVoiceActivation();
+}
+
+/**
+ * Get ancient voices data (for voice generation system)
+ * @returns {Object} The ANCIENT_VOICES definitions
+ */
+export function getAncientVoicesData() {
+    return ANCIENT_VOICES;
 }

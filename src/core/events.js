@@ -1,6 +1,8 @@
 /**
  * The Tribunal - Event Handlers
  * Hooks into SillyTavern's event system
+ * 
+ * @version 4.1.0 - Added research advancement on MESSAGE_RECEIVED
  */
 
 import { eventSource, event_types, chat } from '../../../../../../script.js';
@@ -15,6 +17,9 @@ import { incrementMessageCount, getVitals } from './state.js';
 
 // Import investigation module for scene context updates
 import { updateSceneContext } from '../systems/investigation.js';
+
+// Import cabinet for research advancement + theme tracking
+import { advanceResearch, trackThemesInMessage } from '../systems/cabinet.js';
 
 // Callback registry for UI refresh
 let refreshCallbacks = [];
@@ -76,19 +81,40 @@ function onMessageReceived(messageId) {
     
     incrementMessageCount();
     
-    // Update investigation scene context with the latest AI message
+    // Get the message text
+    let messageText = '';
+    
     try {
         const message = chat[messageId];
         if (message && !message.is_user && message.mes) {
+            messageText = message.mes;
+            
+            // Update investigation scene context
             updateSceneContext(message.mes);
-            console.log('[Tribunal] Scene context updated for investigation');
+            console.log('[Tribunal] Scene context updated');
         }
     } catch (error) {
         console.error('[Tribunal] Failed to update scene context:', error);
     }
     
-    // TODO: Parse response for tracker data if auto-tracking enabled
-    // TODO: Trigger voice generation if enabled
+    // Track themes in message (fills theme meters)
+    try {
+        trackThemesInMessage(messageText);
+    } catch (error) {
+        console.error('[Tribunal] Failed to track themes:', error);
+    }
+    
+    // Advance research for any thoughts being researched
+    try {
+        const completed = advanceResearch(messageText);
+        if (completed.length > 0) {
+            console.log('[Tribunal] Research completed:', completed);
+            // The advanceResearch function auto-internalizes
+            // UI refresh happens via triggerRefresh below
+        }
+    } catch (error) {
+        console.error('[Tribunal] Failed to advance research:', error);
+    }
     
     saveChatState();
     triggerRefresh();

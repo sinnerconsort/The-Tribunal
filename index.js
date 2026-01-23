@@ -2,7 +2,7 @@
  * The Tribunal - SillyTavern Extension
  * A standalone text based Disco Elysium system
  * 
- * v0.9.6 - Fixed character name display, settings wiring
+ * v0.9.8 - Fixed voice chat injection + voice persistence
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -25,7 +25,8 @@ import {
 } from './src/core/persistence.js';
 
 import { registerEvents, onStateRefresh } from './src/core/events.js';
-import { getSettings, saveSettings, setPersona } from './src/core/state.js';
+// FIX: Added getVoiceState and setLastGeneratedVoices for voice persistence
+import { getSettings, saveSettings, setPersona, getVoiceState, setLastGeneratedVoices } from './src/core/state.js';
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - UI Components
@@ -38,6 +39,7 @@ import { updateCRTVitals, setRCMCopotype, setCRTCharacterName } from './src/ui/c
 import { initProfiles, refreshProfilesFromState } from './src/ui/profiles-handlers.js';
 import { initStatus, refreshStatusFromState } from './src/ui/status-handlers.js';
 import { initSettingsTab } from './src/ui/settings-handlers.js';
+import { initCabinetHandlers, refreshCabinet } from './src/ui/cabinet-handler.js';
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Voice Generation
@@ -92,7 +94,7 @@ export { initInvestigation, updateSceneContext, openInvestigation, closeInvestig
 // ═══════════════════════════════════════════════════════════════
 
 const extensionName = 'the-tribunal';
-const extensionVersion = '0.9.6';
+const extensionVersion = '0.9.8';
 
 // ═══════════════════════════════════════════════════════════════
 // CHAT-ONLY FAB VISIBILITY
@@ -246,8 +248,21 @@ function appendVoicesToChatWithRetry(voices, maxRetries = 3, delay = 200) {
             return;
         }
         
+        // FIX: Get the chat container element
+        const chatContainer = document.getElementById('chat');
+        if (!chatContainer) {
+            if (attempts < maxRetries) {
+                console.log(`[Tribunal] Chat container not found, retrying... (${attempts}/${maxRetries})`);
+                setTimeout(tryAppend, delay);
+            } else {
+                console.warn('[Tribunal] Chat container not found after retries');
+            }
+            return;
+        }
+        
         try {
-            appendVoicesToChat(voices);
+            // FIX: Pass the chat container as second argument
+            appendVoicesToChat(voices, chatContainer);
             console.log('[Tribunal] Voices appended to chat');
         } catch (error) {
             if (attempts < maxRetries) {
@@ -282,10 +297,13 @@ export async function triggerVoiceGeneration(messageText, options = {}) {
         console.log('[Tribunal] Generating voices for:', messageText.substring(0, 50) + '...');
         const voices = await generateVoicesForMessage(messageText, options);
         
+        // FIX: Save voices to chat state for persistence
+        setLastGeneratedVoices(voices);
+        
         // Render to panel
         renderVoices(voices, voicesContainer);
         
-        // FIXED: Use retry logic for chat injection
+        // FIXED: Use retry logic for chat injection (now with proper container)
         appendVoicesToChatWithRetry(voices);
         
         console.log('[Tribunal] Voices generated:', voices.length);
@@ -488,6 +506,17 @@ function refreshAllPanels() {
     
     refreshProfilesFromState();
     refreshStatusFromState();
+    refreshCabinet();
+    
+    // FIX: Restore last generated voices from state (persistence!)
+    const voiceState = getVoiceState();
+    if (voiceState?.lastGenerated?.length > 0) {
+        const voicesContainer = document.getElementById('tribunal-voices-output');
+        if (voicesContainer) {
+            renderVoices(voiceState.lastGenerated, voicesContainer);
+            console.log('[Tribunal] Restored saved voices:', voiceState.lastGenerated.length);
+        }
+    }
     
     console.log('[Tribunal] UI refreshed from state');
 }
@@ -516,6 +545,7 @@ function init() {
     initProfiles();
     initStatus();
     initSettingsTab();
+    initCabinetHandlers();  // <-- NEW: Initialize cabinet tab handlers
     startWatch();
     registerEvents();
     
@@ -546,6 +576,7 @@ function init() {
     window.tribunalOpenInv = openInvestigation;
     window.tribunalCloseInv = closeInvestigation;
     window.tribunalUpdateCharacter = updateCharacterInfo;
+    window.tribunalRefreshCabinet = refreshCabinet;  // <-- NEW: Debug helper
     
     import('./src/voice/api-helpers.js').then(api => {
         window.tribunalTestAPI = async () => {

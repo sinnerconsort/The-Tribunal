@@ -6,6 +6,10 @@
  * v0.3.1 - Status effect modifiers now apply to dice rolls!
  * 
  * REBUILD VERSION: Uses per-chat state accessors and new API helpers
+ * 
+ * FIXED: Ancient voice triggers now correctly use:
+ * - The Pale (the_pale) → triggers BOTH Ancient Reptilian Brain AND Limbic System
+ * - Party Combo (any 2 of: drunk/stimmed/manic) → triggers Spinal Cord
  */
 
 import { SKILLS, ANCIENT_VOICES } from '../data/skills.js';
@@ -25,6 +29,22 @@ import { analyzeContext, buildChorusPrompt, getActiveCopotype } from './prompt-b
 
 // Re-export for external use
 export { callAPI, getAvailableProfiles, analyzeContext };
+
+// ═══════════════════════════════════════════════════════════════
+// ANCIENT VOICE TRIGGER DEFINITIONS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * The Pale is the ONLY trigger for Ancient Reptilian Brain and Limbic System
+ * They ALWAYS speak together during The Pale - never separately
+ */
+const PALE_TRIGGER = 'the_pale';
+
+/**
+ * Spinal Cord triggers on any 2 of these "party state" effects
+ */
+const PARTY_STATES = ['revacholian_courage', 'pyrholidon', 'tequila_sunset'];
+const SPINAL_CORD_MIN_PARTY_STATES = 2;
 
 // ═══════════════════════════════════════════════════════════════
 // LOCAL STATE FOR DISCOVERY CONTEXT
@@ -133,86 +153,71 @@ export function calculateSkillRelevance(skillId, context) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Check if ancient voices should be allowed to speak
- * Ancient voices only emerge during critical/compromised states
- * @returns {boolean} Whether ancient voices can speak
- */
-function shouldAllowAncientVoices() {
-    const vitals = getVitals();
-    
-    // Check vitals status - only allow in dire situations
-    if (vitals.status === 'critical' || vitals.status === 'compromised') {
-        return true;
-    }
-    
-    // Check explicit ancient voice triggers in state
-    if (vitals.ancientVoices && vitals.ancientVoices.length > 0) {
-        return true;
-    }
-    
-    // Check for specific status effects that might awaken ancient voices
-    const ancientTriggerEffects = ['unconscious', 'sleeping', 'dying', 'breakdown', 'dissociating'];
-    if (vitals.activeEffects && vitals.activeEffects.some(e => 
-        ancientTriggerEffects.includes(e.id?.toLowerCase()) || 
-        ancientTriggerEffects.includes(e.name?.toLowerCase())
-    )) {
-        return true;
-    }
-    
-    // Check raw health/morale percentages
-    const healthPercent = vitals.maxHealth > 0 ? (vitals.health / vitals.maxHealth) * 100 : 100;
-    const moralePercent = vitals.maxMorale > 0 ? (vitals.morale / vitals.maxMorale) * 100 : 100;
-    
-    // Ancient voices stir when health or morale drops below 25%
-    if (healthPercent < 25 || moralePercent < 25) {
-        return true;
-    }
-    
-    return false;
-}
-
-/**
- * Get active ancient voices from voice state
- * Ancient voices are GATED by vitals - they only speak in dire situations
- * @returns {array} Array of active ancient voice IDs (empty if conditions not met)
+ * FIXED: Get active ancient voices based on status effects
+ * 
+ * Ancient voice triggering rules:
+ * - The Pale (the_pale) → BOTH Ancient Reptilian Brain AND Limbic System
+ * - Party Combo (any 2 of drunk/stimmed/manic) → Spinal Cord
+ * 
+ * @returns {array} Array of active ancient voice IDs
  */
 function getActiveAncientVoices() {
-    // CRITICAL: Ancient voices must be earned through suffering
-    if (!shouldAllowAncientVoices()) {
-        return [];
-    }
-    
     const vitals = getVitals();
+    const activeEffects = vitals.activeEffects || [];
+    
+    // Extract effect IDs (handle both string and object formats)
+    const activeEffectIds = activeEffects.map(e => 
+        typeof e === 'string' ? e : e.id
+    ).filter(Boolean);
+    
     const activeAncient = [];
     
-    // If there are explicit ancient voice triggers, use those
-    if (vitals.ancientVoices && vitals.ancientVoices.length > 0) {
-        return vitals.ancientVoices;
-    }
-    
-    // Otherwise, determine which ancient voice(s) based on state
-    const healthPercent = vitals.maxHealth > 0 ? (vitals.health / vitals.maxHealth) * 100 : 100;
-    const moralePercent = vitals.maxMorale > 0 ? (vitals.morale / vitals.maxMorale) * 100 : 100;
-    
-    // Ancient Reptilian Brain - speaks when approaching death/oblivion
-    if (healthPercent < 20 || vitals.status === 'critical') {
+    // ═══════════════════════════════════════════════════════════
+    // THE PALE → Ancient Reptilian Brain + Limbic System (BOTH)
+    // This is the ONLY way these two voices can speak
+    // ═══════════════════════════════════════════════════════════
+    if (activeEffectIds.includes(PALE_TRIGGER)) {
+        console.log('[The Tribunal] The Pale detected - awakening ancient consciousness');
         activeAncient.push('ancient_reptilian_brain');
-    }
-    
-    // Limbic System - speaks during emotional devastation
-    if (moralePercent < 20 || vitals.status === 'critical') {
         activeAncient.push('limbic_system');
+        
+        // Record for thought cabinet / discovery system
+        recordAncientVoiceTriggered?.('ancient_reptilian_brain');
+        recordAncientVoiceTriggered?.('limbic_system');
     }
     
-    // Spinal Cord - only speaks during party/dance states (requires specific effect)
-    if (vitals.activeEffects?.some(e => 
-        ['dancing', 'disco', 'party', 'rhythm'].includes(e.id?.toLowerCase()) ||
-        ['dancing', 'disco', 'party', 'rhythm'].includes(e.name?.toLowerCase())
-    )) {
+    // ═══════════════════════════════════════════════════════════
+    // PARTY COMBO → Spinal Cord
+    // Requires any 2 of: drunk (revacholian_courage), 
+    //                    stimmed (pyrholidon), 
+    //                    manic (tequila_sunset)
+    // ═══════════════════════════════════════════════════════════
+    const activePartyStates = PARTY_STATES.filter(state => 
+        activeEffectIds.includes(state)
+    );
+    
+    if (activePartyStates.length >= SPINAL_CORD_MIN_PARTY_STATES) {
+        console.log('[The Tribunal] Party combo detected:', activePartyStates, '- awakening Spinal Cord');
         activeAncient.push('spinal_cord');
+        
+        // Record for thought cabinet / discovery system
+        recordAncientVoiceTriggered?.('spinal_cord');
+    }
+    
+    // Log what we found
+    if (activeAncient.length > 0) {
+        console.log('[The Tribunal] Active ancient voices:', activeAncient);
     }
     
     return activeAncient;
+}
+
+/**
+ * Legacy function - kept for backwards compatibility but now just calls getActiveAncientVoices
+ * @deprecated Use getActiveAncientVoices directly
+ */
+function shouldAllowAncientVoices() {
+    return getActiveAncientVoices().length > 0;
 }
 
 export function selectSpeakingSkills(context, options = {}) {
@@ -224,18 +229,20 @@ export function selectSpeakingSkills(context, options = {}) {
         maxVoices = voiceSettings.maxVoicesPerTurn || 4 
     } = options;
 
-    // Check for ancient voices first - NOW PROPERLY GATED
+    // Check for ancient voices first - NOW CORRECTLY TRIGGERED
     const ancientVoicesToSpeak = [];
     const activeAncientIds = getActiveAncientVoices();
     
     for (const ancientId of activeAncientIds) {
         const ancient = ANCIENT_VOICES[ancientId];
         if (ancient) {
-            const keywordMatch = ancient.triggerConditions.some(kw =>
+            // During The Pale or party states, ancient voices have HIGH chance to speak
+            // They're already gated by status effects, so don't be too restrictive here
+            const speakChance = ancient.triggerConditions?.some(kw =>
                 context.message.toLowerCase().includes(kw.toLowerCase())
-            );
-            // Higher chance if keywords match, lower otherwise (but still possible since conditions are already met)
-            if (Math.random() < (keywordMatch ? 0.7 : 0.3)) {
+            ) ? 0.9 : 0.7; // High chance regardless - they're triggered for a reason
+            
+            if (Math.random() < speakChance) {
                 ancientVoicesToSpeak.push({
                     skillId: ancient.id,
                     skillName: ancient.name,
@@ -337,6 +344,30 @@ export function parseChorusResponse(response, voiceData) {
                 isAncient: false,
                 isCascade: false,
                 effectiveLevel: getEffectiveSkillLevel(skillId, activeStatusIds)
+            };
+        }
+    }
+    
+    // Also add ancient voices to the map
+    for (const [voiceId, voice] of Object.entries(ANCIENT_VOICES)) {
+        if (!skillMap[voice.signature?.toUpperCase()] && voice.signature) {
+            skillMap[voice.signature.toUpperCase()] = {
+                skillId: voiceId,
+                skill: voice,
+                checkResult: null,
+                isAncient: true,
+                isCascade: false,
+                effectiveLevel: 6
+            };
+        }
+        if (!skillMap[voice.name?.toUpperCase()] && voice.name) {
+            skillMap[voice.name.toUpperCase()] = {
+                skillId: voiceId,
+                skill: voice,
+                checkResult: null,
+                isAncient: true,
+                isCascade: false,
+                effectiveLevel: 6
             };
         }
     }
@@ -497,4 +528,24 @@ export async function generateVoicesForMessage(messageText, options = {}) {
     
     // 3. Generate the voices
     return generateVoices(selectedSkills, context);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXTERNAL API - For other modules to check ancient voice state
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Check if ancient voices are currently active
+ * @returns {boolean} True if any ancient voice is triggered
+ */
+export function areAncientVoicesActive() {
+    return getActiveAncientVoices().length > 0;
+}
+
+/**
+ * Get which ancient voices are currently triggered
+ * @returns {string[]} Array of ancient voice IDs
+ */
+export function getTriggeredAncientVoices() {
+    return getActiveAncientVoices();
 }

@@ -8,7 +8,8 @@ import {
     setPersona, 
     getAttributes, 
     setAttribute,
-    getInventory
+    getInventory,
+    getVitals
 } from '../core/state.js';
 import { 
     updateCardDisplay, 
@@ -46,6 +47,7 @@ export function refreshProfilesFromState() {
     const persona = getPersona();
     const attributes = getAttributes();
     const inventory = getInventory();
+    const vitals = getVitals();
     
     // Build persona object in format updateCardDisplay expects
     const displayData = {
@@ -60,7 +62,9 @@ export function refreshProfilesFromState() {
             psy: attributes.psyche || 3,
             fys: attributes.physique || 3,
             mot: attributes.motorics || 3
-        }
+        },
+        // Pass copotype directly from vitals
+        copotype: vitals.copotype || null
     };
     
     updateCardDisplay(displayData);
@@ -217,10 +221,7 @@ function bindActionButtons() {
     const saveBtn = document.getElementById('tribunal-save-persona');
     if (saveBtn) {
         saveBtn.addEventListener('click', () => {
-            // State auto-saves, but this is a good place for explicit feedback
-            if (typeof toastr !== 'undefined') {
-                toastr.success('Persona saved!', 'The Tribunal');
-            }
+            // State auto-saves, flip back to front
             flipCard(false);
             console.log('[Tribunal] Persona saved');
         });
@@ -246,9 +247,6 @@ function bindActionButtons() {
                 refreshProfilesFromState();
                 flipCard(false);
                 
-                if (typeof toastr !== 'undefined') {
-                    toastr.info('Persona reset', 'The Tribunal');
-                }
                 console.log('[Tribunal] Persona reset to defaults');
             }
         });

@@ -3,6 +3,7 @@
  * Creates the main psyche panel and floating action button
  * Extracted from rebuild v0.3.0
  * UPDATED: Radio tab → Inventory tab with subtabs
+ * v0.3.1 - Added position lock support
  */
 
 import {
@@ -73,6 +74,11 @@ export function createToggleFAB() {
     let hasMoved = false;
 
     function startDrag(e) {
+        // Check if positions are locked via data attribute
+        if (fab.dataset.positionLocked === 'true') {
+            return;
+        }
+        
         isDragging = true;
         hasMoved = false;
         const touch = e.touches ? e.touches[0] : e;

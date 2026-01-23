@@ -1,6 +1,8 @@
 /**
  * The Tribunal - Cabinet Tab Template
- * Corkboard thought cabinet with index cards
+ * Tabbed index card filing system for thoughts
+ * 
+ * @version 5.0.0 - Redesigned as tabbed stack with colored index card tabs
  */
 
 export const CABINET_TAB_HTML = `
@@ -15,10 +17,6 @@ export const CABINET_TAB_HTML = `
             <div class="cabinet-decor-businesscard-logo"></div>
         </div>
         
-        <div class="cabinet-decor-polaroid">
-            <div class="cabinet-decor-polaroid-inner"></div>
-        </div>
-        
         <div class="cabinet-decor-faln">
             <div class="cabinet-decor-faln-logo">FALN</div>
             <div class="cabinet-decor-faln-text">20% off</div>
@@ -31,86 +29,57 @@ export const CABINET_TAB_HTML = `
         
         <!-- THEMES -->
         <div class="cabinet-themes-section">
-            <div class="cabinet-header">Themes</div>
-            <div class="cabinet-themes-container" id="cabinet-themes-container">
+            <div class="cabinet-header">// THEMES</div>
+            <div class="cabinet-themes-list" id="cabinet-themes-list">
                 <div class="cabinet-themes-empty">No themes tracked yet</div>
             </div>
         </div>
         
-        <!-- RESEARCHING - 4 cards, one per attribute -->
+        <!-- RESEARCHING - Tabbed Stack -->
         <div class="cabinet-research-section">
             <div class="cabinet-section-header">
-                <div class="cabinet-header" style="margin-bottom: 0;">Researching</div>
+                <div class="cabinet-header" style="margin-bottom: 0;">// RESEARCHING</div>
                 <div class="cabinet-slots-counter">// <span class="filled" id="cabinet-research-count">0</span>/4 SLOTS</div>
             </div>
-            <div class="cabinet-card-stack" id="cabinet-research-stack">
-                <!-- INT slot -->
-                <div class="cabinet-cascade-card card-int empty-slot" data-slot="1" data-attr="int" onclick="this.classList.toggle('flipped')">
-                    <div class="cabinet-card-inner">
-                        <div class="cabinet-card-front">
-                            <div class="cabinet-empty-slot-text">Empty slot...</div>
-                        </div>
-                        <div class="cabinet-card-back">
-                            <div class="cabinet-card-back-header">Solution</div>
-                            <div class="cabinet-card-back-content"></div>
-                        </div>
-                    </div>
+            
+            <div class="cabinet-tabbed-stack" id="cabinet-research-stack">
+                <div class="cabinet-tab-row" id="cabinet-research-tabs">
+                    <!-- Tabs render here dynamically -->
                 </div>
-                <!-- PSY slot -->
-                <div class="cabinet-cascade-card card-psy empty-slot" data-slot="2" data-attr="psy" onclick="this.classList.toggle('flipped')">
-                    <div class="cabinet-card-inner">
-                        <div class="cabinet-card-front">
-                            <div class="cabinet-empty-slot-text">Empty slot...</div>
-                        </div>
-                        <div class="cabinet-card-back">
-                            <div class="cabinet-card-back-header">Solution</div>
-                            <div class="cabinet-card-back-content"></div>
-                        </div>
-                    </div>
-                </div>
-                <!-- FYS slot -->
-                <div class="cabinet-cascade-card card-fys empty-slot" data-slot="3" data-attr="fys" onclick="this.classList.toggle('flipped')">
-                    <div class="cabinet-card-inner">
-                        <div class="cabinet-card-front">
-                            <div class="cabinet-empty-slot-text">Empty slot...</div>
-                        </div>
-                        <div class="cabinet-card-back">
-                            <div class="cabinet-card-back-header">Solution</div>
-                            <div class="cabinet-card-back-content"></div>
-                        </div>
-                    </div>
-                </div>
-                <!-- MOT slot -->
-                <div class="cabinet-cascade-card card-mot empty-slot" data-slot="4" data-attr="mot" onclick="this.classList.toggle('flipped')">
-                    <div class="cabinet-card-inner">
-                        <div class="cabinet-card-front">
-                            <div class="cabinet-empty-slot-text">Empty slot...</div>
-                        </div>
-                        <div class="cabinet-card-back">
-                            <div class="cabinet-card-back-header">Solution</div>
-                            <div class="cabinet-card-back-content"></div>
-                        </div>
-                    </div>
+                <div class="cabinet-tab-content" id="cabinet-research-content">
+                    <div class="cabinet-empty-message">No thoughts being researched</div>
                 </div>
             </div>
         </div>
         
-        <!-- DISCOVERED -->
+        <!-- DISCOVERED - Tabbed Stack -->
         <div class="cabinet-discovered-section">
-            <div class="cabinet-header">Discovered</div>
-            <div class="cabinet-clippings-stack" id="cabinet-discovered-stack">
-                <div class="cabinet-discovered-empty">No thoughts discovered</div>
+            <div class="cabinet-header">// DISCOVERED</div>
+            
+            <div class="cabinet-tabbed-stack" id="cabinet-discovered-stack">
+                <div class="cabinet-tab-row" id="cabinet-discovered-tabs">
+                    <!-- Tabs render here dynamically -->
+                </div>
+                <div class="cabinet-tab-content" id="cabinet-discovered-content">
+                    <div class="cabinet-empty-message">No thoughts discovered</div>
+                </div>
             </div>
         </div>
         
-        <!-- INTERNALIZED -->
+        <!-- INTERNALIZED - Tabbed Stack -->
         <div class="cabinet-internalized-section">
             <div class="cabinet-section-header">
-                <div class="cabinet-header" style="margin-bottom: 0;">Internalized</div>
+                <div class="cabinet-header" style="margin-bottom: 0;">// INTERNALIZED</div>
                 <div class="cabinet-slots-counter">// <span class="filled" id="cabinet-internalized-count">0</span>/5</div>
             </div>
-            <div class="cabinet-internalized-stack" id="cabinet-internalized-stack">
-                <div class="cabinet-internalized-empty">No internalized thoughts</div>
+            
+            <div class="cabinet-tabbed-stack" id="cabinet-internalized-stack">
+                <div class="cabinet-tab-row" id="cabinet-internalized-tabs">
+                    <!-- Tabs render here dynamically -->
+                </div>
+                <div class="cabinet-tab-content" id="cabinet-internalized-content">
+                    <div class="cabinet-empty-message">No internalized thoughts</div>
+                </div>
             </div>
         </div>
         
@@ -150,3 +119,25 @@ export const CABINET_TAB_HTML = `
         </div>
     </div>
 </div>`;
+
+/**
+ * Theme color mapping for index card tabs
+ * These match the DE aesthetic - muted, slightly worn colors
+ */
+export const THEME_COLORS = {
+    identity: { bg: '#a8d4e6', border: '#7fb8d4' },      // Soft blue
+    death: { bg: '#d4d4d4', border: '#a8a8a8' },         // Gray
+    love: { bg: '#f8c8dc', border: '#e8a0b8' },          // Pink
+    violence: { bg: '#e8a8a8', border: '#d08080' },      // Dusty red
+    mystery: { bg: '#d8c8e8', border: '#b8a0d0' },       // Lavender
+    substance: { bg: '#c8e8c8', border: '#98c898' },     // Pale green
+    failure: { bg: '#e8d8b8', border: '#d0c090' },       // Tan/beige
+    authority: { bg: '#f8e8a8', border: '#e0c878' },     // Yellow
+    paranoia: { bg: '#e8c8a8', border: '#d0a880' },      // Orange/peach
+    philosophy: { bg: '#c8d8e8', border: '#a0b8d0' },    // Slate blue
+    money: { bg: '#c8e8b8', border: '#a0d090' },         // Money green
+    supernatural: { bg: '#e0d0f0', border: '#c0a8e0' }   // Mystic purple
+};
+
+// Default color for thoughts without a theme
+export const DEFAULT_CARD_COLOR = { bg: '#f5f5dc', border: '#d4d4aa' }; // Cream/ivory
