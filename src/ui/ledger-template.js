@@ -1,6 +1,6 @@
 /**
  * The Tribunal - Ledger Tab Template
- * Notebook paper with cases and grid paper map
+ * Notebook paper with cases, contacts, and grid paper map
  */
 
 export const LEDGER_TAB_HTML = `
@@ -8,6 +8,7 @@ export const LEDGER_TAB_HTML = `
     <!-- Sub-tabs bar -->
     <div class="ledger-subtabs">
         <button class="ledger-subtab ledger-subtab-active" data-ledger-tab="cases">CASES</button>
+        <button class="ledger-subtab" data-ledger-tab="contacts">CONTACTS</button>
         <button class="ledger-subtab" data-ledger-tab="map">MAP</button>
     </div>
     
@@ -18,6 +19,29 @@ export const LEDGER_TAB_HTML = `
             <div class="ledger-doodle"></div>
         </div>
         <p class="ledger-empty">No open cases</p>
+        <div class="ledger-coffee-ring"></div>
+    </div>
+    
+    <!-- CONTACTS sub-content - Notebook paper -->
+    <div class="ledger-subcontent ledger-paper notebook-paper" data-ledger-content="contacts">
+        <div class="ledger-section-header">
+            KNOWN CONTACTS
+            <div class="ledger-doodle"></div>
+        </div>
+        
+        <!-- Add Contact Button -->
+        <button class="contacts-add-btn" id="contacts-add-btn">
+            <i class="fa-solid fa-plus"></i> Add Contact
+        </button>
+        
+        <!-- Contacts List Container -->
+        <div id="contacts-list" class="contacts-list">
+            <!-- Contacts will be rendered here -->
+        </div>
+        
+        <!-- Empty state (shown when no contacts) -->
+        <p class="ledger-empty contacts-empty" id="contacts-empty">No known contacts</p>
+        
         <div class="ledger-coffee-ring"></div>
     </div>
     
