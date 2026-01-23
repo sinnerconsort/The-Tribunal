@@ -2,7 +2,7 @@
  * The Tribunal - API Helpers
  * Connection management, response extraction, and API calls
  * 
- * REBUILD v0.1.2 - Adapted for new state structure
+ * REBUILD v0.1.3 - Fixed first-call race condition
  */
 
 import { getSettings, saveSettings } from '../core/persistence.js';
@@ -19,6 +19,27 @@ export function getContext() {
         return SillyTavern.getContext();
     }
     return null;
+}
+
+/**
+ * Wait for ConnectionManagerRequestService to be available
+ * @param {number} maxWaitMs - Maximum time to wait
+ * @param {number} checkIntervalMs - How often to check
+ * @returns {Promise<object|null>} The context with ConnectionManager, or null if timeout
+ */
+async function waitForConnectionManager(maxWaitMs = 2000, checkIntervalMs = 100) {
+    const startTime = Date.now();
+    
+    while (Date.now() - startTime < maxWaitMs) {
+        const ctx = getContext();
+        if (ctx?.ConnectionManagerRequestService) {
+            return ctx;
+        }
+        await new Promise(resolve => setTimeout(resolve, checkIntervalMs));
+    }
+    
+    console.warn('[Tribunal] ConnectionManager not available after', maxWaitMs, 'ms');
+    return getContext(); // Return whatever we have
 }
 
 /**
@@ -125,15 +146,15 @@ export function extractResponseContent(response) {
     if (response.choices?.[0]?.text) {
         return stripThinkingTags(response.choices[0].text);
     }
-    
+
     if (response.data?.content) {
         return stripThinkingTags(response.data.content);
     }
-    
+
     if (response.response && typeof response.response === 'string') {
         return stripThinkingTags(response.response);
     }
-    
+
     console.warn('[Tribunal] Unknown response format:', JSON.stringify(response).substring(0, 500));
     return null;
 }
@@ -144,14 +165,22 @@ export function extractResponseContent(response) {
 
 /**
  * Main API call function - tries multiple methods
+ * Now with retry logic for first-call race condition
  */
 export async function callAPI(systemPrompt, userPrompt) {
-    const ctx = getContext();
     const settings = getSettings();
     const apiSettings = settings.api || {};
     
     const connectionProfile = apiSettings.connectionProfile || 'current';
     const useSTConnection = connectionProfile && connectionProfile !== 'none';
+    
+    // If we want to use ST connection, wait for it to be ready
+    let ctx;
+    if (useSTConnection) {
+        ctx = await waitForConnectionManager(2000, 100);
+    } else {
+        ctx = getContext();
+    }
     
     console.log('[Tribunal] API call config:', {
         connectionProfile,
@@ -159,13 +188,18 @@ export async function callAPI(systemPrompt, userPrompt) {
         hasConnectionManager: !!ctx?.ConnectionManagerRequestService
     });
     
-    // Method 1: Use ST Connection Manager if configured
+    // Method 1: Use ST Connection Manager if configured AND available
     if (useSTConnection && ctx?.ConnectionManagerRequestService) {
         try {
             return await callAPIViaConnectionManager(ctx, systemPrompt, userPrompt);
         } catch (err) {
             console.error('[Tribunal] ConnectionManager failed:', err);
-            // Fall through to direct fetch
+            // Fall through to direct fetch only if we have direct API settings
+            const hasDirectSettings = apiSettings.apiEndpoint && apiSettings.apiKey;
+            if (!hasDirectSettings) {
+                // Re-throw with clearer message
+                throw new Error(`Connection Manager error: ${err.message}. Configure a connection profile in settings.`);
+            }
         }
     }
     
