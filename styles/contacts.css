@@ -1,0 +1,303 @@
+/**
+ * The Tribunal - Contacts CSS
+ * Simple expandable list with auto-derived types
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTACT LIST CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+
+#contacts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTACT ITEM (Card)
+   ═══════════════════════════════════════════════════════════════ */
+
+.contact-item {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(90, 83, 71, 0.2);
+    border-left: 3px solid var(--status-color, #6a6a6a);
+    border-radius: 4px;
+    transition: background 0.15s ease;
+}
+
+.contact-item:hover {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.contact-item.expanded {
+    background: rgba(255, 255, 255, 0.8);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTACT HEADER (always visible)
+   ═══════════════════════════════════════════════════════════════ */
+
+.contact-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+}
+
+.contact-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.contact-name {
+    font-weight: bold;
+    font-size: 1.05em;
+    color: #3a3530;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.contact-meta {
+    font-size: 0.85em;
+    margin-top: 2px;
+}
+
+.contact-relationship {
+    font-style: italic;
+    color: var(--status-color, #6a6a6a);
+}
+
+/* Type badge - auto-derived */
+.contact-type {
+    font-size: 0.7em;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 3px;
+    color: var(--status-color, #6a6a6a);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTACT DETAILS (expanded)
+   ═══════════════════════════════════════════════════════════════ */
+
+.contact-details {
+    padding: 0 12px 12px 12px;
+    border-top: 1px dashed rgba(90, 83, 71, 0.2);
+    margin-top: 0;
+    animation: slideDown 0.15s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.contact-notes {
+    font-size: 0.9em;
+    font-style: italic;
+    color: #5a5347;
+    padding: 10px 12px;
+    margin: 10px 0;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 4px;
+    line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACTION BUTTONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.contact-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.8em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.btn-edit {
+    background: rgba(90, 83, 71, 0.15);
+    color: #5a5347;
+}
+
+.btn-edit:hover {
+    background: rgba(90, 83, 71, 0.25);
+}
+
+.btn-remove {
+    background: rgba(160, 80, 80, 0.15);
+    color: #a05050;
+}
+
+.btn-remove:hover {
+    background: rgba(160, 80, 80, 0.25);
+}
+
+.btn-cancel {
+    background: rgba(90, 83, 71, 0.15);
+    color: #5a5347;
+}
+
+.btn-cancel:hover {
+    background: rgba(90, 83, 71, 0.25);
+}
+
+.btn-save {
+    background: rgba(74, 144, 144, 0.3);
+    color: #2a6a6a;
+}
+
+.btn-save:hover {
+    background: rgba(74, 144, 144, 0.45);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ADD CONTACT BUTTON
+   ═══════════════════════════════════════════════════════════════ */
+
+.add-contact-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    background: rgba(74, 144, 144, 0.1);
+    border: 1px dashed rgba(74, 144, 144, 0.4);
+    border-radius: 4px;
+    color: #4a9090;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.9em;
+    transition: all 0.15s ease;
+}
+
+.add-contact-btn:hover {
+    background: rgba(74, 144, 144, 0.2);
+    border-color: rgba(74, 144, 144, 0.6);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ADD/EDIT FORM
+   ═══════════════════════════════════════════════════════════════ */
+
+.contact-form-container {
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(74, 144, 144, 0.3);
+    border-left: 3px solid #4a9090;
+    border-radius: 4px;
+    padding: 12px;
+    animation: slideDown 0.15s ease-out;
+}
+
+.contact-form-inline {
+    padding-top: 12px;
+}
+
+.form-title {
+    color: #4a9090;
+    font-weight: bold;
+    font-size: 0.85em;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+}
+
+.form-field {
+    margin-bottom: 12px;
+}
+
+.form-field label {
+    display: block;
+    font-size: 0.75em;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    color: rgba(90, 83, 71, 0.7);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.form-field input[type="text"],
+.form-field select,
+.form-field textarea {
+    width: 100%;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(90, 83, 71, 0.25);
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: 0.95em;
+    color: #3a3530;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease;
+}
+
+.form-field input[type="text"]:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+    outline: none;
+    border-color: #4a9090;
+}
+
+.form-field textarea {
+    min-height: 60px;
+    resize: vertical;
+}
+
+.form-field select {
+    cursor: pointer;
+}
+
+.form-hint {
+    font-size: 0.7em;
+    color: rgba(90, 83, 71, 0.5);
+    font-style: italic;
+    margin-top: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EMPTY STATE
+   ═══════════════════════════════════════════════════════════════ */
+
+.contacts-empty {
+    text-align: center;
+    padding: 16px;
+    color: rgba(90, 83, 71, 0.5);
+    font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTION HEADER (from ledger)
+   ═══════════════════════════════════════════════════════════════ */
+
+.contacts-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.contacts-count {
+    font-weight: normal;
+    opacity: 0.6;
+}
