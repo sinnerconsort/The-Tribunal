@@ -91,7 +91,7 @@ async function renderContactCard(contact) {
     const type = contactsData.CONTACT_TYPES[typeId] || { shortLabel: '?', label: 'UNKNOWN', color: '#6a6a6a' };
     
     return `
-        <div class="contact-card" data-contact-id="${contact.id}" data-expanded="false">
+        <div class="contact-card" data-contact-id="${contact.id}" data-disposition="${contact.disposition || 'neutral'}" data-expanded="false">
             <div class="contact-card-header">
                 <div class="contact-info">
                     <span class="contact-name">${contact.name}</span>
