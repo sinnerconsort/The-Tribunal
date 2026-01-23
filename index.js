@@ -2,7 +2,7 @@
  * The Tribunal - SillyTavern Extension
  * A standalone text based Disco Elysium system
  * 
- * v0.9.8 - Fixed voice chat injection + voice persistence
+ * v0.9.9 - Added contacts system
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -94,7 +94,7 @@ export { initInvestigation, updateSceneContext, openInvestigation, closeInvestig
 // ═══════════════════════════════════════════════════════════════
 
 const extensionName = 'the-tribunal';
-const extensionVersion = '0.9.8';
+const extensionVersion = '0.9.9';
 
 // ═══════════════════════════════════════════════════════════════
 // CHAT-ONLY FAB VISIBILITY
@@ -508,6 +508,11 @@ function refreshAllPanels() {
     refreshStatusFromState();
     refreshCabinet();
     
+    // Refresh contacts list (lazy to avoid breaking if not loaded)
+    import('./src/ui/contacts-handlers.js').then(module => {
+        module.refreshContacts();
+    }).catch(() => {});
+    
     // FIX: Restore last generated voices from state (persistence!)
     const voiceState = getVoiceState();
     if (voiceState?.lastGenerated?.length > 0) {
@@ -546,6 +551,15 @@ function init() {
     initStatus();
     initSettingsTab();
     initCabinetHandlers();  // <-- NEW: Initialize cabinet tab handlers
+    
+    // Initialize contacts handlers (lazy import to be safe)
+    import('./src/ui/contacts-handlers.js').then(module => {
+        module.initContactsHandlers();
+        console.log('[Tribunal] Contacts handlers initialized');
+    }).catch(err => {
+        console.warn('[Tribunal] Contacts handlers not loaded:', err.message);
+    });
+    
     startWatch();
     registerEvents();
     
@@ -577,6 +591,11 @@ function init() {
     window.tribunalCloseInv = closeInvestigation;
     window.tribunalUpdateCharacter = updateCharacterInfo;
     window.tribunalRefreshCabinet = refreshCabinet;  // <-- NEW: Debug helper
+    
+    // Contacts debug helper
+    import('./src/ui/contacts-handlers.js').then(module => {
+        window.tribunalRefreshContacts = module.refreshContacts;
+    }).catch(() => {});
     
     import('./src/voice/api-helpers.js').then(api => {
         window.tribunalTestAPI = async () => {
