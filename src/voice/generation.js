@@ -491,6 +491,14 @@ export async function generateVoices(selectedSkills, context) {
         // Save generated voices to state
         setLastGeneratedVoices(parsed);
         
+        // ═══════════════════════════════════════════════════════════
+        // CONTACT INTELLIGENCE HOOK - Fire and forget, NEVER blocks
+        // This is a BONUS FEATURE - it must never break voice generation
+        // ═══════════════════════════════════════════════════════════
+        import('../systems/contact-intelligence.js')
+            .then(ci => ci.updateContactIntelligence?.(parsed, context))
+            .catch(() => {}); // Silent fail - voices are more important
+        
         // Mark awakened voices
         for (const voice of parsed) {
             awakenVoice(voice.skillId);
