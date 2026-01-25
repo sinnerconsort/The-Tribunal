@@ -1052,7 +1052,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DECORATIVE SLOTS (empty wallet cards)
+   DECORATIVE SLOTS - Disco Elysium Easter Eggs
    ═══════════════════════════════════════════════════════════════ */
 
 .slot-decorative {
@@ -1061,33 +1061,232 @@
     left: 10px;
     right: 10px;
     height: 60px;
-    border: 1px solid rgba(74, 58, 42, 0.3);
     border-radius: 4px 4px 0 0;
-    background: linear-gradient(145deg, 
-        rgba(42, 26, 15, 0.5) 0%, 
-        rgba(61, 40, 23, 0.3) 100%
-    );
-    /* Subtle card edge effect */
-    box-shadow: 
-        inset 0 1px 0 rgba(255, 255, 255, 0.03),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    overflow: hidden;
 }
 
-/* Optional: subtle pattern on decorative slots */
-.slot-decorative::before {
+/* ─────────────────────────────────────────────────────────────────
+   EVRART'S BUSINESS CARD + WHIRLING MATCHBOOK
+   ───────────────────────────────────────────────────────────────── */
+
+.slot-evrart {
+    display: flex;
+    gap: 8px;
+    padding: 5px;
+    background: linear-gradient(145deg, 
+        rgba(42, 26, 15, 0.6) 0%, 
+        rgba(61, 40, 23, 0.4) 100%
+    );
+}
+
+.evrart-card {
+    flex: 1;
+    background: linear-gradient(145deg, #e8e4d9, #d4cfc2);
+    border-radius: 3px;
+    padding: 6px 8px;
+    position: relative;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    transform: rotate(-2deg);
+    overflow: hidden;
+}
+
+/* Grimy/stained effect */
+.evrart-card::before {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
+    background: 
+        radial-gradient(ellipse at 80% 20%, rgba(139, 90, 43, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 20% 80%, rgba(80, 60, 40, 0.1) 0%, transparent 40%);
+    pointer-events: none;
+}
+
+.evrart-union-logo {
+    position: absolute;
+    top: 3px;
+    right: 5px;
+    font-size: 14px;
+    color: #8b2323;
+    opacity: 0.7;
+}
+
+.evrart-name {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 9px;
+    font-weight: 700;
+    color: #2a2a2a;
+    letter-spacing: 1px;
+}
+
+.evrart-title {
+    font-size: 6px;
+    color: #5a5a5a;
+    margin-top: 2px;
+    font-family: var(--ie-font-body, monospace);
+}
+
+.evrart-motto {
+    font-size: 5px;
+    color: #8b2323;
+    font-style: italic;
+    margin-top: 4px;
+    opacity: 0.8;
+}
+
+/* Whirling-in-Rags Matchbook */
+.whirling-matchbook {
+    width: 35px;
+    flex-shrink: 0;
+    transform: rotate(5deg);
+}
+
+.matchbook-cover {
+    background: linear-gradient(145deg, #8b4513, #654321);
+    border-radius: 2px 2px 0 0;
+    padding: 8px 4px;
+    text-align: center;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    border-bottom: 3px solid #3d2817;
+    position: relative;
+}
+
+/* Match striker strip */
+.matchbook-cover::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 2px;
+    right: 2px;
+    height: 3px;
     background: repeating-linear-gradient(
-        45deg,
-        transparent,
-        transparent 10px,
-        rgba(0, 0, 0, 0.02) 10px,
-        rgba(0, 0, 0, 0.02) 20px
+        90deg,
+        #2a1a0a,
+        #2a1a0a 1px,
+        #4a3020 1px,
+        #4a3020 2px
     );
-    border-radius: 4px 4px 0 0;
+}
+
+.matchbook-name {
+    display: block;
+    font-size: 6px;
+    color: #f4e4c4;
+    font-family: 'Special Elite', var(--ie-font-body, monospace);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.matchbook-sub {
+    display: block;
+    font-size: 5px;
+    color: #c4a474;
+    font-style: italic;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   TORN POLAROID
+   ───────────────────────────────────────────────────────────────── */
+
+.slot-polaroid {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 5px;
+    background: linear-gradient(145deg, 
+        rgba(42, 26, 15, 0.6) 0%, 
+        rgba(61, 40, 23, 0.4) 100%
+    );
+}
+
+.polaroid-torn {
+    width: 50px;
+    background: #f5f5f0;
+    padding: 4px 4px 12px 4px;
+    transform: rotate(3deg);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    position: relative;
+    /* Torn right edge */
+    clip-path: polygon(
+        0 0, 
+        100% 0, 
+        100% 20%,
+        95% 25%,
+        100% 30%,
+        97% 40%,
+        100% 50%,
+        95% 60%,
+        100% 70%,
+        97% 80%,
+        100% 100%,
+        0 100%
+    );
+}
+
+.polaroid-image {
+    width: 100%;
+    height: 32px;
+    background: linear-gradient(
+        135deg,
+        #4a3a3a 0%,
+        #2a2a3a 30%,
+        #3a2a2a 60%,
+        #2a3a3a 100%
+    );
+    /* Corrupted/faded look */
+    position: relative;
+    overflow: hidden;
+}
+
+/* Static/corruption effect */
+.polaroid-image::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.3'/%3E%3C/svg%3E");
+    opacity: 0.5;
+}
+
+/* Mysterious silhouette hint */
+.polaroid-image::after {
+    content: '';
+    position: absolute;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 15px;
+    height: 20px;
+    background: rgba(80, 60, 60, 0.4);
+    border-radius: 50% 50% 0 0;
+    filter: blur(2px);
+}
+
+.polaroid-text {
+    font-size: 4px;
+    color: #666;
+    text-align: center;
+    margin-top: 3px;
+    font-family: var(--ie-font-body, monospace);
+    letter-spacing: -0.2px;
+}
+
+/* Torn edge highlight */
+.polaroid-torn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3));
     pointer-events: none;
 }
