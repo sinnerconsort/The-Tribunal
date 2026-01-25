@@ -6,24 +6,24 @@
 
 /* ═══════════════════════════════════════════════════════════════
    DESKTOP BREAKPOINT (>768px)
-   Panel as collapsible drawer on the right
+   Panel as collapsible drawer - HIDDEN by default
    ═══════════════════════════════════════════════════════════════ */
 
 @media (min-width: 769px) {
-    /* Desktop: Panel is a slide-in drawer, hidden by default */
+    /* Desktop: Panel is a slide-in drawer, FORCE hidden by default */
     .inland-empire-panel {
         width: 420px;
         right: 0;
-        transform: translateX(100%); /* Hidden off-screen */
+        transform: translateX(100%) !important; /* Force hidden */
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     
-    /* When opened, slide in */
+    /* When opened via FAB click, slide in */
     .inland-empire-panel.ie-panel-open {
-        transform: translateX(0);
+        transform: translateX(0) !important; /* Force visible */
     }
     
-    /* FAB visible on desktop too */
+    /* FAB visible on desktop */
     .ie-fab {
         display: flex;
     }
