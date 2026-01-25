@@ -13,7 +13,9 @@
     top: 0;
     right: 0;
     width: 400px;
-    height: 100vh;
+    height: 100vh; /* Fallback */
+    height: 100dvh; /* Dynamic viewport height - accounts for mobile browser UI */
+    max-height: -webkit-fill-available; /* iOS Safari fallback */
     background: #1a1a22;
     z-index: 9999;
     display: flex;
@@ -421,11 +423,13 @@
 
 .ie-panel-content {
     flex: 1;
+    min-height: 0; /* Critical for flex scroll to work */
     overflow-y: auto;
     overflow-x: hidden;
     padding: 0;
     margin-left: 32px;
     margin-right: 30px;
+    -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -436,6 +440,7 @@
     display: flex;
     gap: 8px;
     padding: 12px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 12px)); /* Notched phones */
     border-top: 1px solid var(--ie-border);
     background: var(--ie-bg-secondary);
     margin-left: 32px;
