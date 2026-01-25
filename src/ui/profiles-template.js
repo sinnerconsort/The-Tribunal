@@ -193,10 +193,21 @@ export const PROFILES_TAB_HTML = `
         <!-- ═══════════════════════════════════════════════════════════════
              CARD SLOTS (Saved Personas)
              ═══════════════════════════════════════════════════════════════ -->
+        
+        <!-- ═══════════════════════════════════════════════════════════════
+             CARD SLOTS (Saved Personas)
+             ═══════════════════════════════════════════════════════════════ -->
         <div class="card-slots" id="tribunal-card-slots">
-            <!-- Slots rendered dynamically -->
+            <!-- New Identity button -->
             <div class="card-slot">
                 <div class="slot-empty" data-action="create-persona">+ New Identity</div>
+            </div>
+            <!-- Decorative empty slots for wallet look -->
+            <div class="card-slot">
+                <div class="slot-decorative"></div>
+            </div>
+            <div class="card-slot">
+                <div class="slot-decorative"></div>
             </div>
         </div>
         
