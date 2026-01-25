@@ -421,6 +421,12 @@ function onForgetThought(thoughtId, e) {
  * Refresh all cabinet displays
  */
 export function refreshCabinet() {
+    // FIX: Reset tab selections on refresh to prevent phantom bleed
+    // When switching chats, old thought IDs would persist and point to nothing
+    selectedTabs.research = null;
+    selectedTabs.discovered = null;
+    selectedTabs.internalized = null;
+    
     renderThemes();
     renderResearchTabs();
     renderResearchContent();
@@ -476,17 +482,27 @@ function renderResearchTabs() {
     const researching = state?.thoughtCabinet?.researching || {};
     const researchingIds = Object.keys(researching);
     
-    if (researchingIds.length === 0) {
+    // FIX: Filter out orphaned thought IDs (thoughts that no longer exist)
+    const validResearchingIds = researchingIds.filter(id => {
+        const thought = getThought(id);
+        if (!thought) {
+            console.warn('[Tribunal] Orphaned research thought:', id);
+            return false;
+        }
+        return true;
+    });
+    
+    if (validResearchingIds.length === 0) {
         tabRow.innerHTML = '';
         return;
     }
     
     // Auto-select first if none selected
-    if (!selectedTabs.research && researchingIds.length > 0) {
-        selectedTabs.research = researchingIds[0];
+    if (!selectedTabs.research && validResearchingIds.length > 0) {
+        selectedTabs.research = validResearchingIds[0];
     }
     
-    tabRow.innerHTML = researchingIds.map((thoughtId, index) => {
+    tabRow.innerHTML = validResearchingIds.map((thoughtId, index) => {
         const thought = getThought(thoughtId);
         const color = getThoughtColor(thought);
         const isActive = selectedTabs.research === thoughtId;
@@ -575,17 +591,26 @@ function renderDiscoveredTabs() {
     
     const discovered = getDiscoveredThoughts();
     
-    if (discovered.length === 0) {
+    // FIX: Filter out orphaned thoughts
+    const validDiscovered = discovered.filter(thought => {
+        if (!thought || !thought.id) {
+            console.warn('[Tribunal] Orphaned discovered thought');
+            return false;
+        }
+        return true;
+    });
+    
+    if (validDiscovered.length === 0) {
         tabRow.innerHTML = '';
         return;
     }
     
     // Auto-select first if none selected
-    if (!selectedTabs.discovered && discovered.length > 0) {
-        selectedTabs.discovered = discovered[0].id;
+    if (!selectedTabs.discovered && validDiscovered.length > 0) {
+        selectedTabs.discovered = validDiscovered[0].id;
     }
     
-    tabRow.innerHTML = discovered.map((thought, index) => {
+    tabRow.innerHTML = validDiscovered.map((thought, index) => {
         const color = getThoughtColor(thought);
         const isActive = selectedTabs.discovered === thought.id;
         
@@ -665,17 +690,26 @@ function renderInternalizedTabs() {
     
     const internalized = getInternalizedThoughts();
     
-    if (internalized.length === 0) {
+    // FIX: Filter out orphaned thoughts
+    const validInternalized = internalized.filter(thought => {
+        if (!thought || !thought.id) {
+            console.warn('[Tribunal] Orphaned internalized thought');
+            return false;
+        }
+        return true;
+    });
+    
+    if (validInternalized.length === 0) {
         tabRow.innerHTML = '';
         return;
     }
     
     // Auto-select first if none selected
-    if (!selectedTabs.internalized && internalized.length > 0) {
-        selectedTabs.internalized = internalized[0].id;
+    if (!selectedTabs.internalized && validInternalized.length > 0) {
+        selectedTabs.internalized = validInternalized[0].id;
     }
     
-    tabRow.innerHTML = internalized.map((thought, index) => {
+    tabRow.innerHTML = validInternalized.map((thought, index) => {
         if (!thought) return '';
         const color = getThoughtColor(thought);
         const isActive = selectedTabs.internalized === thought.id;
