@@ -6,21 +6,21 @@
 
 /* ═══════════════════════════════════════════════════════════════
    DESKTOP BREAKPOINT (>768px)
-   Panel as collapsible drawer - HIDDEN by default
+   Panel as collapsible drawer - use display:none instead of transform
    ═══════════════════════════════════════════════════════════════ */
 
 @media (min-width: 769px) {
-    /* Desktop: Panel is a slide-in drawer, FORCE hidden by default */
+    /* Desktop: Panel hidden by default with display:none */
     .inland-empire-panel {
         width: 420px;
         right: 0;
-        transform: translateX(100%) !important; /* Force hidden */
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: none !important; /* Force hidden */
     }
     
-    /* When opened via FAB click, slide in */
+    /* When opened via FAB click, show it */
     .inland-empire-panel.ie-panel-open {
-        transform: translateX(0) !important; /* Force visible */
+        display: flex !important; /* Force visible as flex column */
+        transform: translateX(0);
     }
     
     /* FAB visible on desktop */
@@ -31,7 +31,7 @@
 
 /* ═══════════════════════════════════════════════════════════════
    MOBILE BREAKPOINT (768px and below)
-   Full-screen panel overlay
+   Full-screen panel overlay - keep using transform for smooth animation
    ═══════════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
