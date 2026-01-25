@@ -2,7 +2,7 @@
  * The Tribunal - Contacts Handlers
  * UI logic for the contacts section in the Ledger
  * 
- * SAFE VERSION: Uses lazy imports to avoid breaking extension on load
+ * NO MODALS VERSION - Uses inline forms only
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -78,6 +78,54 @@ async function deleteContact(contactId) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// INLINE FORM TEMPLATE (NO MODALS)
+// ═══════════════════════════════════════════════════════════════
+
+async function getInlineFormHtml(existingContact = null) {
+    const contactsData = await getContactsData();
+    const isEdit = !!existingContact;
+    
+    // Build disposition options
+    const dispositionOptions = Object.values(contactsData.CONTACT_DISPOSITIONS)
+        .map(d => `<option value="${d.id}" ${existingContact?.disposition === d.id ? 'selected' : ''}>${d.label}</option>`)
+        .join('');
+    
+    return `
+        <div class="contact-inline-form" data-contact-id="${existingContact?.id || 'new'}">
+            <label class="contact-form-label">
+                Name
+                <input type="text" class="contact-form-input contact-input-name" 
+                       value="${existingContact?.name || ''}" placeholder="Enter name...">
+            </label>
+            
+            <label class="contact-form-label">
+                Relationship
+                <input type="text" class="contact-form-input contact-input-relationship"
+                       value="${existingContact?.relationship || ''}" placeholder="Partner, witness, suspect...">
+            </label>
+            
+            <label class="contact-form-label">
+                Disposition
+                <select class="contact-form-select contact-input-disposition">
+                    ${dispositionOptions}
+                </select>
+            </label>
+            
+            <label class="contact-form-label">
+                Notes
+                <textarea class="contact-form-textarea contact-input-notes" 
+                          placeholder="Your observations...">${existingContact?.notes || ''}</textarea>
+            </label>
+            
+            <div class="contact-form-actions">
+                <button class="contact-form-btn contact-form-cancel">Cancel</button>
+                <button class="contact-form-btn contact-form-save">${isEdit ? 'Save' : 'Add Contact'}</button>
+            </div>
+        </div>
+    `;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // RENDERING
 // ═══════════════════════════════════════════════════════════════
 
@@ -103,17 +151,20 @@ async function renderContactCard(contact) {
             </div>
             
             <div class="contact-card-details">
-                ${contact.relationship ? `<div class="contact-relationship">${contact.relationship}</div>` : ''}
-                ${contact.notes ? `<div class="contact-notes">"${contact.notes}"</div>` : ''}
-                
-                <div class="contact-actions">
-                    <button class="contact-action-btn contact-edit-btn" data-contact-id="${contact.id}">
-                        <i class="fa-solid fa-pen"></i> EDIT
-                    </button>
-                    <button class="contact-action-btn contact-remove-btn" data-contact-id="${contact.id}">
-                        <i class="fa-solid fa-times"></i> REMOVE
-                    </button>
+                <div class="contact-display-content">
+                    ${contact.relationship ? `<div class="contact-relationship">${contact.relationship}</div>` : ''}
+                    ${contact.notes ? `<div class="contact-notes">"${contact.notes}"</div>` : ''}
+                    
+                    <div class="contact-actions">
+                        <button class="contact-action-btn contact-edit-btn" data-contact-id="${contact.id}">
+                            <i class="fa-solid fa-pen"></i> EDIT
+                        </button>
+                        <button class="contact-action-btn contact-remove-btn" data-contact-id="${contact.id}">
+                            <i class="fa-solid fa-times"></i> REMOVE
+                        </button>
+                    </div>
                 </div>
+                <div class="contact-edit-form-container"></div>
             </div>
         </div>
     `;
@@ -165,150 +216,151 @@ export async function renderContactsList() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MODAL DIALOG
+// ADD CONTACT (INLINE FORM)
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Show add/edit contact modal
- */
-async function showContactModal(existingContact = null) {
-    const contactsData = await getContactsData();
-    const isEdit = !!existingContact;
+let addFormVisible = false;
+let addFormContainer = null;
+
+async function showAddForm() {
+    const addBtn = document.getElementById('contacts-add-btn');
+    if (!addBtn || addFormVisible) return;
     
-    // Build disposition options
-    const dispositionOptions = Object.values(contactsData.CONTACT_DISPOSITIONS)
-        .map(d => `<option value="${d.id}" ${existingContact?.disposition === d.id ? 'selected' : ''}>${d.label}</option>`)
-        .join('');
+    // Hide the button
+    addBtn.style.display = 'none';
     
-    const modalHtml = `
-        <div class="contact-modal-overlay" id="contact-modal-overlay">
-            <div class="contact-modal">
-                <div class="contact-modal-header">
-                    ${isEdit ? 'Edit Contact' : 'Add New Contact'}
-                </div>
-                <div class="contact-modal-body">
-                    <label class="contact-form-label">
-                        Name
-                        <input type="text" id="contact-input-name" class="contact-form-input" 
-                               value="${existingContact?.name || ''}" placeholder="Enter name...">
-                    </label>
-                    
-                    <label class="contact-form-label">
-                        Relationship
-                        <input type="text" id="contact-input-relationship" class="contact-form-input"
-                               value="${existingContact?.relationship || ''}" placeholder="Partner, witness, suspect...">
-                    </label>
-                    
-                    <label class="contact-form-label">
-                        Disposition
-                        <select id="contact-input-disposition" class="contact-form-select">
-                            ${dispositionOptions}
-                        </select>
-                    </label>
-                    
-                    <label class="contact-form-label">
-                        Notes
-                        <textarea id="contact-input-notes" class="contact-form-textarea" 
-                                  placeholder="Your observations...">${existingContact?.notes || ''}</textarea>
-                    </label>
-                </div>
-                <div class="contact-modal-footer">
-                    <button class="contact-modal-btn contact-modal-cancel" id="contact-modal-cancel">Cancel</button>
-                    <button class="contact-modal-btn contact-modal-save" id="contact-modal-save">
-                        ${isEdit ? 'Save Changes' : 'Add Contact'}
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
+    // Create form container after the button
+    addFormContainer = document.createElement('div');
+    addFormContainer.id = 'contacts-add-form-container';
+    addFormContainer.innerHTML = await getInlineFormHtml(null);
+    addBtn.parentNode.insertBefore(addFormContainer, addBtn.nextSibling);
     
-    // Add to DOM
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    const overlay = document.getElementById('contact-modal-overlay');
-    const saveBtn = document.getElementById('contact-modal-save');
-    const cancelBtn = document.getElementById('contact-modal-cancel');
-    const nameInput = document.getElementById('contact-input-name');
+    addFormVisible = true;
     
     // Focus name input
-    setTimeout(() => nameInput?.focus(), 100);
+    const nameInput = addFormContainer.querySelector('.contact-input-name');
+    setTimeout(() => nameInput?.focus(), 50);
     
-    // Return promise that resolves when modal closes
-    return new Promise((resolve) => {
-        const closeModal = (result) => {
-            overlay?.remove();
-            resolve(result);
-        };
+    // Bind form buttons
+    bindAddFormEvents(addFormContainer);
+}
+
+function hideAddForm() {
+    const addBtn = document.getElementById('contacts-add-btn');
+    
+    // Remove form container
+    if (addFormContainer) {
+        addFormContainer.remove();
+        addFormContainer = null;
+    }
+    
+    // Show button again
+    if (addBtn) {
+        addBtn.style.display = '';
+    }
+    
+    addFormVisible = false;
+}
+
+function bindAddFormEvents(container) {
+    const cancelBtn = container.querySelector('.contact-form-cancel');
+    const saveBtn = container.querySelector('.contact-form-save');
+    
+    cancelBtn?.addEventListener('click', hideAddForm);
+    
+    saveBtn?.addEventListener('click', async () => {
+        const name = container.querySelector('.contact-input-name')?.value?.trim();
+        if (!name) {
+            container.querySelector('.contact-input-name')?.focus();
+            return;
+        }
         
-        // Cancel
-        cancelBtn?.addEventListener('click', () => closeModal(null));
-        overlay?.addEventListener('click', (e) => {
-            if (e.target === overlay) closeModal(null);
-        });
+        const contactsData = await getContactsData();
+        const contact = contactsData.createContact({});
         
-        // Save
-        saveBtn?.addEventListener('click', async () => {
-            const name = document.getElementById('contact-input-name')?.value?.trim();
-            if (!name) {
-                nameInput?.focus();
-                return;
-            }
-            
-            const contactsData = await getContactsData();
-            const contact = existingContact 
-                ? { ...existingContact }
-                : contactsData.createContact({});
-            
-            contact.name = name;
-            contact.relationship = document.getElementById('contact-input-relationship')?.value?.trim() || '';
-            contact.disposition = document.getElementById('contact-input-disposition')?.value || 'neutral';
-            contact.notes = document.getElementById('contact-input-notes')?.value?.trim() || '';
-            contact.manuallyEdited = true;
-            
-            closeModal(contact);
-        });
+        contact.name = name;
+        contact.relationship = container.querySelector('.contact-input-relationship')?.value?.trim() || '';
+        contact.disposition = container.querySelector('.contact-input-disposition')?.value || 'neutral';
+        contact.notes = container.querySelector('.contact-input-notes')?.value?.trim() || '';
+        contact.manuallyEdited = true;
+        
+        await saveContact(contact);
+        hideAddForm();
+        await renderContactsList();
     });
 }
 
 // ═══════════════════════════════════════════════════════════════
-// EVENT HANDLERS
+// EDIT CONTACT (INLINE FORM IN CARD)
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Handle Add Contact button click
- */
-async function handleAddContact() {
-    const contact = await showContactModal();
-    if (contact) {
-        await saveContact(contact);
-        await renderContactsList();
-    }
-}
-
-/**
- * Handle Edit button click
- */
-async function handleEditContact(contactId) {
+async function showEditForm(contactId) {
     const contacts = await getContacts();
     const contact = contacts[contactId];
     if (!contact) return;
     
-    const updated = await showContactModal(contact);
-    if (updated) {
-        await saveContact(updated);
-        await renderContactsList();
+    const card = document.querySelector(`.contact-card[data-contact-id="${contactId}"]`);
+    if (!card) return;
+    
+    // Expand the card
+    card.dataset.expanded = 'true';
+    
+    // Hide display content, show form
+    const displayContent = card.querySelector('.contact-display-content');
+    const formContainer = card.querySelector('.contact-edit-form-container');
+    
+    if (displayContent) displayContent.style.display = 'none';
+    if (formContainer) {
+        formContainer.innerHTML = await getInlineFormHtml(contact);
+        bindEditFormEvents(formContainer, contact);
     }
 }
 
-/**
- * Handle Remove button click
- */
+function hideEditForm(card) {
+    const displayContent = card.querySelector('.contact-display-content');
+    const formContainer = card.querySelector('.contact-edit-form-container');
+    
+    if (displayContent) displayContent.style.display = '';
+    if (formContainer) formContainer.innerHTML = '';
+}
+
+function bindEditFormEvents(container, existingContact) {
+    const card = container.closest('.contact-card');
+    const cancelBtn = container.querySelector('.contact-form-cancel');
+    const saveBtn = container.querySelector('.contact-form-save');
+    
+    cancelBtn?.addEventListener('click', () => {
+        hideEditForm(card);
+    });
+    
+    saveBtn?.addEventListener('click', async () => {
+        const name = container.querySelector('.contact-input-name')?.value?.trim();
+        if (!name) {
+            container.querySelector('.contact-input-name')?.focus();
+            return;
+        }
+        
+        const contact = { ...existingContact };
+        contact.name = name;
+        contact.relationship = container.querySelector('.contact-input-relationship')?.value?.trim() || '';
+        contact.disposition = container.querySelector('.contact-input-disposition')?.value || 'neutral';
+        contact.notes = container.querySelector('.contact-input-notes')?.value?.trim() || '';
+        contact.manuallyEdited = true;
+        
+        await saveContact(contact);
+        await renderContactsList();
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REMOVE CONTACT
+// ═══════════════════════════════════════════════════════════════
+
 async function handleRemoveContact(contactId) {
     const contacts = await getContacts();
     const contact = contacts[contactId];
     if (!contact) return;
     
-    // Simple confirm
     if (confirm(`Remove ${contact.name} from contacts?`)) {
         await deleteContact(contactId);
         await renderContactsList();
@@ -324,12 +376,12 @@ async function handleRemoveContact(contactId) {
  * Call this after the ledger tab is rendered
  */
 export async function initContactsHandlers() {
-    console.log('[Contacts] Initializing handlers...');
+    console.log('[Contacts] Initializing handlers (no-modal version)...');
     
     // Add Contact button
     const addBtn = document.getElementById('contacts-add-btn');
     if (addBtn) {
-        addBtn.addEventListener('click', handleAddContact);
+        addBtn.addEventListener('click', showAddForm);
     }
     
     // Delegate edit/remove clicks on the list container
@@ -342,7 +394,7 @@ export async function initContactsHandlers() {
             if (editBtn) {
                 e.stopPropagation();
                 const contactId = editBtn.dataset.contactId;
-                await handleEditContact(contactId);
+                await showEditForm(contactId);
             } else if (removeBtn) {
                 e.stopPropagation();
                 const contactId = removeBtn.dataset.contactId;
@@ -354,12 +406,13 @@ export async function initContactsHandlers() {
     // Initial render
     await renderContactsList();
     
-    console.log('[Contacts] Handlers initialized');
+    console.log('[Contacts] Handlers initialized (no-modal version)');
 }
 
 /**
  * Refresh contacts display (call after chat change)
  */
 export async function refreshContacts() {
+    hideAddForm(); // Reset add form state
     await renderContactsList();
 }
