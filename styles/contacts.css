@@ -1,6 +1,7 @@
 /**
  * The Tribunal - Contacts CSS
  * Clean, collapsible contact cards for the Ledger
+ * NO MODALS VERSION - inline forms only
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -15,8 +16,12 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ADD CONTACT BUTTON
+   ADD CONTACT SECTION
    ═══════════════════════════════════════════════════════════════ */
+
+#contacts-add-section {
+    margin: 8px 0;
+}
 
 .contacts-add-btn {
     display: flex;
@@ -25,7 +30,6 @@
     gap: 6px;
     width: 100%;
     padding: 10px 12px;
-    margin: 8px 0;
     background: rgba(74, 144, 144, 0.08);
     border: 1px dashed rgba(74, 144, 144, 0.3);
     border-radius: 4px;
@@ -232,49 +236,17 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MODAL STYLES
+   INLINE FORM STYLES (replaces modal)
    ═══════════════════════════════════════════════════════════════ */
 
-.contact-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    padding: 20px;
-}
-
-.contact-modal {
-    background: #f5f0e6;
-    border: 2px solid #8a7a6a;
+.contact-inline-form {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(90, 80, 70, 0.2);
     border-radius: 4px;
-    width: 100%;
-    max-width: 360px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-}
-
-.contact-modal-header {
-    padding: 14px 16px;
-    background: #3a3530;
-    color: #e8e0d0;
-    font-family: 'Courier Prime', 'Courier New', monospace;
-    font-size: 0.95em;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-}
-
-.contact-modal-body {
-    padding: 16px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
 }
 
 .contact-form-label {
@@ -291,12 +263,12 @@
 .contact-form-input,
 .contact-form-select,
 .contact-form-textarea {
-    padding: 10px;
+    padding: 8px 10px;
     background: #fff;
     border: 1px solid #c4b8a8;
     border-radius: 3px;
     font-family: inherit;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     color: #3a3530;
 }
 
@@ -309,47 +281,51 @@
 }
 
 .contact-form-textarea {
-    min-height: 80px;
+    min-height: 60px;
     resize: vertical;
 }
 
-.contact-modal-footer {
+.contact-form-actions {
     display: flex;
-    gap: 10px;
-    padding: 12px 16px;
-    background: rgba(0, 0, 0, 0.03);
-    border-top: 1px solid rgba(90, 80, 70, 0.15);
+    gap: 8px;
+    margin-top: 4px;
 }
 
-.contact-modal-btn {
+.contact-form-btn {
     flex: 1;
-    padding: 10px 16px;
+    padding: 8px 12px;
     border: 1px solid;
     border-radius: 3px;
     font-family: 'Courier Prime', 'Courier New', monospace;
-    font-size: 0.85em;
+    font-size: 0.8em;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
 }
 
-.contact-modal-cancel {
+.contact-form-cancel {
     background: #fff;
     border-color: #c4b8a8;
     color: #6a6357;
 }
 
-.contact-modal-cancel:hover {
+.contact-form-cancel:hover {
     background: #f0ebe0;
     border-color: #8a7a6a;
 }
 
-.contact-modal-save {
+.contact-form-save {
     background: #4a6a4a;
     border-color: #3a5a3a;
     color: #fff;
 }
 
-.contact-modal-save:hover {
+.contact-form-save:hover {
     background: #3a5a3a;
+}
+
+/* Form inside expanded card */
+.contact-edit-form-container .contact-inline-form {
+    margin-top: 8px;
+    background: rgba(255, 255, 255, 0.4);
 }
