@@ -3,7 +3,7 @@
  * Context analysis, voice selection, API calls, and prompt building
  * 
  * Now with CASCADE SYSTEM - skills react to each other!
- * v0.3.1 - Status effect modifiers now apply to dice rolls!
+ * v0.3.2 - FIXED: Voice count now properly enforces maxVoices setting
  * 
  * REBUILD VERSION: Uses per-chat state accessors and new API helpers
  * 
@@ -220,6 +220,16 @@ function shouldAllowAncientVoices() {
     return getActiveAncientVoices().length > 0;
 }
 
+/**
+ * Select which skills will speak for this message
+ * 
+ * v0.3.2 FIX: Now properly enforces maxVoices as a TOTAL cap, not just primary voices.
+ * Priority: Ancient voices > Primary voices > Cascade voices
+ * 
+ * @param {object} context - Analyzed message context
+ * @param {object} options - Override options for min/max voices
+ * @returns {array} Selected skills to generate voices for
+ */
 export function selectSpeakingSkills(context, options = {}) {
     const settings = getSettings();
     const voiceSettings = settings?.voices || {};
@@ -258,13 +268,22 @@ export function selectSpeakingSkills(context, options = {}) {
         .map(id => calculateSkillRelevance(id, context))
         .sort((a, b) => b.score - a.score);
 
-    // Determine number of PRIMARY voices based on intensity
+    // ═══════════════════════════════════════════════════════════════
+    // FIX: Calculate remaining slots AFTER ancient voices
+    // Ancient voices get priority, regular voices fill remaining slots
+    // ═══════════════════════════════════════════════════════════════
+    const remainingSlots = Math.max(minVoices, maxVoices - ancientVoicesToSpeak.length);
+
+    // Determine number of PRIMARY voices based on intensity (within remaining slots)
     const intensity = Math.max(
         context.emotionalIntensity,
         context.dangerLevel,
         context.socialComplexity
     );
-    const targetVoices = Math.round(minVoices + (maxVoices - minVoices) * intensity);
+    const targetVoices = Math.min(
+        remainingSlots,
+        Math.round(minVoices + (maxVoices - minVoices) * intensity)
+    );
 
     // Select PRIMARY skills
     const primarySkills = [];
@@ -275,8 +294,9 @@ export function selectSpeakingSkills(context, options = {}) {
         }
     }
 
-    // Ensure minimum voices
-    while (primarySkills.length < minVoices && allRelevance.length > 0) {
+    // Ensure minimum voices (if no ancient voices)
+    const effectiveMin = ancientVoicesToSpeak.length > 0 ? 0 : minVoices;
+    while (primarySkills.length < effectiveMin && allRelevance.length > 0) {
         const next = allRelevance.find(r => !primarySkills.find(s => s.skillId === r.skillId));
         if (next) primarySkills.push({ ...next, isPrimary: true });
         else break;
@@ -309,11 +329,20 @@ export function selectSpeakingSkills(context, options = {}) {
         }
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // FIX: Enforce TOTAL voice cap
+    // Priority: Ancient voices > Primary voices > Cascade voices
+    // ═══════════════════════════════════════════════════════════════
+    const regularVoices = [...primarySkills, ...cascadeSkills.slice(0, CASCADE_RULES.maxCascadeVoices)];
+    const slotsForRegular = Math.max(0, maxVoices - ancientVoicesToSpeak.length);
+    
     const selected = [
         ...ancientVoicesToSpeak,
-        ...primarySkills,
-        ...cascadeSkills.slice(0, CASCADE_RULES.maxCascadeVoices)
+        ...regularVoices.slice(0, slotsForRegular)
     ];
+
+    // Debug logging
+    console.log(`[The Tribunal] Voice selection: ${ancientVoicesToSpeak.length} ancient + ${Math.min(regularVoices.length, slotsForRegular)} regular = ${selected.length} total (max: ${maxVoices})`);
 
     return selected;
 }
@@ -326,51 +355,21 @@ export function parseChorusResponse(response, voiceData) {
     const lines = response.trim().split('\n').filter(line => line.trim());
     const results = [];
     
-    // Get active statuses for effective level calculation
-    const activeStatusIds = getActiveStatuses();
-
+    // ═══════════════════════════════════════════════════════════════
+    // FIX: Only map SELECTED voices - don't accept hallucinated extras!
+    // This ensures maxVoices cap is actually respected in output
+    // ═══════════════════════════════════════════════════════════════
     const skillMap = {};
+    const selectedSkillIds = new Set(voiceData.map(v => v.skillId));
+    
     voiceData.forEach(v => {
         skillMap[v.skill.signature.toUpperCase()] = v;
         skillMap[v.skill.name.toUpperCase()] = v;
     });
     
-    for (const [skillId, skill] of Object.entries(SKILLS)) {
-        if (!skillMap[skill.signature.toUpperCase()]) {
-            skillMap[skill.signature.toUpperCase()] = {
-                skillId,
-                skill,
-                checkResult: null,
-                isAncient: false,
-                isCascade: false,
-                effectiveLevel: getEffectiveSkillLevel(skillId, activeStatusIds)
-            };
-        }
-    }
-    
-    // Also add ancient voices to the map
-    for (const [voiceId, voice] of Object.entries(ANCIENT_VOICES)) {
-        if (!skillMap[voice.signature?.toUpperCase()] && voice.signature) {
-            skillMap[voice.signature.toUpperCase()] = {
-                skillId: voiceId,
-                skill: voice,
-                checkResult: null,
-                isAncient: true,
-                isCascade: false,
-                effectiveLevel: 6
-            };
-        }
-        if (!skillMap[voice.name?.toUpperCase()] && voice.name) {
-            skillMap[voice.name.toUpperCase()] = {
-                skillId: voiceId,
-                skill: voice,
-                checkResult: null,
-                isAncient: true,
-                isCascade: false,
-                effectiveLevel: 6
-            };
-        }
-    }
+    // NOTE: We intentionally do NOT add all skills to the map anymore.
+    // If the AI hallucinates a skill that wasn't selected, it gets ignored.
+    // This enforces the maxVoices cap on actual output.
 
     for (const line of lines) {
         const match = line.match(/^([A-Z][A-Z\s\/]+)\s*[-:–—]\s*(.+)$/i);
@@ -388,6 +387,9 @@ export function parseChorusResponse(response, voiceData) {
                     isCascade: voiceInfo.isCascade,
                     success: true
                 });
+            } else {
+                // Log when we reject a hallucinated voice
+                console.log('[Tribunal] Ignored non-selected voice:', match[1].trim());
             }
         }
     }
@@ -405,6 +407,8 @@ export function parseChorusResponse(response, voiceData) {
             success: true
         });
     }
+    
+    console.log(`[Tribunal] Parsed ${results.length} voice lines from ${voiceData.length} selected voices`);
 
     return results;
 }
