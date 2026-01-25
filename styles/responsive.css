@@ -5,34 +5,6 @@
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   CRITICAL: PANEL LAYOUT FIX
-   Ensure panel is flex column and footer stays at bottom
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Force panel to be proper flex container */
-.inland-empire-panel {
-    display: flex !important;
-    flex-direction: column !important;
-    overflow: hidden !important;
-}
-
-/* Content area should scroll, not the whole panel */
-.ie-panel-content {
-    flex: 1 !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    min-height: 0 !important; /* Critical for flex scroll */
-}
-
-/* Footer must stay at bottom, never scroll away */
-.ie-bottom-buttons {
-    flex-shrink: 0 !important;
-    position: relative !important;
-    z-index: 100 !important;
-    margin-top: auto !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════
    DESKTOP BREAKPOINT (>768px)
    Panel as collapsible drawer - use display:none instead of transform
    ═══════════════════════════════════════════════════════════════ */
@@ -48,7 +20,7 @@
     /* When opened via FAB click, show it */
     .inland-empire-panel.ie-panel-open {
         display: flex !important; /* Force visible as flex column */
-        flex-direction: column !important;
+        transform: translateX(0);
     }
     
     /* FAB visible on desktop */
@@ -59,7 +31,7 @@
 
 /* ═══════════════════════════════════════════════════════════════
    MOBILE BREAKPOINT (768px and below)
-   Full-screen panel overlay
+   Full-screen panel overlay - keep using transform for smooth animation
    ═══════════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
