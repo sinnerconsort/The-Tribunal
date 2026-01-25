@@ -14,9 +14,13 @@
         width: 100%;
         right: 0;
         transform: translateX(100%);
-        /* Mobile viewport fix - use bottom:0 instead of height:100vh */
-        height: auto;
-        bottom: 0;
+        /* 
+         * Mobile viewport fix: 
+         * Use calc to subtract estimated browser chrome (~56px for address bar)
+         * Also try dvh with vh fallback
+         */
+        height: calc(100vh - 56px);
+        height: 100dvh; /* Modern browsers override calc above */
     }
 
     .ie-panel-open {
