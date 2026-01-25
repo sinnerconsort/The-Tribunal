@@ -5,6 +5,18 @@
  */
 
 /* ═══════════════════════════════════════════════════════════════
+   PANEL FOOTER FIX - Ensure bottom buttons always visible
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-bottom-buttons {
+    position: sticky !important;
+    bottom: 0 !important;
+    z-index: 100 !important;
+    background: var(--ie-panel-bg, #1a1a1a) !important;
+    flex-shrink: 0 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    DESKTOP BREAKPOINT (>768px)
    Panel as collapsible drawer - use display:none instead of transform
    ═══════════════════════════════════════════════════════════════ */
