@@ -4,6 +4,7 @@
  * REBUILD: Clean mobile support
  * 
  * UPDATED: Added viewport height fixes, scroll fixes, desktop drawer behavior
+ * FIX: Removed aggressive FAB positioning that broke visibility
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -214,18 +215,14 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   FAB MOBILE
+   FAB MOBILE - Just size, don't mess with positioning
+   (JS handles positioning via inline styles)
    ═══════════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
     .ie-fab {
         width: 48px;
         height: 48px;
-        /* Position at bottom-left on mobile, out of chat input way */
-        bottom: 80px !important;
-        top: auto !important;
-        left: 10px !important;
-        right: auto !important;
     }
     
     .ie-fab-icon {
@@ -267,17 +264,6 @@
     .ie-panel-footer {
         margin-left: 32px;
         margin-right: 30px;
-    }
-    
-    /* FAB at middle-right on desktop */
-    .ie-fab {
-        top: 50% !important;
-        bottom: auto !important;
-        left: auto !important;
-        right: 10px !important;
-        transform: translateY(-50%);
-        width: 50px;
-        height: 50px;
     }
 }
 
@@ -358,12 +344,6 @@
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
     .ie-panel-footer {
         padding-bottom: calc(12px + env(safe-area-inset-bottom));
-    }
-    
-    @media (max-width: 768px) {
-        .ie-fab {
-            bottom: calc(80px + env(safe-area-inset-bottom)) !important;
-        }
     }
 }
 
