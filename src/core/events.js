@@ -2,7 +2,7 @@
  * The Tribunal - Event Handlers
  * Hooks into SillyTavern's event system
  * 
- * @version 4.1.0 - Added research advancement on MESSAGE_RECEIVED
+ * @version 4.2.0 - Added contact intelligence NPC scanning
  */
 
 import { eventSource, event_types, chat } from '../../../../../../script.js';
@@ -23,6 +23,25 @@ import { advanceResearch, trackThemesInMessage } from '../systems/cabinet.js';
 
 // Callback registry for UI refresh
 let refreshCallbacks = [];
+
+// Lazy-loaded contact intelligence (won't break if missing)
+let _contactIntel = null;
+let _contactIntelLoaded = false;
+
+async function getContactIntelligence() {
+    if (_contactIntelLoaded) return _contactIntel;
+    
+    try {
+        _contactIntel = await import('../systems/contact-intelligence.js');
+        console.log('[Tribunal] Contact intelligence loaded');
+    } catch (e) {
+        console.log('[Tribunal] Contact intelligence not available (optional)');
+        _contactIntel = null;
+    }
+    
+    _contactIntelLoaded = true;
+    return _contactIntel;
+}
 
 /**
  * Register a callback to be called when state changes require UI refresh
@@ -99,7 +118,7 @@ function onMessageSent() {
  * Handle message received from AI
  * @param {number} messageId - The message index
  */
-function onMessageReceived(messageId) {
+async function onMessageReceived(messageId) {
     console.log('[Tribunal] Message received:', messageId);
     
     incrementMessageCount();
@@ -137,6 +156,28 @@ function onMessageReceived(messageId) {
         }
     } catch (error) {
         console.error('[Tribunal] Failed to advance research:', error);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // CONTACT INTELLIGENCE - Basic NPC tracking (optional feature)
+    // Full analysis happens after voice generation via analyzeVoiceSentimentForNPCs()
+    // ═══════════════════════════════════════════════════════════════
+    try {
+        const contactIntel = await getContactIntelligence();
+        if (contactIntel && messageText) {
+            // Just track mentions - voice sentiment analysis happens separately
+            const detected = contactIntel.detectPotentialNPCs(messageText);
+            
+            if (detected && detected.size > 0) {
+                for (const [name, data] of detected) {
+                    contactIntel.trackPendingContact(name, messageText);
+                }
+                console.log('[Tribunal] Tracking NPCs:', Array.from(detected.keys()));
+            }
+        }
+    } catch (error) {
+        // Contact intelligence is optional - don't break on errors
+        console.log('[Tribunal] Contact scan skipped:', error.message);
     }
     
     saveChatState();
@@ -185,6 +226,34 @@ function onGenerationStarted() {
  */
 function onGenerationEnded() {
     console.log('[Tribunal] Generation ended');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VOICE SENTIMENT ANALYSIS
+// Call this after voice generation to update NPC opinions
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Analyze voice lines for NPC sentiment
+ * Call this after generateVoices() completes
+ * @param {Array} voiceResults - Array of { skillId, content } from generation
+ * @param {string} messageText - The message that triggered generation
+ */
+export async function analyzeVoiceSentimentForNPCs(voiceResults, messageText) {
+    try {
+        const contactIntel = await getContactIntelligence();
+        if (!contactIntel) return;
+        
+        // This is the main entry point that handles everything:
+        // - Detects NPCs in the message
+        // - Tracks pending contacts
+        // - Updates voice opinions on existing contacts
+        // - Checks for disposition shifts
+        await contactIntel.updateContactIntelligence(voiceResults, { message: messageText });
+        
+    } catch (error) {
+        console.log('[Tribunal] Voice sentiment analysis skipped:', error.message);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
