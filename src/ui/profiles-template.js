@@ -193,6 +193,10 @@ export const PROFILES_TAB_HTML = `
         <!-- ═══════════════════════════════════════════════════════════════
              CARD SLOTS (Saved Personas)
              ═══════════════════════════════════════════════════════════════ -->
+        <div class="card-slots" id="tribunal-card-slots">
+            <!-- Slots rendered dynamically -->
+            <div class="card-slot">
+                <div class="slot-empty" data-action="create-persona">+ New Identity</div>
         
         <!-- ═══════════════════════════════════════════════════════════════
              CARD SLOTS (Saved Personas)
@@ -202,12 +206,32 @@ export const PROFILES_TAB_HTML = `
             <div class="card-slot">
                 <div class="slot-empty" data-action="create-persona">+ New Identity</div>
             </div>
-            <!-- Decorative empty slots for wallet look -->
+            <!-- Decorative: Evrart's business card + Whirling matchbook -->
             <div class="card-slot">
-                <div class="slot-decorative"></div>
+                <div class="slot-decorative slot-evrart">
+                    <div class="evrart-card">
+                        <div class="evrart-union-logo">☭</div>
+                        <div class="evrart-name">EVRART CLAIRE</div>
+                        <div class="evrart-title">Union Boss • The Débardeurs</div>
+                        <div class="evrart-motto">"I'm trying to help you"</div>
+                    </div>
+                    <div class="whirling-matchbook">
+                        <div class="matchbook-cover">
+                            <span class="matchbook-name">Whirling</span>
+                            <span class="matchbook-sub">-in-Rags</span>
+                        </div>
+                    </div>
+                </div>
             </div>
+            <!-- Decorative: Torn polaroid -->
             <div class="card-slot">
-                <div class="slot-decorative"></div>
+                <div class="slot-decorative slot-polaroid">
+                    <div class="polaroid-torn">
+                        <div class="polaroid-image"></div>
+                        <div class="polaroid-tear"></div>
+                        <div class="polaroid-text">...the oth... ...ex...</div>
+                    </div>
+                </div>
             </div>
         </div>
         
