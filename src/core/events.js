@@ -54,12 +54,35 @@ export function triggerRefresh() {
 /**
  * Handle chat switch
  * Loads per-chat state for the new chat
+ * FIX: Reset cabinet state BEFORE loading to prevent phantom bleed
  */
-function onChatChanged() {
-    console.log('[Tribunal] Chat changed - loading state');
+async function onChatChanged() {
+    console.log('[Tribunal] Chat changed - resetting and loading state');
     
+    // STEP 1: Reset cabinet state FIRST (clears old thoughts from UI)
+    // Uses dynamic import so missing function won't break extension
+    try {
+        const cabinet = await import('../systems/cabinet.js');
+        if (typeof cabinet.resetCabinetState === 'function') {
+            cabinet.resetCabinetState();
+            console.log('[Tribunal] Cabinet state reset');
+        }
+    } catch (e) {
+        // Function not available - that's okay
+    }
+    
+    // STEP 2: Load new chat state
     if (hasActiveChat()) {
         loadChatState();
+        
+        // STEP 3: Delay refresh to ensure state is fully loaded
+        // This prevents the UI from rendering stale data
+        setTimeout(() => {
+            triggerRefresh();
+            console.log('[Tribunal] Delayed refresh complete');
+        }, 100);
+    } else {
+        // No active chat - still trigger refresh to clear UI
         triggerRefresh();
     }
 }
