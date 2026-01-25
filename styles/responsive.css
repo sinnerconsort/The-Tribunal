@@ -5,7 +5,33 @@
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   MOBILE BREAKPOINT (768px)
+   DESKTOP BREAKPOINT (>768px)
+   Panel as collapsible drawer on the right
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (min-width: 769px) {
+    /* Desktop: Panel is a slide-in drawer, hidden by default */
+    .inland-empire-panel {
+        width: 420px;
+        right: 0;
+        transform: translateX(100%); /* Hidden off-screen */
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    /* When opened, slide in */
+    .inland-empire-panel.ie-panel-open {
+        transform: translateX(0);
+    }
+    
+    /* FAB visible on desktop too */
+    .ie-fab {
+        display: flex;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE BREAKPOINT (768px and below)
+   Full-screen panel overlay
    ═══════════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
@@ -14,13 +40,9 @@
         width: 100%;
         right: 0;
         transform: translateX(100%);
-        /* 
-         * Mobile viewport fix: 
-         * Use calc to subtract estimated browser chrome (~56px for address bar)
-         * Also try dvh with vh fallback
-         */
+        /* Mobile viewport fix */
         height: calc(100vh - 56px);
-        height: 100dvh; /* Modern browsers override calc above */
+        height: 100dvh;
     }
 
     .ie-panel-open {
