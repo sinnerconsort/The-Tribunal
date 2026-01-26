@@ -673,19 +673,42 @@ function createSnow() {
     const layer = document.createElement('div');
     layer.className = 'weather-layer';
     layer.dataset.effect = 'snow';
+    layer.style.cssText = `
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        pointer-events: none;
+        overflow: hidden;
+    `;
     
     const count = getParticleCount('snow');
+    console.log('[WeatherEffects] Creating', count, 'snowflakes');
+    
     for (let i = 0; i < count; i++) {
         const flake = document.createElement('div');
-        flake.className = 'weather-particle fx-snowflake';
+        const startX = Math.random() * 100;
+        const delay = Math.random() * 10;
+        const duration = 8 + Math.random() * 6;
+        const size = 10 + Math.random() * 10;
+        
         flake.textContent = '❄';
-        flake.style.left = `${Math.random() * 100}%`;
-        flake.style.animationDelay = `${Math.random() * 10}s`;
-        flake.style.animationDuration = `${8 + Math.random() * 6}s`;
-        flake.style.fontSize = `${6 + Math.random() * 8}px`;
+        flake.style.cssText = `
+            position: absolute;
+            left: ${startX}%;
+            top: -20px;
+            font-size: ${size}px;
+            color: white;
+            text-shadow: 0 0 5px #aaf, 0 0 10px #fff;
+            pointer-events: none;
+            animation: tribunal-snow-fall ${duration}s linear ${delay}s infinite;
+            z-index: 1;
+        `;
         layer.appendChild(flake);
     }
     
+    console.log('[WeatherEffects] Snow layer created with', layer.children.length, 'flakes');
     return layer;
 }
 
@@ -1106,19 +1129,55 @@ function renderEffects() {
  * Initialize weather effects system
  */
 export function initWeatherEffects() {
-    // Inject CSS
+    // Inject minimal CSS for animations (just keyframes)
+    if (!document.getElementById('tribunal-weather-keyframes')) {
+        const style = document.createElement('style');
+        style.id = 'tribunal-weather-keyframes';
+        style.textContent = `
+            @keyframes tribunal-snow-fall {
+                0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+                10% { opacity: 1; }
+                90% { opacity: 0.8; }
+                100% { transform: translateY(100vh) translateX(20px) rotate(360deg); opacity: 0; }
+            }
+            @keyframes tribunal-rain-fall {
+                0% { transform: translateY(-20px); opacity: 0; }
+                10% { opacity: 0.7; }
+                100% { transform: translateY(100vh); opacity: 0; }
+            }
+            @keyframes tribunal-fog-drift {
+                0% { transform: translateX(-10%); }
+                50% { transform: translateX(10%); }
+                100% { transform: translateX(-10%); }
+            }
+        `;
+        document.head.appendChild(style);
+        console.log('[WeatherEffects] Keyframes CSS injected');
+    }
+    
+    // Also inject full CSS
     if (!document.getElementById('tribunal-weather-effects-styles')) {
         const style = document.createElement('style');
         style.id = 'tribunal-weather-effects-styles';
         style.textContent = WEATHER_EFFECTS_CSS;
         document.head.appendChild(style);
-        console.log('[WeatherEffects] CSS injected');
+        console.log('[WeatherEffects] Full CSS injected');
     }
     
     // Create container
     if (!document.getElementById('tribunal-weather-effects')) {
         effectsContainer = document.createElement('div');
         effectsContainer.id = 'tribunal-weather-effects';
+        effectsContainer.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 9990;
+            overflow: hidden;
+        `;
         
         // Try to insert before chat, or fallback to body
         const chat = document.getElementById('chat');
@@ -1152,7 +1211,7 @@ export function initWeatherEffects() {
         effectsContainer = document.getElementById('tribunal-weather-effects');
     }
     
-    console.log('[WeatherEffects] Initialized');
+    console.log('[WeatherEffects] Initialized, container:', !!effectsContainer);
 }
 
 /**
@@ -1202,32 +1261,6 @@ export function setWeatherState(state) {
     console.log('[WeatherEffects] Container exists:', !!effectsContainer);
     console.log('[WeatherEffects] Effects enabled:', effectsEnabled);
     
-    // DEBUG: Show visible indicator
-    let debugBox = document.getElementById('weather-debug-box');
-    if (!debugBox) {
-        debugBox = document.createElement('div');
-        debugBox.id = 'weather-debug-box';
-        debugBox.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 128, 0, 0.9);
-            color: white;
-            padding: 20px 30px;
-            font-size: 18px;
-            font-weight: bold;
-            z-index: 999999;
-            border-radius: 10px;
-            text-align: center;
-            pointer-events: none;
-        `;
-        document.body.appendChild(debugBox);
-    }
-    debugBox.style.display = 'block';
-    debugBox.innerHTML = `Weather: ${state.weather || 'none'}<br>Period: ${state.period || 'none'}<br>Container: ${effectsContainer ? 'YES' : 'NO'}`;
-    setTimeout(() => { debugBox.style.display = 'none'; }, 3000);
-    
     if (state.weather !== undefined && currentWeather !== state.weather) {
         currentWeather = state.weather;
         changed = true;
@@ -1245,6 +1278,47 @@ export function setWeatherState(state) {
         renderEffects();
         console.log('[WeatherEffects] State:', { weather: currentWeather, period: currentPeriod, special: currentSpecial });
     }
+    
+    // DEBUG: Show visible indicator AFTER rendering
+    setTimeout(() => {
+        let debugBox = document.getElementById('weather-debug-box');
+        if (!debugBox) {
+            debugBox = document.createElement('div');
+            debugBox.id = 'weather-debug-box';
+            debugBox.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 100, 0, 0.95);
+                color: white;
+                padding: 20px 30px;
+                font-size: 14px;
+                font-weight: bold;
+                z-index: 999999;
+                border-radius: 10px;
+                text-align: left;
+                pointer-events: none;
+                font-family: monospace;
+            `;
+            document.body.appendChild(debugBox);
+        }
+        debugBox.style.display = 'block';
+        
+        const containerKids = effectsContainer ? effectsContainer.children.length : 0;
+        const firstLayer = effectsContainer?.firstElementChild;
+        const particleCount = firstLayer ? firstLayer.children.length : 0;
+        
+        debugBox.innerHTML = `
+            <div style="color: #8f8;">Weather: ${currentWeather || 'none'}</div>
+            <div style="color: #8f8;">Period: ${currentPeriod || 'none'}</div>
+            <div style="color: #ff8;">Container: ${effectsContainer ? 'YES' : 'NO'}</div>
+            <div style="color: #ff8;">Layers: ${containerKids}</div>
+            <div style="color: #ff8;">Particles: ${particleCount}</div>
+            <div style="color: #f88;">Enabled: ${effectsEnabled}</div>
+        `;
+        setTimeout(() => { debugBox.style.display = 'none'; }, 4000);
+    }, 100);
 }
 
 /**
