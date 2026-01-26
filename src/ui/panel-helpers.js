@@ -5,6 +5,7 @@
  */
 
 import { toggleWatchMode } from './watch.js';
+import { initLedgerHandlers } from '../core/events.js';
 
 // ═══════════════════════════════════════════════════════════════
 // PANEL CONTROLS
@@ -205,6 +206,9 @@ export function bindEvents() {
             if (panel?.classList.contains('ie-panel-open')) togglePanel();
         }
     });
+    
+    // Initialize ledger handlers (cases + contacts)
+    initLedgerHandlers();
 }
 
 /**
