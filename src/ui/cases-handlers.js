@@ -1,0 +1,491 @@
+/**
+ * The Tribunal - Cases Handlers
+ * UI logic for the DE-style journal/task list
+ * 
+ * Layout mirrors Disco Elysium:
+ * - Left side: Task list grouped by day
+ * - Right side (or expanded): Task details
+ */
+
+// ═══════════════════════════════════════════════════════════════
+// LAZY IMPORTS
+// ═══════════════════════════════════════════════════════════════
+
+let _persistence = null;
+let _casesData = null;
+
+async function getPersistence() {
+    if (!_persistence) {
+        try {
+            _persistence = await import('../core/persistence.js');
+        } catch (e) {
+            console.error('[Cases] Could not load persistence:', e.message);
+            _persistence = {
+                getChatState: () => null,
+                saveChatState: () => {}
+            };
+        }
+    }
+    return _persistence;
+}
+
+async function getCasesData() {
+    if (!_casesData) {
+        try {
+            _casesData = await import('../data/cases.js');
+        } catch (e) {
+            console.error('[Cases] Could not load cases data:', e.message);
+            _casesData = {
+                CASE_STATUS: { ACTIVE: 'active', COMPLETED: 'completed', FAILED: 'failed', TIMED: 'timed' },
+                CASE_PRIORITY: { MAIN: 'main', SIDE: 'side', OPTIONAL: 'optional' },
+                createCase: (o) => ({ id: `case_${Date.now()}`, title: 'Untitled', ...o }),
+                formatFiledTime: () => 'UNKNOWN',
+                groupCasesByDay: () => ({}),
+                separateActiveClosed: () => ({ active: {}, closed: {} })
+            };
+        }
+    }
+    return _casesData;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+
+let selectedCaseId = null;  // Currently selected case for detail view
+
+async function getCases() {
+    const persistence = await getPersistence();
+    const state = persistence.getChatState();
+    if (!state) return {};
+    if (!state.cases) state.cases = {};
+    return state.cases;
+}
+
+async function saveCase(caseObj) {
+    const persistence = await getPersistence();
+    const state = persistence.getChatState();
+    if (!state) return;
+    if (!state.cases) state.cases = {};
+    
+    caseObj.lastModified = Date.now();
+    state.cases[caseObj.id] = caseObj;
+    persistence.saveChatState();
+}
+
+async function deleteCase(caseId) {
+    const persistence = await getPersistence();
+    const state = persistence.getChatState();
+    if (!state?.cases) return;
+    
+    delete state.cases[caseId];
+    persistence.saveChatState();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDERING - TASK LIST (LEFT PANEL)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Render a single task item in the list
+ */
+function renderTaskItem(caseObj, casesData) {
+    const isSelected = selectedCaseId === caseObj.id;
+    const isCompleted = caseObj.status === casesData.CASE_STATUS.COMPLETED;
+    const isFailed = caseObj.status === casesData.CASE_STATUS.FAILED;
+    const isTimed = caseObj.deadline != null;
+    
+    const statusClass = isCompleted ? 'completed' : isFailed ? 'failed' : '';
+    const selectedClass = isSelected ? 'selected' : '';
+    
+    return `
+        <div class="case-item ${statusClass} ${selectedClass}" 
+             data-case-id="${caseObj.id}"
+             data-priority="${caseObj.priority}">
+            ${isTimed ? '<span class="case-timed-icon">⏱</span>' : ''}
+            <span class="case-title">${caseObj.title}</span>
+        </div>
+    `;
+}
+
+/**
+ * Render a day group header
+ */
+function renderDayHeader(day) {
+    return `<div class="case-day-header">${day}</div>`;
+}
+
+/**
+ * Render the full task list grouped by day
+ */
+async function renderTaskList(cases, status = 'active') {
+    const casesData = await getCasesData();
+    const { active, closed } = casesData.separateActiveClosed(cases);
+    
+    const casesToRender = status === 'active' ? active : closed;
+    const grouped = casesData.groupCasesByDay(casesToRender);
+    
+    if (Object.keys(grouped).length === 0) {
+        return `<p class="ledger-empty">${status === 'active' ? 'No open cases' : 'No closed cases'}</p>`;
+    }
+    
+    let html = '';
+    
+    // Render each day group
+    for (const [day, dayCases] of Object.entries(grouped)) {
+        html += renderDayHeader(day);
+        for (const caseObj of dayCases) {
+            html += renderTaskItem(caseObj, casesData);
+        }
+    }
+    
+    return html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDERING - TASK DETAIL (RIGHT PANEL / EXPANDED)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Render the detail view for a selected case
+ */
+async function renderCaseDetail(caseId) {
+    const cases = await getCases();
+    const caseObj = cases[caseId];
+    const casesData = await getCasesData();
+    
+    if (!caseObj) {
+        return `<div class="case-detail-empty">Select a task to view details</div>`;
+    }
+    
+    const filedTime = casesData.formatFiledTime(caseObj.filedAt, caseObj.filedDay);
+    const isCompleted = caseObj.status === casesData.CASE_STATUS.COMPLETED;
+    const isFailed = caseObj.status === casesData.CASE_STATUS.FAILED;
+    
+    // Render hints/leads
+    let hintsHtml = '';
+    if (caseObj.hints && caseObj.hints.length > 0) {
+        hintsHtml = `
+            <ul class="case-hints">
+                ${caseObj.hints.map(hint => `
+                    <li class="case-hint ${hint.completed ? 'completed' : ''}" 
+                        data-hint-id="${hint.id}"
+                        data-case-id="${caseId}">
+                        ${hint.text}
+                    </li>
+                `).join('')}
+            </ul>
+        `;
+    }
+    
+    // Action buttons based on status
+    let actionsHtml = '';
+    if (!isCompleted && !isFailed) {
+        actionsHtml = `
+            <div class="case-detail-actions">
+                <button class="case-action-btn case-complete-btn" data-case-id="${caseId}">
+                    <i class="fa-solid fa-check"></i> Complete
+                </button>
+                <button class="case-action-btn case-fail-btn" data-case-id="${caseId}">
+                    <i class="fa-solid fa-times"></i> Failed
+                </button>
+            </div>
+        `;
+    } else {
+        actionsHtml = `
+            <div class="case-detail-actions">
+                <button class="case-action-btn case-reopen-btn" data-case-id="${caseId}">
+                    <i class="fa-solid fa-undo"></i> Reopen
+                </button>
+            </div>
+        `;
+    }
+    
+    return `
+        <div class="case-detail" data-case-id="${caseId}">
+            <div class="case-detail-header">
+                <h3 class="case-detail-title">${caseObj.title}</h3>
+                <div class="case-detail-filed">FILED: ${filedTime}</div>
+            </div>
+            
+            ${caseObj.description ? `
+                <div class="case-detail-description">
+                    ${caseObj.description}
+                </div>
+            ` : ''}
+            
+            ${hintsHtml}
+            
+            ${actionsHtml}
+        </div>
+    `;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN RENDER
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Render the full cases section
+ */
+export async function renderCasesList() {
+    const activeListEl = document.getElementById('cases-active-list');
+    const closedListEl = document.getElementById('cases-closed-list');
+    const activeEmptyEl = document.getElementById('cases-active-empty');
+    const closedEmptyEl = document.getElementById('cases-closed-empty');
+    
+    const cases = await getCases();
+    const casesData = await getCasesData();
+    const { active, closed } = casesData.separateActiveClosed(cases);
+    
+    // Render active cases
+    if (activeListEl) {
+        if (Object.keys(active).length === 0) {
+            activeListEl.innerHTML = '';
+            if (activeEmptyEl) activeEmptyEl.style.display = 'block';
+        } else {
+            activeListEl.innerHTML = await renderTaskList(cases, 'active');
+            if (activeEmptyEl) activeEmptyEl.style.display = 'none';
+        }
+    }
+    
+    // Render closed cases
+    if (closedListEl) {
+        if (Object.keys(closed).length === 0) {
+            closedListEl.innerHTML = '';
+            if (closedEmptyEl) closedEmptyEl.style.display = 'block';
+        } else {
+            closedListEl.innerHTML = await renderTaskList(cases, 'closed');
+            if (closedEmptyEl) closedEmptyEl.style.display = 'none';
+        }
+    }
+    
+    // Attach click handlers
+    attachTaskListHandlers();
+}
+
+/**
+ * Render case detail panel (call when a case is selected)
+ */
+export async function renderSelectedCaseDetail() {
+    const detailEl = document.getElementById('case-detail-panel');
+    if (!detailEl) return;
+    
+    if (selectedCaseId) {
+        detailEl.innerHTML = await renderCaseDetail(selectedCaseId);
+        detailEl.style.display = 'block';
+        attachDetailHandlers();
+    } else {
+        detailEl.innerHTML = '';
+        detailEl.style.display = 'none';
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EVENT HANDLERS
+// ═══════════════════════════════════════════════════════════════
+
+function attachTaskListHandlers() {
+    // Click on a task to select it
+    document.querySelectorAll('.case-item').forEach(item => {
+        item.addEventListener('click', async () => {
+            const caseId = item.dataset.caseId;
+            
+            // Toggle selection
+            if (selectedCaseId === caseId) {
+                selectedCaseId = null;
+            } else {
+                selectedCaseId = caseId;
+            }
+            
+            // Update UI
+            document.querySelectorAll('.case-item').forEach(el => {
+                el.classList.toggle('selected', el.dataset.caseId === selectedCaseId);
+            });
+            
+            await renderSelectedCaseDetail();
+        });
+    });
+}
+
+function attachDetailHandlers() {
+    // Complete button
+    document.querySelectorAll('.case-complete-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const caseId = btn.dataset.caseId;
+            const cases = await getCases();
+            const casesData = await getCasesData();
+            
+            if (cases[caseId]) {
+                const updated = casesData.completeCase(cases[caseId]);
+                await saveCase(updated);
+                await renderCasesList();
+                await renderSelectedCaseDetail();
+            }
+        });
+    });
+    
+    // Fail button
+    document.querySelectorAll('.case-fail-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const caseId = btn.dataset.caseId;
+            const cases = await getCases();
+            const casesData = await getCasesData();
+            
+            if (cases[caseId]) {
+                const updated = casesData.failCase(cases[caseId]);
+                await saveCase(updated);
+                await renderCasesList();
+                await renderSelectedCaseDetail();
+            }
+        });
+    });
+    
+    // Reopen button
+    document.querySelectorAll('.case-reopen-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const caseId = btn.dataset.caseId;
+            const cases = await getCases();
+            const casesData = await getCasesData();
+            
+            if (cases[caseId]) {
+                const updated = casesData.reopenCase(cases[caseId]);
+                await saveCase(updated);
+                await renderCasesList();
+                await renderSelectedCaseDetail();
+            }
+        });
+    });
+    
+    // Hint toggle
+    document.querySelectorAll('.case-hint').forEach(hint => {
+        hint.addEventListener('click', async () => {
+            const caseId = hint.dataset.caseId;
+            const hintId = hint.dataset.hintId;
+            const cases = await getCases();
+            const casesData = await getCasesData();
+            
+            if (cases[caseId]) {
+                const updated = casesData.toggleHint(cases[caseId], hintId);
+                await saveCase(updated);
+                await renderSelectedCaseDetail();
+            }
+        });
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADD CASE (inline form similar to contacts)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Show the add case form
+ */
+export function showAddCaseForm() {
+    const addBtn = document.getElementById('cases-add-btn');
+    if (!addBtn) return;
+    
+    // Check if form already exists
+    if (document.getElementById('case-inline-add-form')) {
+        return;
+    }
+    
+    addBtn.style.display = 'none';
+    
+    const formHtml = `
+        <div class="case-inline-form" id="case-inline-add-form">
+            <div class="case-mini-row">
+                <input type="text" id="case-input-title" class="case-form-input" 
+                       placeholder="Task title..." autocomplete="off">
+            </div>
+            <div class="case-mini-row">
+                <input type="text" id="case-input-description" class="case-form-input" 
+                       placeholder="Description (optional)..." autocomplete="off">
+            </div>
+            <div class="case-mini-actions">
+                <button class="case-mini-btn case-mini-cancel" id="case-inline-cancel">✕</button>
+                <button class="case-mini-btn case-mini-save" id="case-inline-save">ADD</button>
+            </div>
+        </div>
+    `;
+    
+    addBtn.insertAdjacentHTML('afterend', formHtml);
+    
+    // Focus title input
+    const titleInput = document.getElementById('case-input-title');
+    setTimeout(() => titleInput?.focus(), 50);
+    
+    // Wire up buttons
+    document.getElementById('case-inline-cancel')?.addEventListener('click', hideAddCaseForm);
+    document.getElementById('case-inline-save')?.addEventListener('click', handleAddCaseSave);
+    
+    // Enter to save
+    titleInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleAddCaseSave();
+        }
+    });
+}
+
+function hideAddCaseForm() {
+    const form = document.getElementById('case-inline-add-form');
+    const addBtn = document.getElementById('cases-add-btn');
+    
+    form?.remove();
+    if (addBtn) addBtn.style.display = '';
+}
+
+async function handleAddCaseSave() {
+    const titleInput = document.getElementById('case-input-title');
+    const title = titleInput?.value?.trim();
+    
+    if (!title) {
+        titleInput?.classList.add('case-input-error');
+        titleInput?.focus();
+        return;
+    }
+    
+    const casesData = await getCasesData();
+    const newCase = casesData.createCase({
+        title,
+        description: document.getElementById('case-input-description')?.value?.trim() || '',
+        manuallyAdded: true
+    });
+    
+    await saveCase(newCase);
+    hideAddCaseForm();
+    await renderCasesList();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Initialize cases handlers
+ */
+export async function initCasesHandlers() {
+    console.log('[Cases] Initializing handlers...');
+    
+    // Add Case button
+    const addBtn = document.getElementById('cases-add-btn');
+    if (addBtn) {
+        addBtn.addEventListener('click', showAddCaseForm);
+    }
+    
+    // Initial render
+    await renderCasesList();
+    
+    console.log('[Cases] Handlers initialized');
+}
+
+/**
+ * Refresh cases display
+ */
+export async function refreshCases() {
+    hideAddCaseForm();
+    selectedCaseId = null;
+    await renderCasesList();
+    await renderSelectedCaseDetail();
+}

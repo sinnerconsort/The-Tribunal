@@ -14,20 +14,28 @@ export const LEDGER_TAB_HTML = `
     <!-- CASES sub-content - Notebook paper -->
     <div class="ledger-subcontent ledger-subcontent-active ledger-paper notebook-paper" data-ledger-content="cases">
         <div class="ledger-section-header">
-            ACTIVE CASES
+            // ACTIVE CASES
             <div class="ledger-doodle"></div>
         </div>
         <p class="ledger-empty" id="cases-active-empty">No open cases</p>
         <div id="cases-active-list"></div>
         
+        <!-- Add Case Button -->
+        <button class="cases-add-btn" id="cases-add-btn">
+            <i class="fa-solid fa-plus"></i> Add Task
+        </button>
+        
+        <!-- Case Detail Panel (shows when a case is selected) -->
+        <div id="case-detail-panel" style="display: none;"></div>
+        
         <div class="ledger-section-header">
-            CLOSED CASES
+            // CLOSED CASES
         </div>
         <p class="ledger-empty" id="cases-closed-empty">No closed cases</p>
         <div id="cases-closed-list"></div>
         
         <div class="ledger-section-header">
-            CASE CONTACTS <span id="contacts-count"></span>
+            // CASE CONTACTS <span id="contacts-count"></span>
         </div>
         
         <!-- Contacts List Container -->
