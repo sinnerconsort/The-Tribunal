@@ -297,25 +297,39 @@ function showInlineAddForm() {
         toastr.info(form ? 'Form inserted!' : 'Form NOT inserted!');
     }
     
-    // Find the scrollable panel content container and scroll it
-    const panelContent = document.querySelector('.ie-panel-content');
-    if (panelContent && form) {
-        // Scroll the panel content to show the form
-        setTimeout(() => {
-            // Calculate position relative to the scrollable container
+    // Scroll to show the form - try multiple approaches
+    setTimeout(() => {
+        // Approach 1: Find the notebook paper container and scroll it
+        const notebookPaper = document.querySelector('.notebook-paper');
+        if (notebookPaper && form) {
+            // Scroll the notebook paper container
+            const formBottom = form.offsetTop + form.offsetHeight;
+            const visibleBottom = notebookPaper.scrollTop + notebookPaper.clientHeight;
+            if (formBottom > visibleBottom) {
+                notebookPaper.scrollTop = formBottom - notebookPaper.clientHeight + 50;
+            }
+        }
+        
+        // Approach 2: Also try the panel content
+        const panelContent = document.querySelector('.ie-panel-content');
+        if (panelContent && form) {
             const formRect = form.getBoundingClientRect();
             const containerRect = panelContent.getBoundingClientRect();
-            const scrollNeeded = formRect.bottom - containerRect.bottom + 20; // 20px padding
+            const scrollNeeded = formRect.bottom - containerRect.bottom + 50;
             
             if (scrollNeeded > 0) {
                 panelContent.scrollTop += scrollNeeded;
             }
-        }, 50);
-    }
+        }
+        
+        // Approach 3: Brute force - just scroll the form into view
+        form?.scrollIntoView({ behavior: 'auto', block: 'end' });
+        
+    }, 100);
     
     // Focus the name input (after scroll)
     const nameInput = document.getElementById('contact-input-name');
-    setTimeout(() => nameInput?.focus(), 150);
+    setTimeout(() => nameInput?.focus(), 200);
     
     // Wire up buttons
     document.getElementById('contact-inline-cancel')?.addEventListener('click', hideInlineAddForm);
