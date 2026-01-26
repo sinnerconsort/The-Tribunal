@@ -2,7 +2,7 @@
  * The Tribunal - Event Handlers
  * Hooks into SillyTavern's event system
  * 
- * @version 4.2.0 - Added contact intelligence NPC scanning
+ * @version 4.3.0 - Added cases handlers initialization
  */
 
 import { eventSource, event_types, chat } from '../../../../../../script.js';
@@ -24,9 +24,15 @@ import { advanceResearch, trackThemesInMessage } from '../systems/cabinet.js';
 // Callback registry for UI refresh
 let refreshCallbacks = [];
 
-// Lazy-loaded contact intelligence (won't break if missing)
+// Lazy-loaded modules (won't break if missing)
 let _contactIntel = null;
 let _contactIntelLoaded = false;
+
+let _casesHandlers = null;
+let _casesHandlersLoaded = false;
+
+let _contactsHandlers = null;
+let _contactsHandlersLoaded = false;
 
 async function getContactIntelligence() {
     if (_contactIntelLoaded) return _contactIntel;
@@ -41,6 +47,36 @@ async function getContactIntelligence() {
     
     _contactIntelLoaded = true;
     return _contactIntel;
+}
+
+async function getCasesHandlers() {
+    if (_casesHandlersLoaded) return _casesHandlers;
+    
+    try {
+        _casesHandlers = await import('../ui/cases-handlers.js');
+        console.log('[Tribunal] Cases handlers loaded');
+    } catch (e) {
+        console.log('[Tribunal] Cases handlers not available (optional):', e.message);
+        _casesHandlers = null;
+    }
+    
+    _casesHandlersLoaded = true;
+    return _casesHandlers;
+}
+
+async function getContactsHandlers() {
+    if (_contactsHandlersLoaded) return _contactsHandlers;
+    
+    try {
+        _contactsHandlers = await import('../ui/contacts-handlers.js');
+        console.log('[Tribunal] Contacts handlers loaded');
+    } catch (e) {
+        console.log('[Tribunal] Contacts handlers not available (optional):', e.message);
+        _contactsHandlers = null;
+    }
+    
+    _contactsHandlersLoaded = true;
+    return _contactsHandlers;
 }
 
 /**
@@ -63,6 +99,64 @@ export function triggerRefresh() {
         } catch (error) {
             console.error('[Tribunal] Refresh callback error:', error);
         }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LEDGER INITIALIZATION (Cases + Contacts)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Initialize ledger tab handlers (cases and contacts)
+ * Call this when the ledger tab is first rendered
+ */
+export async function initLedgerHandlers() {
+    console.log('[Tribunal] Initializing ledger handlers...');
+    
+    // Initialize cases handlers
+    try {
+        const casesHandlers = await getCasesHandlers();
+        if (casesHandlers?.initCasesHandlers) {
+            await casesHandlers.initCasesHandlers();
+        }
+    } catch (e) {
+        console.log('[Tribunal] Cases init skipped:', e.message);
+    }
+    
+    // Initialize contacts handlers
+    try {
+        const contactsHandlers = await getContactsHandlers();
+        if (contactsHandlers?.initContactsHandlers) {
+            await contactsHandlers.initContactsHandlers();
+        }
+    } catch (e) {
+        console.log('[Tribunal] Contacts init skipped:', e.message);
+    }
+    
+    console.log('[Tribunal] Ledger handlers initialized');
+}
+
+/**
+ * Refresh ledger displays (cases and contacts)
+ * Call this on chat change
+ */
+export async function refreshLedger() {
+    try {
+        const casesHandlers = await getCasesHandlers();
+        if (casesHandlers?.refreshCases) {
+            await casesHandlers.refreshCases();
+        }
+    } catch (e) {
+        // Silently ignore
+    }
+    
+    try {
+        const contactsHandlers = await getContactsHandlers();
+        if (contactsHandlers?.refreshContacts) {
+            await contactsHandlers.refreshContacts();
+        }
+    } catch (e) {
+        // Silently ignore
     }
 }
 
@@ -94,7 +188,10 @@ async function onChatChanged() {
     if (hasActiveChat()) {
         loadChatState();
         
-        // STEP 3: Delay refresh to ensure state is fully loaded
+        // STEP 3: Refresh ledger (cases + contacts) for new chat
+        await refreshLedger();
+        
+        // STEP 4: Delay refresh to ensure state is fully loaded
         // This prevents the UI from rendering stale data
         setTimeout(() => {
             triggerRefresh();
@@ -179,6 +276,11 @@ async function onMessageReceived(messageId) {
         // Contact intelligence is optional - don't break on errors
         console.log('[Tribunal] Contact scan skipped:', error.message);
     }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // TODO: CASE INTELLIGENCE - Auto-detect tasks/quests in messages
+    // Similar pattern to contact intelligence
+    // ═══════════════════════════════════════════════════════════════
     
     saveChatState();
     triggerRefresh();
