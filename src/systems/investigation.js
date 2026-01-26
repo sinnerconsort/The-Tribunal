@@ -1,35 +1,36 @@
 /**
- * The Tribunal - Investigation Module v5.4
+ * The Tribunal - Investigation Module v6.0
  * "La Revacholière" - Environmental Scanner & Item Discovery
  * 
  * PURPOSE: Scan environments for objects, items, and details to populate inventory
  * NOT FOR: Character analysis or dialogue reactions (that's the voice system)
  * 
+ * IMPROVEMENTS v6.0:
+ * - JSON output format for reliable parsing (RPG Companion pattern)
+ * - Context injection: character info, setting, existing inventory
+ * - Character disambiguation: knows what the PC IS vs what's in the scene
+ * - Discovered items stored for future inventory integration
+ * - Setting detection: fantasy, modern, sci-fi, horror, noir
+ * - Robust JSON extraction with fallback repair
+ * - Fallback to text parsing if JSON fails
+ * 
  * CHANGES v5.4:
- * - FIXED: FAB visibility now reads from getSettings() directly (not just data attribute)
- * - FIXED: Reduced interval watcher from 1s to 5s to prevent toggle fighting
+ * - FIXED: FAB visibility now reads from getSettings() directly
+ * - FIXED: Reduced interval watcher from 1s to 5s
  * 
  * CHANGES v5.3:
- * - Added position lock support (checks data-position-locked attribute)
- * - FAB visibility now respects settings toggle (checks data-settings-hidden)
+ * - Added position lock support
+ * - FAB visibility respects settings toggle
  * 
  * CHANGES v5.2:
- * - NEW: Dynamic object voices - objects speak directly to the player
- * - Objects have dramatic names (THE ROUGH-HEWN DIAMOND, THE SILVER INKSTAND)
- * - Skills now REACT/COMMENT instead of "pointing at" things
- * - Setting-agnostic: fantasy objects for fantasy, modern for modern
- * - Object voices styled distinctly with double border and ✦ icon
- * 
- * CHANGES v5.1:
- * - FAB now uses correct ID (tribunal-investigation-fab) matching fab.css
- * - FAB uses .ie-fab class for shared styling
- * - FAB has proper drag logic (same as main FAB)
- * - FAB hides when main panel is open
- * - Ticker no longer scrolls - uses flex-wrap
+ * - Dynamic object voices - objects speak directly to the player
+ * - Objects have dramatic names (THE ROUGH-HEWN DIAMOND, etc.)
+ * - Skills REACT/COMMENT instead of "pointing at" things
  */
 
 import { SKILLS } from '../data/skills.js';
 import { getSettings, getSkillLevel } from '../core/state.js';
+import { getChatState, saveChatState } from '../core/persistence.js';
 import { callAPI } from '../voice/api-helpers.js';
 import { rollSkillCheck, getDifficultyName } from './dice.js';
 import { getResearchPenalties } from './cabinet.js';
@@ -249,7 +250,6 @@ const STYLES = {
         font-style: italic;
         color: #1a1612;
     `,
-    // FIXED: Ticker now wraps instead of scrolling
     ticker: `
         padding: 10px 18px;
         background: #2a2318;
@@ -279,6 +279,250 @@ const STYLES = {
 };
 
 // ═══════════════════════════════════════════════════════════════
+// SETTING DETECTION (NEW v6.0)
+// ═══════════════════════════════════════════════════════════════
+
+const SETTING_INDICATORS = {
+    fantasy: {
+        keywords: ['magic', 'spell', 'dragon', 'elf', 'dwarf', 'sword', 'castle', 'kingdom', 'wizard', 'enchanted', 'potion', 'mana', 'quest', 'tavern', 'guild', 'monster', 'demon', 'angel', 'wings', 'claws', 'fangs', 'fur', 'scales', 'enchant', 'arcane', 'sorcery'],
+        weight: 0
+    },
+    scifi: {
+        keywords: ['ship', 'space', 'planet', 'alien', 'robot', 'android', 'laser', 'computer', 'terminal', 'hologram', 'cybernetic', 'station', 'reactor', 'plasma', 'neural', 'AI', 'drone', 'starship', 'hyperspace'],
+        weight: 0
+    },
+    modern: {
+        keywords: ['phone', 'car', 'office', 'apartment', 'street', 'city', 'police', 'gun', 'money', 'computer', 'internet', 'café', 'bar', 'hospital', 'school', 'subway', 'taxi'],
+        weight: 0
+    },
+    horror: {
+        keywords: ['blood', 'dark', 'shadow', 'scream', 'death', 'corpse', 'ghost', 'haunted', 'creature', 'monster', 'nightmare', 'terror', 'fear', 'decay', 'rot', 'abandoned', 'eldritch', 'dread'],
+        weight: 0
+    },
+    noir: {
+        keywords: ['detective', 'case', 'murder', 'cigarette', 'rain', 'night', 'fedora', 'dame', 'crime', 'suspect', 'witness', 'alley', 'shadows', 'bourbon', 'revolver', 'trenchcoat'],
+        weight: 0
+    }
+};
+
+/**
+ * Detect the likely setting/genre from scene text
+ * @param {string} text - Scene text to analyze
+ * @returns {string} Detected setting
+ */
+function detectSetting(text) {
+    const lowerText = text.toLowerCase();
+    
+    // Reset weights
+    for (const setting of Object.values(SETTING_INDICATORS)) {
+        setting.weight = 0;
+    }
+    
+    // Count keyword matches
+    for (const [settingName, setting] of Object.entries(SETTING_INDICATORS)) {
+        for (const keyword of setting.keywords) {
+            if (lowerText.includes(keyword)) {
+                setting.weight++;
+            }
+        }
+    }
+    
+    // Find highest weight
+    let bestSetting = 'fantasy'; // default
+    let bestWeight = 0;
+    
+    for (const [settingName, setting] of Object.entries(SETTING_INDICATORS)) {
+        if (setting.weight > bestWeight) {
+            bestWeight = setting.weight;
+            bestSetting = settingName;
+        }
+    }
+    
+    return bestSetting;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONTEXT BUILDING (NEW v6.0 - RPG Companion Pattern)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Build context block for the AI prompt
+ * Includes character info, setting, inventory, previously discovered items
+ * @param {string} sceneText - Current scene
+ * @returns {Object} Context data
+ */
+function buildInvestigationContext(sceneText) {
+    const settings = getSettings();
+    const state = getChatState();
+    
+    // Character info
+    const charName = settings?.persona?.name || 'the detective';
+    const charDescription = settings?.persona?.description || '';
+    
+    // Detect setting from scene + character description
+    const detectedSetting = detectSetting(sceneText + ' ' + charDescription);
+    
+    // Get inventory (if exists)
+    const inventory = state?.inventory?.items || [];
+    const inventoryNames = inventory.map(i => i.name).join(', ') || 'empty';
+    
+    // Get previously discovered objects (from this chat)
+    const discovered = state?.investigation?.discoveredObjects || [];
+    const discoveredNames = discovered.map(d => d.name).join(', ') || 'none yet';
+    
+    // Build character context - CRITICAL for disambiguation
+    let characterContext = `${charName}`;
+    if (charDescription) {
+        const traits = extractCharacterTraits(charDescription);
+        if (traits.length > 0) {
+            characterContext += ` (${traits.join(', ')})`;
+        }
+    }
+    
+    return {
+        charName,
+        charDescription,
+        characterContext,
+        setting: detectedSetting,
+        inventory: inventoryNames,
+        discovered: discoveredNames,
+        inventoryItems: inventory,
+        discoveredItems: discovered
+    };
+}
+
+/**
+ * Extract key physical traits from character description
+ * Helps AI understand what the character IS vs what's in the environment
+ * @param {string} description - Character description
+ * @returns {string[]} Key traits
+ */
+function extractCharacterTraits(description) {
+    const traits = [];
+    const lowerDesc = description.toLowerCase();
+    
+    // Species/creature type
+    const creatureTypes = [
+        'bat', 'cat', 'wolf', 'fox', 'dragon', 'demon', 'angel', 'vampire',
+        'elf', 'dwarf', 'orc', 'human', 'android', 'robot', 'alien',
+        'monster', 'creature', 'beast', 'spirit', 'ghost', 'skeleton',
+        'fae', 'fairy', 'mermaid', 'werewolf', 'shapeshifter', 'elemental'
+    ];
+    
+    for (const type of creatureTypes) {
+        if (lowerDesc.includes(type)) {
+            traits.push(type + ' creature');
+            break; // Only take first match
+        }
+    }
+    
+    // Physical features that might confuse the AI
+    const features = [
+        { keywords: ['wings', 'winged'], trait: 'has wings' },
+        { keywords: ['tail'], trait: 'has a tail' },
+        { keywords: ['claws'], trait: 'has claws' },
+        { keywords: ['fur', 'furry'], trait: 'has fur' },
+        { keywords: ['scales', 'scaled'], trait: 'has scales' },
+        { keywords: ['horns'], trait: 'has horns' },
+        { keywords: ['fangs', 'teeth'], trait: 'has fangs' },
+        { keywords: ['antennae'], trait: 'has antennae' },
+        { keywords: ['tentacles'], trait: 'has tentacles' },
+        { keywords: ['feathers'], trait: 'has feathers' }
+    ];
+    
+    for (const feature of features) {
+        if (feature.keywords.some(kw => lowerDesc.includes(kw))) {
+            traits.push(feature.trait);
+        }
+    }
+    
+    return traits;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// JSON EXTRACTION (NEW v6.0 - RPG Companion Pattern)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Extract JSON objects from text using brace matching
+ * More robust than regex for nested structures
+ * @param {string} text - Text potentially containing JSON
+ * @returns {Object[]} Extracted JSON objects
+ */
+function extractJSONObjects(text) {
+    const objects = [];
+    let depth = 0;
+    let start = -1;
+    
+    for (let i = 0; i < text.length; i++) {
+        if (text[i] === '{') {
+            if (depth === 0) start = i;
+            depth++;
+        } else if (text[i] === '}') {
+            depth--;
+            if (depth === 0 && start !== -1) {
+                const jsonStr = text.substring(start, i + 1);
+                try {
+                    const obj = JSON.parse(jsonStr);
+                    objects.push(obj);
+                } catch (e) {
+                    // Try to repair common issues
+                    const repaired = repairJSON(jsonStr);
+                    if (repaired) {
+                        try {
+                            objects.push(JSON.parse(repaired));
+                        } catch (e2) {
+                            console.log('[Investigation] JSON repair failed:', e2.message);
+                        }
+                    }
+                }
+                start = -1;
+            }
+        }
+    }
+    
+    return objects;
+}
+
+/**
+ * Attempt to repair common JSON formatting issues from AI
+ * @param {string} jsonStr - Potentially malformed JSON
+ * @returns {string|null} Repaired JSON or null
+ */
+function repairJSON(jsonStr) {
+    let repaired = jsonStr;
+    
+    // Remove markdown code fences
+    repaired = repaired.replace(/```json\s*/gi, '').replace(/```\s*/g, '');
+    
+    // Fix trailing commas before closing brackets
+    repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+    
+    // Fix unquoted keys (simple cases)
+    repaired = repaired.replace(/(\{|\,)\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+    
+    // Fix single quotes to double quotes (careful with apostrophes in text)
+    // Only do this outside of string values - simplified approach
+    repaired = repaired.replace(/:\s*'([^']*)'/g, ': "$1"');
+    
+    // Try to fix truncated JSON by closing brackets
+    const openBraces = (repaired.match(/\{/g) || []).length;
+    const closeBraces = (repaired.match(/\}/g) || []).length;
+    const openBrackets = (repaired.match(/\[/g) || []).length;
+    const closeBrackets = (repaired.match(/\]/g) || []).length;
+    
+    // Add missing closing brackets
+    for (let i = 0; i < openBrackets - closeBrackets; i++) {
+        repaired += ']';
+    }
+    for (let i = 0; i < openBraces - closeBraces; i++) {
+        repaired += '}';
+    }
+    
+    return repaired;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // UI CREATION
 // ═══════════════════════════════════════════════════════════════
 
@@ -289,20 +533,19 @@ function createFAB() {
     fab.title = 'Investigation - La Revacholière';
     fab.innerHTML = '<span class="ie-fab-icon"><i class="fa-solid fa-magnifying-glass"></i></span>';
     
-    // Set initial position (fab.css has defaults but we set explicitly)
+    // Set initial position
     fab.style.display = 'flex';
     fab.style.top = '135px';
     fab.style.left = '10px';
     
     // ─────────────────────────────────────────────────────────
-    // DRAG LOGIC (same as main FAB in panel.js)
+    // DRAG LOGIC
     // ─────────────────────────────────────────────────────────
     let isDragging = false;
     let dragStartX, dragStartY, fabStartX, fabStartY;
     let hasMoved = false;
 
     function startDrag(e) {
-        // Check if positions are locked
         if (fab.dataset.positionLocked === 'true') {
             return;
         }
@@ -343,7 +586,6 @@ function createFAB() {
         document.removeEventListener('mouseup', endDrag);
         document.removeEventListener('touchend', endDrag);
         
-        // Mark as just dragged to prevent click from firing
         if (hasMoved) {
             fab.dataset.justDragged = 'true';
             setTimeout(() => { fab.dataset.justDragged = ''; }, 100);
@@ -353,7 +595,6 @@ function createFAB() {
     fab.addEventListener('mousedown', startDrag);
     fab.addEventListener('touchstart', startDrag, { passive: false });
     
-    // Click handler (only fires if not dragged)
     fab.addEventListener('click', (e) => {
         if (fab.dataset.justDragged === 'true') {
             e.preventDefault();
@@ -420,31 +661,24 @@ function createPanel() {
 
 // ═══════════════════════════════════════════════════════════════
 // FAB VISIBILITY
-// Hide investigation FAB when main Tribunal panel is open
 // ═══════════════════════════════════════════════════════════════
 
 function updateInvestigationFABVisibility() {
     const invFab = document.getElementById('tribunal-investigation-fab');
     if (!invFab) return;
     
-    // FIXED: Read from saved settings directly (more reliable than data attribute)
     const settings = getSettings();
     const showFabSetting = settings?.investigation?.showFab ?? true;
     
-    // Update data attribute to match settings
     invFab.dataset.settingsHidden = showFabSetting ? 'false' : 'true';
     
-    // If settings say hide, hide and return immediately
     if (!showFabSetting) {
         invFab.style.display = 'none';
         return;
     }
     
-    // Otherwise, check if main Tribunal panel is open
     const tribunalPanel = document.getElementById('inland-empire-panel');
     const mainPanelOpen = tribunalPanel?.classList.contains('ie-panel-open');
-    
-    // Hide if any ST drawer is open
     const anyDrawerOpen = document.querySelector('.openDrawer');
     
     if (mainPanelOpen || anyDrawerOpen) {
@@ -455,7 +689,6 @@ function updateInvestigationFABVisibility() {
 }
 
 function setupFABVisibilityWatcher() {
-    // Watch for class changes (drawer open/close, panel open/close)
     const observer = new MutationObserver(() => {
         updateInvestigationFABVisibility();
     });
@@ -466,11 +699,7 @@ function setupFABVisibilityWatcher() {
         subtree: true 
     });
     
-    // Initial check
     setTimeout(updateInvestigationFABVisibility, 500);
-    
-    // FIXED: Reduced from 1s to 5s - the MutationObserver handles most cases,
-    // this is just a fallback for edge cases
     setInterval(updateInvestigationFABVisibility, 5000);
 }
 
@@ -502,7 +731,6 @@ function open() {
     
     isOpen = true;
     
-    // Add active class to FAB
     if (fab) fab.classList.add('ie-fab-active');
     
     updateContextDisplay();
@@ -517,7 +745,6 @@ function close() {
         isOpen = false;
     }
     
-    // Remove active class from FAB
     if (fab) fab.classList.remove('ie-fab-active');
 }
 
@@ -590,8 +817,8 @@ function selectEnvironmentSkills(sceneText, count = 3) {
             if (!skill) continue;
             
             const level = getSkillLevel(skillId);
-            const penalty = researchPenalties[skillId] || 0;
-            const effectiveLevel = Math.max(1, level - penalty);
+            const penalty = researchPenalties[skillId]?.value || 0;
+            const effectiveLevel = Math.max(1, level + penalty); // penalty is negative
             
             const existing = skillPool.find(s => s.skillId === skillId);
             
@@ -630,7 +857,7 @@ function selectEnvironmentSkills(sceneText, count = 3) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// INVESTIGATION GENERATION
+// INVESTIGATION GENERATION (IMPROVED v6.0)
 // ═══════════════════════════════════════════════════════════════
 
 async function doInvestigate() {
@@ -680,7 +907,16 @@ async function doInvestigate() {
     }
 }
 
+/**
+ * Generate environment scan with improved context and JSON output
+ * @param {string} sceneText - Scene to investigate
+ * @param {Array} selectedSkills - Skills to use for checks
+ * @returns {Object} Investigation results
+ */
 async function generateEnvironmentScan(sceneText, selectedSkills) {
+    const context = buildInvestigationContext(sceneText);
+    
+    // Roll skill checks
     const skillsWithChecks = selectedSkills.map(s => {
         const difficulty = getNarratorDifficulty(s.isPrimary ? 'primary' : 'secondary');
         const checkResult = rollSkillCheck(s.level, difficulty);
@@ -693,89 +929,181 @@ async function generateEnvironmentScan(sceneText, selectedSkills) {
     
     const skillDescriptions = skillsWithChecks.map(s => {
         const checkStatus = s.checkResult.success ? 'SUCCESS' : 'FAILED';
-        return `${s.skill.signature} (${checkStatus}): ${s.skill.personality?.substring(0, 150) || 'A skill voice'}`;
+        return `${s.skill.signature} [${checkStatus}]: ${s.skill.personality?.substring(0, 100) || 'A skill voice'}`;
     }).join('\n');
-    
-    const settings = getSettings();
-    const charName = settings?.persona?.name || 'the detective';
-    
+
     const systemPrompt = `You are generating an ENVIRONMENTAL SCAN for a Disco Elysium-style RPG.
+You scan the ENVIRONMENT for OBJECTS and ITEMS. Objects can SPEAK DIRECTLY to the player.
 
-CRITICAL FOCUS: You are scanning the ENVIRONMENT for OBJECTS and ITEMS. Objects SPEAK DIRECTLY to the player.
+CRITICAL CHARACTER INFO:
+- Player Character: ${context.characterContext}
+- DO NOT confuse the character's body parts/features with environmental objects!
+- If the character IS a bat creature, "bat" references are about THEM, not a weapon
+- If the character has wings, those are THEIR wings, not something to discover
 
-PLAYER CHARACTER: ${charName}
-"You" = ${charName} observing the environment
+SETTING: ${context.setting}
+CURRENT INVENTORY: ${context.inventory}
+PREVIOUSLY DISCOVERED: ${context.discovered}
 
 PARTICIPATING SKILLS:
 ${skillDescriptions}
 
-YOUR TASK:
-1. Write a brief environmental description (2-3 sentences about the PLACE)
-2. Identify 1-2 NOTABLE OBJECTS in the scene and let them SPEAK DIRECTLY
-3. Skills then REACT to what they sense (not "point at" things)
-4. Generate a ticker of 2-4 discoverable items
-
-THE NEW APPROACH - OBJECT VOICES:
-Objects speak directly to the player in first person. Give them dramatic, setting-appropriate names in ALL CAPS:
-- THE ROUGH-HEWN DIAMOND
-- THE SILVER INKSTAND
-- THE BLOODSTAINED PHOTOGRAPH
-- THE RUSTED REVOLVER
-- THE HALF-EMPTY BOTTLE
-
-Objects remember. Objects feel. They speak of their history, their purpose, their pain.
-
-Skills then react to what they sense - they don't "point at" things like tour guides.
-
-EXAMPLE OUTPUT FORMAT:
-
-[ENVIRONMENT]
-The room reeks of stale cigarettes and desperation. A single lamp casts long shadows across scattered papers.
-
-[OBJECTS]
-THE CIGARETTE PACK — "I was thrown aside. My owner fled in panic. But one of us remains—crumpled, waiting. Will you take it?"
-
-ELECTROCHEMISTRY — "It's calling to you. One smoke left. Your lungs remember the warmth."
-
-THE DESK DRAWER — "I've been forced before. The lock remembers—it gave up years ago. I slide easy now. See what's inside."
-
-INTERFACING — "Cheap lock, cheaper wood. Someone's been through this before you."
-
-[TICKER]
-AVAILABLE: CIGARETTE PACK (UNDER DESK)
-AVAILABLE: DESK CONTENTS (DRAWER)
-LOST: ONE SHOE (HALLWAY)
-WANTED: INFO RE: DOOR DAMAGE
+OUTPUT FORMAT - Respond with ONLY valid JSON:
+{
+  "environment": "2-3 sentence atmospheric description of the PLACE (not the character)",
+  "objects": [
+    {
+      "name": "THE DRAMATIC NAME",
+      "type": "weapon|evidence|consumable|container|furniture|document|clothing|key_item|misc",
+      "voice": "First-person speech from the object to ${context.charName}. Objects remember, feel, speak of their history.",
+      "canCollect": true,
+      "location": "where in the scene"
+    }
+  ],
+  "skillReactions": [
+    {
+      "skill": "SKILL SIGNATURE",
+      "success": true,
+      "reaction": "One sentence reaction/comment from the skill"
+    }
+  ],
+  "discoverable": [
+    { "item": "Item Name", "status": "available|lost|wanted|danger", "hint": "brief hint" }
+  ]
+}
 
 RULES:
-- Objects speak FIRST PERSON, directly to the player
-- Give objects dramatic, evocative names (THE + DESCRIPTOR + NOUN)
-- Objects have history, memory, personality
-- Skills REACT/COMMENT (1 sentence), they don't "point at"
-- Match the setting - fantasy objects for fantasy, modern for modern, sci-fi for sci-fi
-- If a skill FAILED their check, they might misread the object or miss it entirely
+- Objects speak FIRST PERSON, directly to ${context.charName}
+- Give objects dramatic names: THE + DESCRIPTOR + NOUN
+- 1-2 objects maximum, make them meaningful
+- Skills REACT/COMMENT (1 sentence), don't "point at" things
+- Match the ${context.setting} setting - appropriate objects and tone
+- If a skill FAILED, they might misread or miss something
+- NEVER include the player character's body as a discoverable object
+- canCollect: false for furniture/large items, true for portable items
 - Keep it atmospheric but brief`;
 
     const userPrompt = `Scene to scan:
 "${sceneText.substring(0, 1200)}"
 
-Generate the environmental scan. Let 1-2 OBJECTS speak directly to ${charName}, then have skills react.
-
-Skills available: ${skillsWithChecks.map(s => `${s.skill.signature} (${s.checkResult.success ? 'SUCCESS' : 'FAILED'})`).join(', ')}`;
+Generate the environmental scan as JSON. Remember: ${context.charName} ${context.characterContext ? 'is a ' + context.characterContext : ''} - don't confuse their features with objects!`;
 
     try {
         const response = await callAPI(systemPrompt, userPrompt);
-        return parseEnvironmentScan(response, skillsWithChecks);
+        return parseInvestigationResponse(response, skillsWithChecks, context);
     } catch (error) {
         console.error('[Investigation] API call failed:', error);
         throw error;
     }
 }
 
-function parseEnvironmentScan(response, skillsWithChecks) {
+/**
+ * Parse investigation response - tries JSON first, falls back to text
+ * @param {string} response - AI response
+ * @param {Array} skillsWithChecks - Skills with check results
+ * @param {Object} context - Investigation context
+ * @returns {Object} Parsed investigation results
+ */
+function parseInvestigationResponse(response, skillsWithChecks, context) {
+    console.log('[Investigation] Parsing response...');
+    
+    // Try JSON extraction first
+    const jsonObjects = extractJSONObjects(response);
+    
+    if (jsonObjects.length > 0) {
+        const data = jsonObjects[0];
+        console.log('[Investigation] Successfully parsed JSON');
+        
+        // Convert to display format
+        const result = {
+            environment: data.environment || '',
+            objects: [],
+            ticker: []
+        };
+        
+        // Process object voices
+        if (data.objects && Array.isArray(data.objects)) {
+            for (const obj of data.objects) {
+                result.objects.push({
+                    type: 'object',
+                    signature: obj.name || 'THE UNKNOWN OBJECT',
+                    color: '#8b7355',
+                    content: obj.voice || '',
+                    checkResult: null,
+                    objectData: obj // Store full data for inventory
+                });
+            }
+        }
+        
+        // Process skill reactions
+        if (data.skillReactions && Array.isArray(data.skillReactions)) {
+            for (const reaction of data.skillReactions) {
+                const skillData = skillsWithChecks.find(s => 
+                    s.skill.signature.toUpperCase() === reaction.skill?.toUpperCase() ||
+                    s.skill.name.toUpperCase() === reaction.skill?.toUpperCase()
+                );
+                
+                if (skillData) {
+                    result.objects.push({
+                        type: 'skill',
+                        skillId: skillData.skillId,
+                        signature: skillData.skill.signature,
+                        color: skillData.skill.color,
+                        content: reaction.reaction || '',
+                        checkResult: skillData.checkResult
+                    });
+                } else {
+                    const anySkill = Object.values(SKILLS).find(s =>
+                        s.signature.toUpperCase() === reaction.skill?.toUpperCase() ||
+                        s.name.toUpperCase() === reaction.skill?.toUpperCase()
+                    );
+                    if (anySkill) {
+                        result.objects.push({
+                            type: 'skill',
+                            skillId: anySkill.id,
+                            signature: anySkill.signature,
+                            color: anySkill.color,
+                            content: reaction.reaction || '',
+                            checkResult: null
+                        });
+                    }
+                }
+            }
+        }
+        
+        // Process discoverable items for ticker
+        if (data.discoverable && Array.isArray(data.discoverable)) {
+            for (const item of data.discoverable) {
+                result.ticker.push({
+                    type: (item.status || 'available').toUpperCase(),
+                    value: item.item + (item.hint ? ` (${item.hint})` : ''),
+                    itemData: item
+                });
+            }
+        }
+        
+        // Store discovered objects for future context
+        storeDiscoveredObjects(data.objects || [], context);
+        
+        if (result.ticker.length === 0) {
+            result.ticker.push({ type: 'SCAN', value: 'COMPLETE' });
+        }
+        
+        return result;
+    }
+    
+    // Fallback to text parsing (original method)
+    console.log('[Investigation] JSON parse failed, falling back to text parsing');
+    return parseTextResponse(response, skillsWithChecks);
+}
+
+/**
+ * Fallback text-based parsing (original method)
+ */
+function parseTextResponse(response, skillsWithChecks) {
     const result = {
         environment: '',
-        objects: [],  // Now includes both object voices AND skill reactions
+        objects: [],
         ticker: []
     };
     
@@ -797,17 +1125,15 @@ function parseEnvironmentScan(response, skillsWithChecks) {
                 const speakerName = match[1].trim().toUpperCase();
                 const content = match[2].trim();
                 
-                // Check if this is an OBJECT VOICE (starts with "THE ")
                 if (speakerName.startsWith('THE ')) {
                     result.objects.push({
                         type: 'object',
                         signature: speakerName,
-                        color: '#8b7355',  // Warm brown for objects
+                        color: '#8b7355',
                         content: content,
                         checkResult: null
                     });
                 } else {
-                    // It's a SKILL reaction - find the skill
                     const skillData = skillsWithChecks.find(s => 
                         s.skill.signature.toUpperCase() === speakerName ||
                         s.skill.name.toUpperCase() === speakerName
@@ -823,7 +1149,6 @@ function parseEnvironmentScan(response, skillsWithChecks) {
                             checkResult: skillData.checkResult
                         });
                     } else {
-                        // Try to find skill in full SKILLS list
                         const anySkill = Object.values(SKILLS).find(s =>
                             s.signature.toUpperCase() === speakerName ||
                             s.name.toUpperCase() === speakerName
@@ -865,6 +1190,110 @@ function parseEnvironmentScan(response, skillsWithChecks) {
     
     return result;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// DISCOVERED OBJECTS STORAGE (NEW v6.0 - For Future Inventory)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Store discovered objects in chat state
+ * @param {Array} objects - Objects discovered in this scan
+ * @param {Object} context - Investigation context
+ */
+function storeDiscoveredObjects(objects, context) {
+    const state = getChatState();
+    if (!state) return;
+    
+    if (!state.investigation) {
+        state.investigation = {
+            discoveredObjects: [],
+            collectedItems: []
+        };
+    }
+    
+    const timestamp = Date.now();
+    
+    for (const obj of objects) {
+        if (!obj || !obj.name) continue;
+        
+        // Check if already discovered
+        const existing = state.investigation.discoveredObjects.find(
+            d => d.name === obj.name
+        );
+        
+        if (!existing) {
+            state.investigation.discoveredObjects.push({
+                name: obj.name,
+                type: obj.type,
+                voice: obj.voice,
+                canCollect: obj.canCollect,
+                location: obj.location,
+                discoveredAt: timestamp
+            });
+            
+            console.log('[Investigation] Stored discovered object:', obj.name);
+        }
+    }
+    
+    saveChatState();
+}
+
+/**
+ * Get all discovered objects for this chat
+ * @returns {Array} Discovered objects
+ */
+export function getDiscoveredObjects() {
+    const state = getChatState();
+    return state?.investigation?.discoveredObjects || [];
+}
+
+/**
+ * Collect an item (move from discovered to inventory)
+ * @param {string} objectName - Name of object to collect
+ * @returns {Object|null} Collected item or null if not found/can't collect
+ */
+export function collectItem(objectName) {
+    const state = getChatState();
+    if (!state?.investigation?.discoveredObjects) return null;
+    
+    const index = state.investigation.discoveredObjects.findIndex(
+        d => d.name === objectName && d.canCollect
+    );
+    
+    if (index === -1) return null;
+    
+    const item = state.investigation.discoveredObjects[index];
+    
+    // Remove from discovered
+    state.investigation.discoveredObjects.splice(index, 1);
+    
+    // Add to collected (future inventory)
+    if (!state.investigation.collectedItems) {
+        state.investigation.collectedItems = [];
+    }
+    state.investigation.collectedItems.push({
+        ...item,
+        collectedAt: Date.now()
+    });
+    
+    saveChatState();
+    console.log('[Investigation] Collected item:', objectName);
+    
+    return item;
+}
+
+/**
+ * Get collected items (proto-inventory)
+ * @returns {Array} Collected items
+ */
+export function getCollectedItems() {
+    const state = getChatState();
+    return state?.investigation?.collectedItems || [];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RESULTS DISPLAY
+// ═══════════════════════════════════════════════════════════════
 
 function showResults(investigation) {
     const resultsEl = document.getElementById('tribunal-inv-results');
@@ -923,7 +1352,7 @@ function showResults(investigation) {
     
     resultsEl.innerHTML = html;
     
-    // FIXED: Ticker now uses flex-wrap, items separated by diamond
+    // Ticker display
     if (tickerEl && investigation.ticker.length > 0) {
         const tickerItems = investigation.ticker.map((item, i) => {
             const separator = i < investigation.ticker.length - 1 
@@ -970,10 +1399,10 @@ export function initInvestigation() {
         console.log('[Investigation] FAB hidden per saved settings');
     }
     
-    // Set up visibility watcher (hide when main panel open)
+    // Set up visibility watcher
     setupFABVisibilityWatcher();
     
-    console.log('[Investigation] Module initialized - Environmental Scanner ready');
+    console.log('[Investigation] Module initialized - Environmental Scanner v6.0 ready');
 }
 
 export function openInvestigation() {
@@ -991,3 +1420,6 @@ export function isInvestigationOpen() {
 export function displayResults(investigation) {
     showResults(investigation);
 }
+
+// Export helpers for external use
+export { detectSetting, buildInvestigationContext, extractJSONObjects };
