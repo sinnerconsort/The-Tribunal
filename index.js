@@ -708,7 +708,11 @@ async function init() {
         console.log('[Tribunal] Weather effects system initialized');
     } catch (e) {
         console.warn('[Tribunal] Weather system not loaded:', e.message);
-        // Extension continues without weather effects
+        // Store error for display in settings panel
+        window.tribunalWeatherError = e.message || String(e);
+        if (typeof toastr !== 'undefined') {
+            toastr.warning(`Weather: ${e.message}`, 'The Tribunal', { timeOut: 5000 });
+        }
     }
     
     // Initialize contacts handlers (lazy import to be safe)
