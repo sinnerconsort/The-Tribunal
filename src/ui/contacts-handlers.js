@@ -279,9 +279,15 @@ function showInlineAddForm() {
     // Insert form after the add button
     addBtn.insertAdjacentHTML('afterend', formHtml);
     
-    // Focus the name input
+    // Get the form element and scroll it into view
+    const form = document.getElementById('contact-inline-add-form');
+    setTimeout(() => {
+        form?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+    
+    // Focus the name input (after scroll starts)
     const nameInput = document.getElementById('contact-input-name');
-    setTimeout(() => nameInput?.focus(), 50);
+    setTimeout(() => nameInput?.focus(), 150);
     
     // Wire up buttons
     document.getElementById('contact-inline-cancel')?.addEventListener('click', hideInlineAddForm);
@@ -398,9 +404,14 @@ async function showInlineEditForm(contactId) {
     
     card.innerHTML = formHtml;
     
-    // Focus name input
+    // Scroll the card into view so the form is visible
+    setTimeout(() => {
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 50);
+    
+    // Focus name input (after scroll starts)
     const nameInput = document.getElementById('contact-edit-name');
-    setTimeout(() => nameInput?.focus(), 50);
+    setTimeout(() => nameInput?.focus(), 150);
     
     // Wire up buttons
     card.querySelector('.contact-inline-cancel')?.addEventListener('click', () => hideInlineEditForm(contactId));
