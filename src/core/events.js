@@ -31,11 +31,20 @@ let _contactIntelLoaded = false;
 let _caseIntel = null;
 let _caseIntelLoaded = false;
 
+let _aiExtractor = null;
+let _aiExtractorLoaded = false;
+
 let _casesHandlers = null;
 let _casesHandlersLoaded = false;
 
 let _contactsHandlers = null;
 let _contactsHandlersLoaded = false;
+
+let _casesData = null;
+let _casesDataLoaded = false;
+
+let _contactsData = null;
+let _contactsDataLoaded = false;
 
 async function getContactIntelligence() {
     if (_contactIntelLoaded) return _contactIntel;
@@ -65,6 +74,47 @@ async function getCaseIntelligence() {
     
     _caseIntelLoaded = true;
     return _caseIntel;
+}
+
+async function getAIExtractor() {
+    if (_aiExtractorLoaded) return _aiExtractor;
+    
+    try {
+        _aiExtractor = await import('../systems/ai-extractor.js');
+        console.log('[Tribunal] AI Extractor loaded');
+    } catch (e) {
+        console.log('[Tribunal] AI Extractor not available (optional):', e.message);
+        _aiExtractor = null;
+    }
+    
+    _aiExtractorLoaded = true;
+    return _aiExtractor;
+}
+
+async function getCasesData() {
+    if (_casesDataLoaded) return _casesData;
+    
+    try {
+        _casesData = await import('../data/cases.js');
+    } catch (e) {
+        _casesData = null;
+    }
+    
+    _casesDataLoaded = true;
+    return _casesData;
+}
+
+async function getContactsData() {
+    if (_contactsDataLoaded) return _contactsData;
+    
+    try {
+        _contactsData = await import('../data/contacts.js');
+    } catch (e) {
+        _contactsData = null;
+    }
+    
+    _contactsDataLoaded = true;
+    return _contactsData;
 }
 
 async function getCasesHandlers() {
@@ -296,37 +346,137 @@ async function onMessageReceived(messageId) {
     }
     
     // ═══════════════════════════════════════════════════════════════
-    // CASE INTELLIGENCE - Auto-detect tasks/quests in messages
+    // AI EXTRACTION - Extract cases and contacts using AI
+    // More accurate than regex patterns, handles both in one call
     // ═══════════════════════════════════════════════════════════════
     try {
-        const caseIntel = await getCaseIntelligence();
-        if (caseIntel && messageText) {
-            const settings = getSettings();
-            const autoCreate = settings.cases?.autoDetect ?? false; // Off by default
-            const showNotify = settings.cases?.showNotifications ?? true;
+        const settings = getSettings();
+        const aiExtractionEnabled = settings.cases?.autoDetect || settings.contacts?.autoDetect;
+        
+        if (aiExtractionEnabled && messageText) {
+            const aiExtractor = await getAIExtractor();
             
-            const results = await caseIntel.processMessageForQuests(messageText, {
-                autoCreate,
-                notifyCallback: (autoCreate && showNotify) ? (msg) => {
-                    if (typeof toastr !== 'undefined') toastr.info(msg, 'Case Detected');
-                } : null
-            });
-            
-            if (results.detected.length > 0) {
-                console.log('[Tribunal] Detected quests:', results.detected.map(q => q.title));
-            }
-            
-            if (results.created.length > 0) {
-                console.log('[Tribunal] Auto-created cases:', results.created.map(c => c.title));
-                // Refresh the cases list if any were created
-                const casesHandlers = await getCasesHandlers();
-                if (casesHandlers?.renderCasesList) {
-                    await casesHandlers.renderCasesList();
+            if (aiExtractor) {
+                // Gather existing data for context
+                const state = getChatState() || {};
+                const existingCases = Object.values(state.cases || {});
+                const existingContacts = Object.values(state.contacts || {});
+                
+                console.log('[Tribunal] Running AI extraction...');
+                
+                // Extract from message
+                const results = await aiExtractor.extractFromMessage(messageText, {
+                    existingCases,
+                    existingContacts
+                });
+                
+                if (results.error) {
+                    console.warn('[Tribunal] AI extraction error:', results.error);
+                } else {
+                    // Get data modules for creating objects
+                    const casesData = settings.cases?.autoDetect ? await getCasesData() : null;
+                    const contactsData = settings.contacts?.autoDetect ? await getContactsData() : null;
+                    
+                    const showCaseNotify = settings.cases?.showNotifications ?? true;
+                    const showContactNotify = settings.contacts?.showNotifications ?? true;
+                    
+                    // Process results
+                    const processed = await aiExtractor.processExtractionResults(results, {
+                        casesModule: casesData,
+                        contactsModule: contactsData,
+                        notifyCallback: (msg, type) => {
+                            const shouldNotify = 
+                                (type.startsWith('case') && showCaseNotify) ||
+                                (type.startsWith('contact') && showContactNotify);
+                            
+                            if (shouldNotify && typeof toastr !== 'undefined') {
+                                if (type === 'case-complete') {
+                                    toastr.success(msg, 'Task Complete');
+                                } else {
+                                    toastr.info(msg, 'Detected');
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Log what was found
+                    if (processed.casesCreated.length > 0) {
+                        console.log('[Tribunal] AI created cases:', processed.casesCreated.map(c => c.title));
+                    }
+                    if (processed.casesCompleted.length > 0) {
+                        console.log('[Tribunal] AI completed cases:', processed.casesCompleted.map(c => c.title));
+                    }
+                    if (processed.contactsCreated.length > 0) {
+                        console.log('[Tribunal] AI created contacts:', processed.contactsCreated.map(c => c.name));
+                    }
+                    
+                    // Refresh UI if anything changed
+                    if (processed.casesCreated.length > 0 || processed.casesCompleted.length > 0 || processed.casesUpdated.length > 0) {
+                        const casesHandlers = await getCasesHandlers();
+                        if (casesHandlers?.renderCasesList) {
+                            await casesHandlers.renderCasesList();
+                        }
+                    }
+                    
+                    if (processed.contactsCreated.length > 0 || processed.contactsUpdated.length > 0) {
+                        const contactsHandlers = await getContactsHandlers();
+                        if (contactsHandlers?.renderContactsList) {
+                            await contactsHandlers.renderContactsList();
+                        }
+                    }
                 }
+            } else {
+                // Fallback to regex-based case intelligence if AI extractor not available
+                console.log('[Tribunal] AI Extractor not available, using regex fallback');
+                await fallbackRegexExtraction(messageText, settings);
             }
         }
     } catch (error) {
-        console.log('[Tribunal] Case detection skipped:', error.message);
+        console.log('[Tribunal] AI extraction skipped:', error.message);
+    }
+}
+
+/**
+ * Fallback to regex-based extraction when AI extractor is not available
+ */
+async function fallbackRegexExtraction(messageText, settings) {
+    // Case intelligence (regex)
+    if (settings.cases?.autoDetect) {
+        try {
+            const caseIntel = await getCaseIntelligence();
+            if (caseIntel) {
+                const showNotify = settings.cases?.showNotifications ?? true;
+                
+                const results = await caseIntel.processMessageForQuests(messageText, {
+                    autoCreate: true,
+                    notifyCallback: showNotify ? (msg) => {
+                        if (typeof toastr !== 'undefined') toastr.info(msg, 'Case Detected');
+                    } : null
+                });
+                
+                if (results.created.length > 0) {
+                    const casesHandlers = await getCasesHandlers();
+                    if (casesHandlers?.renderCasesList) {
+                        await casesHandlers.renderCasesList();
+                    }
+                }
+            }
+        } catch (e) {
+            console.log('[Tribunal] Regex case detection failed:', e.message);
+        }
+    }
+    
+    // Contact intelligence (regex)
+    if (settings.contacts?.autoDetect) {
+        try {
+            const contactIntel = await getContactIntelligence();
+            if (contactIntel?.detectNPCs) {
+                const detected = contactIntel.detectNPCs(messageText);
+                // Process detected contacts...
+            }
+        } catch (e) {
+            console.log('[Tribunal] Regex contact detection failed:', e.message);
+        }
     }
     
     saveChatState();
