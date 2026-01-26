@@ -809,7 +809,13 @@ function bindWeatherTestButtons() {
     // Check and update status
     setTimeout(() => {
         const loaded = !!(window.tribunalSetWeather && window.tribunalTriggerHorror);
-        updateWeatherStatus(loaded ? 'Ready ✓' : 'Not loaded ✗');
+        if (loaded) {
+            updateWeatherStatus('Ready ✓');
+        } else if (window.tribunalWeatherError) {
+            updateWeatherStatus(`Error: ${window.tribunalWeatherError}`);
+        } else {
+            updateWeatherStatus('Not loaded ✗');
+        }
     }, 1000);
     
     console.log('[Tribunal] Weather test buttons bound');
