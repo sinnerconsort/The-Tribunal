@@ -302,11 +302,12 @@ async function onMessageReceived(messageId) {
         const caseIntel = await getCaseIntelligence();
         if (caseIntel && messageText) {
             const settings = getSettings();
-            const autoCreate = settings.autoDetectCases ?? false; // Off by default
+            const autoCreate = settings.cases?.autoDetect ?? false; // Off by default
+            const showNotify = settings.cases?.showNotifications ?? true;
             
             const results = await caseIntel.processMessageForQuests(messageText, {
                 autoCreate,
-                notifyCallback: autoCreate ? (msg) => {
+                notifyCallback: (autoCreate && showNotify) ? (msg) => {
                     if (typeof toastr !== 'undefined') toastr.info(msg, 'Case Detected');
                 } : null
             });
