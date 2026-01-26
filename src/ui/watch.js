@@ -25,7 +25,7 @@ import {
     setAutoTime,
     setAutoWeather,
     initWeatherTime
-} from './weather-time.js';
+} from '../systems/weather-time.js';
 import { getSetting, setSetting } from '../core/persistence.js';
 import { eventSource } from '../../../../../script.js';
 
