@@ -228,108 +228,72 @@ export async function renderContactsList() {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Show inline add form (expands below the Add Contact button)
+ * Show inline add form - MINIMAL VERSION
+ * Replaces the empty state text with a compact form
  */
 function showInlineAddForm() {
-    // DEBUG: Check if we even get here
-    if (typeof toastr !== 'undefined') {
-        toastr.info('Add Contact clicked!');
-    }
-    
     // Check if form already exists
     if (document.getElementById('contact-inline-add-form')) {
         return;
     }
     
     const addBtn = document.getElementById('contacts-add-btn');
-    if (!addBtn) {
-        if (typeof toastr !== 'undefined') {
-            toastr.error('Add button not found!');
-        }
-        return;
-    }
+    const emptyState = document.getElementById('contacts-empty');
     
-    // Hide the add button
+    if (!addBtn) return;
+    
+    // Hide the add button and empty state
     addBtn.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'none';
     
+    // Super minimal form - replaces empty state
     const formHtml = `
         <div class="contact-inline-form" id="contact-inline-add-form">
-            <div class="contact-inline-form-header">
-                // NEW ENTRY
+            <div class="contact-mini-row">
+                <input type="text" id="contact-input-name" class="contact-form-input contact-input-name" 
+                       placeholder="Name..." autocomplete="off">
             </div>
-            <div class="contact-inline-form-body">
-                <label class="contact-form-label">
-                    NAME
-                    <input type="text" id="contact-input-name" class="contact-form-input" 
-                           placeholder="Who are they?" autocomplete="off">
-                </label>
-                
-                <label class="contact-form-label">
-                    CONTEXT <span class="contact-form-optional">(optional)</span>
-                    <textarea id="contact-input-context" class="contact-form-textarea" 
-                              placeholder="Where did you meet? What do you know?"></textarea>
-                </label>
-                
-                <div class="contact-form-hint">
-                    <i class="fa-solid fa-brain"></i>
-                    The voices will fill in the rest.
-                </div>
+            <div class="contact-mini-row">
+                <input type="text" id="contact-input-context" class="contact-form-input contact-input-context" 
+                       placeholder="Context (optional)..." autocomplete="off">
             </div>
-            <div class="contact-inline-form-actions">
-                <button class="contact-inline-btn contact-inline-cancel" id="contact-inline-cancel">
-                    CANCEL
-                </button>
-                <button class="contact-inline-btn contact-inline-save" id="contact-inline-save">
-                    ADD CONTACT
-                </button>
+            <div class="contact-mini-actions">
+                <button class="contact-mini-btn contact-mini-cancel" id="contact-inline-cancel">✕</button>
+                <button class="contact-mini-btn contact-mini-save" id="contact-inline-save">ADD</button>
             </div>
         </div>
     `;
     
-    // Insert form after the add button
-    addBtn.insertAdjacentHTML('afterend', formHtml);
-    
-    // Get the form element
-    const form = document.getElementById('contact-inline-add-form');
-    
-    // DEBUG: Check if form was inserted
-    if (typeof toastr !== 'undefined') {
-        toastr.info(form ? 'Form inserted!' : 'Form NOT inserted!');
+    // Insert form where empty state was (inside contacts-list)
+    const contactsList = document.getElementById('contacts-list');
+    if (contactsList) {
+        contactsList.insertAdjacentHTML('beforeend', formHtml);
+    } else {
+        // Fallback: insert after add button
+        addBtn.insertAdjacentHTML('afterend', formHtml);
     }
     
-    // Scroll to show the form - try multiple approaches
-    setTimeout(() => {
-        // Approach 1: Find the notebook paper container and scroll it
-        const notebookPaper = document.querySelector('.notebook-paper');
-        if (notebookPaper && form) {
-            // Scroll the notebook paper container
-            const formBottom = form.offsetTop + form.offsetHeight;
-            const visibleBottom = notebookPaper.scrollTop + notebookPaper.clientHeight;
-            if (formBottom > visibleBottom) {
-                notebookPaper.scrollTop = formBottom - notebookPaper.clientHeight + 50;
-            }
-        }
-        
-        // Approach 2: Also try the panel content
-        const panelContent = document.querySelector('.ie-panel-content');
-        if (panelContent && form) {
-            const formRect = form.getBoundingClientRect();
-            const containerRect = panelContent.getBoundingClientRect();
-            const scrollNeeded = formRect.bottom - containerRect.bottom + 50;
-            
-            if (scrollNeeded > 0) {
-                panelContent.scrollTop += scrollNeeded;
-            }
-        }
-        
-        // Approach 3: Brute force - just scroll the form into view
-        form?.scrollIntoView({ behavior: 'auto', block: 'end' });
-        
-    }, 100);
-    
-    // Focus the name input (after scroll)
+    // Focus the name input
     const nameInput = document.getElementById('contact-input-name');
-    setTimeout(() => nameInput?.focus(), 200);
+    setTimeout(() => nameInput?.focus(), 50);
+    
+    // Wire up buttons
+    document.getElementById('contact-inline-cancel')?.addEventListener('click', hideInlineAddForm);
+    document.getElementById('contact-inline-save')?.addEventListener('click', handleInlineAddSave);
+    
+    // Also handle Enter key to save
+    nameInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleInlineAddSave();
+        }
+    });
+    
+    // Remove error state on input
+    nameInput?.addEventListener('input', () => {
+        nameInput.classList.remove('contact-input-error');
+    });
+}
     
     // Wire up buttons
     document.getElementById('contact-inline-cancel')?.addEventListener('click', hideInlineAddForm);
