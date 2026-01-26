@@ -656,80 +656,54 @@ function createRain() {
     layer.id = 'tribunal-rain-' + Date.now();
     layer.dataset.effect = 'rain';
     
+    // Inject CSS keyframes if not already present
+    if (!document.getElementById('tribunal-rain-keyframes')) {
+        const style = document.createElement('style');
+        style.id = 'tribunal-rain-keyframes';
+        style.textContent = `
+            @keyframes tribunal-rainfall {
+                0% { transform: translateY(-20px); opacity: 0; }
+                10% { opacity: 0.6; }
+                100% { transform: translateY(100vh); opacity: 0.2; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
     layer.setAttribute('style', `
         position: fixed !important;
         top: 0 !important;
         left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
+        width: 100% !important;
+        height: 100% !important;
         pointer-events: none !important;
         overflow: hidden !important;
-        z-index: 50 !important;
+        z-index: 1 !important;
     `);
     
     const count = getParticleCount('rain');
-    console.log('[WeatherEffects] Creating', count, 'raindrops (mobile optimized)');
-    
-    const drops = [];
     
     for (let i = 0; i < count; i++) {
         const drop = document.createElement('div');
-        const opacity = 0.15 + Math.random() * 0.2; // Very subtle
+        const duration = 0.4 + Math.random() * 0.3;
+        const delay = Math.random() * 2;
+        const height = 15 + Math.random() * 10;
+        
         drop.setAttribute('style', `
             position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 1px !important;
-            height: ${10 + Math.random() * 12}px !important;
-            background: linear-gradient(to bottom, transparent, rgba(174, 194, 224, ${opacity}), rgba(174, 194, 224, ${opacity * 0.5})) !important;
+            left: ${Math.random() * 100}% !important;
+            top: -20px !important;
+            width: 2px !important;
+            height: ${height}px !important;
+            background: linear-gradient(transparent, rgba(174, 194, 224, 0.6)) !important;
             pointer-events: none !important;
-            border-radius: 0 0 1px 1px !important;
-            will-change: transform !important;
+            opacity: 0 !important;
+            animation: tribunal-rainfall ${duration}s linear ${delay}s infinite !important;
         `);
         
-        drop._state = {
-            x: Math.random() * window.innerWidth,
-            y: -30 - Math.random() * 100,
-            speed: 8 + Math.random() * 6
-        };
-        
         layer.appendChild(drop);
-        drops.push(drop);
     }
     
-    let running = true;
-    let lastFrame = 0;
-    const frameInterval = 33; // ~30fps
-    
-    layer._stop = () => { running = false; };
-    
-    function animate(timestamp) {
-        if (!running || !document.body.contains(layer)) return;
-        
-        if (timestamp - lastFrame < frameInterval) {
-            requestAnimationFrame(animate);
-            return;
-        }
-        lastFrame = timestamp;
-        
-        for (const drop of drops) {
-            const s = drop._state;
-            s.y += s.speed;
-            
-            if (s.y > window.innerHeight + 30) {
-                s.y = -30;
-                s.x = Math.random() * window.innerWidth;
-            }
-            
-            drop.style.transform = `translate3d(${s.x}px, ${s.y}px, 0)`;
-        }
-        
-        requestAnimationFrame(animate);
-    }
-    
-    requestAnimationFrame(animate);
     return layer;
 }
 
@@ -738,85 +712,56 @@ function createSnow() {
     layer.id = 'tribunal-snow-' + Date.now();
     layer.dataset.effect = 'snow';
     
+    // Inject CSS keyframes if not already present
+    if (!document.getElementById('tribunal-snow-keyframes')) {
+        const style = document.createElement('style');
+        style.id = 'tribunal-snow-keyframes';
+        style.textContent = `
+            @keyframes tribunal-snowfall {
+                0% { transform: translateY(-10px) translateX(0) rotate(0deg); opacity: 0; }
+                10% { opacity: 0.6; }
+                90% { opacity: 0.4; }
+                100% { transform: translateY(100vh) translateX(20px) rotate(360deg); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
     layer.setAttribute('style', `
         position: fixed !important;
         top: 0 !important;
         left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
+        width: 100% !important;
+        height: 100% !important;
         pointer-events: none !important;
         overflow: hidden !important;
-        z-index: 50 !important;
+        z-index: 1 !important;
     `);
     
     const count = getParticleCount('snow');
-    console.log('[WeatherEffects] Creating', count, 'snowflakes (mobile optimized)');
-    
-    const flakes = [];
     
     for (let i = 0; i < count; i++) {
         const flake = document.createElement('div');
         flake.textContent = '❄';
-        const opacity = 0.15 + Math.random() * 0.25; // 0.15-0.4 opacity (very subtle)
+        const duration = 8 + Math.random() * 8;
+        const delay = Math.random() * duration;
+        const size = 0.6 + Math.random() * 0.6;
+        
         flake.setAttribute('style', `
             position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            color: rgba(255, 255, 255, ${opacity}) !important;
-            font-size: ${10 + Math.random() * 10}px !important;
-            text-shadow: 0 0 3px rgba(200, 220, 255, ${opacity * 0.5}) !important;
+            left: ${Math.random() * 100}% !important;
+            top: -10px !important;
+            color: white !important;
+            font-size: ${size}rem !important;
+            text-shadow: 0 0 5px rgba(255,255,255,0.5) !important;
+            opacity: 0 !important;
             pointer-events: none !important;
-            user-select: none !important;
-            will-change: transform !important;
+            animation: tribunal-snowfall ${duration}s linear ${delay}s infinite !important;
         `);
         
-        flake._state = {
-            x: Math.random() * window.innerWidth,
-            y: -20 - Math.random() * 100,
-            speed: 0.5 + Math.random() * 1,
-            wobble: Math.random() * 0.8 - 0.4,
-            wobbleSpeed: 0.01 + Math.random() * 0.01
-        };
-        
         layer.appendChild(flake);
-        flakes.push(flake);
     }
     
-    let running = true;
-    let lastFrame = 0;
-    const frameInterval = 33; // ~30fps instead of 60fps
-    
-    layer._stop = () => { running = false; };
-    
-    function animate(timestamp) {
-        if (!running || !document.body.contains(layer)) return;
-        
-        // Throttle to ~30fps
-        if (timestamp - lastFrame < frameInterval) {
-            requestAnimationFrame(animate);
-            return;
-        }
-        lastFrame = timestamp;
-        
-        for (const flake of flakes) {
-            const s = flake._state;
-            s.y += s.speed;
-            s.x += Math.sin(s.y * s.wobbleSpeed) * s.wobble;
-            
-            if (s.y > window.innerHeight + 20) {
-                s.y = -20;
-                s.x = Math.random() * window.innerWidth;
-            }
-            
-            flake.style.transform = `translate3d(${s.x}px, ${s.y}px, 0)`;
-        }
-        
-        requestAnimationFrame(animate);
-    }
-    
-    requestAnimationFrame(animate);
     return layer;
 }
 
@@ -825,66 +770,54 @@ function createFog() {
     layer.id = 'tribunal-fog-' + Date.now();
     layer.dataset.effect = 'fog';
     
+    // Inject CSS keyframes if not already present
+    if (!document.getElementById('tribunal-fog-keyframes')) {
+        const style = document.createElement('style');
+        style.id = 'tribunal-fog-keyframes';
+        style.textContent = `
+            @keyframes tribunal-mistdrift {
+                0% { transform: translateX(-50%); }
+                100% { transform: translateX(0%); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
     layer.setAttribute('style', `
         position: fixed !important;
         top: 0 !important;
         left: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
+        width: 100% !important;
+        height: 100% !important;
         pointer-events: none !important;
-        z-index: 49 !important;
+        z-index: 1 !important;
     `);
     
-    // Create subtle fog layers
+    // Create 2 mist layers like RPG Companion
     for (let i = 0; i < 2; i++) {
-        const fog = document.createElement('div');
-        const opacity = 0.06 - i * 0.02; // Very subtle: 0.06, 0.04
-        fog.setAttribute('style', `
+        const mist = document.createElement('div');
+        const duration = 30 + i * 20;
+        
+        mist.setAttribute('style', `
             position: absolute !important;
-            bottom: ${i * 20}% !important;
-            left: -20% !important;
-            width: 140% !important;
-            height: 35% !important;
-            background: linear-gradient(0deg,
-                rgba(180, 190, 200, ${opacity}) 0%,
-                rgba(180, 190, 200, ${opacity * 0.5}) 50%,
-                transparent 100%
+            top: ${40 + i * 20}% !important;
+            left: 0 !important;
+            width: 200% !important;
+            height: 60% !important;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255,255,255,0.08), 
+                rgba(255,255,255,0.12), 
+                rgba(255,255,255,0.08), 
+                transparent
             ) !important;
             pointer-events: none !important;
-            will-change: transform !important;
+            animation: tribunal-mistdrift ${duration}s linear infinite !important;
         `);
         
-        fog._state = { x: 0, dir: (i % 2 === 0) ? 1 : -1 };
-        layer.appendChild(fog);
+        layer.appendChild(mist);
     }
     
-    const fogs = Array.from(layer.children);
-    let running = true;
-    let lastFrame = 0;
-    const frameInterval = 50; // ~20fps for fog (slow movement)
-    
-    layer._stop = () => { running = false; };
-    
-    function animate(timestamp) {
-        if (!running || !document.body.contains(layer)) return;
-        
-        if (timestamp - lastFrame < frameInterval) {
-            requestAnimationFrame(animate);
-            return;
-        }
-        lastFrame = timestamp;
-        
-        for (const fog of fogs) {
-            const s = fog._state;
-            s.x += s.dir * 0.05;
-            if (Math.abs(s.x) > 5) s.dir *= -1;
-            fog.style.transform = `translate3d(${s.x}%, 0, 0)`;
-        }
-        
-        requestAnimationFrame(animate);
-    }
-    
-    requestAnimationFrame(animate);
     return layer;
 }
 
@@ -893,84 +826,54 @@ function createWind() {
     layer.id = 'tribunal-wind-' + Date.now();
     layer.dataset.effect = 'wind';
     
+    // Inject CSS keyframes if not already present
+    if (!document.getElementById('tribunal-wind-keyframes')) {
+        const style = document.createElement('style');
+        style.id = 'tribunal-wind-keyframes';
+        style.textContent = `
+            @keyframes tribunal-windstreak {
+                0% { transform: translateX(0); opacity: 0; }
+                10% { opacity: 0.4; }
+                100% { transform: translateX(calc(100vw + 200px)); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
     layer.setAttribute('style', `
         position: fixed !important;
         top: 0 !important;
         left: 0 !important;
-        width: 100vw !important;
-        height: 100vh !important;
+        width: 100% !important;
+        height: 100% !important;
         pointer-events: none !important;
         overflow: hidden !important;
-        z-index: 50 !important;
+        z-index: 1 !important;
     `);
     
     const count = getParticleCount('debris');
-    const particles = [];
     
-    // Create simple debris (leaves/papers)
+    // Wind streaks like RPG Companion
     for (let i = 0; i < count; i++) {
-        const debris = document.createElement('div');
-        const isLeaf = Math.random() > 0.5;
-        const opacity = 0.2 + Math.random() * 0.15;
+        const streak = document.createElement('div');
+        const duration = 2 + Math.random() * 3;
+        const delay = Math.random() * 5;
         
-        debris.textContent = isLeaf ? '🍂' : '📄';
-        debris.setAttribute('style', `
+        streak.setAttribute('style', `
             position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            font-size: ${8 + Math.random() * 6}px !important;
-            opacity: ${opacity} !important;
+            left: -100px !important;
+            top: ${Math.random() * 100}% !important;
+            width: 80px !important;
+            height: 1px !important;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent) !important;
             pointer-events: none !important;
-            will-change: transform !important;
+            opacity: 0 !important;
+            animation: tribunal-windstreak ${duration}s linear ${delay}s infinite !important;
         `);
         
-        debris._state = {
-            x: -50 - Math.random() * 100,
-            y: 20 + Math.random() * 60, // % of screen height
-            speedX: 3 + Math.random() * 4,
-            speedY: Math.random() * 2 - 1,
-            rotation: 0,
-            rotationSpeed: (Math.random() - 0.5) * 10
-        };
-        
-        layer.appendChild(debris);
-        particles.push(debris);
+        layer.appendChild(streak);
     }
     
-    let running = true;
-    let lastFrame = 0;
-    const frameInterval = 33;
-    
-    layer._stop = () => { running = false; };
-    
-    function animate(timestamp) {
-        if (!running || !document.body.contains(layer)) return;
-        
-        if (timestamp - lastFrame < frameInterval) {
-            requestAnimationFrame(animate);
-            return;
-        }
-        lastFrame = timestamp;
-        
-        for (const p of particles) {
-            const s = p._state;
-            s.x += s.speedX;
-            s.rotation += s.rotationSpeed;
-            
-            const yPos = (s.y / 100) * window.innerHeight + Math.sin(s.x * 0.02) * 20;
-            
-            if (s.x > window.innerWidth + 50) {
-                s.x = -50;
-                s.y = 20 + Math.random() * 60;
-            }
-            
-            p.style.transform = `translate3d(${s.x}px, ${yPos}px, 0) rotate(${s.rotation}deg)`;
-        }
-        
-        requestAnimationFrame(animate);
-    }
-    
-    requestAnimationFrame(animate);
     return layer;
 }
 
