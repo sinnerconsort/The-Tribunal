@@ -295,6 +295,7 @@ export function getWeatherSettings() {
 /**
  * Initialize the complete weather system
  * @param {Object} settings - Optional initial settings
+ * @param {boolean} settings.skipEventListeners - Skip ST event registration (if handled externally)
  */
 export function initWeatherSystem(settings = {}) {
     // Init visual effects
@@ -303,8 +304,10 @@ export function initWeatherSystem(settings = {}) {
     // Apply settings
     applyWeatherSettings(settings);
     
-    // Setup ST event hooks
-    setupWeatherEventListeners();
+    // Setup ST event hooks (unless handled externally)
+    if (!settings.skipEventListeners) {
+        setupWeatherEventListeners();
+    }
     
     // Initial sync with weather-time
     syncWithWeatherTime();

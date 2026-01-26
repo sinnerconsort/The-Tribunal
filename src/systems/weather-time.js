@@ -841,4 +841,41 @@ export function initWeatherTime() {
 // EXPORTS FOR WEATHER EFFECTS
 // ═══════════════════════════════════════════════════════════════
 
+/**
+ * Get unified weather/time state for weather-effects integration
+ * @returns {Object} State object with period, weather, location
+ */
+export function getWeatherTimeState() {
+    const time = getCurrentTime();
+    const weather = getAutoWeather();  // Use auto weather (sync version)
+    const mode = getWatchMode();
+    
+    // Determine period from current hour
+    const hour = time?.hours ?? 12;
+    const periodData = getTimePeriod(hour);
+    
+    return {
+        period: periodData?.key || 'AFTERNOON',
+        weather: weather || null,
+        location: getChatState()?.ledger?.currentLocation || 'outdoor',
+        mode,
+        time
+    };
+}
+
+/**
+ * Format period key for display
+ * @param {string} periodKey - Period key like 'MORNING', 'LATE_NIGHT'
+ * @returns {string} Display string like 'Morning', 'Late Night'
+ */
+export function formatPeriodForDisplay(periodKey) {
+    if (!periodKey) return 'Unknown';
+    
+    return periodKey
+        .toLowerCase()
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
+
 export { WMO_WEATHER_CODES, TIME_PERIODS, WEATHER_TRANSITIONS };
