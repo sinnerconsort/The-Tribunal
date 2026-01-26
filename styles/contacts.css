@@ -1,283 +1,307 @@
 /**
- * The Tribunal - Contacts CSS
- * Clean, collapsible contact cards for the Ledger
- * NO MODALS VERSION - inline forms only
+ * The Tribunal - Contacts Styles
+ * Dossier-style contact cards with voice quips
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   CONTACTS LIST CONTAINER
-   ═══════════════════════════════════════════════════════════════ */
-
-.contacts-list {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin: 8px 0;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   ADD CONTACT SECTION
-   ═══════════════════════════════════════════════════════════════ */
-
-#contacts-add-section {
-    margin: 8px 0;
-}
-
-.contacts-add-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    width: 100%;
-    padding: 10px 12px;
-    background: rgba(74, 144, 144, 0.08);
-    border: 1px dashed rgba(74, 144, 144, 0.3);
-    border-radius: 4px;
-    color: #4a9090;
-    font-family: 'Courier Prime', 'Courier New', monospace;
-    font-size: 0.85em;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.contacts-add-btn:hover {
-    background: rgba(74, 144, 144, 0.15);
-    border-color: rgba(74, 144, 144, 0.5);
-}
-
-.contacts-add-btn i {
-    font-size: 0.9em;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   CONTACT CARD - Collapsed State (default)
+   CONTACT CARDS
    ═══════════════════════════════════════════════════════════════ */
 
 .contact-card {
-    position: relative;
-    background: rgba(245, 240, 230, 0.4);
-    border: 1px solid rgba(90, 80, 70, 0.2);
-    border-left: 3px solid #7a7a7a;
-    border-radius: 3px;
-    overflow: hidden;
+    background: rgba(245, 240, 230, 0.95);
+    border: 1px solid #8b7355;
+    border-left: 4px solid #6a6a6a;
+    margin-bottom: 12px;
+    font-family: 'Courier New', monospace;
     transition: all 0.2s ease;
 }
 
-.contact-card:hover {
-    background: rgba(245, 240, 230, 0.6);
+/* Disposition border colors */
+.contact-card[data-disposition="trusted"] {
+    border-left-color: #4a7c4e;
 }
-
-/* Header row - always visible */
-.contact-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 12px;
-    cursor: pointer;
-    gap: 10px;
+.contact-card[data-disposition="neutral"] {
+    border-left-color: #6a6a6a;
 }
-
-.contact-card-header:hover {
-    background: rgba(0, 0, 0, 0.03);
+.contact-card[data-disposition="cautious"] {
+    border-left-color: #8b7355;
 }
-
-/* Left side: name + disposition */
-.contact-info {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    flex: 1;
+.contact-card[data-disposition="suspicious"] {
+    border-left-color: #a65d3f;
 }
-
-.contact-name {
-    font-weight: 600;
-    font-size: 1em;
-    color: #3a3530;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.contact-disposition {
-    font-size: 0.8em;
-    font-style: italic;
-}
-
-/* Right side: type badge */
-.contact-type-badge {
-    flex-shrink: 0;
-    padding: 3px 8px;
-    border: 1px solid currentColor;
-    border-radius: 3px;
-    font-family: 'Courier Prime', 'Courier New', monospace;
-    font-size: 0.7em;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
+.contact-card[data-disposition="hostile"] {
+    border-left-color: #8b3a3a;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   CONTACT CARD - Expanded State
+   CARD HEADER (Always visible)
+   ═══════════════════════════════════════════════════════════════ */
+
+.contact-card-header {
+    padding: 12px 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.03);
+    border-bottom: 1px dashed #ccc;
+}
+
+.contact-card[data-expanded="false"] .contact-card-header {
+    border-bottom: none;
+}
+
+.contact-card-header:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.contact-info {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.contact-name {
+    font-weight: bold;
+    font-size: 1.1em;
+    color: #2a2a2a;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.contact-relationship {
+    font-size: 0.8em;
+    color: #666;
+    letter-spacing: 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD DETAILS (Expandable)
    ═══════════════════════════════════════════════════════════════ */
 
 .contact-card-details {
     display: none;
-    padding: 0 12px 12px 12px;
-    border-top: 1px dashed rgba(90, 80, 70, 0.15);
-    margin-top: 0;
+    padding: 15px;
 }
 
 .contact-card[data-expanded="true"] .contact-card-details {
     display: block;
 }
 
-.contact-card[data-expanded="true"] {
-    background: rgba(245, 240, 230, 0.7);
+/* ═══════════════════════════════════════════════════════════════
+   DOSSIER SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.contact-dossier {
+    position: relative;
+    margin-bottom: 15px;
 }
 
-/* Relationship line */
-.contact-relationship {
-    font-size: 0.85em;
-    color: #5a5347;
-    padding: 8px 0 4px 0;
+.contact-dossier-empty {
+    text-align: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px dashed #ccc;
 }
 
-/* Notes in quotes */
-.contact-notes {
-    font-size: 0.85em;
-    color: #6a6357;
+.dossier-placeholder {
+    color: #888;
     font-style: italic;
-    line-height: 1.4;
-    padding: 8px 10px;
-    margin: 6px 0;
-    background: rgba(255, 255, 255, 0.5);
-    border-radius: 3px;
+    margin-bottom: 10px;
 }
 
-/* Action buttons row */
-.contact-actions {
+.dossier-generate-btn,
+.dossier-refresh-btn {
+    background: #4a5d4a;
+    color: #f5f0e6;
+    border: none;
+    padding: 8px 16px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.dossier-generate-btn:hover,
+.dossier-refresh-btn:hover {
+    background: #5a6d5a;
+}
+
+.dossier-refresh-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 4px 8px;
+    font-size: 0.75em;
+    opacity: 0.6;
+}
+
+.dossier-refresh-btn:hover {
+    opacity: 1;
+}
+
+/* Consensus description */
+.dossier-consensus {
+    font-size: 0.95em;
+    line-height: 1.5;
+    color: #333;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.5);
+    border-left: 3px solid #8b7355;
+}
+
+/* Voice quips container */
+.dossier-quips {
     display: flex;
+    flex-direction: column;
     gap: 8px;
+}
+
+/* Individual quip */
+.dossier-quip {
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.04);
+    border-left: 3px solid #666;
+    font-size: 0.9em;
+}
+
+.dossier-quip.quip-positive {
+    border-left-color: #4a7c4e;
+    background: rgba(74, 124, 78, 0.08);
+}
+
+.dossier-quip.quip-negative {
+    border-left-color: #8b3a3a;
+    background: rgba(139, 58, 58, 0.08);
+}
+
+.dossier-quip.quip-neutral {
+    border-left-color: #6a6a6a;
+}
+
+.quip-voice {
+    font-weight: bold;
+    color: #555;
+    text-transform: uppercase;
+    font-size: 0.85em;
+    letter-spacing: 0.5px;
+}
+
+.quip-separator {
+    color: #999;
+    margin: 0 6px;
+}
+
+.quip-content {
+    font-style: italic;
+    color: #444;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD FOOTER
+   ═══════════════════════════════════════════════════════════════ */
+
+.contact-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px dashed #ccc;
     margin-top: 10px;
 }
 
-.contact-action-btn {
-    flex: 1;
+.contact-disposition-display {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 8px 12px;
-    border: 1px solid rgba(90, 80, 70, 0.2);
-    border-radius: 3px;
-    font-family: 'Courier Prime', 'Courier New', monospace;
-    font-size: 0.75em;
-    font-weight: 600;
+    gap: 8px;
+}
+
+.disposition-label {
+    font-size: 0.85em;
+    font-weight: bold;
+    text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+.disposition-meter {
+    font-size: 0.9em;
+    letter-spacing: 2px;
+    color: #666;
+}
+
+.contact-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.contact-action-btn {
+    background: transparent;
+    border: 1px solid #8b7355;
+    color: #666;
+    padding: 4px 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.75em;
     cursor: pointer;
-    transition: all 0.15s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
 }
 
-.contact-edit-btn {
-    background: rgba(90, 120, 90, 0.1);
-    color: #5a785a;
-}
-
-.contact-edit-btn:hover {
-    background: rgba(90, 120, 90, 0.2);
-    border-color: #5a785a;
-}
-
-.contact-remove-btn {
-    background: rgba(140, 80, 70, 0.1);
-    color: #8c5046;
+.contact-action-btn:hover {
+    background: #8b7355;
+    color: #f5f0e6;
 }
 
 .contact-remove-btn:hover {
-    background: rgba(140, 80, 70, 0.2);
-    border-color: #8c5046;
+    background: #8b3a3a;
+    border-color: #8b3a3a;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DISPOSITION COLORS (border-left accent)
-   ═══════════════════════════════════════════════════════════════ */
-
-.contact-card[data-disposition="trusted"] {
-    border-left-color: #4a9f4a;
-}
-
-.contact-card[data-disposition="neutral"] {
-    border-left-color: #7a7a7a;
-}
-
-.contact-card[data-disposition="cautious"] {
-    border-left-color: #9f9f4a;
-}
-
-.contact-card[data-disposition="suspicious"] {
-    border-left-color: #c4873b;
-}
-
-.contact-card[data-disposition="hostile"] {
-    border-left-color: #9f4a4a;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   EMPTY STATE
-   ═══════════════════════════════════════════════════════════════ */
-
-.contacts-empty {
-    text-align: center;
-    padding: 16px;
-    color: #8a8070;
-    font-style: italic;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   INLINE FORM STYLES (replaces modal)
+   INLINE FORMS
    ═══════════════════════════════════════════════════════════════ */
 
 .contact-inline-form {
-    background: rgba(255, 255, 255, 0.6);
-    border: 1px solid rgba(90, 80, 70, 0.2);
-    border-radius: 4px;
-    padding: 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #8b7355;
+    padding: 15px;
+    margin-top: 10px;
 }
 
 .contact-form-label {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    font-size: 0.8em;
-    font-weight: 600;
-    color: #5a5347;
+    display: block;
+    font-size: 0.75em;
+    font-weight: bold;
+    color: #666;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    margin-top: 10px;
+}
+
+.contact-form-label:first-child {
+    margin-top: 0;
 }
 
 .contact-form-input,
 .contact-form-select,
 .contact-form-textarea {
+    width: 100%;
     padding: 8px 10px;
+    border: 1px solid #ccc;
     background: #fff;
-    border: 1px solid #c4b8a8;
-    border-radius: 3px;
-    font-family: inherit;
-    font-size: 0.9rem;
-    color: #3a3530;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    box-sizing: border-box;
 }
 
 .contact-form-input:focus,
 .contact-form-select:focus,
 .contact-form-textarea:focus {
     outline: none;
-    border-color: #8a7a6a;
-    box-shadow: 0 0 0 2px rgba(138, 122, 106, 0.2);
+    border-color: #8b7355;
 }
 
 .contact-form-textarea {
@@ -287,45 +311,89 @@
 
 .contact-form-actions {
     display: flex;
-    gap: 8px;
-    margin-top: 4px;
+    gap: 10px;
+    margin-top: 15px;
 }
 
 .contact-form-btn {
     flex: 1;
-    padding: 8px 12px;
-    border: 1px solid;
-    border-radius: 3px;
-    font-family: 'Courier Prime', 'Courier New', monospace;
-    font-size: 0.8em;
-    font-weight: 600;
+    padding: 10px;
+    border: 1px solid #8b7355;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
     cursor: pointer;
-    transition: all 0.15s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.2s;
 }
 
 .contact-form-cancel {
-    background: #fff;
-    border-color: #c4b8a8;
-    color: #6a6357;
+    background: transparent;
+    color: #666;
 }
 
 .contact-form-cancel:hover {
-    background: #f0ebe0;
-    border-color: #8a7a6a;
+    background: #eee;
 }
 
 .contact-form-save {
-    background: #4a6a4a;
-    border-color: #3a5a3a;
-    color: #fff;
+    background: #4a5d4a;
+    color: #f5f0e6;
+    border-color: #4a5d4a;
 }
 
 .contact-form-save:hover {
-    background: #3a5a3a;
+    background: #5a6d5a;
 }
 
-/* Form inside expanded card */
+/* Edit form container inside card */
+.contact-edit-form-container {
+    display: none;
+}
+
 .contact-edit-form-container .contact-inline-form {
-    margin-top: 8px;
-    background: rgba(255, 255, 255, 0.4);
+    margin-top: 15px;
+    border-top: 1px dashed #ccc;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ADD CONTACT BUTTON
+   ═══════════════════════════════════════════════════════════════ */
+
+.contacts-add-btn {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 2px dashed #8b7355;
+    color: #666;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    margin-bottom: 15px;
+}
+
+.contacts-add-btn:hover {
+    background: rgba(139, 115, 85, 0.1);
+    color: #4a4a4a;
+}
+
+#contacts-add-form-container {
+    margin-bottom: 15px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EMPTY STATE
+   ═══════════════════════════════════════════════════════════════ */
+
+#contacts-empty {
+    text-align: center;
+    padding: 30px 20px;
+    color: #888;
+    font-style: italic;
 }
