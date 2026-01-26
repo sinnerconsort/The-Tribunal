@@ -209,6 +209,63 @@ export const SETTINGS_TAB_HTML = `
             </div>
         </div>
         
+        <!-- Section VIII: Weather Effects -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">VIII. WEATHER EFFECTS</div>
+            <div class="rcm-section-content">
+                <label class="rcm-checkbox-row">
+                    <input type="checkbox" id="cfg-weather-enabled" checked>
+                    <span>Enable weather effects</span>
+                </label>
+                <div class="rcm-field-note">
+                    <em>Visual atmosphere effects behind chat</em>
+                </div>
+                
+                <label class="rcm-checkbox-row">
+                    <input type="checkbox" id="cfg-weather-auto" checked>
+                    <span>Auto-detect from messages</span>
+                </label>
+                <div class="rcm-field-note">
+                    <em>Scan chat for weather/horror/pale keywords</em>
+                </div>
+                
+                <div class="rcm-field-row">
+                    <label class="rcm-field-label">PARTICLE DENSITY:</label>
+                    <select id="cfg-weather-intensity" class="rcm-select">
+                        <option value="light" selected>Light (mobile-friendly)</option>
+                        <option value="medium">Medium</option>
+                        <option value="heavy">Heavy (performance impact)</option>
+                    </select>
+                </div>
+                
+                <div class="rcm-field-note" style="margin-top: 12px; margin-bottom: 8px;">
+                    <em>⚗️ Test Effects:</em>
+                </div>
+                
+                <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="snow">❄️ Snow</button>
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="rain">🌧️ Rain</button>
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="fog">🌫️ Fog</button>
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="wind">💨 Wind</button>
+                </div>
+                
+                <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-special="horror" style="background: #3a2020; border-color: #6a3030;">🔪 Horror</button>
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-special="pale" style="background: #404040; border-color: #606060;">👁️ Pale</button>
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="city-night" style="background: #202040;">🌃 City</button>
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="quiet-night" style="background: #102020;">🌙 Night</button>
+                </div>
+                
+                <button id="cfg-weather-clear" class="rcm-btn rcm-btn-secondary" style="width: 100%;">
+                    ✕ Clear All Effects
+                </button>
+                
+                <div id="weather-status-display" class="rcm-field-note" style="text-align: center; margin-top: 8px;">
+                    <em>Status: checking...</em>
+                </div>
+            </div>
+        </div>
+        
         <!-- Actions -->
         <div class="rcm-section rcm-actions">
             <label class="rcm-checkbox-row">

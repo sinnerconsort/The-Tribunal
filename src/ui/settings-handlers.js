@@ -89,6 +89,9 @@ export function initSettingsTab() {
     // Use retry logic in case elements aren't ready yet
     bindInputHandlersWithRetry();
     
+    // Bind weather test buttons
+    bindWeatherTestButtons();
+    
     console.log('[Tribunal] Settings handlers initialized');
 }
 
@@ -708,4 +711,129 @@ export function getThoughtSettings() {
 export function isInvestigationFabEnabled() {
     const settings = getSettings();
     return settings?.investigation?.showFab ?? true;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WEATHER EFFECTS HANDLERS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Bind weather test button handlers
+ * Uses window.tribunal* functions set up by index.js
+ */
+function bindWeatherTestButtons() {
+    // Retry if elements not ready yet
+    const testButtons = document.querySelectorAll('.weather-test-btn');
+    if (testButtons.length === 0) {
+        setTimeout(bindWeatherTestButtons, 500);
+        return;
+    }
+    
+    // Bind each test button
+    testButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const weather = btn.dataset.weather;
+            const special = btn.dataset.special;
+            const period = btn.dataset.period;
+            
+            // Use window functions (set up by index.js)
+            if (weather && window.tribunalSetWeather) {
+                window.tribunalSetWeather({ weather });
+                updateWeatherStatus(`Weather: ${weather}`);
+            } else if (special === 'horror' && window.tribunalTriggerHorror) {
+                window.tribunalTriggerHorror(15000); // 15 seconds
+                updateWeatherStatus('Horror mode (15s)');
+            } else if (special === 'pale' && window.tribunalTriggerPale) {
+                window.tribunalTriggerPale();
+                updateWeatherStatus('The Pale active');
+            } else if (period && window.tribunalSetWeather) {
+                window.tribunalSetWeather({ period });
+                updateWeatherStatus(`Period: ${period}`);
+            } else {
+                updateWeatherStatus('Weather system not loaded!');
+            }
+        });
+    });
+    
+    // Bind clear button
+    const clearBtn = document.getElementById('cfg-weather-clear');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            if (window.tribunalSetWeather) {
+                window.tribunalSetWeather({ weather: null, period: null, special: null });
+                if (window.tribunalExitPale) window.tribunalExitPale();
+                updateWeatherStatus('Effects cleared');
+            }
+        });
+    }
+    
+    // Bind settings checkboxes
+    const enabledCheckbox = document.getElementById('cfg-weather-enabled');
+    if (enabledCheckbox) {
+        enabledCheckbox.addEventListener('change', () => {
+            const settings = getSettings();
+            if (!settings.weather) settings.weather = {};
+            settings.weather.enabled = enabledCheckbox.checked;
+            saveSettings();
+            
+            if (window.tribunalSetEffectsEnabled) {
+                window.tribunalSetEffectsEnabled(enabledCheckbox.checked);
+            }
+        });
+    }
+    
+    const autoCheckbox = document.getElementById('cfg-weather-auto');
+    if (autoCheckbox) {
+        autoCheckbox.addEventListener('change', () => {
+            const settings = getSettings();
+            if (!settings.weather) settings.weather = {};
+            settings.weather.autoDetect = autoCheckbox.checked;
+            saveSettings();
+        });
+    }
+    
+    const intensitySelect = document.getElementById('cfg-weather-intensity');
+    if (intensitySelect) {
+        intensitySelect.addEventListener('change', () => {
+            const settings = getSettings();
+            if (!settings.weather) settings.weather = {};
+            settings.weather.intensity = intensitySelect.value;
+            saveSettings();
+            
+            if (window.tribunalSetEffectsIntensity) {
+                window.tribunalSetEffectsIntensity(intensitySelect.value);
+            }
+        });
+    }
+    
+    // Check and update status
+    setTimeout(() => {
+        const loaded = !!(window.tribunalSetWeather && window.tribunalTriggerHorror);
+        updateWeatherStatus(loaded ? 'Ready ✓' : 'Not loaded ✗');
+    }, 1000);
+    
+    console.log('[Tribunal] Weather test buttons bound');
+}
+
+/**
+ * Update weather status display
+ */
+function updateWeatherStatus(text) {
+    const el = document.getElementById('weather-status-display');
+    if (el) {
+        el.innerHTML = `<em>Status: ${text}</em>`;
+    }
+}
+
+/**
+ * Get current weather settings
+ * @returns {object} Weather settings
+ */
+export function getWeatherSettings() {
+    const settings = getSettings();
+    return {
+        enabled: settings?.weather?.enabled ?? true,
+        autoDetect: settings?.weather?.autoDetect ?? true,
+        intensity: settings?.weather?.intensity ?? 'light'
+    };
 }
