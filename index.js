@@ -2,7 +2,7 @@
  * The Tribunal - SillyTavern Extension
  * A standalone text based Disco Elysium system
  * 
- * v0.9.9 - Added contacts system
+ * v0.10.0 - Added newspaper strip to map tab
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -40,6 +40,7 @@ import { initProfiles, refreshProfilesFromState } from './src/ui/profiles-handle
 import { initStatus, refreshStatusFromState } from './src/ui/status-handlers.js';
 import { initSettingsTab } from './src/ui/settings-handlers.js';
 import { initCabinetHandlers, refreshCabinet } from './src/ui/cabinet-handler.js';
+import { initNewspaperStrip, updateNewspaperStrip } from './src/ui/newspaper-strip.js';
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Voice Generation
@@ -68,6 +69,7 @@ export { togglePanel, switchTab, openPanel, closePanel } from './src/ui/panel-he
 export { updateCRTVitals, flashCRTEffect, setCRTCharacterName } from './src/ui/crt-vitals.js';
 export { setRCMStatus, setRCMCopotype, addRCMAncientVoice, addRCMActiveEffect } from './src/ui/crt-vitals.js';
 export { setRPTime, setRPWeather, getWatchMode } from './src/ui/watch.js';
+export { updateNewspaperStrip } from './src/ui/newspaper-strip.js';
 
 // State accessors
 export { 
@@ -94,7 +96,7 @@ export { initInvestigation, updateSceneContext, openInvestigation, closeInvestig
 // ═══════════════════════════════════════════════════════════════
 
 const extensionName = 'the-tribunal';
-const extensionVersion = '0.9.9';
+const extensionVersion = '0.10.0';
 
 // ═══════════════════════════════════════════════════════════════
 // CHAT-ONLY FAB VISIBILITY
@@ -212,231 +214,214 @@ function showVoicesLoading() {
     if (container) {
         container.innerHTML = `
             <div class="tribunal-voices-loading">
-                <i class="fa-solid fa-spinner fa-spin"></i>
-                <span>The voices are deliberating...</span>
+                <div class="loading-spinner"></div>
+                <span>Consulting the voices...</span>
             </div>
         `;
     }
 }
 
-function showVoicesError(message) {
-    const container = document.getElementById('tribunal-voices-output');
-    if (container) {
-        container.innerHTML = `
-            <div class="tribunal-voices-error">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-                <span>${message}</span>
-            </div>
-        `;
+function hideVoicesLoading() {
+    const loading = document.querySelector('.tribunal-voices-loading');
+    if (loading) {
+        loading.remove();
     }
 }
 
 /**
- * FIXED: Append voices to chat with retry logic
- * Sometimes the chat container isn't ready immediately
+ * Handle generation of voices for a message
+ * @param {string} messageText - The message text to analyze
+ * @param {boolean} manualTrigger - Whether this was manually triggered
  */
-function appendVoicesToChatWithRetry(voices, maxRetries = 3, delay = 200) {
-    let attempts = 0;
-    
-    function tryAppend() {
-        attempts++;
-        const settings = getSettings();
-        
-        // Check if chat injection is enabled
-        if (settings?.voices?.injectInChat === false) {
-            console.log('[Tribunal] Chat injection disabled');
-            return;
-        }
-        
-        // FIX: Get the chat container element
-        const chatContainer = document.getElementById('chat');
-        if (!chatContainer) {
-            if (attempts < maxRetries) {
-                console.log(`[Tribunal] Chat container not found, retrying... (${attempts}/${maxRetries})`);
-                setTimeout(tryAppend, delay);
-            } else {
-                console.warn('[Tribunal] Chat container not found after retries');
-            }
-            return;
-        }
-        
-        try {
-            // FIX: Pass the chat container as second argument
-            appendVoicesToChat(voices, chatContainer);
-            console.log('[Tribunal] Voices appended to chat');
-        } catch (error) {
-            if (attempts < maxRetries) {
-                console.log(`[Tribunal] Chat append failed, retrying... (${attempts}/${maxRetries})`);
-                setTimeout(tryAppend, delay);
-            } else {
-                console.error('[Tribunal] Failed to append voices to chat:', error);
-            }
-        }
-    }
-    
-    tryAppend();
-}
-
-export async function triggerVoiceGeneration(messageText, options = {}) {
+async function triggerVoiceGeneration(messageText = null, manualTrigger = false) {
     if (isGenerating) {
         console.log('[Tribunal] Generation already in progress');
         return;
     }
     
+    const settings = getSettings();
+    
+    // Check if extension is enabled
+    if (settings.enabled === false) {
+        console.log('[Tribunal] Extension disabled, skipping voice generation');
+        return;
+    }
+    
+    // Check auto-generate setting (unless manual)
+    if (!manualTrigger && settings.voices?.autoGenerate === false) {
+        console.log('[Tribunal] Auto-generate disabled');
+        return;
+    }
+    
+    // Get message text if not provided
+    if (!messageText) {
+        const ctx = getContext();
+        const chat = ctx?.chat;
+        if (!chat || chat.length === 0) return;
+        
+        const lastMsg = chat[chat.length - 1];
+        if (!lastMsg || lastMsg.is_user) return;
+        
+        messageText = lastMsg.mes;
+    }
+    
+    if (!messageText) return;
+    
     isGenerating = true;
-    const voicesContainer = document.getElementById('tribunal-voices-output');
+    showVoicesLoading();
     
     try {
-        showVoicesLoading();
+        const voices = await generateVoicesForMessage(messageText);
+        hideVoicesLoading();
         
-        if (options.openPanel !== false) {
-            openPanel();
-            switchTab('voices');
+        if (voices && voices.length > 0) {
+            const container = document.getElementById('tribunal-voices-output');
+            if (container) {
+                renderVoices(voices, container);
+            }
+            
+            // Also append to chat if setting enabled
+            if (settings.voices?.appendToChat) {
+                appendVoicesToChat(voices);
+            }
+            
+            // FIX: Save generated voices to state for persistence
+            setLastGeneratedVoices(voices);
+            
+            console.log(`[Tribunal] Generated ${voices.length} voices`);
+        } else {
+            console.log('[Tribunal] No voices generated');
         }
-        
-        console.log('[Tribunal] Generating voices for:', messageText.substring(0, 50) + '...');
-        const voices = await generateVoicesForMessage(messageText, options);
-        
-        // FIX: Save voices to chat state for persistence
-        setLastGeneratedVoices(voices);
-        
-        // Render to panel
-        renderVoices(voices, voicesContainer);
-        
-        // FIXED: Use retry logic for chat injection (now with proper container)
-        appendVoicesToChatWithRetry(voices);
-        
-        console.log('[Tribunal] Voices generated:', voices.length);
-        
-        if (typeof toastr !== 'undefined' && voices.length > 0) {
-            toastr.info(`${voices.length} voices speak`, 'The Tribunal', { timeOut: 2000 });
-        }
-        
-        return voices;
-        
     } catch (error) {
         console.error('[Tribunal] Voice generation failed:', error);
-        showVoicesError(error.message || 'Generation failed');
+        hideVoicesLoading();
         
-        if (typeof toastr !== 'undefined') {
-            toastr.error(error.message || 'Voice generation failed', 'The Tribunal');
+        const container = document.getElementById('tribunal-voices-output');
+        if (container) {
+            container.innerHTML = `
+                <div class="tribunal-voices-error">
+                    <i class="fa-solid fa-exclamation-triangle"></i>
+                    <span>Voice generation failed</span>
+                </div>
+            `;
         }
-        
-        throw error;
     } finally {
         isGenerating = false;
     }
 }
 
-async function onNewAIMessage(messageIndex) {
-    // Check if auto-trigger is enabled
-    const settings = getSettings();
-    if (!settings?.voices?.autoGenerate) {
-        console.log('[Tribunal] Auto-trigger disabled, skipping voice generation');
-        return;
-    }
-    
+/**
+ * Handler for new AI messages
+ */
+function onNewAIMessage(messageIndex) {
     const ctx = getContext();
-    const message = ctx?.chat?.[messageIndex];
+    const chat = ctx?.chat;
     
-    if (!message || message.is_user || message.is_system) {
-        return;
-    }
+    if (!chat || messageIndex < 0 || messageIndex >= chat.length) return;
     
-    // Update investigation scene context
-    updateSceneContext(message.mes);
+    const message = chat[messageIndex];
+    if (!message || message.is_user) return;
     
-    // Apply trigger delay if set
-    const delay = settings?.voices?.triggerDelay || 0;
-    if (delay > 0) {
-        await new Promise(resolve => setTimeout(resolve, delay));
-    }
+    console.log('[Tribunal] New AI message detected, index:', messageIndex);
     
-    await triggerVoiceGeneration(message.mes, { openPanel: false });
+    // Small delay to ensure message is fully rendered
+    setTimeout(() => {
+        triggerVoiceGeneration(message.mes, false);
+    }, 500);
 }
 
-export async function rescanLastMessage() {
+/**
+ * Manual rescan of last message
+ */
+function rescanLastMessage() {
     const ctx = getContext();
-    if (!ctx?.chat?.length) {
-        if (typeof toastr !== 'undefined') {
-            toastr.warning('No chat messages to scan', 'The Tribunal');
-        }
+    const chat = ctx?.chat;
+    
+    if (!chat || chat.length === 0) {
+        console.log('[Tribunal] No messages to rescan');
         return;
     }
     
-    for (let i = ctx.chat.length - 1; i >= 0; i--) {
-        const msg = ctx.chat[i];
-        if (!msg.is_user && !msg.is_system) {
-            await triggerVoiceGeneration(msg.mes);
+    // Find last AI message
+    for (let i = chat.length - 1; i >= 0; i--) {
+        if (!chat[i].is_user) {
+            console.log('[Tribunal] Rescanning message index:', i);
+            triggerVoiceGeneration(chat[i].mes, true);
             return;
         }
     }
     
-    if (typeof toastr !== 'undefined') {
-        toastr.warning('No AI messages found', 'The Tribunal');
-    }
+    console.log('[Tribunal] No AI messages found to rescan');
 }
 
 // ═══════════════════════════════════════════════════════════════
-// UI REFRESH - Sync UI with state
+// HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
+/**
+ * Parse time string to hours/minutes
+ * @param {string} timeStr - Time string like "3:30 PM" or "15:30"
+ * @returns {{hours: number, minutes: number}}
+ */
 function parseTimeString(timeStr) {
-    if (!timeStr || typeof timeStr !== 'string') return { hours: 12, minutes: 0 };
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    return { hours: isNaN(hours) ? 12 : hours, minutes: isNaN(minutes) ? 0 : minutes };
+    if (!timeStr) return { hours: 12, minutes: 0 };
+    
+    // Try 12-hour format first
+    const ampmMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (ampmMatch) {
+        let hours = parseInt(ampmMatch[1], 10);
+        const minutes = parseInt(ampmMatch[2], 10);
+        const isPM = ampmMatch[3].toUpperCase() === 'PM';
+        
+        if (isPM && hours !== 12) hours += 12;
+        if (!isPM && hours === 12) hours = 0;
+        
+        return { hours, minutes };
+    }
+    
+    // Try 24-hour format
+    const militaryMatch = timeStr.match(/(\d{1,2}):(\d{2})/);
+    if (militaryMatch) {
+        return {
+            hours: parseInt(militaryMatch[1], 10),
+            minutes: parseInt(militaryMatch[2], 10)
+        };
+    }
+    
+    return { hours: 12, minutes: 0 };
 }
 
 /**
- * Get character name - tries state.persona first, falls back to ST context
- * @returns {string} Character name
+ * Get character name from context with fallback
  */
 function getCharacterName() {
-    const state = getChatState();
-    
-    // Try state.persona.name first
-    if (state?.persona?.name && state.persona.name !== 'UNKNOWN' && state.persona.name !== '') {
-        return state.persona.name;
-    }
-    
-    // Fallback to SillyTavern context - use name1 (persona) not name2 (AI character)
     const ctx = getContext();
-    const contextName = ctx?.name1;
-    
-    if (contextName && contextName !== '') {
-        // Save to state for future use
-        if (state?.persona) {
-            state.persona.name = contextName;
-        }
-        return contextName;
-    }
-    
-    return 'UNKNOWN';
+    return ctx?.name1 || 'UNKNOWN';
 }
 
 /**
- * Generate a consistent badge number from character ID
- * @param {string} charId - Character identifier
- * @returns {string} Badge number like "41ST-7B3F2A"
+ * Generate a badge number from character ID
  */
 function generateBadgeNumber(charId) {
-    if (!charId) return '41ST-______';
+    if (!charId) return '000-000';
     
-    // Simple hash function
+    // Create a simple hash from the character ID
     let hash = 0;
     for (let i = 0; i < charId.length; i++) {
         const char = charId.charCodeAt(i);
         hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
+        hash = hash & hash;
     }
     
-    // Convert to hex and take 6 characters
-    const hex = Math.abs(hash).toString(16).toUpperCase().padStart(6, '0').slice(0, 6);
-    return `41ST-${hex}`;
+    // Convert to badge format
+    const part1 = Math.abs(hash % 1000).toString().padStart(3, '0');
+    const part2 = Math.abs((hash >> 10) % 1000).toString().padStart(3, '0');
+    
+    return `${part1}-${part2}`;
 }
 
 /**
- * Update badge number display
+ * Update badge display
  * @param {string} badgeNumber - Badge to display
  */
 function updateBadgeDisplay(badgeNumber) {
@@ -487,6 +472,26 @@ function refreshAllPanels() {
     if (state.ledger?.weather?.condition) {
         setRPWeather(state.ledger.weather.condition);
     }
+    
+    // Update newspaper strip with time/weather data
+    const now = new Date();
+    const hour = now.getHours();
+    let period = 'AFTERNOON';
+    if (hour >= 5 && hour < 7) period = 'DAWN';
+    else if (hour >= 7 && hour < 12) period = 'MORNING';
+    else if (hour >= 12 && hour < 17) period = 'AFTERNOON';
+    else if (hour >= 17 && hour < 20) period = 'EVENING';
+    else if (hour >= 20 && hour < 23) period = 'NIGHT';
+    else period = 'LATE_NIGHT';
+    
+    updateNewspaperStrip({
+        dayOfWeek: state.ledger?.time?.dayOfWeek || now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
+        day: state.ledger?.time?.day || now.getDate(),
+        weather: state.ledger?.weather?.type || (hour >= 6 && hour < 20 ? 'clear-day' : 'clear-night'),
+        weatherText: state.ledger?.weather?.condition || 'Clear',
+        temp: state.ledger?.weather?.temp,
+        period: state.ledger?.time?.period || period
+    });
     
     if (state.vitals?.copotype) {
         setRCMCopotype(state.vitals.copotype, true);
@@ -642,7 +647,8 @@ async function init() {
     initProfiles();
     initStatus();
     initSettingsTab();
-    initCabinetHandlers();  // <-- NEW: Initialize cabinet tab handlers
+    initCabinetHandlers();
+    initNewspaperStrip();  // Initialize newspaper strip in map tab
     
     // Initialize contacts handlers (lazy import to be safe)
     import('./src/ui/contacts-handlers.js').then(module => {
@@ -682,7 +688,8 @@ async function init() {
     window.tribunalOpenInv = openInvestigation;
     window.tribunalCloseInv = closeInvestigation;
     window.tribunalUpdateCharacter = updateCharacterInfo;
-    window.tribunalRefreshCabinet = refreshCabinet;  // <-- NEW: Debug helper
+    window.tribunalRefreshCabinet = refreshCabinet;
+    window.tribunalUpdateNewspaper = updateNewspaperStrip;  // Debug helper for newspaper
     
     // Contacts debug helper
     import('./src/ui/contacts-handlers.js').then(module => {
