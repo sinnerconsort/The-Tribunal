@@ -375,29 +375,119 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   INLINE FORM - Expands in place, no modal needed
+   INLINE FORM - MINIMAL VERSION
+   Compact form that replaces empty state
    ═══════════════════════════════════════════════════════════════ */
 
 .contact-inline-form {
-    background: rgba(245, 240, 230, 0.95);
-    border: 1px solid rgba(90, 80, 70, 0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    margin: 4px 0;
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(90, 80, 70, 0.2);
     border-radius: 4px;
-    margin: 8px 0;
-    overflow: hidden;
 }
 
+.contact-mini-row {
+    display: flex;
+    gap: 6px;
+}
+
+.contact-input-name,
+.contact-input-context {
+    flex: 1;
+    padding: 8px 10px;
+    background: #fff;
+    border: 1px solid #c4b8a8;
+    border-radius: 3px;
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: #3a3530;
+}
+
+.contact-input-name::placeholder,
+.contact-input-context::placeholder {
+    color: #a09080;
+    font-style: italic;
+}
+
+.contact-input-name:focus,
+.contact-input-context:focus {
+    outline: none;
+    border-color: #6a5a4a;
+}
+
+.contact-input-name.contact-input-error {
+    border-color: #9f4a4a;
+}
+
+.contact-mini-actions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.contact-mini-btn {
+    padding: 6px 14px;
+    border: 1px solid;
+    border-radius: 3px;
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 0.8em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.contact-mini-cancel {
+    background: transparent;
+    border-color: #c4b8a8;
+    color: #8a7a6a;
+    padding: 6px 10px;
+}
+
+.contact-mini-cancel:hover {
+    background: rgba(90, 80, 70, 0.1);
+    border-color: #8a7a6a;
+}
+
+.contact-mini-save {
+    background: #4a6a4a;
+    border-color: #3a5a3a;
+    color: #fff;
+}
+
+.contact-mini-save:hover {
+    background: #3a5a3a;
+}
+
+/* Edit form inside a card - keep existing styles */
+.contact-inline-edit-form {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    padding: 10px;
+}
+
+.contact-card[data-editing="true"] {
+    border-left-color: #4a9090;
+}
+
+/* Legacy form styles for edit modal */
 .contact-inline-form-header {
-    padding: 8px 12px;
+    padding: 8px 10px;
     background: rgba(58, 53, 48, 0.9);
     color: #c4b8a8;
     font-family: 'Courier Prime', 'Courier New', monospace;
     font-size: 0.75em;
     font-weight: 600;
     letter-spacing: 1px;
+    margin: -8px -8px 8px -8px;
+    border-radius: 3px 3px 0 0;
 }
 
 .contact-inline-form-body {
-    padding: 10px 12px;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -405,21 +495,18 @@
 
 .contact-inline-form-actions {
     display: flex;
-    gap: 8px;
-    padding: 8px 12px;
-    background: rgba(0, 0, 0, 0.03);
-    border-top: 1px solid rgba(90, 80, 70, 0.1);
+    gap: 6px;
+    margin-top: 8px;
+    justify-content: flex-end;
 }
 
 .contact-inline-btn {
-    flex: 1;
-    padding: 8px 12px;
+    padding: 6px 12px;
     border: 1px solid;
     border-radius: 3px;
     font-family: 'Courier Prime', 'Courier New', monospace;
     font-size: 0.75em;
     font-weight: 600;
-    letter-spacing: 0.5px;
     cursor: pointer;
     transition: all 0.15s ease;
 }
@@ -430,51 +517,10 @@
     color: #6a6357;
 }
 
-.contact-inline-cancel:hover {
-    background: rgba(90, 80, 70, 0.08);
-    border-color: #8a7a6a;
-}
-
 .contact-inline-save {
     background: #4a6a4a;
     border-color: #3a5a3a;
     color: #fff;
-}
-
-.contact-inline-save:hover {
-    background: #3a5a3a;
-}
-
-/* Edit form inside a card */
-.contact-inline-edit-form {
-    margin: 0;
-    border: none;
-    border-radius: 0;
-}
-
-.contact-card[data-editing="true"] {
-    border-left-color: #4a9090;
-}
-
-/* Compact form inputs */
-.contact-inline-form .contact-form-input,
-.contact-inline-form .contact-form-textarea {
-    padding: 8px 10px;
-    font-size: 0.9rem;
-}
-
-.contact-inline-form .contact-form-textarea {
-    min-height: 50px;
-}
-
-.contact-inline-form .contact-form-label {
-    gap: 4px;
-    font-size: 0.7em;
-}
-
-.contact-inline-form .contact-form-hint {
-    padding: 8px 10px;
-    font-size: 0.8em;
 }
 
 /* ═══════════════════════════════════════════════════════════════
