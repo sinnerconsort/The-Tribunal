@@ -563,6 +563,179 @@ function refreshAllPanels() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// WEATHER TEST BUTTONS (for mobile testing without console)
+// ═══════════════════════════════════════════════════════════════
+
+function addWeatherTestButtons() {
+    // Wait for settings tab to exist
+    const settingsTab = document.querySelector('#ie-tab-settings .tab-scroll-content, #ie-tab-settings');
+    if (!settingsTab) {
+        setTimeout(addWeatherTestButtons, 500);
+        return;
+    }
+    
+    // Check if already added
+    if (document.getElementById('weather-test-section')) return;
+    
+    const section = document.createElement('div');
+    section.id = 'weather-test-section';
+    section.innerHTML = `
+        <div style="
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #5c4d3d;
+            border-radius: 4px;
+        ">
+            <h4 style="margin: 0 0 10px 0; color: #c8a868; font-size: 12px; letter-spacing: 1px;">
+                ⚗️ WEATHER EFFECTS TEST
+            </h4>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                <button class="weather-test-btn" data-weather="snow" style="
+                    padding: 8px 12px;
+                    background: #2a3040;
+                    border: 1px solid #5c4d3d;
+                    color: #c8b898;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 11px;
+                ">❄️ Snow</button>
+                <button class="weather-test-btn" data-weather="rain" style="
+                    padding: 8px 12px;
+                    background: #2a3040;
+                    border: 1px solid #5c4d3d;
+                    color: #c8b898;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 11px;
+                ">🌧️ Rain</button>
+                <button class="weather-test-btn" data-weather="fog" style="
+                    padding: 8px 12px;
+                    background: #2a3040;
+                    border: 1px solid #5c4d3d;
+                    color: #c8b898;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 11px;
+                ">🌫️ Fog</button>
+                <button class="weather-test-btn" data-weather="wind" style="
+                    padding: 8px 12px;
+                    background: #2a3040;
+                    border: 1px solid #5c4d3d;
+                    color: #c8b898;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 11px;
+                ">💨 Wind</button>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px;">
+                <button class="weather-test-btn" data-special="horror" style="
+                    padding: 8px 12px;
+                    background: #3a2020;
+                    border: 1px solid #6a3030;
+                    color: #c8b898;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 11px;
+                ">🔪 Horror</button>
+                <button class="weather-test-btn" data-special="pale" style="
+                    padding: 8px 12px;
+                    background: #404040;
+                    border: 1px solid #606060;
+                    color: #c8b898;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 11px;
+                ">👁️ The Pale</button>
+                <button class="weather-test-btn" data-period="city-night" style="
+                    padding: 8px 12px;
+                    background: #202040;
+                    border: 1px solid #404060;
+                    color: #c8b898;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 11px;
+                ">🌃 City Night</button>
+                <button class="weather-test-btn" data-period="quiet-night" style="
+                    padding: 8px 12px;
+                    background: #102020;
+                    border: 1px solid #204040;
+                    color: #c8b898;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 11px;
+                ">🌙 Fireflies</button>
+            </div>
+            <button id="weather-clear-btn" style="
+                padding: 8px 16px;
+                background: #3a2a2a;
+                border: 1px solid #5a3a3a;
+                color: #c8b898;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 11px;
+                width: 100%;
+            ">✕ Clear All Effects</button>
+            <p id="weather-status" style="
+                margin: 10px 0 0 0;
+                font-size: 10px;
+                color: #8a7a60;
+                text-align: center;
+            ">Weather system: checking...</p>
+        </div>
+    `;
+    
+    settingsTab.appendChild(section);
+    
+    // Bind button handlers
+    section.querySelectorAll('.weather-test-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const weather = btn.dataset.weather;
+            const special = btn.dataset.special;
+            const period = btn.dataset.period;
+            
+            if (weatherLoaded) {
+                if (weather) {
+                    setWeatherState({ weather });
+                    updateWeatherStatus(`Weather: ${weather}`);
+                } else if (special === 'horror') {
+                    triggerHorror(15000); // 15 seconds
+                    updateWeatherStatus('Horror mode (15s)');
+                } else if (special === 'pale') {
+                    triggerPale();
+                    updateWeatherStatus('The Pale active');
+                } else if (period) {
+                    setWeatherState({ period });
+                    updateWeatherStatus(`Period: ${period}`);
+                }
+            } else {
+                updateWeatherStatus('Weather system not loaded!');
+            }
+        });
+    });
+    
+    document.getElementById('weather-clear-btn')?.addEventListener('click', () => {
+        if (weatherLoaded) {
+            setWeatherState({ weather: null, period: null, special: null });
+            exitPale();
+            updateWeatherStatus('Effects cleared');
+        }
+    });
+    
+    // Check weather status
+    setTimeout(() => {
+        updateWeatherStatus(weatherLoaded ? 'Ready ✓' : 'Not loaded ✗');
+    }, 1000);
+    
+    console.log('[Tribunal] Weather test buttons added');
+}
+
+function updateWeatherStatus(text) {
+    const el = document.getElementById('weather-status');
+    if (el) el.textContent = `Weather system: ${text}`;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // EXTENSION SETTINGS PANEL
 // ═══════════════════════════════════════════════════════════════
 
@@ -680,6 +853,9 @@ async function init() {
     initSettingsTab();
     initCabinetHandlers();
     initNewspaperStrip();  // Initialize newspaper strip in map tab
+    
+    // Add weather test buttons to settings tab
+    addWeatherTestButtons();
     
     // Initialize weather effects system (lazy loaded)
     try {
