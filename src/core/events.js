@@ -28,6 +28,9 @@ let refreshCallbacks = [];
 let _contactIntel = null;
 let _contactIntelLoaded = false;
 
+let _caseIntel = null;
+let _caseIntelLoaded = false;
+
 let _casesHandlers = null;
 let _casesHandlersLoaded = false;
 
@@ -47,6 +50,21 @@ async function getContactIntelligence() {
     
     _contactIntelLoaded = true;
     return _contactIntel;
+}
+
+async function getCaseIntelligence() {
+    if (_caseIntelLoaded) return _caseIntel;
+    
+    try {
+        _caseIntel = await import('../systems/case-intelligence.js');
+        console.log('[Tribunal] Case intelligence loaded');
+    } catch (e) {
+        console.log('[Tribunal] Case intelligence not available (optional):', e.message);
+        _caseIntel = null;
+    }
+    
+    _caseIntelLoaded = true;
+    return _caseIntel;
 }
 
 async function getCasesHandlers() {
@@ -278,9 +296,37 @@ async function onMessageReceived(messageId) {
     }
     
     // ═══════════════════════════════════════════════════════════════
-    // TODO: CASE INTELLIGENCE - Auto-detect tasks/quests in messages
-    // Similar pattern to contact intelligence
+    // CASE INTELLIGENCE - Auto-detect tasks/quests in messages
     // ═══════════════════════════════════════════════════════════════
+    try {
+        const caseIntel = await getCaseIntelligence();
+        if (caseIntel && messageText) {
+            const settings = getSettings();
+            const autoCreate = settings.autoDetectCases ?? false; // Off by default
+            
+            const results = await caseIntel.processMessageForQuests(messageText, {
+                autoCreate,
+                notifyCallback: autoCreate ? (msg) => {
+                    if (typeof toastr !== 'undefined') toastr.info(msg, 'Case Detected');
+                } : null
+            });
+            
+            if (results.detected.length > 0) {
+                console.log('[Tribunal] Detected quests:', results.detected.map(q => q.title));
+            }
+            
+            if (results.created.length > 0) {
+                console.log('[Tribunal] Auto-created cases:', results.created.map(c => c.title));
+                // Refresh the cases list if any were created
+                const casesHandlers = await getCasesHandlers();
+                if (casesHandlers?.renderCasesList) {
+                    await casesHandlers.renderCasesList();
+                }
+            }
+        }
+    } catch (error) {
+        console.log('[Tribunal] Case detection skipped:', error.message);
+    }
     
     saveChatState();
     triggerRefresh();
