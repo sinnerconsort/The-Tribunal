@@ -9,6 +9,7 @@ import { eventSource, event_types, chat } from '../../../../../../script.js';
 import { 
     loadChatState, 
     saveChatState, 
+    getChatState,
     hasActiveChat,
     initSettings,
     getSettings
@@ -434,6 +435,65 @@ async function onMessageReceived(messageId) {
     } catch (error) {
         console.log('[Tribunal] AI extraction skipped:', error.message);
     }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // THOUGHT CABINET - Check for theme spikes and auto-suggest/generate
+    // ═══════════════════════════════════════════════════════════════
+    try {
+        const settings = getSettings();
+        const thoughtSettings = settings?.thoughts || {};
+        
+        if (thoughtSettings.autoSuggest || thoughtSettings.autoGenerate) {
+            const cabinet = await import('../systems/cabinet.js');
+            const threshold = thoughtSettings.spikeThreshold || 8;
+            
+            // Check if any theme is spiking
+            const spikingTheme = cabinet.getSpikingTheme?.(threshold);
+            
+            if (spikingTheme) {
+                console.log('[Tribunal] Theme spiking:', spikingTheme.name, 'at', spikingTheme.count);
+                
+                if (thoughtSettings.autoGenerate) {
+                    // Auto-generate thought without asking
+                    const thoughtGen = await import('../voice/thought-generation.js');
+                    if (thoughtGen?.autoGenerateFromTheme) {
+                        console.log('[Tribunal] Auto-generating thought from theme:', spikingTheme.name);
+                        
+                        const thought = await thoughtGen.autoGenerateFromTheme(
+                            spikingTheme,
+                            () => triggerRefresh(),
+                            (msg, type) => {
+                                if (typeof toastr !== 'undefined') {
+                                    if (type === 'success') toastr.success(msg, 'Thought');
+                                    else if (type === 'error') toastr.error(msg, 'Thought');
+                                    else toastr.info(msg, 'Thought');
+                                }
+                            }
+                        );
+                        
+                        if (thought) {
+                            // Discharge the theme after generating
+                            cabinet.dischargeTheme?.(spikingTheme.id);
+                        }
+                    }
+                } else if (thoughtSettings.autoSuggest) {
+                    // Just notify the user
+                    if (typeof toastr !== 'undefined') {
+                        toastr.info(
+                            `Theme "${spikingTheme.name}" is building... Open the Cabinet to generate a thought.`,
+                            'Thought Surfacing',
+                            { timeOut: 5000 }
+                        );
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.log('[Tribunal] Thought spike check skipped:', error.message);
+    }
+    
+    saveChatState();
+    triggerRefresh();
 }
 
 /**
