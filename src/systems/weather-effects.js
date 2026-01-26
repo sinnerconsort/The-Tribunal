@@ -655,60 +655,137 @@ function createRain() {
     const layer = document.createElement('div');
     layer.className = 'weather-layer';
     layer.dataset.effect = 'rain';
+    layer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 9990;
+    `;
     
     const count = getParticleCount('rain');
+    console.log('[WeatherEffects] Creating', count, 'raindrops with JS animation');
+    
+    const drops = [];
+    
     for (let i = 0; i < count; i++) {
         const drop = document.createElement('div');
-        drop.className = 'weather-particle fx-rain-drop';
-        drop.style.left = `${Math.random() * 100}%`;
-        drop.style.animationDelay = `${Math.random() * 2}s`;
-        drop.style.animationDuration = `${0.5 + Math.random() * 0.3}s`;
+        drop.style.cssText = `
+            position: absolute;
+            width: 2px;
+            height: ${15 + Math.random() * 15}px;
+            background: linear-gradient(to bottom, transparent, rgba(174, 194, 224, 0.6), rgba(174, 194, 224, 0.3));
+            pointer-events: none;
+            border-radius: 0 0 2px 2px;
+        `;
+        
+        drop._rainState = {
+            x: Math.random() * window.innerWidth,
+            y: -30 - Math.random() * 100,
+            speed: 8 + Math.random() * 8
+        };
+        
         layer.appendChild(drop);
+        drops.push(drop);
     }
+    
+    function animateRain() {
+        if (!document.body.contains(layer)) return;
+        
+        drops.forEach(drop => {
+            const s = drop._rainState;
+            s.y += s.speed;
+            
+            if (s.y > window.innerHeight + 30) {
+                s.y = -30;
+                s.x = Math.random() * window.innerWidth;
+            }
+            
+            drop.style.transform = `translate(${s.x}px, ${s.y}px)`;
+        });
+        
+        requestAnimationFrame(animateRain);
+    }
+    
+    requestAnimationFrame(animateRain);
     
     return layer;
 }
 
 function createSnow() {
+    // Create layer that goes directly on body, not in container
     const layer = document.createElement('div');
-    layer.className = 'weather-layer';
+    layer.id = 'tribunal-snow-test-' + Date.now();
     layer.dataset.effect = 'snow';
-    layer.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        pointer-events: none;
-        overflow: hidden;
-    `;
     
-    const count = getParticleCount('snow');
-    console.log('[WeatherEffects] Creating', count, 'snowflakes');
+    // NO CSS classes, pure inline styles
+    layer.setAttribute('style', `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        pointer-events: none !important;
+        overflow: visible !important;
+        z-index: 2147483647 !important;
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        background: transparent !important;
+    `);
+    
+    const count = 10; // Just 10 for testing
+    console.log('[WeatherEffects] Creating', count, 'TEST SQUARES (should be RED)');
     
     for (let i = 0; i < count; i++) {
-        const flake = document.createElement('div');
-        const startX = Math.random() * 100;
-        const delay = Math.random() * 10;
-        const duration = 8 + Math.random() * 6;
-        const size = 10 + Math.random() * 10;
+        const particle = document.createElement('div');
+        const x = 10 + (i * 8); // Spread across screen
+        const y = 20 + (i * 7);
         
-        flake.textContent = '❄';
-        flake.style.cssText = `
-            position: absolute;
-            left: ${startX}%;
-            top: -20px;
-            font-size: ${size}px;
-            color: white;
-            text-shadow: 0 0 5px #aaf, 0 0 10px #fff;
-            pointer-events: none;
-            animation: tribunal-snow-fall ${duration}s linear ${delay}s infinite;
-            z-index: 1;
-        `;
-        layer.appendChild(flake);
+        // BIG RED SQUARES - impossible to miss
+        particle.setAttribute('style', `
+            position: fixed !important;
+            left: ${x}% !important;
+            top: ${y}% !important;
+            width: 30px !important;
+            height: 30px !important;
+            background-color: #ff0000 !important;
+            border: 3px solid #ffff00 !important;
+            z-index: 2147483647 !important;
+            pointer-events: none !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        `);
+        layer.appendChild(particle);
     }
     
-    console.log('[WeatherEffects] Snow layer created with', layer.children.length, 'flakes');
+    // Also add directly to body as a test
+    const bodyTest = document.createElement('div');
+    bodyTest.id = 'direct-body-test';
+    bodyTest.setAttribute('style', `
+        position: fixed !important;
+        top: 10px !important;
+        right: 10px !important;
+        width: 50px !important;
+        height: 50px !important;
+        background: lime !important;
+        border: 4px solid blue !important;
+        z-index: 2147483647 !important;
+        pointer-events: none !important;
+    `);
+    document.body.appendChild(bodyTest);
+    console.log('[WeatherEffects] Added LIME test square directly to body');
+    
+    // Auto-remove the body test after 5s
+    setTimeout(() => bodyTest.remove(), 5000);
+    
+    console.log('[WeatherEffects] Layer created with', layer.children.length, 'red test squares');
     return layer;
 }
 
@@ -716,17 +793,53 @@ function createFog() {
     const layer = document.createElement('div');
     layer.className = 'weather-layer';
     layer.dataset.effect = 'fog';
+    layer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        z-index: 9989;
+    `;
     
-    const count = getParticleCount('fog');
-    for (let i = 0; i < count; i++) {
+    // Create fog layers
+    for (let i = 0; i < 3; i++) {
         const fog = document.createElement('div');
-        fog.className = 'weather-particle fx-fog-layer';
-        fog.style.bottom = `${i * 12}%`;
-        fog.style.animationDelay = `${i * 4}s`;
-        fog.style.animationDuration = `${18 + i * 4}s`;
-        fog.style.opacity = `${0.2 - i * 0.04}`;
+        fog.style.cssText = `
+            position: absolute;
+            bottom: ${i * 15}%;
+            left: -50%;
+            width: 200%;
+            height: 40%;
+            background: linear-gradient(0deg,
+                rgba(180, 190, 200, ${0.15 - i * 0.03}) 0%,
+                rgba(180, 190, 200, ${0.08 - i * 0.02}) 50%,
+                transparent 100%
+            );
+            pointer-events: none;
+        `;
+        
+        fog._fogState = { x: 0, dir: (i % 2 === 0) ? 1 : -1 };
         layer.appendChild(fog);
     }
+    
+    const fogs = Array.from(layer.children);
+    
+    function animateFog() {
+        if (!document.body.contains(layer)) return;
+        
+        fogs.forEach((fog, i) => {
+            const s = fog._fogState;
+            s.x += s.dir * 0.1;
+            if (Math.abs(s.x) > 10) s.dir *= -1;
+            fog.style.transform = `translateX(${s.x}%)`;
+        });
+        
+        requestAnimationFrame(animateFog);
+    }
+    
+    requestAnimationFrame(animateFog);
     
     return layer;
 }
@@ -1048,12 +1161,17 @@ function addEffect(type) {
     console.log('[WeatherEffects] addEffect called:', type);
     
     if (!effectsContainer) {
-        console.error('[WeatherEffects] No effectsContainer!');
-        return;
+        console.error('[WeatherEffects] No effectsContainer! Trying to recreate...');
+        initWeatherEffects();
+        if (!effectsContainer) {
+            console.error('[WeatherEffects] Still no container after reinit!');
+            return;
+        }
     }
     
     if (!EFFECT_CREATORS[type]) {
         console.error('[WeatherEffects] No creator for type:', type);
+        console.log('[WeatherEffects] Available types:', Object.keys(EFFECT_CREATORS));
         return;
     }
     
@@ -1061,10 +1179,19 @@ function addEffect(type) {
     clearEffects(type);
     
     const creator = EFFECT_CREATORS[type];
-    if (creator) {
-        const layer = creator();
+    const layer = creator();
+    
+    if (layer) {
+        // Ensure layer is visible
+        layer.style.display = 'block';
+        layer.style.visibility = 'visible';
+        layer.style.opacity = '1';
+        
         effectsContainer.appendChild(layer);
-        console.log('[WeatherEffects] Added layer for:', type, '- Children:', effectsContainer.children.length);
+        console.log('[WeatherEffects] Added layer for:', type);
+        console.log('[WeatherEffects] Container now has', effectsContainer.children.length, 'children');
+        console.log('[WeatherEffects] Container style:', effectsContainer.style.cssText);
+        console.log('[WeatherEffects] Layer has', layer.children.length, 'particles');
     }
 }
 
