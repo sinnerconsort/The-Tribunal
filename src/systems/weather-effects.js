@@ -1,6 +1,8 @@
 /**
  * Weather Effects Module - The Tribunal
  * Clean CSS-class based implementation
+ * 
+ * FIXED: setWeather now handles object format from settings panel
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -269,97 +271,83 @@ const WEATHER_CSS = `
     background: radial-gradient(ellipse at center, rgba(80, 0, 0, 0.35) 0%, transparent 70%);
     animation: heartbeat 2s ease-in-out infinite;
 }
-.fx-flicker {
+.fx-blood-drip {
     position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(255, 255, 255, 0.5);
-    animation: flicker 8s linear infinite;
-}
-.fx-creep {
-    position: absolute;
-    background: linear-gradient(90deg, rgba(0, 0, 0, 0.4), transparent);
-    filter: blur(20px);
-    animation: creep 20s linear infinite;
-}
-.fx-drip {
-    position: absolute;
-    background: linear-gradient(180deg, rgba(80, 0, 0, 0.9) 0%, rgba(120, 0, 0, 0.4) 100%);
-    border-radius: 0 0 3px 3px;
-    animation: drip 8s linear infinite;
+    width: 3px;
+    background: linear-gradient(180deg, rgba(120, 20, 20, 0.9) 0%, rgba(80, 10, 10, 0.6) 100%);
+    border-radius: 0 0 50% 50%;
+    animation: blooddrip linear infinite;
 }
 @keyframes heartbeat {
-    0%, 100% { opacity: 0; }
-    15% { opacity: 0.2; }
-    30% { opacity: 0; }
-    45% { opacity: 0.15; }
+    0%, 100% { opacity: 0.1; transform: scale(1); }
+    15% { opacity: 0.4; transform: scale(1.02); }
+    30% { opacity: 0.2; transform: scale(1); }
+    45% { opacity: 0.35; transform: scale(1.015); }
 }
-@keyframes flicker {
-    0%, 95%, 100% { opacity: 0; }
-    96%, 98% { opacity: 0.5; }
-}
-@keyframes creep {
-    0% { transform: translateX(-100%); opacity: 0; }
-    50% { opacity: 0.4; }
-    100% { transform: translateX(100vw); opacity: 0; }
-}
-@keyframes drip {
-    0% { transform: translateY(-10px) scaleY(0.5); opacity: 0; }
-    10% { opacity: 0.9; transform: scaleY(1); }
-    100% { transform: translateY(100vh) scaleY(2); opacity: 0.3; }
+@keyframes blooddrip {
+    0% { transform: translateY(-100px); height: 0; opacity: 0; }
+    10% { height: 30px; opacity: 0.8; }
+    90% { opacity: 0.6; }
+    100% { transform: translateY(100vh); height: 50px; opacity: 0; }
 }
 
 /* ═══════════════════════════════════════════════════════════════ */
-/* PALE - The signature effect */
+/* PALE */
 /* ═══════════════════════════════════════════════════════════════ */
 .fx-pale-void {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: radial-gradient(ellipse at center, rgba(200, 210, 220, 0.15) 0%, rgba(180, 190, 200, 0.25) 100%);
+    background: radial-gradient(ellipse at center, rgba(180, 190, 200, 0.15) 0%, rgba(150, 160, 170, 0.1) 50%, transparent 100%);
 }
 .fx-pale-static {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
-    opacity: 0.04;
-    animation: staticflicker 0.1s steps(5) infinite;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(200, 210, 220, 0.03) 2px,
+        rgba(200, 210, 220, 0.03) 4px
+    );
+    animation: palestatic 0.1s linear infinite;
 }
 .fx-pale-shimmer {
     position: absolute;
-    top: 0; left: -100%;
-    width: 50%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-    animation: shimmer 12s linear infinite;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent 0%, rgba(200, 210, 220, 0.08) 50%, transparent 100%);
+    animation: paleshimmer 12s ease-in-out infinite;
 }
 .fx-memory-wisp {
     position: absolute;
-    width: 30px;
-    height: 30px;
-    background: radial-gradient(circle, rgba(200, 180, 255, 0.4) 0%, transparent 70%);
+    width: 80px;
+    height: 80px;
+    background: radial-gradient(circle, rgba(180, 190, 200, 0.2) 0%, transparent 70%);
     border-radius: 50%;
-    animation: wisp ease-in-out infinite;
+    animation: memorywisp ease-in-out infinite;
 }
 .fx-thought-symbol {
     position: absolute;
-    color: rgba(180, 170, 200, 0.5);
-    font-size: 16px;
-    animation: thoughtfade ease-in-out infinite;
+    font-family: serif;
+    font-size: 14px;
+    color: rgba(150, 160, 170, 0.4);
+    animation: thoughtsymbol ease-in-out infinite;
 }
-@keyframes staticflicker {
-    0%, 100% { opacity: 0.04; }
-    50% { opacity: 0.06; }
+@keyframes palestatic {
+    0% { opacity: 0.3; }
+    50% { opacity: 0.5; }
+    100% { opacity: 0.3; }
 }
-@keyframes shimmer {
-    0% { left: -50%; }
-    100% { left: 150%; }
+@keyframes paleshimmer {
+    0%, 100% { transform: translateX(-100%); opacity: 0; }
+    50% { transform: translateX(100%); opacity: 1; }
 }
-@keyframes wisp {
-    0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
-    50% { transform: translate(20px, -20px) scale(1.2); opacity: 0.6; }
+@keyframes memorywisp {
+    0%, 100% { transform: scale(1); opacity: 0.2; }
+    50% { transform: scale(1.5); opacity: 0.4; }
 }
-@keyframes thoughtfade {
+@keyframes thoughtsymbol {
     0%, 100% { opacity: 0; transform: translateY(0); }
-    50% { opacity: 0.5; transform: translateY(-10px); }
+    50% { opacity: 0.6; transform: translateY(-20px); }
 }
 `;
 
@@ -367,39 +355,41 @@ const WEATHER_CSS = `
 // EFFECT CREATORS
 // ═══════════════════════════════════════════════════════════════
 
-function createSnow() {
+function createLayer(effectType) {
     const layer = document.createElement('div');
     layer.className = 'tribunal-weather-layer';
-    layer.dataset.effect = 'snow';
-    
+    layer.dataset.effect = effectType;
+    return layer;
+}
+
+function createSnow() {
+    const layer = createLayer('snow');
     const count = getParticleCount('snow');
+    const flakes = ['❄', '❅', '❆', '•'];
+    
     for (let i = 0; i < count; i++) {
         const flake = document.createElement('div');
         flake.className = 'fx-snowflake';
-        flake.textContent = '❄';
+        flake.textContent = flakes[Math.floor(Math.random() * flakes.length)];
         flake.style.left = `${Math.random() * 100}%`;
-        flake.style.top = '-30px';
-        flake.style.fontSize = `${18 + Math.random() * 14}px`; // 18-32px - bigger!
-        flake.style.animationDuration = `${6 + Math.random() * 6}s`;
-        flake.style.animationDelay = `${Math.random() * 8}s`;
+        flake.style.fontSize = `${8 + Math.random() * 12}px`;
+        flake.style.animationDuration = `${8 + Math.random() * 8}s`;
+        flake.style.animationDelay = `${Math.random() * 10}s`;
         layer.appendChild(flake);
     }
     return layer;
 }
 
 function createRain() {
-    const layer = document.createElement('div');
-    layer.className = 'tribunal-weather-layer';
-    layer.dataset.effect = 'rain';
-    
+    const layer = createLayer('rain');
     const count = getParticleCount('rain');
+    
     for (let i = 0; i < count; i++) {
         const drop = document.createElement('div');
         drop.className = 'fx-raindrop';
         drop.style.left = `${Math.random() * 100}%`;
-        drop.style.top = '-40px';
-        drop.style.height = `${30 + Math.random() * 20}px`; // 30-50px - bigger!
-        drop.style.animationDuration = `${0.4 + Math.random() * 0.3}s`;
+        drop.style.height = `${15 + Math.random() * 25}px`;
+        drop.style.animationDuration = `${0.4 + Math.random() * 0.4}s`;
         drop.style.animationDelay = `${Math.random() * 2}s`;
         layer.appendChild(drop);
     }
@@ -407,45 +397,42 @@ function createRain() {
 }
 
 function createFog() {
-    const layer = document.createElement('div');
-    layer.className = 'tribunal-weather-layer';
-    layer.dataset.effect = 'fog';
+    const layer = createLayer('fog');
+    const count = getParticleCount('fog');
     
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < count; i++) {
         const mist = document.createElement('div');
         mist.className = 'fx-mist';
-        mist.style.top = `${30 + i * 25}%`;
-        mist.style.height = '50%';
-        mist.style.animationDuration = `${25 + i * 15}s`;
+        mist.style.top = `${20 + Math.random() * 60}%`;
+        mist.style.height = `${100 + Math.random() * 150}px`;
+        mist.style.animationDuration = `${20 + Math.random() * 20}s`;
+        mist.style.animationDelay = `${Math.random() * 10}s`;
+        mist.style.opacity = `${0.1 + Math.random() * 0.15}`;
         layer.appendChild(mist);
     }
     return layer;
 }
 
 function createWind() {
-    const layer = document.createElement('div');
-    layer.className = 'tribunal-weather-layer';
-    layer.dataset.effect = 'wind';
-    
+    const layer = createLayer('wind');
     const count = getParticleCount('debris');
+    
     for (let i = 0; i < count; i++) {
         const streak = document.createElement('div');
         streak.className = 'fx-windstreak';
-        streak.style.left = '-150px';
         streak.style.top = `${Math.random() * 100}%`;
-        streak.style.width = `${60 + Math.random() * 80}px`;
-        streak.style.height = `${2 + Math.random() * 2}px`;
-        streak.style.animationDuration = `${1.5 + Math.random() * 2}s`;
-        streak.style.animationDelay = `${Math.random() * 4}s`;
+        streak.style.left = `-200px`;
+        streak.style.width = `${80 + Math.random() * 120}px`;
+        streak.style.height = `${1 + Math.random() * 2}px`;
+        streak.style.animationDuration = `${1 + Math.random() * 1.5}s`;
+        streak.style.animationDelay = `${Math.random() * 5}s`;
         layer.appendChild(streak);
     }
     return layer;
 }
 
 function createDay() {
-    const layer = document.createElement('div');
-    layer.className = 'tribunal-weather-layer';
-    layer.dataset.effect = 'day';
+    const layer = createLayer('day');
     
     const haze = document.createElement('div');
     haze.className = 'fx-day-haze';
@@ -453,10 +440,10 @@ function createDay() {
     
     const sun = document.createElement('div');
     sun.className = 'fx-sun';
-    sun.style.top = '8%';
-    sun.style.right = '12%';
-    sun.style.width = '80px';
-    sun.style.height = '80px';
+    sun.style.top = '5%';
+    sun.style.right = '10%';
+    sun.style.width = '150px';
+    sun.style.height = '150px';
     layer.appendChild(sun);
     
     const dustCount = getParticleCount('dust');
@@ -465,74 +452,66 @@ function createDay() {
         dust.className = 'fx-dustmote';
         dust.style.left = `${Math.random() * 100}%`;
         dust.style.top = `${Math.random() * 100}%`;
-        const size = `${3 + Math.random() * 4}px`;
-        dust.style.width = size;
-        dust.style.height = size;
-        dust.style.animationDuration = `${12 + Math.random() * 10}s`;
-        dust.style.animationDelay = `${Math.random() * 12}s`;
+        dust.style.width = `${2 + Math.random() * 3}px`;
+        dust.style.height = dust.style.width;
+        dust.style.animationDuration = `${4 + Math.random() * 6}s`;
+        dust.style.animationDelay = `${Math.random() * 5}s`;
         layer.appendChild(dust);
     }
     return layer;
 }
 
 function createCityNight() {
-    const layer = document.createElement('div');
-    layer.className = 'tribunal-weather-layer';
-    layer.dataset.effect = 'city-night';
-    
-    const colors = ['#ff6b9d', '#4ecdc4', '#ffe66d', '#a855f7', '#f97316'];
+    const layer = createLayer('city-night');
     
     const overlay = document.createElement('div');
     overlay.className = 'fx-night-overlay';
     layer.appendChild(overlay);
     
-    const starCount = Math.floor(getParticleCount('stars') * 0.4);
+    const starCount = getParticleCount('stars');
     for (let i = 0; i < starCount; i++) {
         const star = document.createElement('div');
         star.className = 'fx-city-star';
         star.style.left = `${Math.random() * 100}%`;
         star.style.top = `${Math.random() * 40}%`;
-        const size = `${2 + Math.random() * 2}px`;
-        star.style.width = size;
-        star.style.height = size;
-        star.style.animationDuration = `${3 + Math.random() * 3}s`;
-        star.style.animationDelay = `${Math.random() * 3}s`;
+        star.style.width = `${1 + Math.random() * 2}px`;
+        star.style.height = star.style.width;
+        star.style.animationDuration = `${2 + Math.random() * 3}s`;
+        star.style.animationDelay = `${Math.random() * 5}s`;
         layer.appendChild(star);
     }
     
+    const neonColors = ['#ff00ff', '#00ffff', '#ff6600', '#00ff66'];
     for (let i = 0; i < 4; i++) {
         const puddle = document.createElement('div');
         puddle.className = 'fx-neon-puddle';
-        puddle.style.bottom = `${5 + Math.random() * 12}%`;
-        puddle.style.left = `${Math.random() * 80}%`;
-        puddle.style.width = `${60 + Math.random() * 80}px`;
-        puddle.style.height = '8px';
-        puddle.style.background = `linear-gradient(90deg, transparent, ${colors[i % colors.length]}66, transparent)`;
-        puddle.style.animationDuration = `${3 + Math.random() * 2}s`;
+        puddle.style.left = `${10 + Math.random() * 80}%`;
+        puddle.style.bottom = `${5 + Math.random() * 15}%`;
+        puddle.style.width = `${30 + Math.random() * 50}px`;
+        puddle.style.height = `${10 + Math.random() * 20}px`;
+        puddle.style.background = neonColors[i];
+        puddle.style.animationDuration = `${3 + Math.random() * 3}s`;
         puddle.style.animationDelay = `${Math.random() * 3}s`;
         layer.appendChild(puddle);
     }
     
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 6; i++) {
         const light = document.createElement('div');
         light.className = 'fx-distant-light';
-        light.style.top = `${15 + Math.random() * 35}%`;
         light.style.left = `${Math.random() * 100}%`;
-        const size = `${4 + Math.random() * 6}px`;
-        light.style.width = size;
-        light.style.height = size;
-        light.style.background = colors[Math.floor(Math.random() * colors.length)];
-        light.style.animationDuration = `${2 + Math.random() * 2}s`;
-        light.style.animationDelay = `${Math.random() * 3}s`;
+        light.style.top = `${50 + Math.random() * 30}%`;
+        light.style.width = `${4 + Math.random() * 6}px`;
+        light.style.height = light.style.width;
+        light.style.background = `rgba(255, ${200 + Math.random() * 55}, ${150 + Math.random() * 100}, 0.8)`;
+        light.style.animationDuration = `${2 + Math.random() * 4}s`;
+        light.style.animationDelay = `${Math.random() * 4}s`;
         layer.appendChild(light);
     }
     return layer;
 }
 
 function createQuietNight() {
-    const layer = document.createElement('div');
-    layer.className = 'tribunal-weather-layer';
-    layer.dataset.effect = 'quiet-night';
+    const layer = createLayer('quiet-night');
     
     const sky = document.createElement('div');
     sky.className = 'fx-night-sky';
@@ -540,10 +519,10 @@ function createQuietNight() {
     
     const moon = document.createElement('div');
     moon.className = 'fx-moon';
-    moon.style.top = '10%';
-    moon.style.left = '20%';
-    moon.style.width = '50px';
-    moon.style.height = '50px';
+    moon.style.top = '8%';
+    moon.style.left = '15%';
+    moon.style.width = '60px';
+    moon.style.height = '60px';
     layer.appendChild(moon);
     
     const starCount = getParticleCount('stars');
@@ -552,9 +531,8 @@ function createQuietNight() {
         star.className = 'fx-bright-star';
         star.style.left = `${Math.random() * 100}%`;
         star.style.top = `${Math.random() * 50}%`;
-        const size = `${2 + Math.random() * 3}px`;
-        star.style.width = size;
-        star.style.height = size;
+        star.style.width = `${1 + Math.random() * 2}px`;
+        star.style.height = star.style.width;
         star.style.animationDuration = `${3 + Math.random() * 4}s`;
         star.style.animationDelay = `${Math.random() * 5}s`;
         layer.appendChild(star);
@@ -564,21 +542,19 @@ function createQuietNight() {
     for (let i = 0; i < fireflyCount; i++) {
         const firefly = document.createElement('div');
         firefly.className = 'fx-firefly';
-        firefly.style.left = `${Math.random() * 80}%`;
+        firefly.style.left = `${Math.random() * 90}%`;
         firefly.style.top = `${40 + Math.random() * 50}%`;
-        firefly.style.width = '6px';
-        firefly.style.height = '6px';
-        firefly.style.animationDuration = `${6 + Math.random() * 6}s`;
-        firefly.style.animationDelay = `${Math.random() * 10}s`;
+        firefly.style.width = `${6 + Math.random() * 6}px`;
+        firefly.style.height = firefly.style.width;
+        firefly.style.animationDuration = `${4 + Math.random() * 4}s`;
+        firefly.style.animationDelay = `${Math.random() * 8}s`;
         layer.appendChild(firefly);
     }
     return layer;
 }
 
 function createIndoor() {
-    const layer = document.createElement('div');
-    layer.className = 'tribunal-weather-layer';
-    layer.dataset.effect = 'indoor';
+    const layer = createLayer('indoor');
     
     const warmth = document.createElement('div');
     warmth.className = 'fx-indoor-warmth';
@@ -587,9 +563,9 @@ function createIndoor() {
     for (let i = 0; i < 2; i++) {
         const beam = document.createElement('div');
         beam.className = 'fx-light-beam';
-        beam.style.left = `${55 + i * 15}%`;
-        beam.style.width = '80px';
-        beam.style.animationDuration = `${10 + i * 2}s`;
+        beam.style.left = `${20 + i * 40}%`;
+        beam.style.width = `${60 + Math.random() * 40}px`;
+        beam.style.animationDuration = `${6 + Math.random() * 4}s`;
         beam.style.animationDelay = `${i * 2}s`;
         layer.appendChild(beam);
     }
@@ -598,60 +574,40 @@ function createIndoor() {
     for (let i = 0; i < dustCount; i++) {
         const dust = document.createElement('div');
         dust.className = 'fx-indoor-dust';
-        dust.style.left = `${45 + Math.random() * 45}%`;
-        dust.style.bottom = '-10px';
-        const size = `${2 + Math.random() * 3}px`;
-        dust.style.width = size;
-        dust.style.height = size;
-        dust.style.animationDuration = `${15 + Math.random() * 10}s`;
-        dust.style.animationDelay = `${Math.random() * 15}s`;
+        dust.style.left = `${20 + Math.random() * 60}%`;
+        dust.style.width = `${2 + Math.random() * 2}px`;
+        dust.style.height = dust.style.width;
+        dust.style.animationDuration = `${8 + Math.random() * 8}s`;
+        dust.style.animationDelay = `${Math.random() * 10}s`;
         layer.appendChild(dust);
     }
     return layer;
 }
 
 function createHorror() {
-    const layer = document.createElement('div');
-    layer.className = 'tribunal-weather-layer';
-    layer.dataset.effect = 'horror';
+    const layer = createLayer('horror');
     
     const vignette = document.createElement('div');
     vignette.className = 'fx-vignette';
     layer.appendChild(vignette);
     
-    const pulse = document.createElement('div');
-    pulse.className = 'fx-heartbeat';
-    layer.appendChild(pulse);
+    const heartbeat = document.createElement('div');
+    heartbeat.className = 'fx-heartbeat';
+    layer.appendChild(heartbeat);
     
-    const flicker = document.createElement('div');
-    flicker.className = 'fx-flicker';
-    layer.appendChild(flicker);
-    
-    const shadow = document.createElement('div');
-    shadow.className = 'fx-creep';
-    shadow.style.top = '20%';
-    shadow.style.left = '0';
-    shadow.style.width = '150px';
-    shadow.style.height = '200px';
-    layer.appendChild(shadow);
-    
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 5; i++) {
         const drip = document.createElement('div');
-        drip.className = 'fx-drip';
-        drip.style.left = `${25 + Math.random() * 50}%`;
-        drip.style.top = '-10px';
-        drip.style.width = '3px';
-        drip.style.height = '30px';
-        drip.style.animationDelay = `${i * 4 + Math.random() * 2}s`;
+        drip.className = 'fx-blood-drip';
+        drip.style.left = `${Math.random() * 100}%`;
+        drip.style.animationDuration = `${4 + Math.random() * 4}s`;
+        drip.style.animationDelay = `${Math.random() * 8}s`;
         layer.appendChild(drip);
     }
     return layer;
 }
 
 function createPale() {
-    const layer = document.createElement('div');
-    layer.className = 'tribunal-weather-layer';
-    layer.dataset.effect = 'pale';
+    const layer = createLayer('pale');
     
     const voidEl = document.createElement('div');
     voidEl.className = 'fx-pale-void';
@@ -737,6 +693,9 @@ function addEffect(type) {
 }
 
 function renderEffects() {
+    console.log('[WeatherEffects] renderEffects - enabled:', effectsEnabled, 
+                'weather:', currentWeather, 'period:', currentPeriod, 'special:', currentSpecial);
+    
     if (!effectsEnabled) {
         clearEffects();
         return;
@@ -764,11 +723,33 @@ function renderEffects() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PUBLIC API
+// PUBLIC API - FIXED TO HANDLE OBJECT FORMAT
 // ═══════════════════════════════════════════════════════════════
 
-export function setWeather(weather) {
-    currentWeather = weather;
+/**
+ * Set weather state - handles both string and object formats
+ * @param {string|object} weatherOrState - Either a weather string like 'rain' 
+ *                                         or an object like { weather: 'rain', period: 'night' }
+ */
+export function setWeather(weatherOrState) {
+    console.log('[WeatherEffects] setWeather called with:', weatherOrState);
+    
+    // Handle object format from settings panel: { weather, period, special }
+    if (typeof weatherOrState === 'object' && weatherOrState !== null) {
+        if ('weather' in weatherOrState) {
+            currentWeather = weatherOrState.weather || 'clear';
+        }
+        if ('period' in weatherOrState) {
+            currentPeriod = weatherOrState.period || 'day';
+        }
+        if ('special' in weatherOrState) {
+            currentSpecial = weatherOrState.special;
+        }
+    } else {
+        // Handle string format: setWeather('rain')
+        currentWeather = weatherOrState || 'clear';
+    }
+    
     renderEffects();
 }
 
@@ -821,8 +802,17 @@ export function isInPale() {
     return currentSpecial === 'pale';
 }
 
-export function triggerHorror() {
+export function triggerHorror(duration = 15000) {
     setSpecialEffect('horror');
+    
+    // Auto-clear horror after duration
+    if (duration > 0) {
+        setTimeout(() => {
+            if (currentSpecial === 'horror') {
+                setSpecialEffect(null);
+            }
+        }, duration);
+    }
 }
 
 export function exitHorror() {
@@ -875,7 +865,7 @@ export function initWeatherEffects() {
         console.log('[WeatherEffects] CSS injected');
     }
     
-    // Add small green indicator dot
+    // Add debug indicator
     if (!document.getElementById('weather-init-indicator')) {
         const dot = document.createElement('div');
         dot.id = 'weather-init-indicator';
@@ -901,7 +891,12 @@ export function testEffect(effectType) {
         return;
     }
     
-    addEffect(effectType);
+    // Handle both direct effect types and categorized input
+    if (EFFECT_CREATORS[effectType]) {
+        addEffect(effectType);
+    } else {
+        console.warn('[WeatherEffects] Unknown effect type:', effectType);
+    }
 }
 
 export default {
