@@ -52,7 +52,7 @@ async function getContactsData() {
 async function getContactDossier() {
     if (!_contactDossier) {
         try {
-            _contactDossier = await import('./contact-dossier.js');
+            _contactDossier = await import('../systems/contact-dossier.js');
         } catch (e) {
             console.error('[Contacts] Could not load contact-dossier:', e.message);
             _contactDossier = null;
@@ -466,14 +466,33 @@ async function handleInlineEditSave(contactId) {
  * Generate dossier for a contact
  */
 async function handleGenerateDossier(contactId) {
+    // DEBUG
+    if (typeof toastr !== 'undefined') {
+        toastr.info('Generate clicked for: ' + contactId);
+    }
+    
     const contacts = await getContacts();
     const contact = contacts[contactId];
-    if (!contact) return;
+    if (!contact) {
+        if (typeof toastr !== 'undefined') {
+            toastr.error('Contact not found!');
+        }
+        return;
+    }
     
     // Get the dossier generator
     const dossierModule = await getContactDossier();
+    
+    // DEBUG
+    if (typeof toastr !== 'undefined') {
+        toastr.info(dossierModule ? 'Dossier module loaded!' : 'Dossier module FAILED to load');
+    }
+    
     if (!dossierModule?.generateDossier) {
         console.error('[Contacts] Dossier generation not available');
+        if (typeof toastr !== 'undefined') {
+            toastr.error('generateDossier function not found!');
+        }
         return;
     }
     
