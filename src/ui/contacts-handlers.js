@@ -466,33 +466,14 @@ async function handleInlineEditSave(contactId) {
  * Generate dossier for a contact
  */
 async function handleGenerateDossier(contactId) {
-    // DEBUG
-    if (typeof toastr !== 'undefined') {
-        toastr.info('Generate clicked for: ' + contactId);
-    }
-    
     const contacts = await getContacts();
     const contact = contacts[contactId];
-    if (!contact) {
-        if (typeof toastr !== 'undefined') {
-            toastr.error('Contact not found!');
-        }
-        return;
-    }
+    if (!contact) return;
     
     // Get the dossier generator
     const dossierModule = await getContactDossier();
-    
-    // DEBUG
-    if (typeof toastr !== 'undefined') {
-        toastr.info(dossierModule ? 'Dossier module loaded!' : 'Dossier module FAILED to load');
-    }
-    
     if (!dossierModule?.generateDossier) {
         console.error('[Contacts] Dossier generation not available');
-        if (typeof toastr !== 'undefined') {
-            toastr.error('generateDossier function not found!');
-        }
         return;
     }
     
