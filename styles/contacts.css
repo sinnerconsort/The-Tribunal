@@ -375,49 +375,85 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MODAL - CORE STYLES
+   INLINE FORM - Expands in place, no modal needed
    ═══════════════════════════════════════════════════════════════ */
 
-.contact-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    padding: 20px;
-}
-
-.contact-modal {
-    background: #f5f0e6;
-    border: 2px solid #5a5045;
+.contact-inline-form {
+    background: rgba(245, 240, 230, 0.95);
+    border: 1px solid rgba(90, 80, 70, 0.3);
     border-radius: 4px;
-    width: 100%;
-    max-width: 380px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    margin: 8px 0;
+    overflow: hidden;
 }
 
-.contact-modal-header {
-    padding: 12px 16px;
-    background: #3a3530;
+.contact-inline-form-header {
+    padding: 10px 14px;
+    background: rgba(58, 53, 48, 0.9);
     color: #c4b8a8;
     font-family: 'Courier Prime', 'Courier New', monospace;
-    font-size: 0.85em;
+    font-size: 0.8em;
     font-weight: 600;
     letter-spacing: 1px;
 }
 
-.contact-modal-body {
-    padding: 16px;
+.contact-inline-form-body {
+    padding: 14px;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
+}
+
+.contact-inline-form-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.03);
+    border-top: 1px solid rgba(90, 80, 70, 0.1);
+}
+
+.contact-inline-btn {
+    flex: 1;
+    padding: 8px 14px;
+    border: 1px solid;
+    border-radius: 3px;
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 0.75em;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.contact-inline-cancel {
+    background: transparent;
+    border-color: #c4b8a8;
+    color: #6a6357;
+}
+
+.contact-inline-cancel:hover {
+    background: rgba(90, 80, 70, 0.08);
+    border-color: #8a7a6a;
+}
+
+.contact-inline-save {
+    background: #4a6a4a;
+    border-color: #3a5a3a;
+    color: #fff;
+}
+
+.contact-inline-save:hover {
+    background: #3a5a3a;
+}
+
+/* Edit form inside a card */
+.contact-inline-edit-form {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+}
+
+.contact-card[data-editing="true"] {
+    border-left-color: #4a9090;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -513,51 +549,7 @@
     color: #5a7a5a;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   MODAL - FOOTER / BUTTONS
-   ═══════════════════════════════════════════════════════════════ */
-
-.contact-modal-footer {
-    display: flex;
-    gap: 10px;
-    padding: 12px 16px;
-    background: rgba(0, 0, 0, 0.03);
-    border-top: 1px solid rgba(90, 80, 70, 0.15);
-}
-
-.contact-modal-btn {
-    flex: 1;
-    padding: 10px 16px;
-    border: 1px solid;
-    border-radius: 3px;
-    font-family: 'Courier Prime', 'Courier New', monospace;
-    font-size: 0.8em;
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-}
-
-.contact-modal-cancel {
-    background: transparent;
-    border-color: #c4b8a8;
-    color: #6a6357;
-}
-
-.contact-modal-cancel:hover {
-    background: rgba(90, 80, 70, 0.08);
-    border-color: #8a7a6a;
-}
-
-.contact-modal-save {
-    background: #4a6a4a;
-    border-color: #3a5a3a;
-    color: #fff;
-}
-
-.contact-modal-save:hover {
-    background: #3a5a3a;
-}
+/* (Modal styles removed - using inline forms instead) */
 
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVE / MOBILE
