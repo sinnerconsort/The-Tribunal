@@ -9,7 +9,7 @@
 // IMPORTS - SillyTavern
 // ═══════════════════════════════════════════════════════════════
 
-import { getContext } from '../../../extensions.js';
+import { getContext, renderExtensionTemplateAsync } from '../../../extensions.js';
 import { eventSource, event_types } from '../../../../script.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -527,13 +527,82 @@ function refreshAllPanels() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// EXTENSION SETTINGS PANEL
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Add extension settings to the Extensions panel
+ * Creates the toggle in the sidebar Extensions tab
+ */
+async function addExtensionSettings() {
+    try {
+        // Load the settings.html template
+        const settingsHtml = await renderExtensionTemplateAsync(
+            'third-party/the-tribunal',  // Your extension folder path
+            'settings'                    // Template name (settings.html)
+        );
+        
+        // Append to extensions settings container
+        $('#extensions_settings2').append(settingsHtml);
+        
+        // Wire up the enable/disable toggle
+        const settings = getSettings();
+        $('#tribunal-extension-enabled')
+            .prop('checked', settings.enabled !== false)
+            .on('change', function() {
+                const enabled = $(this).prop('checked');
+                settings.enabled = enabled;
+                saveSettings();
+                
+                // Show/hide the FAB and panel
+                const fab = document.getElementById('ie-toggle-fab');
+                const panel = document.getElementById('ie-panel');
+                
+                if (enabled) {
+                    if (fab) fab.style.display = '';
+                    toastr.success('The Tribunal enabled', 'Extension');
+                } else {
+                    if (fab) fab.style.display = 'none';
+                    if (panel) panel.classList.remove('ie-panel-open');
+                    toastr.info('The Tribunal disabled', 'Extension');
+                }
+            });
+        
+        // Wire up debug export button
+        $('#tribunal-debug-export').on('click', (e) => {
+            e.preventDefault();
+            const debugData = exportDebugState();
+            console.log('[Tribunal] Debug Export:', debugData);
+            
+            // Copy to clipboard
+            const text = JSON.stringify(debugData, null, 2);
+            navigator.clipboard.writeText(text).then(() => {
+                toastr.success('Debug data copied to clipboard', 'The Tribunal');
+            }).catch(() => {
+                // Fallback: show in console
+                console.log('Debug data:\n', text);
+                toastr.info('Debug data logged to console', 'The Tribunal');
+            });
+        });
+        
+        console.log('[Tribunal] Extension settings panel added');
+    } catch (error) {
+        console.warn('[Tribunal] Could not add settings panel:', error.message);
+        // Non-critical - extension still works without the settings panel
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
 
-function init() {
+async function init() {
     console.log(`[The Tribunal] Initializing v${extensionVersion}...`);
 
     initSettings();
+    
+    // Add settings panel to Extensions tab (non-critical)
+    await addExtensionSettings();
 
     const panel = createPsychePanel();
     const mainFab = createToggleFAB();
