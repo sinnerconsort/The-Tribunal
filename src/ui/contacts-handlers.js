@@ -1,27 +1,24 @@
 /**
  * The Tribunal - Contacts Handlers
- * UI logic for the contacts section in the Ledger
+ * UI handlers for the Ledger contacts system
  * 
- * NO MODALS VERSION - Uses inline forms only
+ * v2.0.0 - Dossier system with voice quips, inline forms (no modals)
  */
 
 // ═══════════════════════════════════════════════════════════════
-// LAZY IMPORTS - Only load when actually needed
+// LAZY IMPORTS - Defensive loading
 // ═══════════════════════════════════════════════════════════════
 
 let _persistence = null;
 let _contactsData = null;
+let _dossier = null;
 
 async function getPersistence() {
     if (!_persistence) {
         try {
             _persistence = await import('../core/persistence.js');
         } catch (e) {
-            console.error('[Contacts] Could not load persistence:', e.message);
-            _persistence = {
-                getChatState: () => null,
-                saveChatState: () => {}
-            };
+            console.error('[Contacts] Failed to load persistence:', e);
         }
     }
     return _persistence;
@@ -30,19 +27,23 @@ async function getPersistence() {
 async function getContactsData() {
     if (!_contactsData) {
         try {
-            _contactsData = await import('../data/contacts.js');
+            _contactsData = await import('../data/contacts-data.js');
         } catch (e) {
-            console.error('[Contacts] Could not load contacts data:', e.message);
-            _contactsData = {
-                CONTACT_TYPES: {},
-                CONTACT_DISPOSITIONS: {},
-                createContact: (o) => ({ id: `contact_${Date.now()}`, name: 'Unknown', ...o }),
-                getTypeFromDisposition: () => 'unknown',
-                getDisposition: () => ({ id: 'neutral', label: 'Neutral', color: '#7a7a7a' })
-            };
+            console.error('[Contacts] Failed to load contacts-data:', e);
         }
     }
     return _contactsData;
+}
+
+async function getDossierModule() {
+    if (!_dossier) {
+        try {
+            _dossier = await import('../systems/contact-dossier.js');
+        } catch (e) {
+            console.warn('[Contacts] Dossier module not available:', e.message);
+        }
+    }
+    return _dossier;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -51,7 +52,7 @@ async function getContactsData() {
 
 async function getContacts() {
     const persistence = await getPersistence();
-    const state = persistence.getChatState();
+    const state = persistence?.getChatState?.();
     if (!state) return {};
     if (!state.relationships) state.relationships = {};
     return state.relationships;
@@ -59,111 +60,129 @@ async function getContacts() {
 
 async function saveContact(contact) {
     const persistence = await getPersistence();
-    const state = persistence.getChatState();
+    const state = persistence?.getChatState?.();
     if (!state) return;
-    if (!state.relationships) state.relationships = {};
     
-    contact.lastModified = Date.now();
+    if (!state.relationships) state.relationships = {};
     state.relationships[contact.id] = contact;
-    persistence.saveChatState();
+    persistence.saveChatState?.();
 }
 
 async function deleteContact(contactId) {
     const persistence = await getPersistence();
-    const state = persistence.getChatState();
-    if (!state?.relationships) return;
+    const state = persistence?.getChatState?.();
+    if (!state?.relationships?.[contactId]) return;
     
     delete state.relationships[contactId];
-    persistence.saveChatState();
+    persistence.saveChatState?.();
 }
 
 // ═══════════════════════════════════════════════════════════════
-// INLINE FORM TEMPLATE (NO MODALS)
+// DOSSIER RENDERING
 // ═══════════════════════════════════════════════════════════════
 
-async function getInlineFormHtml(existingContact = null) {
-    const contactsData = await getContactsData();
-    const isEdit = !!existingContact;
+/**
+ * Render dossier section (consensus + voice quips)
+ */
+function renderDossier(contact) {
+    const dossier = contact.dossier;
     
-    // Build disposition options
-    const dispositionOptions = Object.values(contactsData.CONTACT_DISPOSITIONS)
-        .map(d => `<option value="${d.id}" ${existingContact?.disposition === d.id ? 'selected' : ''}>${d.label}</option>`)
-        .join('');
+    if (!dossier || !dossier.consensus) {
+        // No dossier yet - show placeholder with generate button
+        return `
+            <div class="contact-dossier contact-dossier-empty">
+                <p class="dossier-placeholder">No dossier generated yet.</p>
+                <button class="dossier-generate-btn" data-contact-id="${contact.id}">
+                    <i class="fa-solid fa-file-lines"></i> Generate Dossier
+                </button>
+            </div>
+        `;
+    }
+    
+    // Render quips
+    const quipsHtml = (dossier.quips || []).map(quip => {
+        const stanceClass = quip.stance === 'positive' ? 'quip-positive' : 
+                           quip.stance === 'negative' ? 'quip-negative' : 'quip-neutral';
+        return `
+            <div class="dossier-quip ${stanceClass}">
+                <span class="quip-voice">${quip.name}</span>
+                <span class="quip-separator">—</span>
+                <span class="quip-content">"${quip.content}"</span>
+            </div>
+        `;
+    }).join('');
     
     return `
-        <div class="contact-inline-form" data-contact-id="${existingContact?.id || 'new'}">
-            <label class="contact-form-label">
-                Name
-                <input type="text" class="contact-form-input contact-input-name" 
-                       value="${existingContact?.name || ''}" placeholder="Enter name...">
-            </label>
-            
-            <label class="contact-form-label">
-                Relationship
-                <input type="text" class="contact-form-input contact-input-relationship"
-                       value="${existingContact?.relationship || ''}" placeholder="Partner, witness, suspect...">
-            </label>
-            
-            <label class="contact-form-label">
-                Disposition
-                <select class="contact-form-select contact-input-disposition">
-                    ${dispositionOptions}
-                </select>
-            </label>
-            
-            <label class="contact-form-label">
-                Notes
-                <textarea class="contact-form-textarea contact-input-notes" 
-                          placeholder="Your observations...">${existingContact?.notes || ''}</textarea>
-            </label>
-            
-            <div class="contact-form-actions">
-                <button class="contact-form-btn contact-form-cancel">Cancel</button>
-                <button class="contact-form-btn contact-form-save">${isEdit ? 'Save' : 'Add Contact'}</button>
-            </div>
+        <div class="contact-dossier">
+            <div class="dossier-consensus">${dossier.consensus}</div>
+            ${quipsHtml ? `<div class="dossier-quips">${quipsHtml}</div>` : ''}
+            <button class="dossier-refresh-btn" data-contact-id="${contact.id}" title="Regenerate dossier">
+                <i class="fa-solid fa-rotate"></i>
+            </button>
         </div>
     `;
 }
 
+/**
+ * Render disposition meter (visual indicator)
+ */
+function renderDispositionMeter(disposition) {
+    const levels = {
+        'trusted': 5,
+        'neutral': 3,
+        'cautious': 2,
+        'suspicious': 1,
+        'hostile': 0
+    };
+    const level = levels[disposition] ?? 3;
+    
+    let dots = '';
+    for (let i = 0; i < 5; i++) {
+        dots += i < level ? '●' : '○';
+    }
+    return dots;
+}
+
 // ═══════════════════════════════════════════════════════════════
-// RENDERING
+// CONTACT CARD RENDERING
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Render a single contact card
+ * Render a single contact card with dossier
  */
 async function renderContactCard(contact) {
     const contactsData = await getContactsData();
-    const disposition = contactsData.getDisposition(contact.disposition);
-    const typeId = contactsData.getTypeFromDisposition(contact.disposition);
-    const type = contactsData.CONTACT_TYPES[typeId] || { shortLabel: '?', label: 'UNKNOWN', color: '#6a6a6a' };
+    const disposition = contactsData?.getDisposition?.(contact.disposition) || { label: 'Unknown', color: '#888' };
+    
+    const meterDots = renderDispositionMeter(contact.disposition);
     
     return `
         <div class="contact-card" data-contact-id="${contact.id}" data-disposition="${contact.disposition || 'neutral'}" data-expanded="false">
             <div class="contact-card-header">
                 <div class="contact-info">
                     <span class="contact-name">${contact.name}</span>
-                    <span class="contact-disposition" style="color: ${disposition.color}">${disposition.label}</span>
+                    <span class="contact-relationship">[${(contact.relationship || 'UNKNOWN').toUpperCase()}]</span>
                 </div>
-                <span class="contact-type-badge" style="background-color: ${type.color}20; color: ${type.color}; border-color: ${type.color}">
-                    [${type.shortLabel}] ${type.label}
-                </span>
             </div>
             
             <div class="contact-card-details">
-                <div class="contact-display-content">
-                    ${contact.relationship ? `<div class="contact-relationship">${contact.relationship}</div>` : ''}
-                    ${contact.notes ? `<div class="contact-notes">"${contact.notes}"</div>` : ''}
-                    
+                ${renderDossier(contact)}
+                
+                <div class="contact-footer">
+                    <div class="contact-disposition-display">
+                        <span class="disposition-label" style="color: ${disposition.color}">${disposition.label}</span>
+                        <span class="disposition-meter">${meterDots}</span>
+                    </div>
                     <div class="contact-actions">
                         <button class="contact-action-btn contact-edit-btn" data-contact-id="${contact.id}">
-                            <i class="fa-solid fa-pen"></i> EDIT
+                            EDIT
                         </button>
                         <button class="contact-action-btn contact-remove-btn" data-contact-id="${contact.id}">
-                            <i class="fa-solid fa-times"></i> REMOVE
+                            DEL
                         </button>
                     </div>
                 </div>
+                
                 <div class="contact-edit-form-container"></div>
             </div>
         </div>
@@ -205,95 +224,228 @@ export async function renderContactsList() {
     const cards = await Promise.all(contactArray.map(c => renderContactCard(c)));
     listEl.innerHTML = cards.join('');
     
-    // Attach card click handlers for expand/collapse
-    listEl.querySelectorAll('.contact-card-header').forEach(header => {
+    // Attach event handlers
+    bindCardEvents(listEl);
+}
+
+/**
+ * Bind event handlers to contact cards
+ */
+function bindCardEvents(container) {
+    // Header click - expand/collapse
+    container.querySelectorAll('.contact-card-header').forEach(header => {
         header.addEventListener('click', (e) => {
             const card = header.closest('.contact-card');
             const isExpanded = card.dataset.expanded === 'true';
             card.dataset.expanded = (!isExpanded).toString();
         });
     });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// ADD CONTACT (INLINE FORM)
-// ═══════════════════════════════════════════════════════════════
-
-let addFormVisible = false;
-let addFormContainer = null;
-
-async function showAddForm() {
-    const addBtn = document.getElementById('contacts-add-btn');
-    if (!addBtn || addFormVisible) return;
     
-    // Hide the button
-    addBtn.style.display = 'none';
+    // Generate dossier button
+    container.querySelectorAll('.dossier-generate-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const contactId = btn.dataset.contactId;
+            await handleGenerateDossier(contactId, btn);
+        });
+    });
     
-    // Create form container after the button
-    addFormContainer = document.createElement('div');
-    addFormContainer.id = 'contacts-add-form-container';
-    addFormContainer.innerHTML = await getInlineFormHtml(null);
-    addBtn.parentNode.insertBefore(addFormContainer, addBtn.nextSibling);
+    // Refresh dossier button
+    container.querySelectorAll('.dossier-refresh-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const contactId = btn.dataset.contactId;
+            await handleGenerateDossier(contactId, btn);
+        });
+    });
     
-    addFormVisible = true;
+    // Edit button
+    container.querySelectorAll('.contact-edit-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showEditForm(btn.dataset.contactId);
+        });
+    });
     
-    // Focus name input
-    const nameInput = addFormContainer.querySelector('.contact-input-name');
-    setTimeout(() => nameInput?.focus(), 50);
-    
-    // Bind form buttons
-    bindAddFormEvents(addFormContainer);
-}
-
-function hideAddForm() {
-    const addBtn = document.getElementById('contacts-add-btn');
-    
-    // Remove form container
-    if (addFormContainer) {
-        addFormContainer.remove();
-        addFormContainer = null;
-    }
-    
-    // Show button again
-    if (addBtn) {
-        addBtn.style.display = '';
-    }
-    
-    addFormVisible = false;
-}
-
-function bindAddFormEvents(container) {
-    const cancelBtn = container.querySelector('.contact-form-cancel');
-    const saveBtn = container.querySelector('.contact-form-save');
-    
-    cancelBtn?.addEventListener('click', hideAddForm);
-    
-    saveBtn?.addEventListener('click', async () => {
-        const name = container.querySelector('.contact-input-name')?.value?.trim();
-        if (!name) {
-            container.querySelector('.contact-input-name')?.focus();
-            return;
-        }
-        
-        const contactsData = await getContactsData();
-        const contact = contactsData.createContact({});
-        
-        contact.name = name;
-        contact.relationship = container.querySelector('.contact-input-relationship')?.value?.trim() || '';
-        contact.disposition = container.querySelector('.contact-input-disposition')?.value || 'neutral';
-        contact.notes = container.querySelector('.contact-input-notes')?.value?.trim() || '';
-        contact.manuallyEdited = true;
-        
-        await saveContact(contact);
-        hideAddForm();
-        await renderContactsList();
+    // Remove button
+    container.querySelectorAll('.contact-remove-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (confirm('Remove this contact?')) {
+                await deleteContact(btn.dataset.contactId);
+                await renderContactsList();
+            }
+        });
     });
 }
 
 // ═══════════════════════════════════════════════════════════════
-// EDIT CONTACT (INLINE FORM IN CARD)
+// DOSSIER GENERATION
 // ═══════════════════════════════════════════════════════════════
 
+/**
+ * Handle dossier generation for a contact
+ */
+async function handleGenerateDossier(contactId, buttonEl) {
+    const contacts = await getContacts();
+    const contact = contacts[contactId];
+    if (!contact) return;
+    
+    const dossierModule = await getDossierModule();
+    if (!dossierModule?.generateDossier) {
+        toastr?.warning?.('Dossier system not available');
+        return;
+    }
+    
+    // Show loading state
+    if (buttonEl) {
+        buttonEl.disabled = true;
+        buttonEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+    }
+    
+    try {
+        const dossier = await dossierModule.generateDossier(contact, contactId);
+        
+        if (dossier) {
+            contact.dossier = dossier;
+            await saveContact(contact);
+            toastr?.success?.(`Dossier generated for ${contact.name}`);
+            await renderContactsList();
+        } else {
+            toastr?.error?.('Failed to generate dossier');
+        }
+    } catch (error) {
+        console.error('[Contacts] Dossier generation error:', error);
+        toastr?.error?.('Dossier generation failed');
+    } finally {
+        if (buttonEl) {
+            buttonEl.disabled = false;
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INLINE FORMS (No Modals!)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get the inline form HTML
+ */
+async function getInlineFormHtml(contact = null) {
+    const contactsData = await getContactsData();
+    const dispositions = contactsData?.DISPOSITIONS || {};
+    
+    const name = contact?.name || '';
+    const relationship = contact?.relationship || '';
+    const disposition = contact?.disposition || 'neutral';
+    
+    const dispositionOptions = Object.entries(dispositions)
+        .map(([key, d]) => `<option value="${key}" ${key === disposition ? 'selected' : ''}>${d.label}</option>`)
+        .join('');
+    
+    return `
+        <div class="contact-inline-form">
+            <label class="contact-form-label">NAME</label>
+            <input type="text" class="contact-form-input" id="contact-form-name" value="${name}" placeholder="Enter name...">
+            
+            <label class="contact-form-label">RELATIONSHIP</label>
+            <input type="text" class="contact-form-input" id="contact-form-relationship" value="${relationship}" placeholder="Witness, suspect, ally...">
+            
+            <label class="contact-form-label">DISPOSITION</label>
+            <select class="contact-form-select" id="contact-form-disposition">
+                ${dispositionOptions}
+            </select>
+            
+            <div class="contact-form-actions">
+                <button class="contact-form-btn contact-form-cancel">Cancel</button>
+                <button class="contact-form-btn contact-form-save">${contact ? 'Save' : 'Add Contact'}</button>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Show add contact form (inline)
+ */
+async function showAddForm() {
+    const addBtn = document.getElementById('contacts-add-btn');
+    if (!addBtn) return;
+    
+    // Hide button
+    addBtn.style.display = 'none';
+    
+    // Create form container
+    const formContainer = document.createElement('div');
+    formContainer.id = 'contacts-add-form-container';
+    formContainer.innerHTML = await getInlineFormHtml();
+    
+    // Insert after button
+    addBtn.parentNode.insertBefore(formContainer, addBtn.nextSibling);
+    
+    // Bind form events
+    bindAddFormEvents(formContainer);
+    
+    // Focus name input
+    formContainer.querySelector('#contact-form-name')?.focus();
+}
+
+/**
+ * Hide add contact form
+ */
+function hideAddForm() {
+    const formContainer = document.getElementById('contacts-add-form-container');
+    if (formContainer) {
+        formContainer.remove();
+    }
+    
+    const addBtn = document.getElementById('contacts-add-btn');
+    if (addBtn) {
+        addBtn.style.display = '';
+    }
+}
+
+/**
+ * Bind events for the add form
+ */
+function bindAddFormEvents(formContainer) {
+    const cancelBtn = formContainer.querySelector('.contact-form-cancel');
+    const saveBtn = formContainer.querySelector('.contact-form-save');
+    
+    cancelBtn?.addEventListener('click', hideAddForm);
+    
+    saveBtn?.addEventListener('click', async () => {
+        const name = formContainer.querySelector('#contact-form-name')?.value?.trim();
+        const relationship = formContainer.querySelector('#contact-form-relationship')?.value?.trim();
+        const disposition = formContainer.querySelector('#contact-form-disposition')?.value;
+        
+        if (!name) {
+            toastr?.warning?.('Please enter a name');
+            return;
+        }
+        
+        const contact = {
+            id: `contact_${Date.now()}`,
+            name,
+            relationship,
+            disposition,
+            createdAt: Date.now(),
+            voiceOpinions: {},
+            dossier: null
+        };
+        
+        await saveContact(contact);
+        hideAddForm();
+        await renderContactsList();
+        toastr?.success?.(`Added ${name} to contacts`);
+        
+        // Auto-generate dossier after adding
+        handleGenerateDossier(contact.id, null);
+    });
+}
+
+/**
+ * Show edit form inside a contact card
+ */
 async function showEditForm(contactId) {
     const contacts = await getContacts();
     const contact = contacts[contactId];
@@ -302,117 +454,110 @@ async function showEditForm(contactId) {
     const card = document.querySelector(`.contact-card[data-contact-id="${contactId}"]`);
     if (!card) return;
     
-    // Expand the card
+    // Expand card
     card.dataset.expanded = 'true';
     
-    // Hide display content, show form
-    const displayContent = card.querySelector('.contact-display-content');
+    // Get form container inside card
     const formContainer = card.querySelector('.contact-edit-form-container');
+    if (!formContainer) return;
     
-    if (displayContent) displayContent.style.display = 'none';
-    if (formContainer) {
-        formContainer.innerHTML = await getInlineFormHtml(contact);
-        bindEditFormEvents(formContainer, contact);
-    }
+    // Show form
+    formContainer.innerHTML = await getInlineFormHtml(contact);
+    formContainer.style.display = 'block';
+    
+    // Hide dossier and footer while editing
+    const dossier = card.querySelector('.contact-dossier');
+    const footer = card.querySelector('.contact-footer');
+    if (dossier) dossier.style.display = 'none';
+    if (footer) footer.style.display = 'none';
+    
+    // Bind events
+    bindEditFormEvents(formContainer, contactId, card);
 }
 
+/**
+ * Hide edit form
+ */
 function hideEditForm(card) {
-    const displayContent = card.querySelector('.contact-display-content');
     const formContainer = card.querySelector('.contact-edit-form-container');
+    const dossier = card.querySelector('.contact-dossier');
+    const footer = card.querySelector('.contact-footer');
     
-    if (displayContent) displayContent.style.display = '';
-    if (formContainer) formContainer.innerHTML = '';
+    if (formContainer) {
+        formContainer.innerHTML = '';
+        formContainer.style.display = 'none';
+    }
+    if (dossier) dossier.style.display = '';
+    if (footer) footer.style.display = '';
 }
 
-function bindEditFormEvents(container, existingContact) {
-    const card = container.closest('.contact-card');
-    const cancelBtn = container.querySelector('.contact-form-cancel');
-    const saveBtn = container.querySelector('.contact-form-save');
+/**
+ * Bind events for edit form
+ */
+function bindEditFormEvents(formContainer, contactId, card) {
+    const cancelBtn = formContainer.querySelector('.contact-form-cancel');
+    const saveBtn = formContainer.querySelector('.contact-form-save');
     
-    cancelBtn?.addEventListener('click', () => {
-        hideEditForm(card);
-    });
+    cancelBtn?.addEventListener('click', () => hideEditForm(card));
     
     saveBtn?.addEventListener('click', async () => {
-        const name = container.querySelector('.contact-input-name')?.value?.trim();
+        const contacts = await getContacts();
+        const contact = contacts[contactId];
+        if (!contact) return;
+        
+        const name = formContainer.querySelector('#contact-form-name')?.value?.trim();
+        const relationship = formContainer.querySelector('#contact-form-relationship')?.value?.trim();
+        const disposition = formContainer.querySelector('#contact-form-disposition')?.value;
+        
         if (!name) {
-            container.querySelector('.contact-input-name')?.focus();
+            toastr?.warning?.('Please enter a name');
             return;
         }
         
-        const contact = { ...existingContact };
+        const oldDisposition = contact.disposition;
+        
         contact.name = name;
-        contact.relationship = container.querySelector('.contact-input-relationship')?.value?.trim() || '';
-        contact.disposition = container.querySelector('.contact-input-disposition')?.value || 'neutral';
-        contact.notes = container.querySelector('.contact-input-notes')?.value?.trim() || '';
-        contact.manuallyEdited = true;
+        contact.relationship = relationship;
+        contact.disposition = disposition;
         
         await saveContact(contact);
+        hideEditForm(card);
         await renderContactsList();
+        toastr?.success?.(`Updated ${name}`);
+        
+        // Regenerate dossier if disposition changed
+        if (oldDisposition !== disposition) {
+            handleGenerateDossier(contactId, null);
+        }
     });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// REMOVE CONTACT
-// ═══════════════════════════════════════════════════════════════
-
-async function handleRemoveContact(contactId) {
-    const contacts = await getContacts();
-    const contact = contacts[contactId];
-    if (!contact) return;
-    
-    if (confirm(`Remove ${contact.name} from contacts?`)) {
-        await deleteContact(contactId);
-        await renderContactsList();
-    }
 }
 
 // ═══════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Initialize contacts handlers
- * Call this after the ledger tab is rendered
- */
-export async function initContactsHandlers() {
-    console.log('[Contacts] Initializing handlers (no-modal version)...');
+export function initContactsHandlers() {
+    console.log('[Contacts] Initializing handlers...');
     
-    // Add Contact button
+    // Add contact button
     const addBtn = document.getElementById('contacts-add-btn');
     if (addBtn) {
         addBtn.addEventListener('click', showAddForm);
     }
     
-    // Delegate edit/remove clicks on the list container
-    const listEl = document.getElementById('contacts-list');
-    if (listEl) {
-        listEl.addEventListener('click', async (e) => {
-            const editBtn = e.target.closest('.contact-edit-btn');
-            const removeBtn = e.target.closest('.contact-remove-btn');
-            
-            if (editBtn) {
-                e.stopPropagation();
-                const contactId = editBtn.dataset.contactId;
-                await showEditForm(contactId);
-            } else if (removeBtn) {
-                e.stopPropagation();
-                const contactId = removeBtn.dataset.contactId;
-                await handleRemoveContact(contactId);
-            }
-        });
-    }
-    
     // Initial render
-    await renderContactsList();
+    renderContactsList();
     
-    console.log('[Contacts] Handlers initialized (no-modal version)');
+    console.log('[Contacts] Handlers initialized');
 }
 
-/**
- * Refresh contacts display (call after chat change)
- */
 export async function refreshContacts() {
-    hideAddForm(); // Reset add form state
+    hideAddForm();
     await renderContactsList();
 }
+
+export default {
+    initContactsHandlers,
+    refreshContacts,
+    renderContactsList
+};
