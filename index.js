@@ -9,7 +9,7 @@
 // IMPORTS - SillyTavern
 // ═══════════════════════════════════════════════════════════════
 
-import { getContext, renderExtensionTemplateAsync } from '../../../extensions.js';
+import { getContext } from '../../../extensions.js';
 import { eventSource, event_types } from '../../../../script.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -536,11 +536,34 @@ function refreshAllPanels() {
  */
 async function addExtensionSettings() {
     try {
-        // Load the settings.html template
-        const settingsHtml = await renderExtensionTemplateAsync(
-            'third-party/The-Tribunal',  // Your extension folder path (case-sensitive!)
-            'settings'                    // Template name (settings.html)
-        );
+        // Direct HTML injection (more reliable than template loading)
+        const settingsHtml = `
+        <div class="inline-drawer" id="tribunal-extension-drawer">
+            <div class="inline-drawer-toggle inline-drawer-header">
+                <b>⚖️ The Tribunal</b>
+                <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+            </div>
+            <div class="inline-drawer-content">
+                <div style="padding: 10px;">
+                    <label class="checkbox_label">
+                        <input type="checkbox" id="tribunal-extension-enabled">
+                        <span>Enable The Tribunal</span>
+                    </label>
+                    
+                    <p class="hint" style="margin-top: 8px; font-size: 0.85em; color: #888;">
+                        Toggle to enable/disable the Disco Elysium voice system.<br>
+                        Configure additional settings within the panel itself.
+                    </p>
+                    
+                    <div style="margin-top: 12px; display: flex; gap: 8px;">
+                        <a href="#" id="tribunal-debug-export" class="menu_button" style="flex: 1; text-align: center;">
+                            <i class="fa-solid fa-bug"></i> Debug
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
         
         // Append to extensions settings container
         $('#extensions_settings2').append(settingsHtml);
