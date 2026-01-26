@@ -279,13 +279,26 @@ function showInlineAddForm() {
     // Insert form after the add button
     addBtn.insertAdjacentHTML('afterend', formHtml);
     
-    // Get the form element and scroll it into view
+    // Get the form element
     const form = document.getElementById('contact-inline-add-form');
-    setTimeout(() => {
-        form?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 50);
     
-    // Focus the name input (after scroll starts)
+    // Find the scrollable panel content container and scroll it
+    const panelContent = document.querySelector('.ie-panel-content');
+    if (panelContent && form) {
+        // Scroll the panel content to show the form
+        setTimeout(() => {
+            // Calculate position relative to the scrollable container
+            const formRect = form.getBoundingClientRect();
+            const containerRect = panelContent.getBoundingClientRect();
+            const scrollNeeded = formRect.bottom - containerRect.bottom + 20; // 20px padding
+            
+            if (scrollNeeded > 0) {
+                panelContent.scrollTop += scrollNeeded;
+            }
+        }, 50);
+    }
+    
+    // Focus the name input (after scroll)
     const nameInput = document.getElementById('contact-input-name');
     setTimeout(() => nameInput?.focus(), 150);
     
@@ -404,12 +417,21 @@ async function showInlineEditForm(contactId) {
     
     card.innerHTML = formHtml;
     
-    // Scroll the card into view so the form is visible
-    setTimeout(() => {
-        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 50);
+    // Find the scrollable panel content container and scroll to show the card
+    const panelContent = document.querySelector('.ie-panel-content');
+    if (panelContent && card) {
+        setTimeout(() => {
+            const cardRect = card.getBoundingClientRect();
+            const containerRect = panelContent.getBoundingClientRect();
+            const scrollNeeded = cardRect.bottom - containerRect.bottom + 20;
+            
+            if (scrollNeeded > 0) {
+                panelContent.scrollTop += scrollNeeded;
+            }
+        }, 50);
+    }
     
-    // Focus name input (after scroll starts)
+    // Focus name input (after scroll)
     const nameInput = document.getElementById('contact-edit-name');
     setTimeout(() => nameInput?.focus(), 150);
     
