@@ -2,7 +2,7 @@
  * The Tribunal - SillyTavern Extension
  * A standalone text based Disco Elysium system
  * 
- * v0.10.0 - Added newspaper strip to map tab
+ * v0.11.0 - Added weather effects system
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -43,6 +43,29 @@ import { initCabinetHandlers, refreshCabinet } from './src/ui/cabinet-handler.js
 import { initNewspaperStrip, updateNewspaperStrip } from './src/ui/newspaper-strip.js';
 
 // ═══════════════════════════════════════════════════════════════
+// IMPORTS - Weather System
+// ═══════════════════════════════════════════════════════════════
+
+import { 
+    initWeatherSystem,
+    syncWithWeatherTime,
+    processMessage as processWeatherMessage,
+    onPaleStatusApplied,
+    onPaleStatusRemoved,
+    isPaleStatus,
+    setWeatherState,
+    setSpecialEffect,
+    triggerPale,
+    exitPale,
+    triggerHorror,
+    isInPale,
+    getWeatherEffectsState,
+    setEffectsEnabled,
+    setEffectsIntensity,
+    debugWeather
+} from './src/systems/weather-integration.js';
+
+// ═══════════════════════════════════════════════════════════════
 // IMPORTS - Voice Generation
 // ═══════════════════════════════════════════════════════════════
 
@@ -71,6 +94,18 @@ export { setRCMStatus, setRCMCopotype, addRCMAncientVoice, addRCMActiveEffect } 
 export { setRPTime, setRPWeather, getWatchMode } from './src/ui/watch.js';
 export { updateNewspaperStrip } from './src/ui/newspaper-strip.js';
 
+// Weather effects
+export { 
+    setWeatherState, 
+    setSpecialEffect, 
+    triggerPale, 
+    exitPale, 
+    triggerHorror, 
+    isInPale,
+    setEffectsEnabled,
+    setEffectsIntensity
+} from './src/systems/weather-integration.js';
+
 // State accessors
 export { 
     getVitals, updateVitals, setHealth, setMorale, applyDamage, applyHealing,
@@ -96,7 +131,7 @@ export { initInvestigation, updateSceneContext, openInvestigation, closeInvestig
 // ═══════════════════════════════════════════════════════════════
 
 const extensionName = 'the-tribunal';
-const extensionVersion = '0.10.0';
+const extensionVersion = '0.11.0';
 
 // ═══════════════════════════════════════════════════════════════
 // CHAT-ONLY FAB VISIBILITY
@@ -324,6 +359,9 @@ function onNewAIMessage(messageIndex) {
     
     console.log('[Tribunal] New AI message detected, index:', messageIndex);
     
+    // Process message for weather/horror/pale keywords
+    processWeatherMessage(message.mes, `msg-${messageIndex}`);
+    
     // Small delay to ensure message is fully rendered
     setTimeout(() => {
         triggerVoiceGeneration(message.mes, false);
@@ -528,6 +566,9 @@ function refreshAllPanels() {
         }
     }
     
+    // Sync weather effects with current state
+    syncWithWeatherTime();
+    
     console.log('[Tribunal] UI refreshed from state');
 }
 
@@ -650,6 +691,16 @@ async function init() {
     initCabinetHandlers();
     initNewspaperStrip();  // Initialize newspaper strip in map tab
     
+    // Initialize weather effects system
+    initWeatherSystem({
+        effectsEnabled: true,
+        autoDetect: true,
+        intensity: 'light',
+        syncWithTimeOfDay: true,
+        skipEventListeners: true  // We handle MESSAGE_RECEIVED in onNewAIMessage
+    });
+    console.log('[Tribunal] Weather effects system initialized');
+    
     // Initialize contacts handlers (lazy import to be safe)
     import('./src/ui/contacts-handlers.js').then(module => {
         module.initContactsHandlers();
@@ -690,6 +741,14 @@ async function init() {
     window.tribunalUpdateCharacter = updateCharacterInfo;
     window.tribunalRefreshCabinet = refreshCabinet;
     window.tribunalUpdateNewspaper = updateNewspaperStrip;  // Debug helper for newspaper
+    
+    // Weather effects debug helpers
+    window.tribunalWeatherDebug = debugWeather;
+    window.tribunalSetWeather = setWeatherState;
+    window.tribunalTriggerHorror = triggerHorror;
+    window.tribunalTriggerPale = triggerPale;
+    window.tribunalExitPale = exitPale;
+    window.tribunalSetEffectsIntensity = setEffectsIntensity;
     
     // Contacts debug helper
     import('./src/ui/contacts-handlers.js').then(module => {
