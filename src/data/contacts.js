@@ -1,6 +1,8 @@
 /**
  * The Tribunal - Contacts Data Definitions
  * Pure data - NO IMPORTS - safe to add without breaking anything
+ * 
+ * Updated: Added context field, dossier structure
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -140,18 +142,107 @@ export function createContact(overrides = {}) {
     return {
         id: overrides.id || `contact_${Date.now()}`,
         name: overrides.name || 'Unknown',
+        
+        // User-provided context (replaces 'relationship' as primary field)
+        context: overrides.context || '',
+        
+        // Legacy field - still supported for edit modal
         relationship: overrides.relationship || '',
         notes: overrides.notes || '',
+        
+        // Disposition (starts neutral, voices suggest changes)
         disposition: overrides.disposition || 'neutral',
-        // Auto-derived, but can be overridden
+        
+        // Auto-derived type, but can be overridden
         type: overrides.type || getTypeFromDisposition(overrides.disposition || 'neutral'),
+        
+        // AI-generated dossier content
+        dossier: overrides.dossier || null,
+        /* dossier structure when populated:
+        {
+            consensus: "A tall man with tired eyes...",
+            voiceQuips: [
+                { voiceId: 'logic', voiceName: 'LOGIC', text: "The math doesn't add up..." },
+                { voiceId: 'inland_empire', voiceName: 'INLAND EMPIRE', text: "He carries old ghosts..." },
+                { voiceId: 'half_light', voiceName: 'HALF LIGHT', text: "Don't turn your back on him." }
+            ],
+            generatedAt: 1737900000000,
+            basedOnDisposition: 'neutral'
+        }
+        */
+        
         // Metadata
         createdAt: overrides.createdAt || Date.now(),
         lastModified: overrides.lastModified || Date.now(),
-        // For contact intelligence (Phase 2+)
+        
+        // For contact intelligence (voice opinion tracking)
         voiceOpinions: overrides.voiceOpinions || {},
+        /* voiceOpinions structure:
+        {
+            'logic': { score: 3, lastQuote: "His alibi checks out.", timestamp: ... },
+            'half_light': { score: -5, lastQuote: "Something's wrong.", timestamp: ... }
+        }
+        */
+        
+        // Detected traits from chat scanning
         detectedTraits: overrides.detectedTraits || [],
+        
+        // Was this manually edited? (suppresses auto-disposition suggestions)
         manuallyEdited: overrides.manuallyEdited || false,
+        
+        // Spread any additional overrides
         ...overrides
     };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DOSSIER HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Create a voice quip object
+ * @param {string} voiceId - The voice/skill ID
+ * @param {string} voiceName - Display name for the voice
+ * @param {string} text - The quip text
+ * @returns {object} Voice quip object
+ */
+export function createVoiceQuip(voiceId, voiceName, text) {
+    return {
+        voiceId,
+        voiceName: voiceName.toUpperCase(),
+        text
+    };
+}
+
+/**
+ * Create a dossier object
+ * @param {string} consensus - The main description
+ * @param {array} voiceQuips - Array of voice quip objects
+ * @param {string} basedOnDisposition - What disposition was active when generated
+ * @returns {object} Dossier object
+ */
+export function createDossier(consensus, voiceQuips = [], basedOnDisposition = 'neutral') {
+    return {
+        consensus,
+        voiceQuips,
+        generatedAt: Date.now(),
+        basedOnDisposition
+    };
+}
+
+/**
+ * Check if a contact's dossier should be regenerated
+ * (e.g., disposition changed significantly since generation)
+ * @param {object} contact - The contact object
+ * @returns {boolean} Whether regeneration is suggested
+ */
+export function shouldRegenerateDossier(contact) {
+    if (!contact.dossier) return true;
+    
+    // If disposition changed from what the dossier was based on
+    if (contact.dossier.basedOnDisposition !== contact.disposition) {
+        return true;
+    }
+    
+    return false;
 }
