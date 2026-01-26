@@ -15,9 +15,9 @@ let effectIntensity = 'medium';
 
 // Particle counts
 const PARTICLE_COUNTS = {
-    light:  { rain: 20, snow: 15, fog: 2, debris: 6, dust: 8, stars: 15, fireflies: 5 },
-    medium: { rain: 35, snow: 25, fog: 3, debris: 10, dust: 12, stars: 25, fireflies: 8 },
-    heavy:  { rain: 55, snow: 40, fog: 4, debris: 15, dust: 18, stars: 40, fireflies: 12 }
+    light:  { rain: 30, snow: 20, fog: 3, debris: 8, dust: 12, stars: 20, fireflies: 6 },
+    medium: { rain: 50, snow: 35, fog: 4, debris: 14, dust: 18, stars: 35, fireflies: 10 },
+    heavy:  { rain: 75, snow: 55, fog: 5, debris: 20, dust: 25, stars: 50, fireflies: 14 }
 };
 
 function getParticleCount(type) {
@@ -376,8 +376,8 @@ function createSnow() {
         flake.className = 'fx-snowflake';
         flake.textContent = '❄';
         flake.style.left = `${Math.random() * 100}%`;
-        flake.style.top = '-20px';
-        flake.style.fontSize = `${14 + Math.random() * 12}px`;
+        flake.style.top = '-30px';
+        flake.style.fontSize = `${18 + Math.random() * 14}px`; // 18-32px - bigger!
         flake.style.animationDuration = `${6 + Math.random() * 6}s`;
         flake.style.animationDelay = `${Math.random() * 8}s`;
         layer.appendChild(flake);
@@ -395,8 +395,8 @@ function createRain() {
         const drop = document.createElement('div');
         drop.className = 'fx-raindrop';
         drop.style.left = `${Math.random() * 100}%`;
-        drop.style.top = '-30px';
-        drop.style.height = `${20 + Math.random() * 15}px`;
+        drop.style.top = '-40px';
+        drop.style.height = `${30 + Math.random() * 20}px`; // 30-50px - bigger!
         drop.style.animationDuration = `${0.4 + Math.random() * 0.3}s`;
         drop.style.animationDelay = `${Math.random() * 2}s`;
         layer.appendChild(drop);
@@ -802,6 +802,9 @@ export function getState() {
     };
 }
 
+// Alias for compatibility
+export const getWeatherEffectsState = getState;
+
 export function triggerPale() {
     setSpecialEffect('pale');
 }
@@ -816,6 +819,46 @@ export function isInPale() {
     return currentSpecial === 'pale';
 }
 
+export function triggerHorror() {
+    setSpecialEffect('horror');
+}
+
+export function exitHorror() {
+    if (currentSpecial === 'horror') {
+        setSpecialEffect(null);
+    }
+}
+
+// Process message for weather keywords
+export function processMessageForWeather(message) {
+    if (!message || typeof message !== 'string') return null;
+    
+    const text = message.toLowerCase();
+    
+    // Weather detection
+    const weatherPatterns = {
+        rain: /\b(rain|raining|rainy|downpour|drizzle|storm|stormy|thunderstorm)\b/,
+        snow: /\b(snow|snowing|snowy|blizzard|flurries|frost|frosted)\b/,
+        fog: /\b(fog|foggy|mist|misty|haze|hazy)\b/,
+        wind: /\b(wind|windy|gust|gusty|breezy)\b/,
+        clear: /\b(clear|sunny|bright|cloudless)\b/
+    };
+    
+    for (const [weather, pattern] of Object.entries(weatherPatterns)) {
+        if (pattern.test(text)) {
+            setWeather(weather);
+            return weather;
+        }
+    }
+    
+    return null;
+}
+
+// Aliases for compatibility
+export const setWeatherState = setWeather;
+export const setEffectsEnabled = setEnabled;
+export const setEffectsIntensity = setIntensity;
+
 // ═══════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
@@ -828,6 +871,14 @@ export function initWeatherEffects() {
         style.textContent = WEATHER_CSS;
         document.head.appendChild(style);
         console.log('[WeatherEffects] CSS injected');
+    }
+    
+    // Add small green indicator dot
+    if (!document.getElementById('weather-init-indicator')) {
+        const dot = document.createElement('div');
+        dot.id = 'weather-init-indicator';
+        dot.style.cssText = 'position:fixed;bottom:5px;left:5px;width:8px;height:8px;background:#0f0;border-radius:50%;z-index:99999;pointer-events:none;';
+        document.body.appendChild(dot);
     }
     
     console.log('[WeatherEffects] Initialized');
@@ -862,5 +913,13 @@ export default {
     triggerPale,
     exitPale,
     isInPale,
-    testEffect
+    triggerHorror,
+    exitHorror,
+    processMessageForWeather,
+    testEffect,
+    // Aliases
+    getWeatherEffectsState: getState,
+    setWeatherState: setWeather,
+    setEffectsEnabled: setEnabled,
+    setEffectsIntensity: setIntensity
 };
