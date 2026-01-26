@@ -438,8 +438,8 @@ function bindAddFormEvents(formContainer) {
         await renderContactsList();
         toastr?.success?.(`Added ${name} to contacts`);
         
-        // Auto-generate dossier after adding
-        handleGenerateDossier(contact.id, null);
+        // Auto-generate dossier after adding (disabled - user can click Generate button)
+        // handleGenerateDossier(contact.id, null);
     });
 }
 
