@@ -387,33 +387,33 @@
 }
 
 .contact-inline-form-header {
-    padding: 10px 14px;
+    padding: 8px 12px;
     background: rgba(58, 53, 48, 0.9);
     color: #c4b8a8;
     font-family: 'Courier Prime', 'Courier New', monospace;
-    font-size: 0.8em;
+    font-size: 0.75em;
     font-weight: 600;
     letter-spacing: 1px;
 }
 
 .contact-inline-form-body {
-    padding: 14px;
+    padding: 10px 12px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .contact-inline-form-actions {
     display: flex;
     gap: 8px;
-    padding: 10px 14px;
+    padding: 8px 12px;
     background: rgba(0, 0, 0, 0.03);
     border-top: 1px solid rgba(90, 80, 70, 0.1);
 }
 
 .contact-inline-btn {
     flex: 1;
-    padding: 8px 14px;
+    padding: 8px 12px;
     border: 1px solid;
     border-radius: 3px;
     font-family: 'Courier Prime', 'Courier New', monospace;
@@ -454,6 +454,27 @@
 
 .contact-card[data-editing="true"] {
     border-left-color: #4a9090;
+}
+
+/* Compact form inputs */
+.contact-inline-form .contact-form-input,
+.contact-inline-form .contact-form-textarea {
+    padding: 8px 10px;
+    font-size: 0.9rem;
+}
+
+.contact-inline-form .contact-form-textarea {
+    min-height: 50px;
+}
+
+.contact-inline-form .contact-form-label {
+    gap: 4px;
+    font-size: 0.7em;
+}
+
+.contact-inline-form .contact-form-hint {
+    padding: 8px 10px;
+    font-size: 0.8em;
 }
 
 /* ═══════════════════════════════════════════════════════════════
