@@ -97,12 +97,19 @@ function renderTaskItem(caseObj, casesData) {
     
     const statusClass = isCompleted ? 'completed' : isFailed ? 'failed' : '';
     const selectedClass = isSelected ? 'selected' : '';
+    const priorityClass = `priority-${caseObj.priority || 'side'}`;
+    
+    // Timed icon for tasks with deadlines
+    const timedIcon = isTimed ? '<span class="case-timed-icon">⏱</span>' : '';
+    
+    // Main task marker (like DE's clock icon for important tasks)
+    const mainMarker = caseObj.priority === 'main' ? '<span class="case-main-marker">◉</span>' : '';
     
     return `
-        <div class="case-item ${statusClass} ${selectedClass}" 
+        <div class="case-item ${statusClass} ${selectedClass} ${priorityClass}" 
              data-case-id="${caseObj.id}"
-             data-priority="${caseObj.priority}">
-            ${isTimed ? '<span class="case-timed-icon">⏱</span>' : ''}
+             data-priority="${caseObj.priority || 'side'}">
+            ${mainMarker}${timedIcon}
             <span class="case-title">${caseObj.title}</span>
         </div>
     `;
@@ -554,6 +561,17 @@ export function showAddCaseForm() {
                 <input type="text" id="case-input-description" class="case-form-input" 
                        placeholder="Description (optional)..." autocomplete="off">
             </div>
+            <div class="case-mini-row case-form-options">
+                <select id="case-input-priority" class="case-form-select">
+                    <option value="side">Side Task</option>
+                    <option value="main">Main Task</option>
+                    <option value="optional">Optional</option>
+                </select>
+                <label class="case-timed-toggle">
+                    <input type="checkbox" id="case-input-timed">
+                    <span>⏱ Timed</span>
+                </label>
+            </div>
             <div class="case-mini-actions">
                 <button class="case-mini-btn case-mini-cancel" id="case-inline-cancel">✕</button>
                 <button class="case-mini-btn case-mini-save" id="case-inline-save">ADD</button>
@@ -599,9 +617,14 @@ async function handleAddCaseSave() {
     }
     
     const casesData = await getCasesData();
+    const priority = document.getElementById('case-input-priority')?.value || 'side';
+    const isTimed = document.getElementById('case-input-timed')?.checked || false;
+    
     const newCase = casesData.createCase({
         title,
         description: document.getElementById('case-input-description')?.value?.trim() || '',
+        priority: priority,
+        deadline: isTimed ? Date.now() + (24 * 60 * 60 * 1000) : null, // Default 24h deadline if timed
         manuallyAdded: true
     });
     
