@@ -2,10 +2,10 @@
  * The Tribunal - Contacts Handlers
  * UI logic for the contacts section in the Ledger
  * 
- * SIMPLIFIED VERSION: 
+ * INLINE FORM VERSION: 
+ * - No modals - forms expand inline in the ledger
  * - Add contact = just Name + optional Context
  * - Voices fill in the rest via dossier generation
- * - Edit still allows full control
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -94,11 +94,11 @@ async function deleteContact(contactId) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// RENDERING
+// RENDERING - CONTACT CARDS
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Render a single contact card - now shows dossier content!
+ * Render a single contact card - shows dossier content
  */
 async function renderContactCard(contact) {
     const contactsData = await getContactsData();
@@ -224,198 +224,222 @@ export async function renderContactsList() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MODAL DIALOGS
+// INLINE FORMS - No modals needed!
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Show SIMPLIFIED add contact modal - just name + context
+ * Show inline add form (expands below the Add Contact button)
  */
-async function showAddContactModal() {
-    const modalHtml = `
-        <div class="contact-modal-overlay" id="contact-modal-overlay">
-            <div class="contact-modal contact-modal-add">
-                <div class="contact-modal-header">
-                    // NEW CASE FILE ENTRY
+function showInlineAddForm() {
+    // Check if form already exists
+    if (document.getElementById('contact-inline-add-form')) {
+        return;
+    }
+    
+    const addBtn = document.getElementById('contacts-add-btn');
+    if (!addBtn) return;
+    
+    // Hide the add button
+    addBtn.style.display = 'none';
+    
+    const formHtml = `
+        <div class="contact-inline-form" id="contact-inline-add-form">
+            <div class="contact-inline-form-header">
+                // NEW ENTRY
+            </div>
+            <div class="contact-inline-form-body">
+                <label class="contact-form-label">
+                    NAME
+                    <input type="text" id="contact-input-name" class="contact-form-input" 
+                           placeholder="Who are they?" autocomplete="off">
+                </label>
+                
+                <label class="contact-form-label">
+                    CONTEXT <span class="contact-form-optional">(optional)</span>
+                    <textarea id="contact-input-context" class="contact-form-textarea" 
+                              placeholder="Where did you meet? What do you know?"></textarea>
+                </label>
+                
+                <div class="contact-form-hint">
+                    <i class="fa-solid fa-brain"></i>
+                    The voices will fill in the rest.
                 </div>
-                <div class="contact-modal-body">
-                    <label class="contact-form-label">
-                        NAME
-                        <input type="text" id="contact-input-name" class="contact-form-input" 
-                               placeholder="Who are they?">
-                    </label>
-                    
-                    <label class="contact-form-label">
-                        CONTEXT <span class="contact-form-optional">(optional)</span>
-                        <textarea id="contact-input-context" class="contact-form-textarea" 
-                                  placeholder="Where did you meet? What do you know?"></textarea>
-                    </label>
-                    
-                    <div class="contact-form-hint">
-                        <i class="fa-solid fa-brain"></i>
-                        The voices will fill in the rest.
-                    </div>
-                </div>
-                <div class="contact-modal-footer">
-                    <button class="contact-modal-btn contact-modal-cancel" id="contact-modal-cancel">
-                        CANCEL
-                    </button>
-                    <button class="contact-modal-btn contact-modal-save" id="contact-modal-save">
-                        ADD CONTACT
-                    </button>
-                </div>
+            </div>
+            <div class="contact-inline-form-actions">
+                <button class="contact-inline-btn contact-inline-cancel" id="contact-inline-cancel">
+                    CANCEL
+                </button>
+                <button class="contact-inline-btn contact-inline-save" id="contact-inline-save">
+                    ADD CONTACT
+                </button>
             </div>
         </div>
     `;
     
-    // Add to DOM
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    // Insert form after the add button
+    addBtn.insertAdjacentHTML('afterend', formHtml);
     
-    const overlay = document.getElementById('contact-modal-overlay');
-    const saveBtn = document.getElementById('contact-modal-save');
-    const cancelBtn = document.getElementById('contact-modal-cancel');
+    // Focus the name input
     const nameInput = document.getElementById('contact-input-name');
+    setTimeout(() => nameInput?.focus(), 50);
     
-    // Focus name input
-    setTimeout(() => nameInput?.focus(), 100);
+    // Wire up buttons
+    document.getElementById('contact-inline-cancel')?.addEventListener('click', hideInlineAddForm);
+    document.getElementById('contact-inline-save')?.addEventListener('click', handleInlineAddSave);
     
-    // Return promise that resolves when modal closes
-    return new Promise((resolve) => {
-        const closeModal = (result) => {
-            overlay?.remove();
-            resolve(result);
-        };
-        
-        // Cancel
-        cancelBtn?.addEventListener('click', () => closeModal(null));
-        overlay?.addEventListener('click', (e) => {
-            if (e.target === overlay) closeModal(null);
-        });
-        
-        // Save
-        saveBtn?.addEventListener('click', async () => {
-            const name = document.getElementById('contact-input-name')?.value?.trim();
-            if (!name) {
-                nameInput?.classList.add('contact-input-error');
-                nameInput?.focus();
-                return;
-            }
-            
-            const contactsData = await getContactsData();
-            const contact = contactsData.createContact({
-                name,
-                context: document.getElementById('contact-input-context')?.value?.trim() || '',
-                disposition: 'neutral',  // Default - voices will suggest changes
-                manuallyEdited: false
-            });
-            
-            closeModal(contact);
-        });
-        
-        // Remove error state on input
-        nameInput?.addEventListener('input', () => {
-            nameInput.classList.remove('contact-input-error');
-        });
+    // Remove error state on input
+    nameInput?.addEventListener('input', () => {
+        nameInput.classList.remove('contact-input-error');
     });
 }
 
 /**
- * Show FULL edit contact modal - allows disposition, notes, etc.
+ * Hide the inline add form
  */
-async function showEditContactModal(existingContact) {
+function hideInlineAddForm() {
+    const form = document.getElementById('contact-inline-add-form');
+    const addBtn = document.getElementById('contacts-add-btn');
+    
+    form?.remove();
+    if (addBtn) {
+        addBtn.style.display = '';
+    }
+}
+
+/**
+ * Handle save from inline add form
+ */
+async function handleInlineAddSave() {
+    const nameInput = document.getElementById('contact-input-name');
+    const name = nameInput?.value?.trim();
+    
+    if (!name) {
+        nameInput?.classList.add('contact-input-error');
+        nameInput?.focus();
+        return;
+    }
+    
     const contactsData = await getContactsData();
+    const contact = contactsData.createContact({
+        name,
+        context: document.getElementById('contact-input-context')?.value?.trim() || '',
+        disposition: 'neutral',
+        manuallyEdited: false
+    });
+    
+    await saveContact(contact);
+    hideInlineAddForm();
+    await renderContactsList();
+}
+
+/**
+ * Show inline edit form (replaces the card content)
+ */
+async function showInlineEditForm(contactId) {
+    const contacts = await getContacts();
+    const contact = contacts[contactId];
+    if (!contact) return;
+    
+    const contactsData = await getContactsData();
+    const card = document.querySelector(`.contact-card[data-contact-id="${contactId}"]`);
+    if (!card) return;
     
     // Build disposition options
     const dispositionOptions = Object.values(contactsData.CONTACT_DISPOSITIONS)
-        .map(d => `<option value="${d.id}" ${existingContact.disposition === d.id ? 'selected' : ''}>${d.label}</option>`)
+        .map(d => `<option value="${d.id}" ${contact.disposition === d.id ? 'selected' : ''}>${d.label}</option>`)
         .join('');
     
-    const modalHtml = `
-        <div class="contact-modal-overlay" id="contact-modal-overlay">
-            <div class="contact-modal contact-modal-edit">
-                <div class="contact-modal-header">
-                    // EDIT: ${existingContact.name.toUpperCase()}
-                </div>
-                <div class="contact-modal-body">
-                    <label class="contact-form-label">
-                        NAME
-                        <input type="text" id="contact-input-name" class="contact-form-input" 
-                               value="${existingContact.name || ''}">
-                    </label>
-                    
-                    <label class="contact-form-label">
-                        CONTEXT
-                        <textarea id="contact-input-context" class="contact-form-textarea"
-                                  placeholder="First impression, where you met...">${existingContact.context || ''}</textarea>
-                    </label>
-                    
-                    <label class="contact-form-label">
-                        YOUR READ
-                        <select id="contact-input-disposition" class="contact-form-select">
-                            ${dispositionOptions}
-                        </select>
-                    </label>
-                    
-                    <label class="contact-form-label">
-                        NOTES
-                        <textarea id="contact-input-notes" class="contact-form-textarea contact-form-notes" 
-                                  placeholder="Additional observations...">${existingContact.notes || ''}</textarea>
-                    </label>
-                </div>
-                <div class="contact-modal-footer">
-                    <button class="contact-modal-btn contact-modal-cancel" id="contact-modal-cancel">
-                        CANCEL
-                    </button>
-                    <button class="contact-modal-btn contact-modal-save" id="contact-modal-save">
-                        SAVE CHANGES
-                    </button>
-                </div>
+    // Store original content so we can restore on cancel
+    const originalContent = card.innerHTML;
+    card.dataset.originalContent = originalContent;
+    card.dataset.editing = 'true';
+    
+    const formHtml = `
+        <div class="contact-inline-form contact-inline-edit-form">
+            <div class="contact-inline-form-header">
+                // EDIT: ${contact.name.toUpperCase()}
+            </div>
+            <div class="contact-inline-form-body">
+                <label class="contact-form-label">
+                    NAME
+                    <input type="text" id="contact-edit-name" class="contact-form-input" 
+                           value="${contact.name || ''}" autocomplete="off">
+                </label>
+                
+                <label class="contact-form-label">
+                    CONTEXT
+                    <textarea id="contact-edit-context" class="contact-form-textarea"
+                              placeholder="First impression, where you met...">${contact.context || ''}</textarea>
+                </label>
+                
+                <label class="contact-form-label">
+                    YOUR READ
+                    <select id="contact-edit-disposition" class="contact-form-select">
+                        ${dispositionOptions}
+                    </select>
+                </label>
+                
+                <label class="contact-form-label">
+                    NOTES
+                    <textarea id="contact-edit-notes" class="contact-form-textarea contact-form-notes" 
+                              placeholder="Additional observations...">${contact.notes || ''}</textarea>
+                </label>
+            </div>
+            <div class="contact-inline-form-actions">
+                <button class="contact-inline-btn contact-inline-cancel" data-contact-id="${contactId}">
+                    CANCEL
+                </button>
+                <button class="contact-inline-btn contact-inline-save" data-contact-id="${contactId}">
+                    SAVE
+                </button>
             </div>
         </div>
     `;
     
-    // Add to DOM
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    const overlay = document.getElementById('contact-modal-overlay');
-    const saveBtn = document.getElementById('contact-modal-save');
-    const cancelBtn = document.getElementById('contact-modal-cancel');
-    const nameInput = document.getElementById('contact-input-name');
+    card.innerHTML = formHtml;
     
     // Focus name input
-    setTimeout(() => nameInput?.focus(), 100);
+    const nameInput = document.getElementById('contact-edit-name');
+    setTimeout(() => nameInput?.focus(), 50);
     
-    // Return promise that resolves when modal closes
-    return new Promise((resolve) => {
-        const closeModal = (result) => {
-            overlay?.remove();
-            resolve(result);
-        };
-        
-        // Cancel
-        cancelBtn?.addEventListener('click', () => closeModal(null));
-        overlay?.addEventListener('click', (e) => {
-            if (e.target === overlay) closeModal(null);
-        });
-        
-        // Save
-        saveBtn?.addEventListener('click', async () => {
-            const name = document.getElementById('contact-input-name')?.value?.trim();
-            if (!name) {
-                nameInput?.classList.add('contact-input-error');
-                nameInput?.focus();
-                return;
-            }
-            
-            const contact = { ...existingContact };
-            contact.name = name;
-            contact.context = document.getElementById('contact-input-context')?.value?.trim() || '';
-            contact.disposition = document.getElementById('contact-input-disposition')?.value || 'neutral';
-            contact.notes = document.getElementById('contact-input-notes')?.value?.trim() || '';
-            contact.manuallyEdited = true;
-            
-            closeModal(contact);
-        });
-    });
+    // Wire up buttons
+    card.querySelector('.contact-inline-cancel')?.addEventListener('click', () => hideInlineEditForm(contactId));
+    card.querySelector('.contact-inline-save')?.addEventListener('click', () => handleInlineEditSave(contactId));
+}
+
+/**
+ * Hide inline edit form (restore original card)
+ */
+async function hideInlineEditForm(contactId) {
+    // Just re-render the whole list - simpler than restoring individual cards
+    await renderContactsList();
+}
+
+/**
+ * Handle save from inline edit form
+ */
+async function handleInlineEditSave(contactId) {
+    const contacts = await getContacts();
+    const contact = contacts[contactId];
+    if (!contact) return;
+    
+    const nameInput = document.getElementById('contact-edit-name');
+    const name = nameInput?.value?.trim();
+    
+    if (!name) {
+        nameInput?.classList.add('contact-input-error');
+        nameInput?.focus();
+        return;
+    }
+    
+    contact.name = name;
+    contact.context = document.getElementById('contact-edit-context')?.value?.trim() || '';
+    contact.disposition = document.getElementById('contact-edit-disposition')?.value || 'neutral';
+    contact.notes = document.getElementById('contact-edit-notes')?.value?.trim() || '';
+    contact.manuallyEdited = true;
+    
+    await saveContact(contact);
+    await renderContactsList();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -434,20 +458,17 @@ async function handleGenerateDossier(contactId) {
     const dossierModule = await getContactDossier();
     if (!dossierModule?.generateDossier) {
         console.error('[Contacts] Dossier generation not available');
-        // Could show a toast here
         return;
     }
     
-    // Find the card and show loading state
-    const card = document.querySelector(`.contact-card[data-contact-id="${contactId}"]`);
-    const generateBtn = card?.querySelector('.contact-generate-btn, .contact-regenerate-btn');
+    // Find the button and show loading state
+    const generateBtn = document.querySelector(`.contact-generate-btn[data-contact-id="${contactId}"], .contact-regenerate-btn[data-contact-id="${contactId}"]`);
     if (generateBtn) {
         generateBtn.disabled = true;
         generateBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> GENERATING...';
     }
     
     try {
-        // Generate the dossier
         const dossier = await dossierModule.generateDossier(contact);
         
         if (dossier) {
@@ -457,7 +478,6 @@ async function handleGenerateDossier(contactId) {
         }
     } catch (e) {
         console.error('[Contacts] Dossier generation failed:', e);
-        // Reset button state
         if (generateBtn) {
             generateBtn.disabled = false;
             generateBtn.innerHTML = '<i class="fa-solid fa-brain"></i> GENERATE DOSSIER';
@@ -470,32 +490,17 @@ async function handleGenerateDossier(contactId) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Handle Add Contact button click
+ * Handle Add Contact button click - shows inline form
  */
-async function handleAddContact() {
-    const contact = await showAddContactModal();
-    if (contact) {
-        await saveContact(contact);
-        await renderContactsList();
-        
-        // Optionally auto-generate dossier after adding
-        // await handleGenerateDossier(contact.id);
-    }
+function handleAddContact() {
+    showInlineAddForm();
 }
 
 /**
- * Handle Edit button click
+ * Handle Edit button click - shows inline edit form
  */
 async function handleEditContact(contactId) {
-    const contacts = await getContacts();
-    const contact = contacts[contactId];
-    if (!contact) return;
-    
-    const updated = await showEditContactModal(contact);
-    if (updated) {
-        await saveContact(updated);
-        await renderContactsList();
-    }
+    await showInlineEditForm(contactId);
 }
 
 /**
@@ -506,7 +511,6 @@ async function handleRemoveContact(contactId) {
     const contact = contacts[contactId];
     if (!contact) return;
     
-    // Simple confirm
     if (confirm(`Remove ${contact.name} from contacts?`)) {
         await deleteContact(contactId);
         await renderContactsList();
@@ -524,7 +528,7 @@ async function handleRemoveContact(contactId) {
 export async function initContactsHandlers() {
     console.log('[Contacts] Initializing handlers...');
     
-    // Add Contact button
+    // Add Contact button - shows inline form
     const addBtn = document.getElementById('contacts-add-btn');
     if (addBtn) {
         addBtn.addEventListener('click', handleAddContact);
@@ -534,6 +538,11 @@ export async function initContactsHandlers() {
     const listEl = document.getElementById('contacts-list');
     if (listEl) {
         listEl.addEventListener('click', async (e) => {
+            // Don't handle clicks if we're inside an edit form
+            if (e.target.closest('.contact-inline-edit-form')) {
+                return;
+            }
+            
             const editBtn = e.target.closest('.contact-edit-btn');
             const removeBtn = e.target.closest('.contact-remove-btn');
             const generateBtn = e.target.closest('.contact-generate-btn');
@@ -563,5 +572,7 @@ export async function initContactsHandlers() {
  * Refresh contacts display (call after chat change)
  */
 export async function refreshContacts() {
+    // Hide any open forms first
+    hideInlineAddForm();
     await renderContactsList();
 }
