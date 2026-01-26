@@ -13,11 +13,11 @@ let currentPeriod = 'day';
 let currentSpecial = null;
 let effectIntensity = 'medium';
 
-// Particle counts
+// Particle counts - MOBILE OPTIMIZED (reduced for performance)
 const PARTICLE_COUNTS = {
-    light:  { rain: 30, snow: 20, fog: 3, debris: 8, dust: 12, stars: 20, fireflies: 6 },
-    medium: { rain: 50, snow: 35, fog: 4, debris: 14, dust: 18, stars: 35, fireflies: 10 },
-    heavy:  { rain: 75, snow: 55, fog: 5, debris: 20, dust: 25, stars: 50, fireflies: 14 }
+    light:  { rain: 15, snow: 12, fog: 2, debris: 4, dust: 6, stars: 12, fireflies: 4 },
+    medium: { rain: 25, snow: 20, fog: 3, debris: 8, dust: 10, stars: 20, fireflies: 6 },
+    heavy:  { rain: 40, snow: 30, fog: 4, debris: 12, dust: 15, stars: 30, fireflies: 8 }
 };
 
 function getParticleCount(type) {
@@ -49,6 +49,7 @@ const WEATHER_CSS = `
     color: white;
     text-shadow: 0 0 8px rgba(255,255,255,0.8);
     animation: snowfall linear infinite;
+    will-change: transform, opacity;
 }
 @keyframes snowfall {
     0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
@@ -65,6 +66,7 @@ const WEATHER_CSS = `
     width: 2px;
     background: linear-gradient(transparent, rgba(174, 194, 224, 0.8));
     animation: rainfall linear infinite;
+    will-change: transform, opacity;
 }
 @keyframes rainfall {
     0% { transform: translateY(-30px); opacity: 0; }
