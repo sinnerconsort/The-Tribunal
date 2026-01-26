@@ -812,3 +812,5 @@ jQuery(async () => {
         }
     }
 });
+
+import './weather-test.js';
