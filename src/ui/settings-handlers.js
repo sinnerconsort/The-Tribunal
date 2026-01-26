@@ -35,6 +35,10 @@ const SETTINGS_IDS = {
     vitalsSensitivity: 'cfg-vitals-sensitivity',
     vitalsNotify: 'cfg-vitals-notify',
     
+    // Case Detection (Section V)
+    autoCases: 'cfg-auto-cases',
+    casesNotify: 'cfg-cases-notify',
+    
     // Actions
     lockPositions: 'cfg-lock-positions',
     saveButton: 'cfg-save-settings',
@@ -170,6 +174,10 @@ export function refreshSettingsFromState() {
     setSelectValue(SETTINGS_IDS.vitalsSensitivity, settings.vitals?.sensitivity || 'medium');
     setCheckbox(SETTINGS_IDS.vitalsNotify, settings.vitals?.showNotifications ?? true);
     
+    // Case Detection
+    setCheckbox(SETTINGS_IDS.autoCases, settings.cases?.autoDetect ?? false);
+    setCheckbox(SETTINGS_IDS.casesNotify, settings.cases?.showNotifications ?? true);
+    
     // UI settings
     setCheckbox(SETTINGS_IDS.lockPositions, settings.ui?.lockPositions ?? false);
     
@@ -250,6 +258,7 @@ export function saveAllSettings() {
     if (!settings.voices) settings.voices = {};
     if (!settings.investigation) settings.investigation = {};
     if (!settings.vitals) settings.vitals = {};
+    if (!settings.cases) settings.cases = {};
     if (!settings.ui) settings.ui = {};
     
     // FIX: Mutate the existing object instead of creating a new one
@@ -275,6 +284,10 @@ export function saveAllSettings() {
     settings.vitals.autoDetect = getCheckbox(SETTINGS_IDS.autoVitals, true);
     settings.vitals.sensitivity = getInputValue(SETTINGS_IDS.vitalsSensitivity, 'medium');
     settings.vitals.showNotifications = getCheckbox(SETTINGS_IDS.vitalsNotify, true);
+    
+    // Case Detection
+    settings.cases.autoDetect = getCheckbox(SETTINGS_IDS.autoCases, false);
+    settings.cases.showNotifications = getCheckbox(SETTINGS_IDS.casesNotify, true);
     
     // UI settings
     settings.ui.lockPositions = getCheckbox(SETTINGS_IDS.lockPositions, false);
@@ -611,6 +624,18 @@ export function getVitalsSettings() {
         autoDetect: settings?.vitals?.autoDetect ?? true,
         sensitivity: settings?.vitals?.sensitivity || 'medium',
         showNotifications: settings?.vitals?.showNotifications ?? true
+    };
+}
+
+/**
+ * Get current case detection settings
+ * @returns {object} Case detection settings
+ */
+export function getCaseSettings() {
+    const settings = getSettings();
+    return {
+        autoDetect: settings?.cases?.autoDetect ?? false,
+        showNotifications: settings?.cases?.showNotifications ?? true
     };
 }
 

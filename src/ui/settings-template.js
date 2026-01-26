@@ -125,6 +125,25 @@ export const SETTINGS_TAB_HTML = `
             </div>
         </div>
         
+        <!-- Section V: Case Detection -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">V. CASE DETECTION</div>
+            <div class="rcm-section-content">
+                <label class="rcm-checkbox-row">
+                    <input type="checkbox" id="cfg-auto-cases">
+                    <span>Auto-detect tasks from chat</span>
+                </label>
+                <div class="rcm-field-note">
+                    <em>Scan messages for quests and objectives</em>
+                </div>
+                
+                <label class="rcm-checkbox-row">
+                    <input type="checkbox" id="cfg-cases-notify" checked>
+                    <span>Show detection notifications</span>
+                </label>
+            </div>
+        </div>
+        
         <!-- Actions -->
         <div class="rcm-section rcm-actions">
             <label class="rcm-checkbox-row">
