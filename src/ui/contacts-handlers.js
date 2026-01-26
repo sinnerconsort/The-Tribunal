@@ -231,13 +231,23 @@ export async function renderContactsList() {
  * Show inline add form (expands below the Add Contact button)
  */
 function showInlineAddForm() {
+    // DEBUG: Check if we even get here
+    if (typeof toastr !== 'undefined') {
+        toastr.info('Add Contact clicked!');
+    }
+    
     // Check if form already exists
     if (document.getElementById('contact-inline-add-form')) {
         return;
     }
     
     const addBtn = document.getElementById('contacts-add-btn');
-    if (!addBtn) return;
+    if (!addBtn) {
+        if (typeof toastr !== 'undefined') {
+            toastr.error('Add button not found!');
+        }
+        return;
+    }
     
     // Hide the add button
     addBtn.style.display = 'none';
@@ -281,6 +291,11 @@ function showInlineAddForm() {
     
     // Get the form element
     const form = document.getElementById('contact-inline-add-form');
+    
+    // DEBUG: Check if form was inserted
+    if (typeof toastr !== 'undefined') {
+        toastr.info(form ? 'Form inserted!' : 'Form NOT inserted!');
+    }
     
     // Find the scrollable panel content container and scroll it
     const panelContent = document.querySelector('.ie-panel-content');
