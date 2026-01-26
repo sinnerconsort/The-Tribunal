@@ -723,7 +723,6 @@ function createRain() {
     
     return layer;
 }
-}
 
 function createSnow() {
     const layer = document.createElement('div');
