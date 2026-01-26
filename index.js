@@ -43,27 +43,23 @@ import { initCabinetHandlers, refreshCabinet } from './src/ui/cabinet-handler.js
 import { initNewspaperStrip, updateNewspaperStrip } from './src/ui/newspaper-strip.js';
 
 // ═══════════════════════════════════════════════════════════════
-// IMPORTS - Weather System
+// IMPORTS - Weather System (lazy loaded - see init())
 // ═══════════════════════════════════════════════════════════════
 
-import { 
-    initWeatherSystem,
-    syncWithWeatherTime,
-    processMessage as processWeatherMessage,
-    onPaleStatusApplied,
-    onPaleStatusRemoved,
-    isPaleStatus,
-    setWeatherState,
-    setSpecialEffect,
-    triggerPale,
-    exitPale,
-    triggerHorror,
-    isInPale,
-    getWeatherEffectsState,
-    setEffectsEnabled,
-    setEffectsIntensity,
-    debugWeather
-} from './src/systems/weather-integration.js';
+// Weather functions are loaded dynamically in init() to prevent blocking
+let weatherLoaded = false;
+let initWeatherSystem = () => {};
+let syncWithWeatherTime = () => {};
+let processWeatherMessage = () => {};
+let setWeatherState = () => {};
+let setSpecialEffect = () => {};
+let triggerPale = () => {};
+let exitPale = () => {};
+let triggerHorror = () => {};
+let isInPale = () => false;
+let setEffectsEnabled = () => {};
+let setEffectsIntensity = () => {};
+let debugWeather = () => console.log('[Tribunal] Weather not loaded');
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Voice Generation
@@ -94,17 +90,7 @@ export { setRCMStatus, setRCMCopotype, addRCMAncientVoice, addRCMActiveEffect } 
 export { setRPTime, setRPWeather, getWatchMode } from './src/ui/watch.js';
 export { updateNewspaperStrip } from './src/ui/newspaper-strip.js';
 
-// Weather effects
-export { 
-    setWeatherState, 
-    setSpecialEffect, 
-    triggerPale, 
-    exitPale, 
-    triggerHorror, 
-    isInPale,
-    setEffectsEnabled,
-    setEffectsIntensity
-} from './src/systems/weather-integration.js';
+// Weather effects - exported via window.tribunal* helpers (dynamically loaded)
 
 // State accessors
 export { 
@@ -359,8 +345,10 @@ function onNewAIMessage(messageIndex) {
     
     console.log('[Tribunal] New AI message detected, index:', messageIndex);
     
-    // Process message for weather/horror/pale keywords
-    processWeatherMessage(message.mes, `msg-${messageIndex}`);
+    // Process message for weather/horror/pale keywords (if weather loaded)
+    if (weatherLoaded && processWeatherMessage) {
+        processWeatherMessage(message.mes, `msg-${messageIndex}`);
+    }
     
     // Small delay to ensure message is fully rendered
     setTimeout(() => {
@@ -566,8 +554,10 @@ function refreshAllPanels() {
         }
     }
     
-    // Sync weather effects with current state
-    syncWithWeatherTime();
+    // Sync weather effects with current state (if loaded)
+    if (weatherLoaded) {
+        syncWithWeatherTime();
+    }
     
     console.log('[Tribunal] UI refreshed from state');
 }
@@ -691,15 +681,35 @@ async function init() {
     initCabinetHandlers();
     initNewspaperStrip();  // Initialize newspaper strip in map tab
     
-    // Initialize weather effects system
-    initWeatherSystem({
-        effectsEnabled: true,
-        autoDetect: true,
-        intensity: 'light',
-        syncWithTimeOfDay: true,
-        skipEventListeners: true  // We handle MESSAGE_RECEIVED in onNewAIMessage
-    });
-    console.log('[Tribunal] Weather effects system initialized');
+    // Initialize weather effects system (lazy loaded)
+    try {
+        const weatherModule = await import('./src/systems/weather-integration.js');
+        initWeatherSystem = weatherModule.initWeatherSystem;
+        syncWithWeatherTime = weatherModule.syncWithWeatherTime;
+        processWeatherMessage = weatherModule.processMessage;
+        setWeatherState = weatherModule.setWeatherState;
+        setSpecialEffect = weatherModule.setSpecialEffect;
+        triggerPale = weatherModule.triggerPale;
+        exitPale = weatherModule.exitPale;
+        triggerHorror = weatherModule.triggerHorror;
+        isInPale = weatherModule.isInPale;
+        setEffectsEnabled = weatherModule.setEffectsEnabled;
+        setEffectsIntensity = weatherModule.setEffectsIntensity;
+        debugWeather = weatherModule.debugWeather;
+        
+        initWeatherSystem({
+            effectsEnabled: true,
+            autoDetect: true,
+            intensity: 'light',
+            syncWithTimeOfDay: true,
+            skipEventListeners: true
+        });
+        weatherLoaded = true;
+        console.log('[Tribunal] Weather effects system initialized');
+    } catch (e) {
+        console.warn('[Tribunal] Weather system not loaded:', e.message);
+        // Extension continues without weather effects
+    }
     
     // Initialize contacts handlers (lazy import to be safe)
     import('./src/ui/contacts-handlers.js').then(module => {
