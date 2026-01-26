@@ -485,12 +485,31 @@ async function handleGenerateDossier(contactId) {
     }
     
     try {
-        const dossier = await dossierModule.generateDossier(contact);
+        const dossier = await dossierModule.generateDossier(contact, contactId);
         
         if (dossier) {
-            contact.dossier = dossier;
+            // Map the dossier response to our expected format
+            contact.dossier = {
+                consensus: dossier.consensus || '',
+                voiceQuips: (dossier.quips || []).map(q => ({
+                    voiceId: q.voiceId,
+                    voiceName: q.name,
+                    text: q.content
+                })),
+                generatedAt: dossier.generatedAt || Date.now(),
+                basedOnDisposition: contact.disposition
+            };
             await saveContact(contact);
             await renderContactsList();
+        } else {
+            // Show error - dossier generation returned null
+            if (typeof toastr !== 'undefined') {
+                toastr.warning('Could not generate dossier. Check API settings.');
+            }
+            if (generateBtn) {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = '<i class="fa-solid fa-brain"></i> GENERATE DOSSIER';
+            }
         }
     } catch (e) {
         console.error('[Contacts] Dossier generation failed:', e);
