@@ -163,6 +163,52 @@ export const SETTINGS_TAB_HTML = `
             </div>
         </div>
         
+        <!-- Section VII: Thought Cabinet -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">VII. THOUGHT CABINET</div>
+            <div class="rcm-section-content">
+                <label class="rcm-checkbox-row">
+                    <input type="checkbox" id="cfg-auto-thoughts">
+                    <span>Auto-suggest thoughts from themes</span>
+                </label>
+                <div class="rcm-field-note">
+                    <em>When themes spike, suggest generating a thought</em>
+                </div>
+                
+                <label class="rcm-checkbox-row">
+                    <input type="checkbox" id="cfg-auto-generate-thoughts">
+                    <span>Auto-generate (no confirmation)</span>
+                </label>
+                <div class="rcm-field-note">
+                    <em>Automatically create thoughts when themes are high</em>
+                </div>
+                
+                <div class="rcm-field-row">
+                    <label for="cfg-theme-threshold">Theme spike threshold</label>
+                    <input type="number" id="cfg-theme-threshold" min="3" max="10" value="8" class="rcm-input-small">
+                </div>
+                <div class="rcm-field-note">
+                    <em>How high themes must reach (3-10, default 8)</em>
+                </div>
+                
+                <label class="rcm-checkbox-row">
+                    <input type="checkbox" id="cfg-theme-decay" checked>
+                    <span>Enable theme decay</span>
+                </label>
+                <div class="rcm-field-note">
+                    <em>Themes decrease when not reinforced</em>
+                </div>
+                
+                <div class="rcm-field-row">
+                    <label for="cfg-internalize-discharge">Internalize discharge</label>
+                    <input type="number" id="cfg-internalize-discharge" min="1" max="10" value="5" class="rcm-input-small">
+                </div>
+                <div class="rcm-field-note">
+                    <em>Theme reduction when thought completes (1-10)</em>
+                </div>
+            </div>
+        </div>
+        
         <!-- Actions -->
         <div class="rcm-section rcm-actions">
             <label class="rcm-checkbox-row">

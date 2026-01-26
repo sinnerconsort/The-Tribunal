@@ -43,6 +43,13 @@ const SETTINGS_IDS = {
     autoContacts: 'cfg-auto-contacts',
     contactsNotify: 'cfg-contacts-notify',
     
+    // Thought Cabinet (Section VII)
+    autoThoughts: 'cfg-auto-thoughts',
+    autoGenerateThoughts: 'cfg-auto-generate-thoughts',
+    themeThreshold: 'cfg-theme-threshold',
+    themeDecay: 'cfg-theme-decay',
+    internalizeDischarge: 'cfg-internalize-discharge',
+    
     // Actions
     lockPositions: 'cfg-lock-positions',
     saveButton: 'cfg-save-settings',
@@ -186,6 +193,13 @@ export function refreshSettingsFromState() {
     setCheckbox(SETTINGS_IDS.autoContacts, settings.contacts?.autoDetect ?? false);
     setCheckbox(SETTINGS_IDS.contactsNotify, settings.contacts?.showNotifications ?? true);
     
+    // Thought Cabinet
+    setCheckbox(SETTINGS_IDS.autoThoughts, settings.thoughts?.autoSuggest ?? false);
+    setCheckbox(SETTINGS_IDS.autoGenerateThoughts, settings.thoughts?.autoGenerate ?? false);
+    setInputValue(SETTINGS_IDS.themeThreshold, settings.thoughts?.spikeThreshold ?? 8);
+    setCheckbox(SETTINGS_IDS.themeDecay, settings.thoughts?.enableDecay ?? true);
+    setInputValue(SETTINGS_IDS.internalizeDischarge, settings.thoughts?.internalizeDischarge ?? 5);
+    
     // UI settings
     setCheckbox(SETTINGS_IDS.lockPositions, settings.ui?.lockPositions ?? false);
     
@@ -268,6 +282,7 @@ export function saveAllSettings() {
     if (!settings.vitals) settings.vitals = {};
     if (!settings.cases) settings.cases = {};
     if (!settings.contacts) settings.contacts = {};
+    if (!settings.thoughts) settings.thoughts = {};
     if (!settings.ui) settings.ui = {};
     
     // FIX: Mutate the existing object instead of creating a new one
@@ -301,6 +316,13 @@ export function saveAllSettings() {
     // Contact Detection
     settings.contacts.autoDetect = getCheckbox(SETTINGS_IDS.autoContacts, false);
     settings.contacts.showNotifications = getCheckbox(SETTINGS_IDS.contactsNotify, true);
+    
+    // Thought Cabinet
+    settings.thoughts.autoSuggest = getCheckbox(SETTINGS_IDS.autoThoughts, false);
+    settings.thoughts.autoGenerate = getCheckbox(SETTINGS_IDS.autoGenerateThoughts, false);
+    settings.thoughts.spikeThreshold = getInputNumber(SETTINGS_IDS.themeThreshold, 8);
+    settings.thoughts.enableDecay = getCheckbox(SETTINGS_IDS.themeDecay, true);
+    settings.thoughts.internalizeDischarge = getInputNumber(SETTINGS_IDS.internalizeDischarge, 5);
     
     // UI settings
     settings.ui.lockPositions = getCheckbox(SETTINGS_IDS.lockPositions, false);
@@ -661,6 +683,21 @@ export function getContactSettings() {
     return {
         autoDetect: settings?.contacts?.autoDetect ?? false,
         showNotifications: settings?.contacts?.showNotifications ?? true
+    };
+}
+
+/**
+ * Get current thought cabinet settings
+ * @returns {object} Thought cabinet settings
+ */
+export function getThoughtSettings() {
+    const settings = getSettings();
+    return {
+        autoSuggest: settings?.thoughts?.autoSuggest ?? false,
+        autoGenerate: settings?.thoughts?.autoGenerate ?? false,
+        spikeThreshold: settings?.thoughts?.spikeThreshold ?? 8,
+        enableDecay: settings?.thoughts?.enableDecay ?? true,
+        internalizeDischarge: settings?.thoughts?.internalizeDischarge ?? 5
     };
 }
 
