@@ -14,11 +14,22 @@
 
 let _api = null;
 let _skills = null;
+let _generatingFor = new Set(); // Prevent duplicate generation
 
 async function getAPI() {
     if (!_api) {
         try {
-            _api = await import('./api-helpers.js');
+            // Try multiple possible paths
+            try {
+                _api = await import('./api-helpers.js');
+            } catch {
+                try {
+                    _api = await import('../voice/api-helpers.js');
+                } catch {
+                    _api = await import('../systems/api-helpers.js');
+                }
+            }
+            console.log('[Dossier] API helpers loaded');
         } catch (e) {
             console.warn('[Dossier] API helpers not available:', e.message);
         }
@@ -227,6 +238,13 @@ function parseDossierResponse(response, quipVoices) {
  * @returns {Promise<object>} Generated dossier
  */
 export async function generateDossier(contact, contactId) {
+    // Prevent duplicate/concurrent generation
+    if (_generatingFor.has(contactId)) {
+        console.log('[Dossier] Already generating for:', contact.name);
+        return null;
+    }
+    
+    _generatingFor.add(contactId);
     console.log('[Dossier] Generating for:', contact.name);
     
     try {
@@ -234,7 +252,7 @@ export async function generateDossier(contact, contactId) {
         const skills = await getSkills();
         
         if (!api?.callAPI) {
-            console.warn('[Dossier] API not available');
+            console.warn('[Dossier] API not available - check import paths');
             return null;
         }
         
@@ -242,7 +260,7 @@ export async function generateDossier(contact, contactId) {
         const quipVoices = selectQuipVoices(contact.voiceOpinions);
         
         if (quipVoices.length === 0) {
-            console.log('[Dossier] No voice opinions yet, generating basic dossier');
+            console.log('[Dossier] No voice opinions yet, using default voices');
             // Generate with default voices if no opinions yet
             quipVoices.push(
                 { voiceId: 'logic', score: 0, stance: 'neutral' },
@@ -268,6 +286,9 @@ export async function generateDossier(contact, contactId) {
     } catch (error) {
         console.error('[Dossier] Generation failed:', error);
         return null;
+    } finally {
+        // Always clear the lock
+        _generatingFor.delete(contactId);
     }
 }
 
