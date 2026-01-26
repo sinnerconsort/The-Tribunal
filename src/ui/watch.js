@@ -1,146 +1,102 @@
 /**
- * The Tribunal - Watch Module v2.0 (Standalone)
- * Works without weather-time.js dependency
- * 
- * @version 2.0.0-standalone
+ * The Tribunal - Watch Functionality
+ * Real-time / RP-time toggle with weather display
+ * Extracted from rebuild v0.3.0
  */
 
-import { eventSource } from '../../../../../script.js';
-
 // ═══════════════════════════════════════════════════════════════
-// STATE (internal, no external dependencies)
+// STATE
 // ═══════════════════════════════════════════════════════════════
 
+let watchMode = 'real';
 let watchInterval = null;
-let watchMode = 'real'; // 'real' or 'rp'
-let rpTime = { hours: 12, minutes: 0 };
-let rpWeather = 'clear';
+let rpTime = { hours: 14, minutes: 30 };
+let rpWeather = 'rainy';
 
 // ═══════════════════════════════════════════════════════════════
-// WEATHER ICONS
+// CONSTANTS
 // ═══════════════════════════════════════════════════════════════
 
 const WEATHER_ICONS = {
-    'clear': 'fa-sun',
     'clear-day': 'fa-sun',
     'clear-night': 'fa-moon',
     'cloudy': 'fa-cloud',
-    'rain': 'fa-cloud-rain',
     'rainy': 'fa-cloud-rain',
-    'storm': 'fa-cloud-bolt',
     'stormy': 'fa-cloud-bolt',
-    'snow': 'fa-snowflake',
     'snowy': 'fa-snowflake',
-    'blizzard': 'fa-snowflake',
-    'mist': 'fa-smog',
-    'foggy': 'fa-smog',
-    'wind': 'fa-wind'
+    'foggy': 'fa-smog'
 };
 
 // ═══════════════════════════════════════════════════════════════
-// TIME HELPERS
+// FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
-function getRealTime() {
-    const now = new Date();
-    return {
-        hours: now.getHours(),
-        minutes: now.getMinutes(),
-        seconds: now.getSeconds(),
-        day: now.getDate()
-    };
-}
-
-function getCurrentTime() {
-    if (watchMode === 'real') {
-        return getRealTime();
-    } else {
-        return {
-            hours: rpTime.hours,
-            minutes: rpTime.minutes,
-            seconds: 0,
-            day: '??'
-        };
-    }
-}
-
+/**
+ * Get weather based on time of day (placeholder for real weather integration)
+ * @returns {string} Weather key
+ */
 function getRealWeather() {
-    // Simple day/night detection for real mode
     const hour = new Date().getHours();
-    if (hour >= 6 && hour < 20) {
-        return { type: 'clear', icon: 'clear-day' };
-    } else {
-        return { type: 'clear', icon: 'clear-night' };
-    }
+    return (hour >= 6 && hour < 20) ? 'clear-day' : 'clear-night';
 }
 
-function getCurrentWeather() {
-    if (watchMode === 'real') {
-        return getRealWeather();
-    } else {
-        const hour = rpTime.hours;
-        const isNight = hour >= 20 || hour < 6;
-        let icon = rpWeather;
-        if (rpWeather === 'clear') {
-            icon = isNight ? 'clear-night' : 'clear-day';
-        }
-        return { type: rpWeather, icon: icon };
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// WATCH DISPLAY
-// ═══════════════════════════════════════════════════════════════
-
-function updateWatch() {
+/**
+ * Update the watch display
+ */
+export function updateWatch() {
     const hourHand = document.getElementById('ie-watch-hour');
     const minuteHand = document.getElementById('ie-watch-minute');
     const secondHand = document.getElementById('ie-watch-second');
     const dateEl = document.getElementById('ie-watch-date');
+    const weatherEl = document.getElementById('ie-watch-weather');
     const weatherIcon = document.getElementById('ie-watch-weather-icon');
     
     if (!hourHand) return;
     
-    const time = getCurrentTime();
+    let hours, minutes, seconds, day, weather;
     
-    // Calculate hand rotations
-    const hours = time.hours % 12;
-    const minutes = time.minutes;
-    const seconds = time.seconds || 0;
+    if (watchMode === 'real') {
+        const now = new Date();
+        hours = now.getHours() % 12;
+        minutes = now.getMinutes();
+        seconds = now.getSeconds();
+        day = now.getDate();
+        weather = getRealWeather();
+    } else {
+        hours = rpTime.hours % 12;
+        minutes = rpTime.minutes;
+        seconds = 0;
+        day = '??';
+        weather = rpWeather;
+    }
     
     const hourDeg = (hours * 30) + (minutes * 0.5);
     const minuteDeg = minutes * 6;
     const secondDeg = seconds * 6;
     
-    // Apply rotations
     hourHand.style.transform = `rotate(${hourDeg}deg)`;
     minuteHand.style.transform = `rotate(${minuteDeg}deg)`;
+    if (secondHand) secondHand.style.transform = `rotate(${secondDeg}deg)`;
+    if (dateEl) dateEl.textContent = day;
     
-    if (secondHand) {
-        if (watchMode === 'real') {
-            secondHand.style.transform = `rotate(${secondDeg}deg)`;
-            secondHand.style.display = 'block';
-        } else {
-            secondHand.style.display = 'none';
-        }
-    }
-    
-    // Update date
-    if (dateEl) {
-        dateEl.textContent = time.day || '??';
-    }
-    
-    // Update weather icon
-    if (weatherIcon) {
-        const weather = getCurrentWeather();
-        const iconClass = WEATHER_ICONS[weather.icon] || WEATHER_ICONS[weather.type] || 'fa-cloud';
-        weatherIcon.className = 'fa-solid ' + iconClass;
+    if (weatherEl && weatherIcon) {
+        weatherEl.className = 'watch-weather ' + weather;
+        weatherIcon.className = 'fa-solid ' + (WEATHER_ICONS[weather] || 'fa-cloud');
     }
 }
 
-// ═══════════════════════════════════════════════════════════════
-// PUBLIC API
-// ═══════════════════════════════════════════════════════════════
+/**
+ * Toggle between real time and RP time modes
+ */
+export function toggleWatchMode() {
+    const watchEl = document.getElementById('ie-header-watch');
+    if (!watchEl) return;
+    
+    watchMode = (watchMode === 'real') ? 'rp' : 'real';
+    watchEl.classList.toggle('real-mode', watchMode === 'real');
+    watchEl.classList.toggle('rp-mode', watchMode === 'rp');
+    updateWatch();
+}
 
 /**
  * Start the watch interval
@@ -148,7 +104,6 @@ function updateWatch() {
 export function startWatch() {
     updateWatch();
     watchInterval = setInterval(updateWatch, 1000);
-    console.log('[Watch] Started in', watchMode, 'mode');
 }
 
 /**
@@ -158,38 +113,17 @@ export function stopWatch() {
     if (watchInterval) {
         clearInterval(watchInterval);
         watchInterval = null;
-        console.log('[Watch] Stopped');
     }
 }
 
 /**
- * Get current watch mode
- * @returns {'real'|'rp'}
- */
-export function getWatchMode() {
-    return watchMode;
-}
-
-/**
- * Toggle between real and RP modes
- * @returns {'real'|'rp'} The new mode
- */
-export function toggleWatchMode() {
-    watchMode = watchMode === 'real' ? 'rp' : 'real';
-    console.log('[Watch] Mode toggled to:', watchMode);
-    updateWatch();
-    return watchMode;
-}
-
-/**
  * Set RP time manually
- * @param {number} hours - 0-23
- * @param {number} minutes - 0-59
+ * @param {number} hours - Hours (0-23)
+ * @param {number} minutes - Minutes (0-59)
  */
-export function setRPTime(hours, minutes = 0) {
-    rpTime.hours = Math.max(0, Math.min(23, hours));
-    rpTime.minutes = Math.max(0, Math.min(59, minutes));
-    console.log('[Watch] RP time set to:', rpTime.hours + ':' + rpTime.minutes);
+export function setRPTime(hours, minutes) {
+    rpTime.hours = hours;
+    rpTime.minutes = minutes;
     if (watchMode === 'rp') {
         updateWatch();
     }
@@ -197,14 +131,21 @@ export function setRPTime(hours, minutes = 0) {
 
 /**
  * Set RP weather manually
- * @param {string} weather - Weather type
+ * @param {string} weather - Weather key (clear-day, rainy, etc.)
  */
 export function setRPWeather(weather) {
-    rpWeather = weather || 'clear';
-    console.log('[Watch] RP weather set to:', rpWeather);
+    rpWeather = weather;
     if (watchMode === 'rp') {
         updateWatch();
     }
+}
+
+/**
+ * Get current watch mode
+ * @returns {string} 'real' or 'rp'
+ */
+export function getWatchMode() {
+    return watchMode;
 }
 
 /**
@@ -221,15 +162,4 @@ export function getRPTime() {
  */
 export function getRPWeather() {
     return rpWeather;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// INITIALIZATION
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Initialize watch (same as startWatch for compatibility)
- */
-export function initWatch() {
-    startWatch();
 }
