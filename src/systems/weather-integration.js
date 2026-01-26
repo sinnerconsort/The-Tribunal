@@ -1,6 +1,6 @@
 /**
  * The Tribunal - Weather System Integration
- * Connects weather-time.js (data) to weather-effects.js (visuals)
+ * Connects to weather-effects.js (visuals)
  * 
  * Handles:
  * - Auto-detection from AI messages
@@ -8,7 +8,7 @@
  * - Time-based period detection
  * - ST event hooks
  * 
- * @version 1.0.0
+ * @version 1.1.0 - Self-contained (no weather-time dependency)
  */
 
 import {
@@ -25,10 +25,33 @@ import {
     setEffectsIntensity
 } from './weather-effects.js';
 
-import {
-    getWeatherTimeState,
-    formatPeriodForDisplay
-} from './weather-time.js';
+// Self-contained period helper (no weather-time.js dependency)
+function getWeatherTimeState() {
+    const now = new Date();
+    const hour = now.getHours();
+    
+    let period = 'pale-sun';  // Default daytime
+    if (hour >= 5 && hour < 7) period = 'pale-sun';      // Dawn
+    else if (hour >= 7 && hour < 12) period = 'pale-sun'; // Morning
+    else if (hour >= 12 && hour < 17) period = 'pale-sun'; // Afternoon
+    else if (hour >= 17 && hour < 20) period = 'city-night'; // Evening
+    else if (hour >= 20 || hour < 5) period = 'quiet-night'; // Night
+    
+    return {
+        period,
+        weather: null,
+        location: 'outdoor'
+    };
+}
+
+function formatPeriodForDisplay(periodKey) {
+    if (!periodKey) return 'Unknown';
+    return periodKey
+        .toLowerCase()
+        .split(/[-_]/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+}
 
 // ═══════════════════════════════════════════════════════════════
 // STATE & CONFIG
