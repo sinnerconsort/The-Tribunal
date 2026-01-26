@@ -294,16 +294,6 @@ function showInlineAddForm() {
         nameInput.classList.remove('contact-input-error');
     });
 }
-    
-    // Wire up buttons
-    document.getElementById('contact-inline-cancel')?.addEventListener('click', hideInlineAddForm);
-    document.getElementById('contact-inline-save')?.addEventListener('click', handleInlineAddSave);
-    
-    // Remove error state on input
-    nameInput?.addEventListener('input', () => {
-        nameInput.classList.remove('contact-input-error');
-    });
-}
 
 /**
  * Hide the inline add form
