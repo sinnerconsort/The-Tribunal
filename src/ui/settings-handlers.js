@@ -39,6 +39,10 @@ const SETTINGS_IDS = {
     autoCases: 'cfg-auto-cases',
     casesNotify: 'cfg-cases-notify',
     
+    // Contact Detection (Section VI)
+    autoContacts: 'cfg-auto-contacts',
+    contactsNotify: 'cfg-contacts-notify',
+    
     // Actions
     lockPositions: 'cfg-lock-positions',
     saveButton: 'cfg-save-settings',
@@ -178,6 +182,10 @@ export function refreshSettingsFromState() {
     setCheckbox(SETTINGS_IDS.autoCases, settings.cases?.autoDetect ?? false);
     setCheckbox(SETTINGS_IDS.casesNotify, settings.cases?.showNotifications ?? true);
     
+    // Contact Detection
+    setCheckbox(SETTINGS_IDS.autoContacts, settings.contacts?.autoDetect ?? false);
+    setCheckbox(SETTINGS_IDS.contactsNotify, settings.contacts?.showNotifications ?? true);
+    
     // UI settings
     setCheckbox(SETTINGS_IDS.lockPositions, settings.ui?.lockPositions ?? false);
     
@@ -259,6 +267,7 @@ export function saveAllSettings() {
     if (!settings.investigation) settings.investigation = {};
     if (!settings.vitals) settings.vitals = {};
     if (!settings.cases) settings.cases = {};
+    if (!settings.contacts) settings.contacts = {};
     if (!settings.ui) settings.ui = {};
     
     // FIX: Mutate the existing object instead of creating a new one
@@ -288,6 +297,10 @@ export function saveAllSettings() {
     // Case Detection
     settings.cases.autoDetect = getCheckbox(SETTINGS_IDS.autoCases, false);
     settings.cases.showNotifications = getCheckbox(SETTINGS_IDS.casesNotify, true);
+    
+    // Contact Detection
+    settings.contacts.autoDetect = getCheckbox(SETTINGS_IDS.autoContacts, false);
+    settings.contacts.showNotifications = getCheckbox(SETTINGS_IDS.contactsNotify, true);
     
     // UI settings
     settings.ui.lockPositions = getCheckbox(SETTINGS_IDS.lockPositions, false);
@@ -636,6 +649,18 @@ export function getCaseSettings() {
     return {
         autoDetect: settings?.cases?.autoDetect ?? false,
         showNotifications: settings?.cases?.showNotifications ?? true
+    };
+}
+
+/**
+ * Get current contact detection settings
+ * @returns {object} Contact detection settings
+ */
+export function getContactSettings() {
+    const settings = getSettings();
+    return {
+        autoDetect: settings?.contacts?.autoDetect ?? false,
+        showNotifications: settings?.contacts?.showNotifications ?? true
     };
 }
 

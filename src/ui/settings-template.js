@@ -144,6 +144,25 @@ export const SETTINGS_TAB_HTML = `
             </div>
         </div>
         
+        <!-- Section VI: Contact Detection -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">VI. CONTACT DETECTION</div>
+            <div class="rcm-section-content">
+                <label class="rcm-checkbox-row">
+                    <input type="checkbox" id="cfg-auto-contacts">
+                    <span>Auto-detect NPCs from chat</span>
+                </label>
+                <div class="rcm-field-note">
+                    <em>Scan messages for new characters</em>
+                </div>
+                
+                <label class="rcm-checkbox-row">
+                    <input type="checkbox" id="cfg-contacts-notify" checked>
+                    <span>Show detection notifications</span>
+                </label>
+            </div>
+        </div>
+        
         <!-- Actions -->
         <div class="rcm-section rcm-actions">
             <label class="rcm-checkbox-row">
