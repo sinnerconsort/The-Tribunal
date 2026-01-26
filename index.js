@@ -538,7 +538,7 @@ async function addExtensionSettings() {
     try {
         // Load the settings.html template
         const settingsHtml = await renderExtensionTemplateAsync(
-            'third-party/the-tribunal',  // Your extension folder path
+            'third-party/The-Tribunal',  // Your extension folder path (case-sensitive!)
             'settings'                    // Template name (settings.html)
         );
         
