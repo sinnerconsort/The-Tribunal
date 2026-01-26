@@ -23,11 +23,11 @@ let currentSpecial = null;      // pale, horror, indoor, null
 let effectsEnabled = true;
 let intensity = 'light';        // light, medium, heavy
 
-// Particle counts based on intensity - MOBILE OPTIMIZED
+// Particle counts based on intensity - balanced for mobile
 const PARTICLE_COUNTS = {
-    light:  { rain: 15, snow: 12, fog: 2, debris: 4, dust: 6, stars: 15, fireflies: 5 },
-    medium: { rain: 30, snow: 20, fog: 3, debris: 6, dust: 10, stars: 25, fireflies: 8 },
-    heavy:  { rain: 50, snow: 35, fog: 4, debris: 10, dust: 15, stars: 40, fireflies: 12 }
+    light:  { rain: 25, snow: 18, fog: 3, debris: 8, dust: 10, stars: 20, fireflies: 6 },
+    medium: { rain: 45, snow: 30, fog: 4, debris: 12, dust: 18, stars: 35, fireflies: 10 },
+    heavy:  { rain: 70, snow: 45, fog: 5, debris: 18, dust: 28, stars: 50, fireflies: 15 }
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -662,9 +662,9 @@ function createRain() {
         style.id = 'tribunal-rain-keyframes';
         style.textContent = `
             @keyframes tribunal-rainfall {
-                0% { transform: translateY(-20px); opacity: 0; }
-                10% { opacity: 0.6; }
-                100% { transform: translateY(100vh); opacity: 0.2; }
+                0% { transform: translateY(-30px); opacity: 0; }
+                10% { opacity: 0.8; }
+                100% { transform: translateY(100vh); opacity: 0.3; }
             }
         `;
         document.head.appendChild(style);
@@ -685,17 +685,17 @@ function createRain() {
     
     for (let i = 0; i < count; i++) {
         const drop = document.createElement('div');
-        const duration = 0.4 + Math.random() * 0.3;
+        const duration = 0.5 + Math.random() * 0.4;
         const delay = Math.random() * 2;
-        const height = 15 + Math.random() * 10;
+        const height = 20 + Math.random() * 15; // 20-35px
         
         drop.setAttribute('style', `
             position: absolute !important;
             left: ${Math.random() * 100}% !important;
-            top: -20px !important;
+            top: -30px !important;
             width: 2px !important;
             height: ${height}px !important;
-            background: linear-gradient(transparent, rgba(174, 194, 224, 0.6)) !important;
+            background: linear-gradient(transparent, rgba(174, 194, 224, 0.8)) !important;
             pointer-events: none !important;
             opacity: 0 !important;
             animation: tribunal-rainfall ${duration}s linear ${delay}s infinite !important;
@@ -719,9 +719,9 @@ function createSnow() {
         style.textContent = `
             @keyframes tribunal-snowfall {
                 0% { transform: translateY(-10px) translateX(0) rotate(0deg); opacity: 0; }
-                10% { opacity: 0.6; }
-                90% { opacity: 0.4; }
-                100% { transform: translateY(100vh) translateX(20px) rotate(360deg); opacity: 0; }
+                10% { opacity: 1; }
+                90% { opacity: 0.7; }
+                100% { transform: translateY(100vh) translateX(30px) rotate(360deg); opacity: 0; }
             }
         `;
         document.head.appendChild(style);
@@ -743,19 +743,19 @@ function createSnow() {
     for (let i = 0; i < count; i++) {
         const flake = document.createElement('div');
         flake.textContent = '❄';
-        const duration = 8 + Math.random() * 8;
+        const duration = 10 + Math.random() * 10;
         const delay = Math.random() * duration;
-        const size = 0.6 + Math.random() * 0.6;
+        const size = 14 + Math.random() * 12; // 14-26px
         
         flake.setAttribute('style', `
             position: absolute !important;
             left: ${Math.random() * 100}% !important;
-            top: -10px !important;
-            color: white !important;
-            font-size: ${size}rem !important;
-            text-shadow: 0 0 5px rgba(255,255,255,0.5) !important;
-            opacity: 0 !important;
+            top: -20px !important;
+            color: rgba(255, 255, 255, 0.8) !important;
+            font-size: ${size}px !important;
+            text-shadow: 0 0 8px rgba(255,255,255,0.9) !important;
             pointer-events: none !important;
+            opacity: 0 !important;
             animation: tribunal-snowfall ${duration}s linear ${delay}s infinite !important;
         `);
         
@@ -793,23 +793,24 @@ function createFog() {
         z-index: 1 !important;
     `);
     
-    // Create 2 mist layers like RPG Companion
-    for (let i = 0; i < 2; i++) {
+    // Create mist layers - more visible now
+    for (let i = 0; i < 3; i++) {
         const mist = document.createElement('div');
-        const duration = 30 + i * 20;
+        const duration = 25 + i * 15;
+        const opacity = 0.15 - i * 0.03; // 0.15, 0.12, 0.09
         
         mist.setAttribute('style', `
             position: absolute !important;
-            top: ${40 + i * 20}% !important;
+            top: ${30 + i * 25}% !important;
             left: 0 !important;
             width: 200% !important;
-            height: 60% !important;
+            height: 50% !important;
             background: linear-gradient(90deg, 
-                transparent, 
-                rgba(255,255,255,0.08), 
-                rgba(255,255,255,0.12), 
-                rgba(255,255,255,0.08), 
-                transparent
+                transparent 0%, 
+                rgba(200, 210, 220, ${opacity}) 25%,
+                rgba(200, 210, 220, ${opacity * 1.3}) 50%,
+                rgba(200, 210, 220, ${opacity}) 75%,
+                transparent 100%
             ) !important;
             pointer-events: none !important;
             animation: tribunal-mistdrift ${duration}s linear infinite !important;
@@ -833,7 +834,8 @@ function createWind() {
         style.textContent = `
             @keyframes tribunal-windstreak {
                 0% { transform: translateX(0); opacity: 0; }
-                10% { opacity: 0.4; }
+                10% { opacity: 0.7; }
+                90% { opacity: 0.5; }
                 100% { transform: translateX(calc(100vw + 200px)); opacity: 0; }
             }
         `;
@@ -853,19 +855,22 @@ function createWind() {
     
     const count = getParticleCount('debris');
     
-    // Wind streaks like RPG Companion
+    // Wind streaks - bigger and more visible
     for (let i = 0; i < count; i++) {
         const streak = document.createElement('div');
-        const duration = 2 + Math.random() * 3;
-        const delay = Math.random() * 5;
+        const duration = 1.5 + Math.random() * 2;
+        const delay = Math.random() * 4;
+        const height = 2 + Math.random() * 2; // 2-4px thick
+        const width = 60 + Math.random() * 80; // 60-140px long
         
         streak.setAttribute('style', `
             position: absolute !important;
-            left: -100px !important;
+            left: -150px !important;
             top: ${Math.random() * 100}% !important;
-            width: 80px !important;
-            height: 1px !important;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent) !important;
+            width: ${width}px !important;
+            height: ${height}px !important;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent) !important;
+            border-radius: 2px !important;
             pointer-events: none !important;
             opacity: 0 !important;
             animation: tribunal-windstreak ${duration}s linear ${delay}s infinite !important;
@@ -879,30 +884,85 @@ function createWind() {
 
 function createDay() {
     const layer = document.createElement('div');
-    layer.className = 'weather-layer';
+    layer.id = 'tribunal-day-' + Date.now();
     layer.dataset.effect = 'day';
     
-    // Haze
+    // Inject CSS keyframes
+    if (!document.getElementById('tribunal-day-keyframes')) {
+        const style = document.createElement('style');
+        style.id = 'tribunal-day-keyframes';
+        style.textContent = `
+            @keyframes tribunal-dustfloat {
+                0%, 100% { transform: translate(0, 0) rotate(0deg); opacity: 0.3; }
+                25% { transform: translate(10px, -15px) rotate(90deg); opacity: 0.6; }
+                50% { transform: translate(20px, 5px) rotate(180deg); opacity: 0.4; }
+                75% { transform: translate(5px, 10px) rotate(270deg); opacity: 0.5; }
+            }
+            @keyframes tribunal-sunpulse {
+                0%, 100% { opacity: 0.3; transform: scale(1); }
+                50% { opacity: 0.4; transform: scale(1.05); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    layer.setAttribute('style', `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        pointer-events: none !important;
+        z-index: 1 !important;
+    `);
+    
+    // Warm haze overlay
     const haze = document.createElement('div');
-    haze.className = 'weather-particle fx-pale-haze';
+    haze.setAttribute('style', `
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: linear-gradient(180deg, rgba(255, 245, 200, 0.08) 0%, transparent 60%) !important;
+        pointer-events: none !important;
+    `);
     layer.appendChild(haze);
     
-    // Sun
+    // Sun glow
     const sun = document.createElement('div');
-    sun.className = 'weather-particle fx-pale-sun';
-    sun.style.top = '12%';
-    sun.style.right = '15%';
+    sun.setAttribute('style', `
+        position: absolute !important;
+        top: 8% !important;
+        right: 12% !important;
+        width: 80px !important;
+        height: 80px !important;
+        background: radial-gradient(circle, rgba(255, 240, 180, 0.5) 0%, rgba(255, 220, 100, 0.2) 40%, transparent 70%) !important;
+        border-radius: 50% !important;
+        pointer-events: none !important;
+        animation: tribunal-sunpulse 8s ease-in-out infinite !important;
+    `);
     layer.appendChild(sun);
     
     // Dust motes
     const dustCount = getParticleCount('dust');
     for (let i = 0; i < dustCount; i++) {
         const dust = document.createElement('div');
-        dust.className = 'weather-particle fx-dust-mote';
-        dust.style.left = `${Math.random() * 100}%`;
-        dust.style.top = `${Math.random() * 100}%`;
-        dust.style.animationDelay = `${Math.random() * 12}s`;
-        dust.style.animationDuration = `${12 + Math.random() * 8}s`;
+        const size = 3 + Math.random() * 4;
+        const duration = 12 + Math.random() * 10;
+        const delay = Math.random() * duration;
+        
+        dust.setAttribute('style', `
+            position: absolute !important;
+            left: ${Math.random() * 100}% !important;
+            top: ${Math.random() * 100}% !important;
+            width: ${size}px !important;
+            height: ${size}px !important;
+            background: rgba(255, 245, 200, 0.6) !important;
+            border-radius: 50% !important;
+            pointer-events: none !important;
+            animation: tribunal-dustfloat ${duration}s ease-in-out ${delay}s infinite !important;
+        `);
         layer.appendChild(dust);
     }
     
@@ -911,48 +971,120 @@ function createDay() {
 
 function createCityNight() {
     const layer = document.createElement('div');
-    layer.className = 'weather-layer';
+    layer.id = 'tribunal-citynight-' + Date.now();
     layer.dataset.effect = 'city-night';
+    
+    // Inject CSS keyframes
+    if (!document.getElementById('tribunal-citynight-keyframes')) {
+        const style = document.createElement('style');
+        style.id = 'tribunal-citynight-keyframes';
+        style.textContent = `
+            @keyframes tribunal-startwinkle {
+                0%, 100% { opacity: 0.3; }
+                50% { opacity: 0.8; }
+            }
+            @keyframes tribunal-neonpulse {
+                0%, 100% { opacity: 0.15; }
+                50% { opacity: 0.3; }
+            }
+            @keyframes tribunal-distantlight {
+                0%, 100% { opacity: 0.4; transform: scale(1); }
+                50% { opacity: 0.7; transform: scale(1.2); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
     
     const colors = ['#ff6b9d', '#4ecdc4', '#ffe66d', '#a855f7', '#f97316'];
     
-    // Overlay
+    layer.setAttribute('style', `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        pointer-events: none !important;
+        z-index: 1 !important;
+    `);
+    
+    // Dark blue overlay
     const overlay = document.createElement('div');
-    overlay.className = 'weather-particle fx-night-overlay';
+    overlay.setAttribute('style', `
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: linear-gradient(180deg, rgba(15, 20, 40, 0.15) 0%, rgba(30, 25, 50, 0.1) 100%) !important;
+        pointer-events: none !important;
+    `);
     layer.appendChild(overlay);
     
-    // Stars (few, dim)
+    // Dim stars
     const starCount = Math.floor(getParticleCount('stars') * 0.4);
     for (let i = 0; i < starCount; i++) {
         const star = document.createElement('div');
-        star.className = 'weather-particle fx-city-star';
-        star.style.left = `${Math.random() * 100}%`;
-        star.style.top = `${Math.random() * 40}%`;
-        star.style.animationDelay = `${Math.random() * 4}s`;
-        star.style.animationDuration = `${3 + Math.random() * 3}s`;
+        const size = 2 + Math.random() * 2;
+        const duration = 3 + Math.random() * 3;
+        const delay = Math.random() * duration;
+        
+        star.setAttribute('style', `
+            position: absolute !important;
+            left: ${Math.random() * 100}% !important;
+            top: ${Math.random() * 40}% !important;
+            width: ${size}px !important;
+            height: ${size}px !important;
+            background: rgba(255, 255, 255, 0.6) !important;
+            border-radius: 50% !important;
+            pointer-events: none !important;
+            animation: tribunal-startwinkle ${duration}s ease-in-out ${delay}s infinite !important;
+        `);
         layer.appendChild(star);
     }
     
-    // Neon puddles
+    // Neon reflections at bottom
     for (let i = 0; i < 4; i++) {
         const puddle = document.createElement('div');
-        puddle.className = 'weather-particle fx-neon-puddle';
-        puddle.style.setProperty('--neon-color', colors[i % colors.length]);
-        puddle.style.bottom = `${5 + Math.random() * 12}%`;
-        puddle.style.left = `${Math.random() * 80}%`;
-        puddle.style.animationDelay = `${Math.random() * 3}s`;
+        const color = colors[i % colors.length];
+        const width = 60 + Math.random() * 80;
+        const duration = 3 + Math.random() * 2;
+        const delay = Math.random() * 3;
+        
+        puddle.setAttribute('style', `
+            position: absolute !important;
+            bottom: ${5 + Math.random() * 12}% !important;
+            left: ${Math.random() * 80}% !important;
+            width: ${width}px !important;
+            height: 8px !important;
+            background: linear-gradient(90deg, transparent, ${color}66, transparent) !important;
+            border-radius: 50% !important;
+            filter: blur(4px) !important;
+            pointer-events: none !important;
+            animation: tribunal-neonpulse ${duration}s ease-in-out ${delay}s infinite !important;
+        `);
         layer.appendChild(puddle);
     }
     
-    // Distant lights
+    // Distant window lights
     for (let i = 0; i < 8; i++) {
         const light = document.createElement('div');
-        light.className = 'weather-particle fx-distant-light';
-        light.style.setProperty('--light-color', colors[Math.floor(Math.random() * colors.length)]);
-        light.style.top = `${15 + Math.random() * 35}%`;
-        light.style.left = `${Math.random() * 100}%`;
-        light.style.animationDelay = `${Math.random() * 3}s`;
-        light.style.animationDuration = `${2 + Math.random() * 2}s`;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const size = 4 + Math.random() * 6;
+        const duration = 2 + Math.random() * 2;
+        const delay = Math.random() * 3;
+        
+        light.setAttribute('style', `
+            position: absolute !important;
+            top: ${15 + Math.random() * 35}% !important;
+            left: ${Math.random() * 100}% !important;
+            width: ${size}px !important;
+            height: ${size}px !important;
+            background: ${color} !important;
+            border-radius: 50% !important;
+            filter: blur(2px) !important;
+            pointer-events: none !important;
+            animation: tribunal-distantlight ${duration}s ease-in-out ${delay}s infinite !important;
+        `);
         layer.appendChild(light);
     }
     
@@ -961,32 +1093,90 @@ function createCityNight() {
 
 function createQuietNight() {
     const layer = document.createElement('div');
-    layer.className = 'weather-layer';
+    layer.id = 'tribunal-quietnight-' + Date.now();
     layer.dataset.effect = 'quiet-night';
     
-    // Night sky
+    // Inject CSS keyframes
+    if (!document.getElementById('tribunal-quietnight-keyframes')) {
+        const style = document.createElement('style');
+        style.id = 'tribunal-quietnight-keyframes';
+        style.textContent = `
+            @keyframes tribunal-brightstar {
+                0%, 100% { opacity: 0.4; transform: scale(1); }
+                50% { opacity: 1; transform: scale(1.3); }
+            }
+            @keyframes tribunal-firefly {
+                0% { opacity: 0; transform: translate(0, 0); }
+                20% { opacity: 0.8; }
+                50% { opacity: 0.6; transform: translate(30px, -20px); }
+                80% { opacity: 0.8; }
+                100% { opacity: 0; transform: translate(60px, 10px); }
+            }
+            @keyframes tribunal-moonglow {
+                0%, 100% { opacity: 0.7; }
+                50% { opacity: 0.85; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    layer.setAttribute('style', `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        pointer-events: none !important;
+        z-index: 1 !important;
+    `);
+    
+    // Night sky gradient
     const sky = document.createElement('div');
-    sky.className = 'weather-particle fx-night-sky';
+    sky.setAttribute('style', `
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: linear-gradient(180deg, rgba(10, 15, 35, 0.12) 0%, rgba(20, 25, 50, 0.08) 50%, transparent 100%) !important;
+        pointer-events: none !important;
+    `);
     layer.appendChild(sky);
     
     // Moon
     const moon = document.createElement('div');
-    moon.className = 'weather-particle fx-moon';
-    moon.style.top = '10%';
-    moon.style.left = '20%';
+    moon.setAttribute('style', `
+        position: absolute !important;
+        top: 10% !important;
+        left: 20% !important;
+        width: 50px !important;
+        height: 50px !important;
+        background: radial-gradient(circle, rgba(255, 255, 240, 0.9) 0%, rgba(255, 255, 220, 0.4) 50%, transparent 70%) !important;
+        border-radius: 50% !important;
+        pointer-events: none !important;
+        animation: tribunal-moonglow 10s ease-in-out infinite !important;
+    `);
     layer.appendChild(moon);
     
     // Stars
     const starCount = getParticleCount('stars');
     for (let i = 0; i < starCount; i++) {
         const star = document.createElement('div');
-        star.className = 'weather-particle fx-bright-star';
-        star.style.left = `${Math.random() * 100}%`;
-        star.style.top = `${Math.random() * 50}%`;
-        star.style.animationDelay = `${Math.random() * 5}s`;
-        star.style.animationDuration = `${3 + Math.random() * 4}s`;
-        star.style.width = `${1 + Math.random() * 1.5}px`;
-        star.style.height = star.style.width;
+        const size = 2 + Math.random() * 3;
+        const duration = 3 + Math.random() * 4;
+        const delay = Math.random() * 5;
+        
+        star.setAttribute('style', `
+            position: absolute !important;
+            left: ${Math.random() * 100}% !important;
+            top: ${Math.random() * 50}% !important;
+            width: ${size}px !important;
+            height: ${size}px !important;
+            background: white !important;
+            border-radius: 50% !important;
+            pointer-events: none !important;
+            animation: tribunal-brightstar ${duration}s ease-in-out ${delay}s infinite !important;
+        `);
         layer.appendChild(star);
     }
     
@@ -994,11 +1184,20 @@ function createQuietNight() {
     const fireflyCount = getParticleCount('fireflies');
     for (let i = 0; i < fireflyCount; i++) {
         const firefly = document.createElement('div');
-        firefly.className = 'weather-particle fx-firefly';
-        firefly.style.left = `${Math.random() * 80}%`;
-        firefly.style.top = `${40 + Math.random() * 50}%`;
-        firefly.style.animationDelay = `${Math.random() * 10}s`;
-        firefly.style.animationDuration = `${6 + Math.random() * 6}s`;
+        const duration = 6 + Math.random() * 6;
+        const delay = Math.random() * 10;
+        
+        firefly.setAttribute('style', `
+            position: absolute !important;
+            left: ${Math.random() * 80}% !important;
+            top: ${40 + Math.random() * 50}% !important;
+            width: 6px !important;
+            height: 6px !important;
+            background: radial-gradient(circle, rgba(180, 255, 100, 0.9) 0%, rgba(150, 255, 50, 0.4) 50%, transparent 70%) !important;
+            border-radius: 50% !important;
+            pointer-events: none !important;
+            animation: tribunal-firefly ${duration}s ease-in-out ${delay}s infinite !important;
+        `);
         layer.appendChild(firefly);
     }
     
@@ -1057,32 +1256,94 @@ function createPale() {
 
 function createIndoor() {
     const layer = document.createElement('div');
-    layer.className = 'weather-layer';
+    layer.id = 'tribunal-indoor-' + Date.now();
     layer.dataset.effect = 'indoor';
     
-    // Warmth
+    // Inject CSS keyframes
+    if (!document.getElementById('tribunal-indoor-keyframes')) {
+        const style = document.createElement('style');
+        style.id = 'tribunal-indoor-keyframes';
+        style.textContent = `
+            @keyframes tribunal-beampulse {
+                0%, 100% { opacity: 0.08; }
+                50% { opacity: 0.15; }
+            }
+            @keyframes tribunal-indoordust {
+                0% { transform: translate(0, 100vh) rotate(0deg); opacity: 0; }
+                10% { opacity: 0.6; }
+                90% { opacity: 0.4; }
+                100% { transform: translate(30px, -20px) rotate(180deg); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    layer.setAttribute('style', `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        pointer-events: none !important;
+        z-index: 1 !important;
+    `);
+    
+    // Warm ambient overlay
     const warmth = document.createElement('div');
-    warmth.className = 'weather-particle fx-indoor-warmth';
+    warmth.setAttribute('style', `
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: radial-gradient(ellipse at 70% 30%, rgba(255, 240, 200, 0.08) 0%, transparent 60%) !important;
+        pointer-events: none !important;
+    `);
     layer.appendChild(warmth);
     
-    // Light beams
+    // Light beams from window
     for (let i = 0; i < 2; i++) {
         const beam = document.createElement('div');
-        beam.className = 'weather-particle fx-light-beam';
-        beam.style.left = `${55 + i * 15}%`;
-        beam.style.animationDelay = `${i * 2}s`;
-        beam.style.animationDuration = `${10 + i * 2}s`;
+        const duration = 10 + i * 2;
+        const delay = i * 2;
+        
+        beam.setAttribute('style', `
+            position: absolute !important;
+            top: 0 !important;
+            left: ${55 + i * 15}% !important;
+            width: 80px !important;
+            height: 100% !important;
+            background: linear-gradient(180deg, 
+                rgba(255, 250, 220, 0.15) 0%, 
+                rgba(255, 245, 200, 0.08) 50%, 
+                transparent 100%
+            ) !important;
+            transform: skewX(-15deg) !important;
+            pointer-events: none !important;
+            animation: tribunal-beampulse ${duration}s ease-in-out ${delay}s infinite !important;
+        `);
         layer.appendChild(beam);
     }
     
-    // Dust
+    // Floating dust in light beams
     const dustCount = getParticleCount('dust');
     for (let i = 0; i < dustCount; i++) {
         const dust = document.createElement('div');
-        dust.className = 'weather-particle fx-indoor-dust';
-        dust.style.left = `${45 + Math.random() * 45}%`;
-        dust.style.animationDelay = `${Math.random() * 15}s`;
-        dust.style.animationDuration = `${15 + Math.random() * 10}s`;
+        const size = 2 + Math.random() * 3;
+        const duration = 15 + Math.random() * 10;
+        const delay = Math.random() * 15;
+        
+        dust.setAttribute('style', `
+            position: absolute !important;
+            left: ${45 + Math.random() * 45}% !important;
+            bottom: -10px !important;
+            width: ${size}px !important;
+            height: ${size}px !important;
+            background: rgba(255, 250, 220, 0.7) !important;
+            border-radius: 50% !important;
+            pointer-events: none !important;
+            animation: tribunal-indoordust ${duration}s linear ${delay}s infinite !important;
+        `);
         layer.appendChild(dust);
     }
     
@@ -1091,42 +1352,120 @@ function createIndoor() {
 
 function createHorror() {
     const layer = document.createElement('div');
-    layer.className = 'weather-layer';
+    layer.id = 'tribunal-horror-' + Date.now();
     layer.dataset.effect = 'horror';
+    
+    // Inject CSS keyframes
+    if (!document.getElementById('tribunal-horror-keyframes')) {
+        const style = document.createElement('style');
+        style.id = 'tribunal-horror-keyframes';
+        style.textContent = `
+            @keyframes tribunal-heartbeat {
+                0%, 100% { opacity: 0; }
+                15% { opacity: 0.15; }
+                30% { opacity: 0; }
+                45% { opacity: 0.1; }
+            }
+            @keyframes tribunal-flicker {
+                0%, 95%, 100% { opacity: 0; }
+                96%, 98% { opacity: 0.4; }
+            }
+            @keyframes tribunal-creep {
+                0% { transform: translateX(-100%); opacity: 0; }
+                50% { opacity: 0.3; }
+                100% { transform: translateX(100vw); opacity: 0; }
+            }
+            @keyframes tribunal-drip {
+                0% { transform: translateY(-10px) scaleY(0.5); opacity: 0; }
+                10% { opacity: 0.8; transform: scaleY(1); }
+                100% { transform: translateY(100vh) scaleY(2); opacity: 0.3; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    layer.setAttribute('style', `
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        pointer-events: none !important;
+        z-index: 1 !important;
+    `);
     
     // Vignette
     const vignette = document.createElement('div');
-    vignette.className = 'weather-particle fx-horror-vignette';
+    vignette.setAttribute('style', `
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: radial-gradient(ellipse at center, transparent 40%, rgba(20, 0, 0, 0.25) 100%) !important;
+        pointer-events: none !important;
+    `);
     layer.appendChild(vignette);
     
     // Heartbeat pulse
     const pulse = document.createElement('div');
-    pulse.className = 'weather-particle fx-horror-pulse';
+    pulse.setAttribute('style', `
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: radial-gradient(ellipse at center, rgba(80, 0, 0, 0.3) 0%, transparent 70%) !important;
+        pointer-events: none !important;
+        animation: tribunal-heartbeat 2s ease-in-out infinite !important;
+    `);
     layer.appendChild(pulse);
     
     // Flicker
     const flicker = document.createElement('div');
-    flicker.className = 'weather-particle fx-horror-flicker';
+    flicker.setAttribute('style', `
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: rgba(255, 255, 255, 0.5) !important;
+        pointer-events: none !important;
+        animation: tribunal-flicker 8s linear infinite !important;
+    `);
     layer.appendChild(flicker);
-    
-    // Grain
-    const grain = document.createElement('div');
-    grain.className = 'weather-particle fx-horror-grain';
-    layer.appendChild(grain);
     
     // Creeping shadow
     const shadow = document.createElement('div');
-    shadow.className = 'weather-particle fx-horror-shadow';
-    shadow.style.top = '20%';
-    shadow.style.left = '0';
+    shadow.setAttribute('style', `
+        position: absolute !important;
+        top: 20% !important;
+        left: 0 !important;
+        width: 150px !important;
+        height: 200px !important;
+        background: linear-gradient(90deg, rgba(0, 0, 0, 0.4), transparent) !important;
+        filter: blur(20px) !important;
+        pointer-events: none !important;
+        animation: tribunal-creep 20s linear infinite !important;
+    `);
     layer.appendChild(shadow);
     
-    // Drips
+    // Blood drips
     for (let i = 0; i < 2; i++) {
         const drip = document.createElement('div');
-        drip.className = 'weather-particle fx-horror-drip';
-        drip.style.left = `${25 + Math.random() * 50}%`;
-        drip.style.animationDelay = `${i * 4 + Math.random() * 2}s`;
+        const delay = i * 4 + Math.random() * 2;
+        
+        drip.setAttribute('style', `
+            position: absolute !important;
+            left: ${25 + Math.random() * 50}% !important;
+            top: -10px !important;
+            width: 3px !important;
+            height: 30px !important;
+            background: linear-gradient(180deg, rgba(80, 0, 0, 0.8) 0%, rgba(120, 0, 0, 0.4) 100%) !important;
+            border-radius: 0 0 3px 3px !important;
+            pointer-events: none !important;
+            animation: tribunal-drip 8s linear ${delay}s infinite !important;
+        `);
         layer.appendChild(drip);
     }
     
