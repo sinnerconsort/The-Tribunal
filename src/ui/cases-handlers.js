@@ -161,8 +161,17 @@ async function renderCaseDetail(caseId) {
     const filedTime = casesData.formatFiledTime(caseObj.filedAt, caseObj.filedDay);
     const isCompleted = caseObj.status === casesData.CASE_STATUS.COMPLETED;
     const isFailed = caseObj.status === casesData.CASE_STATUS.FAILED;
+    const isClosed = isCompleted || isFailed;
     
-    // Render hints/leads
+    // Completion timestamp
+    let completionHtml = '';
+    if (isClosed && caseObj.completedAt) {
+        const completedTime = casesData.formatFiledTime(caseObj.completedAt, caseObj.filedDay);
+        const statusWord = isCompleted ? 'COMPLETED' : 'FAILED';
+        completionHtml = `<div class="case-detail-completed">${statusWord} — ${completedTime}</div>`;
+    }
+    
+    // Render hints/leads (orange bullets in DE)
     let hintsHtml = '';
     if (caseObj.hints && caseObj.hints.length > 0) {
         hintsHtml = `
@@ -180,7 +189,7 @@ async function renderCaseDetail(caseId) {
     
     // Action buttons based on status
     let actionsHtml = '';
-    if (!isCompleted && !isFailed) {
+    if (!isClosed) {
         actionsHtml = `
             <div class="case-detail-actions">
                 <button class="case-action-btn case-complete-btn" data-case-id="${caseId}">
@@ -188,6 +197,9 @@ async function renderCaseDetail(caseId) {
                 </button>
                 <button class="case-action-btn case-fail-btn" data-case-id="${caseId}">
                     <i class="fa-solid fa-times"></i> Failed
+                </button>
+                <button class="case-action-btn case-edit-btn" data-case-id="${caseId}">
+                    <i class="fa-solid fa-pen"></i>
                 </button>
             </div>
         `;
@@ -201,11 +213,21 @@ async function renderCaseDetail(caseId) {
         `;
     }
     
+    // Add hint button (if not closed)
+    let addHintHtml = '';
+    if (!isClosed) {
+        addHintHtml = `
+            <button class="case-add-hint-btn" data-case-id="${caseId}">
+                <i class="fa-solid fa-plus"></i> Add lead
+            </button>
+        `;
+    }
+    
     return `
-        <div class="case-detail" data-case-id="${caseId}">
+        <div class="case-detail ${isClosed ? 'case-detail-closed' : ''}" data-case-id="${caseId}">
             <div class="case-detail-header">
                 <h3 class="case-detail-title">${caseObj.title}</h3>
-                <div class="case-detail-filed">FILED: ${filedTime}</div>
+                <div class="case-detail-filed">FILED — ${filedTime}</div>
             </div>
             
             ${caseObj.description ? `
@@ -215,6 +237,9 @@ async function renderCaseDetail(caseId) {
             ` : ''}
             
             ${hintsHtml}
+            ${addHintHtml}
+            
+            ${completionHtml}
             
             ${actionsHtml}
         </div>
@@ -357,7 +382,7 @@ function attachDetailHandlers() {
         });
     });
     
-    // Hint toggle
+    // Hint toggle (click to mark complete/incomplete)
     document.querySelectorAll('.case-hint').forEach(hint => {
         hint.addEventListener('click', async () => {
             const caseId = hint.dataset.caseId;
@@ -371,6 +396,133 @@ function attachDetailHandlers() {
                 await renderSelectedCaseDetail();
             }
         });
+    });
+    
+    // Add lead button - show inline form
+    document.querySelectorAll('.case-add-hint-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const caseId = btn.dataset.caseId;
+            showAddHintForm(caseId, btn);
+        });
+    });
+    
+    // Edit button - show edit form
+    document.querySelectorAll('.case-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const caseId = btn.dataset.caseId;
+            showEditCaseForm(caseId);
+        });
+    });
+}
+
+/**
+ * Show inline form for adding a hint/lead
+ */
+function showAddHintForm(caseId, buttonEl) {
+    // Remove existing form if any
+    document.getElementById('case-add-hint-form')?.remove();
+    
+    const formHtml = `
+        <div class="case-hint-form" id="case-add-hint-form">
+            <input type="text" class="case-hint-input" id="case-hint-input" 
+                   placeholder="New lead..." autocomplete="off">
+            <button class="case-hint-save" id="case-hint-save" data-case-id="${caseId}">+</button>
+            <button class="case-hint-cancel" id="case-hint-cancel">✕</button>
+        </div>
+    `;
+    
+    buttonEl.insertAdjacentHTML('beforebegin', formHtml);
+    buttonEl.style.display = 'none';
+    
+    const input = document.getElementById('case-hint-input');
+    input?.focus();
+    
+    // Save hint
+    document.getElementById('case-hint-save')?.addEventListener('click', async () => {
+        const text = input?.value?.trim();
+        if (text) {
+            const cases = await getCases();
+            const casesData = await getCasesData();
+            if (cases[caseId]) {
+                const updated = casesData.addHint(cases[caseId], text);
+                await saveCase(updated);
+                await renderSelectedCaseDetail();
+            }
+        }
+    });
+    
+    // Cancel
+    document.getElementById('case-hint-cancel')?.addEventListener('click', async () => {
+        await renderSelectedCaseDetail();
+    });
+    
+    // Enter to save
+    input?.addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('case-hint-save')?.click();
+        } else if (e.key === 'Escape') {
+            await renderSelectedCaseDetail();
+        }
+    });
+}
+
+/**
+ * Show edit form for a case
+ */
+async function showEditCaseForm(caseId) {
+    const cases = await getCases();
+    const caseObj = cases[caseId];
+    if (!caseObj) return;
+    
+    const detailPanel = document.getElementById('case-detail-panel');
+    if (!detailPanel) return;
+    
+    detailPanel.innerHTML = `
+        <div class="case-detail case-edit-mode" data-case-id="${caseId}">
+            <div class="case-edit-form">
+                <input type="text" class="case-form-input" id="case-edit-title" 
+                       value="${caseObj.title || ''}" placeholder="Task title...">
+                <textarea class="case-form-textarea" id="case-edit-description" 
+                          placeholder="Description...">${caseObj.description || ''}</textarea>
+                <div class="case-edit-actions">
+                    <button class="case-mini-btn case-mini-cancel" id="case-edit-cancel">Cancel</button>
+                    <button class="case-mini-btn case-mini-save" id="case-edit-save">Save</button>
+                    <button class="case-mini-btn case-delete-btn" id="case-edit-delete">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Save
+    document.getElementById('case-edit-save')?.addEventListener('click', async () => {
+        const title = document.getElementById('case-edit-title')?.value?.trim();
+        const description = document.getElementById('case-edit-description')?.value?.trim();
+        
+        if (title) {
+            caseObj.title = title;
+            caseObj.description = description || '';
+            await saveCase(caseObj);
+            await renderCasesList();
+            await renderSelectedCaseDetail();
+        }
+    });
+    
+    // Cancel
+    document.getElementById('case-edit-cancel')?.addEventListener('click', async () => {
+        await renderSelectedCaseDetail();
+    });
+    
+    // Delete
+    document.getElementById('case-edit-delete')?.addEventListener('click', async () => {
+        if (confirm('Delete this task?')) {
+            await deleteCase(caseId);
+            selectedCaseId = null;
+            await renderCasesList();
+            await renderSelectedCaseDetail();
+        }
     });
 }
 
