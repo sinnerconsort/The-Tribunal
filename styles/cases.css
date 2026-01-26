@@ -32,10 +32,11 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 8px;
+    padding: 8px 10px;
     margin: 2px 0;
     cursor: pointer;
     border-left: 3px solid transparent;
+    border-radius: 2px;
     transition: all 0.15s ease;
     font-family: 'Segoe UI', Tahoma, sans-serif;
     font-size: 0.9em;
@@ -47,24 +48,49 @@
 }
 
 .case-item.selected {
-    background: rgba(90, 80, 70, 0.12);
+    background: rgba(90, 80, 70, 0.15);
     border-left-color: #d4763b;
 }
 
-/* Priority indicators */
-.case-item[data-priority="main"] {
+/* Priority: Main tasks - bold with marker */
+.case-item.priority-main {
     font-weight: 600;
 }
 
-.case-item[data-priority="optional"] {
+.case-item.priority-main .case-title {
+    color: #3a3530;
+}
+
+.case-main-marker {
+    color: #d4763b;
+    font-size: 0.7em;
+    margin-right: 2px;
+}
+
+/* Priority: Side tasks - normal */
+.case-item.priority-side {
+    font-weight: 400;
+}
+
+/* Priority: Optional tasks - lighter, italic */
+.case-item.priority-optional {
     font-style: italic;
-    opacity: 0.85;
+    opacity: 0.8;
+}
+
+.case-item.priority-optional .case-title {
+    color: #6a6560;
 }
 
 /* Completed state - strikethrough */
 .case-item.completed .case-title {
     text-decoration: line-through;
     opacity: 0.6;
+}
+
+.case-item.completed .case-main-marker,
+.case-item.completed .case-timed-icon {
+    opacity: 0.5;
 }
 
 /* Failed state - red strikethrough */
@@ -74,9 +100,11 @@
     opacity: 0.7;
 }
 
+/* Timed icon */
 .case-timed-icon {
     font-size: 0.85em;
     color: #d4763b;
+    margin-right: 2px;
 }
 
 .case-title {
@@ -428,6 +456,53 @@
     display: flex;
     gap: 6px;
     justify-content: flex-end;
+}
+
+/* Form options row */
+.case-form-options {
+    align-items: center;
+    gap: 10px;
+}
+
+.case-form-select {
+    flex: 1;
+    padding: 6px 8px;
+    background: #fff;
+    border: 1px solid #c4b8a8;
+    border-radius: 3px;
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 0.85em;
+    color: #3a3530;
+    cursor: pointer;
+}
+
+.case-form-select:focus {
+    outline: none;
+    border-color: #6a5a4a;
+}
+
+.case-timed-toggle {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    background: rgba(212, 118, 59, 0.1);
+    border: 1px solid rgba(212, 118, 59, 0.3);
+    border-radius: 3px;
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 0.8em;
+    color: #d4763b;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.case-timed-toggle:has(input:checked) {
+    background: rgba(212, 118, 59, 0.2);
+    border-color: #d4763b;
+}
+
+.case-timed-toggle input {
+    display: none;
 }
 
 .case-mini-btn {
