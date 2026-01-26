@@ -35,11 +35,34 @@ const PARTICLE_COUNTS = {
 // ═══════════════════════════════════════════════════════════════
 
 const WEATHER_KEYWORDS = {
-    rain: ['rain', 'raining', 'downpour', 'drizzle', 'shower', 'storm', 'thunderstorm', 'pouring'],
-    snow: ['snow', 'snowing', 'blizzard', 'flurries', 'frost', 'freezing', 'ice'],
-    fog: ['fog', 'foggy', 'mist', 'misty', 'haze', 'hazy', 'smog'],
-    wind: ['wind', 'windy', 'gust', 'breeze', 'gale', 'blustery'],
-    clear: ['clear', 'sunny', 'bright', 'cloudless']
+    rain: [
+        'rain', 'raining', 'rains', 'rained', 'rainy', 'rainstorm',
+        'downpour', 'drizzle', 'drizzling', 'shower', 'showers',
+        'storm', 'stormy', 'storming', 'thunderstorm', 'thunder',
+        'pouring', 'poured', 'wet', 'soaked', 'drenched', 'puddle', 'puddles',
+        'lightning', 'monsoon', 'deluge'
+    ],
+    snow: [
+        'snow', 'snowy', 'snowing', 'snowed', 'snowfall', 'snowflake', 'snowflakes',
+        'blizzard', 'flurries', 'flurry', 'frost', 'frosty', 'frosted', 'frozen',
+        'freezing', 'freeze', 'froze', 'ice', 'icy', 'icicle', 'icicles',
+        'cold', 'frigid', 'bitter cold', 'winter', 'wintry', 'sleet',
+        'hail', 'powder', 'snowdrift', 'whiteout', 'subzero'
+    ],
+    fog: [
+        'fog', 'foggy', 'mist', 'misty', 'haze', 'hazy', 'smog', 'smoggy',
+        'murky', 'overcast', 'grey', 'gray', 'gloomy', 'dim', 'obscured',
+        'visibility', 'shroud', 'shrouded', 'veiled', 'thick air'
+    ],
+    wind: [
+        'wind', 'windy', 'winds', 'gust', 'gusts', 'gusty', 'gusting',
+        'breeze', 'breezy', 'gale', 'blustery', 'blowing', 'blown', 'blew',
+        'howling', 'whistling', 'whipping', 'buffeted', 'swirling'
+    ],
+    clear: [
+        'clear', 'sunny', 'bright', 'cloudless', 'fair', 'pleasant',
+        'beautiful day', 'nice day', 'warm', 'sunshine', 'sunlight'
+    ]
 };
 
 const PERIOD_KEYWORDS = {
