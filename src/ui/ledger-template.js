@@ -1,6 +1,7 @@
 /**
  * The Tribunal - Ledger Tab Template
  * Notebook paper with cases (including contacts section) and grid paper map
+ * SECRET COMPARTMENT - Hidden third tab with dark leather interior
  */
 
 export const LEDGER_TAB_HTML = `
@@ -9,6 +10,12 @@ export const LEDGER_TAB_HTML = `
     <div class="ledger-subtabs">
         <button class="ledger-subtab ledger-subtab-active" data-ledger-tab="cases">CASES</button>
         <button class="ledger-subtab" data-ledger-tab="map">MAP</button>
+        <button class="ledger-subtab ledger-subtab-secret" data-ledger-tab="compartment">???</button>
+        
+        <!-- Crack overlay - appears as compartment is discovered -->
+        <div class="ledger-crack-overlay">
+            <div class="ledger-crack-line"></div>
+        </div>
     </div>
     
     <!-- CASES sub-content - Notebook paper -->
@@ -103,4 +110,205 @@ export const LEDGER_TAB_HTML = `
         </div>
         <textarea class="ledger-notes" placeholder="Write your notes here..."></textarea>
     </div>
+    
+    <!-- SECRET COMPARTMENT sub-content - Dark leather interior -->
+    <div class="ledger-subcontent ledger-compartment" data-ledger-content="compartment">
+        <!-- Floating apricot scent -->
+        <span class="ledger-apricot-scent">~ apricot ~</span>
+        
+        <!-- Compartment interior layout -->
+        <div class="compartment-interior">
+            
+            <!-- Police Dice -->
+            <div class="compartment-item compartment-dice">
+                <div class="dice-pair">
+                    <div class="die die-one">
+                        <span class="pip"></span>
+                    </div>
+                    <div class="die die-one">
+                        <span class="pip"></span>
+                    </div>
+                </div>
+                <div class="dice-label">POLICE DICE</div>
+                <div class="dice-subtext">Snake eyes. Of course.</div>
+            </div>
+            
+            <!-- Gum Wrapper / Fortune -->
+            <div class="compartment-item compartment-fortune">
+                <div class="fortune-wrapper">
+                    <div class="wrapper-brand">AROMA</div>
+                    <div class="wrapper-flavor">Apricot</div>
+                    <div class="fortune-paper">
+                        <div class="fortune-text" id="compartment-fortune-text">
+                            The answer you seek is not in the ledger.
+                            It never was.
+                        </div>
+                        <div class="fortune-source">— The Damaged Ledger</div>
+                    </div>
+                </div>
+                <button class="fortune-draw-btn" id="fortune-draw-btn">
+                    <i class="fa-solid fa-rotate"></i> Draw Fortune
+                </button>
+            </div>
+            
+            <!-- RCM Badge -->
+            <div class="compartment-item compartment-badge">
+                <div class="rcm-badge">
+                    <div class="badge-header">
+                        <div class="badge-org">RCM • REVACHOL CITIZENS MILITIA</div>
+                    </div>
+                    <div class="badge-photo">
+                        <div class="photo-placeholder">
+                            <i class="fa-solid fa-user-secret"></i>
+                        </div>
+                    </div>
+                    <div class="badge-info">
+                        <div class="badge-name" id="badge-name">NAME UNKNOWN</div>
+                        <div class="badge-rank" id="badge-rank">RANK UNKNOWN</div>
+                        <div class="badge-number" id="badge-number">LTN-????</div>
+                    </div>
+                    <div class="badge-perforations">
+                        <span class="perf-dots" id="badge-perforations">●●●●●○○○○○</span>
+                        <span class="perf-label">SESSIONS</span>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- Ledger Commentary -->
+        <div class="compartment-commentary">
+            <div class="commentary-text" id="compartment-commentary">
+                "You found it. The hidden drawer. The one I pretend doesn't exist."
+            </div>
+        </div>
+    </div>
 </div>`;
+
+// ═══════════════════════════════════════════════════════════════
+// COMPARTMENT REVEAL FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Reveal the secret compartment tab
+ * Call this when unlock conditions are met (or for debug)
+ */
+export function revealCompartment() {
+    const secretTab = document.querySelector('.ledger-subtab-secret');
+    const subtabsContainer = document.querySelector('.ledger-subtabs');
+    
+    if (secretTab) {
+        secretTab.classList.add('revealed');
+        subtabsContainer?.classList.add('compartment-revealed');
+        console.log('[The Tribunal] Secret compartment revealed');
+    }
+}
+
+/**
+ * Update the crack stage (0-3)
+ * 0 = no crack, 1 = hairline, 2 = spreading, 3 = full reveal
+ */
+export function updateCrackStage(stage) {
+    const crackLine = document.querySelector('.ledger-crack-line');
+    if (!crackLine) return;
+    
+    // Remove all stage classes
+    crackLine.classList.remove('stage-1', 'stage-2', 'stage-3');
+    
+    // Add appropriate stage
+    if (stage >= 1) crackLine.classList.add('stage-1');
+    if (stage >= 2) crackLine.classList.add('stage-2');
+    if (stage >= 3) {
+        crackLine.classList.add('stage-3');
+        // At stage 3, also show the tab as "cracking"
+        document.querySelector('.ledger-subtab-secret')?.classList.add('cracking');
+    }
+    
+    console.log(`[The Tribunal] Crack stage: ${stage}`);
+}
+
+/**
+ * Update badge info from profile
+ */
+export function updateBadgeInfo(profile = {}) {
+    const nameEl = document.getElementById('badge-name');
+    const rankEl = document.getElementById('badge-rank');
+    const numberEl = document.getElementById('badge-number');
+    const perfsEl = document.getElementById('badge-perforations');
+    
+    if (nameEl) nameEl.textContent = profile.name || 'NAME UNKNOWN';
+    if (rankEl) rankEl.textContent = profile.rank || 'RANK UNKNOWN';
+    if (numberEl) numberEl.textContent = profile.badgeNumber || 'LTN-????';
+    
+    // Update perforation dots based on sessions
+    if (perfsEl && typeof profile.sessions === 'number') {
+        const filled = Math.min(profile.sessions, 10);
+        const empty = 10 - filled;
+        perfsEl.textContent = '●'.repeat(filled) + '○'.repeat(empty);
+    }
+}
+
+/**
+ * Update fortune text
+ */
+export function updateFortune(text, source = 'The Damaged Ledger') {
+    const textEl = document.getElementById('compartment-fortune-text');
+    const sourceEl = document.querySelector('.fortune-source');
+    
+    if (textEl) textEl.textContent = text;
+    if (sourceEl) sourceEl.textContent = `— ${source}`;
+}
+
+/**
+ * Update compartment commentary
+ */
+export function updateCommentary(text) {
+    const el = document.getElementById('compartment-commentary');
+    if (el) el.textContent = `"${text}"`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TIME UTILITIES (for future unlock mechanics)
+// ═══════════════════════════════════════════════════════════════
+
+export function isDeepNight() {
+    const hour = new Date().getHours();
+    return hour >= 2 && hour < 6;
+}
+
+export function isWitchingHour() {
+    const now = new Date();
+    return now.getHours() === 3 && now.getMinutes() === 33;
+}
+
+export function getCurrentTimePeriod() {
+    const hour = new Date().getHours();
+    if (hour >= 6 && hour < 12) return 'morning';
+    if (hour >= 12 && hour < 17) return 'afternoon';
+    if (hour >= 17 && hour < 21) return 'evening';
+    if (hour >= 21 || hour < 2) return 'late_night';
+    return 'deep_night';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEBUG FUNCTION - Expose globally for testing
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Debug: Force reveal compartment
+ * Usage in browser console: TribunalDebug.revealCompartment()
+ */
+export function debugRevealCompartment() {
+    updateCrackStage(3);
+    setTimeout(() => revealCompartment(), 500);
+    console.log('[The Tribunal] Debug: Compartment force revealed');
+}
+
+// Expose debug functions globally
+if (typeof window !== 'undefined') {
+    window.TribunalDebug = window.TribunalDebug || {};
+    window.TribunalDebug.revealCompartment = debugRevealCompartment;
+    window.TribunalDebug.updateCrackStage = updateCrackStage;
+    window.TribunalDebug.updateFortune = updateFortune;
+    window.TribunalDebug.updateBadge = updateBadgeInfo;
+}
