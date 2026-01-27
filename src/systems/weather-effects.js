@@ -2,7 +2,10 @@
  * Weather Effects Module - The Tribunal
  * Clean CSS-class based implementation
  * 
- * FIXED: setWeather now handles object format from settings panel
+ * v4.5.0 - FIXED: 
+ *   - setWeather handles object format from settings panel
+ *   - Higher z-index (10) so effects show above chat background
+ *   - Added debug mode toggle
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -10,10 +13,11 @@
 // ═══════════════════════════════════════════════════════════════
 
 let effectsEnabled = true;
-let currentWeather = 'clear';
-let currentPeriod = 'day';
+let currentWeather = null;
+let currentPeriod = null;
 let currentSpecial = null;
 let effectIntensity = 'medium';
+let debugMode = false;
 
 // Particle counts - MOBILE OPTIMIZED (reduced for performance)
 const PARTICLE_COUNTS = {
@@ -32,15 +36,22 @@ function getParticleCount(type) {
 
 const WEATHER_CSS = `
 /* Base layer - applies to all effects */
+/* z-index 10 to appear above chat backgrounds but below modals */
 .tribunal-weather-layer {
     position: fixed !important;
     top: 0 !important;
     left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
+    width: 100vw !important;
+    height: 100vh !important;
     pointer-events: none !important;
     overflow: hidden !important;
-    z-index: 1 !important;
+    z-index: 10 !important;
+}
+
+/* Debug mode - red border to show layer bounds */
+.tribunal-weather-layer.debug-mode {
+    border: 3px solid red !important;
+    background: rgba(255, 0, 0, 0.05) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════ */
@@ -52,6 +63,7 @@ const WEATHER_CSS = `
     text-shadow: 0 0 8px rgba(255,255,255,0.8);
     animation: snowfall linear infinite;
     will-change: transform, opacity;
+    pointer-events: none;
 }
 @keyframes snowfall {
     0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
@@ -106,10 +118,10 @@ const WEATHER_CSS = `
     animation: windstreak linear infinite;
 }
 @keyframes windstreak {
-    0% { transform: translateX(0); opacity: 0; }
+    0% { transform: translateX(-200px); opacity: 0; }
     10% { opacity: 0.6; }
     90% { opacity: 0.4; }
-    100% { transform: translateX(calc(100vw + 200px)); opacity: 0; }
+    100% { transform: translateX(100vw); opacity: 0; }
 }
 
 /* ═══════════════════════════════════════════════════════════════ */
@@ -349,7 +361,46 @@ const WEATHER_CSS = `
     0%, 100% { opacity: 0; transform: translateY(0); }
     50% { opacity: 0.6; transform: translateY(-20px); }
 }
+
+/* ═══════════════════════════════════════════════════════════════ */
+/* DEBUG INDICATOR */
+/* ═══════════════════════════════════════════════════════════════ */
+#weather-debug-indicator {
+    position: fixed;
+    top: 5px;
+    left: 5px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #0f0;
+    font-family: monospace;
+    font-size: 10px;
+    z-index: 99999;
+    pointer-events: none;
+    border-radius: 3px;
+}
 `;
+
+// ═══════════════════════════════════════════════════════════════
+// DEBUG HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+function updateDebugIndicator() {
+    let indicator = document.getElementById('weather-debug-indicator');
+    
+    if (!debugMode) {
+        if (indicator) indicator.remove();
+        return;
+    }
+    
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'weather-debug-indicator';
+        document.body.appendChild(indicator);
+    }
+    
+    const layers = document.querySelectorAll('.tribunal-weather-layer').length;
+    indicator.innerHTML = `Weather: ${currentWeather || 'none'}<br>Period: ${currentPeriod || 'none'}<br>Special: ${currentSpecial || 'none'}<br>Layers: ${layers}<br>Enabled: ${effectsEnabled}`;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // EFFECT CREATORS
@@ -359,6 +410,11 @@ function createLayer(effectType) {
     const layer = document.createElement('div');
     layer.className = 'tribunal-weather-layer';
     layer.dataset.effect = effectType;
+    
+    if (debugMode) {
+        layer.classList.add('debug-mode');
+    }
+    
     return layer;
 }
 
@@ -377,6 +433,8 @@ function createSnow() {
         flake.style.animationDelay = `${Math.random() * 10}s`;
         layer.appendChild(flake);
     }
+    
+    console.log(`[WeatherEffects] Created snow with ${count} flakes`);
     return layer;
 }
 
@@ -393,6 +451,8 @@ function createRain() {
         drop.style.animationDelay = `${Math.random() * 2}s`;
         layer.appendChild(drop);
     }
+    
+    console.log(`[WeatherEffects] Created rain with ${count} drops`);
     return layer;
 }
 
@@ -410,6 +470,8 @@ function createFog() {
         mist.style.opacity = `${0.1 + Math.random() * 0.15}`;
         layer.appendChild(mist);
     }
+    
+    console.log(`[WeatherEffects] Created fog with ${count} layers`);
     return layer;
 }
 
@@ -428,6 +490,8 @@ function createWind() {
         streak.style.animationDelay = `${Math.random() * 5}s`;
         layer.appendChild(streak);
     }
+    
+    console.log(`[WeatherEffects] Created wind with ${count} streaks`);
     return layer;
 }
 
@@ -458,6 +522,8 @@ function createDay() {
         dust.style.animationDelay = `${Math.random() * 5}s`;
         layer.appendChild(dust);
     }
+    
+    console.log('[WeatherEffects] Created day effect');
     return layer;
 }
 
@@ -507,6 +573,8 @@ function createCityNight() {
         light.style.animationDelay = `${Math.random() * 4}s`;
         layer.appendChild(light);
     }
+    
+    console.log('[WeatherEffects] Created city-night effect');
     return layer;
 }
 
@@ -550,6 +618,8 @@ function createQuietNight() {
         firefly.style.animationDelay = `${Math.random() * 8}s`;
         layer.appendChild(firefly);
     }
+    
+    console.log('[WeatherEffects] Created quiet-night effect');
     return layer;
 }
 
@@ -581,6 +651,8 @@ function createIndoor() {
         dust.style.animationDelay = `${Math.random() * 10}s`;
         layer.appendChild(dust);
     }
+    
+    console.log('[WeatherEffects] Created indoor effect');
     return layer;
 }
 
@@ -603,6 +675,8 @@ function createHorror() {
         drip.style.animationDelay = `${Math.random() * 8}s`;
         layer.appendChild(drip);
     }
+    
+    console.log('[WeatherEffects] Created horror effect');
     return layer;
 }
 
@@ -645,6 +719,8 @@ function createPale() {
         sym.style.animationDelay = `${Math.random() * 15}s`;
         layer.appendChild(sym);
     }
+    
+    console.log('[WeatherEffects] Created pale effect');
     return layer;
 }
 
@@ -672,32 +748,43 @@ function clearEffects(type = null) {
     } else {
         document.querySelectorAll('.tribunal-weather-layer').forEach(l => l.remove());
     }
+    console.log('[WeatherEffects] Cleared effects:', type || 'all');
 }
 
 function addEffect(type) {
-    console.log('[WeatherEffects] addEffect:', type);
+    console.log('[WeatherEffects] addEffect called with:', type);
+    
+    if (!type || typeof type !== 'string') {
+        console.warn('[WeatherEffects] Invalid effect type:', type);
+        return false;
+    }
     
     const creator = EFFECT_CREATORS[type];
     if (!creator) {
         console.log('[WeatherEffects] No creator for:', type);
-        return;
+        return false;
     }
     
+    // Clear existing effect of same type
     clearEffects(type);
     
     const layer = creator();
     if (layer) {
         document.body.appendChild(layer);
-        console.log('[WeatherEffects] Added to body:', type);
+        console.log('[WeatherEffects] Layer added to body, type:', type, 'z-index:', getComputedStyle(layer).zIndex);
+        return true;
     }
+    
+    return false;
 }
 
 function renderEffects() {
-    console.log('[WeatherEffects] renderEffects - enabled:', effectsEnabled, 
-                'weather:', currentWeather, 'period:', currentPeriod, 'special:', currentSpecial);
+    console.log('[WeatherEffects] renderEffects called');
+    console.log('[WeatherEffects] State:', { effectsEnabled, currentWeather, currentPeriod, currentSpecial });
     
     if (!effectsEnabled) {
         clearEffects();
+        updateDebugIndicator();
         return;
     }
     
@@ -706,6 +793,7 @@ function renderEffects() {
     // Special effect overrides everything
     if (currentSpecial) {
         addEffect(currentSpecial);
+        updateDebugIndicator();
         return;
     }
     
@@ -714,51 +802,58 @@ function renderEffects() {
         addEffect(currentWeather);
     }
     
-    // Period effect
+    // Period effect (can layer with weather)
     if (currentPeriod && currentPeriod !== 'day') {
         addEffect(currentPeriod);
-    } else if (currentPeriod === 'day' && currentWeather === 'clear') {
+    } else if (currentPeriod === 'day' && (!currentWeather || currentWeather === 'clear')) {
         addEffect('day');
     }
+    
+    updateDebugIndicator();
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PUBLIC API - FIXED TO HANDLE OBJECT FORMAT
+// PUBLIC API - HANDLES BOTH STRING AND OBJECT FORMATS
 // ═══════════════════════════════════════════════════════════════
 
 /**
  * Set weather state - handles both string and object formats
- * @param {string|object} weatherOrState - Either a weather string like 'rain' 
- *                                         or an object like { weather: 'rain', period: 'night' }
+ * @param {string|object} weatherOrState - Either 'rain' or { weather: 'rain', period: 'night' }
  */
 export function setWeather(weatherOrState) {
-    console.log('[WeatherEffects] setWeather called with:', weatherOrState);
+    console.log('[WeatherEffects] setWeather called with:', weatherOrState, 'type:', typeof weatherOrState);
     
     // Handle object format from settings panel: { weather, period, special }
-    if (typeof weatherOrState === 'object' && weatherOrState !== null) {
+    if (weatherOrState && typeof weatherOrState === 'object') {
         if ('weather' in weatherOrState) {
-            currentWeather = weatherOrState.weather || 'clear';
+            currentWeather = weatherOrState.weather || null;
         }
         if ('period' in weatherOrState) {
-            currentPeriod = weatherOrState.period || 'day';
+            currentPeriod = weatherOrState.period || null;
         }
         if ('special' in weatherOrState) {
-            currentSpecial = weatherOrState.special;
+            currentSpecial = weatherOrState.special || null;
         }
-    } else {
+        console.log('[WeatherEffects] Parsed object - weather:', currentWeather, 'period:', currentPeriod, 'special:', currentSpecial);
+    } else if (typeof weatherOrState === 'string') {
         // Handle string format: setWeather('rain')
-        currentWeather = weatherOrState || 'clear';
+        currentWeather = weatherOrState || null;
+        console.log('[WeatherEffects] Set weather string:', currentWeather);
+    } else {
+        console.warn('[WeatherEffects] Invalid input to setWeather:', weatherOrState);
     }
     
     renderEffects();
 }
 
 export function setPeriod(period) {
+    console.log('[WeatherEffects] setPeriod:', period);
     currentPeriod = period;
     renderEffects();
 }
 
 export function setSpecialEffect(effect) {
+    console.log('[WeatherEffects] setSpecialEffect:', effect);
     currentSpecial = effect;
     renderEffects();
 }
@@ -766,11 +861,13 @@ export function setSpecialEffect(effect) {
 export function setIntensity(intensity) {
     if (['light', 'medium', 'heavy'].includes(intensity)) {
         effectIntensity = intensity;
+        console.log('[WeatherEffects] setIntensity:', intensity);
         renderEffects();
     }
 }
 
 export function setEnabled(enabled) {
+    console.log('[WeatherEffects] setEnabled:', enabled);
     effectsEnabled = enabled;
     renderEffects();
 }
@@ -781,7 +878,8 @@ export function getState() {
         weather: currentWeather,
         period: currentPeriod,
         special: currentSpecial,
-        intensity: effectIntensity
+        intensity: effectIntensity,
+        debug: debugMode
     };
 }
 
@@ -789,11 +887,13 @@ export function getState() {
 export const getWeatherEffectsState = getState;
 
 export function triggerPale() {
+    console.log('[WeatherEffects] triggerPale');
     setSpecialEffect('pale');
 }
 
 export function exitPale() {
     if (currentSpecial === 'pale') {
+        console.log('[WeatherEffects] exitPale');
         setSpecialEffect(null);
     }
 }
@@ -803,12 +903,14 @@ export function isInPale() {
 }
 
 export function triggerHorror(duration = 15000) {
+    console.log('[WeatherEffects] triggerHorror, duration:', duration);
     setSpecialEffect('horror');
     
     // Auto-clear horror after duration
     if (duration > 0) {
         setTimeout(() => {
             if (currentSpecial === 'horror') {
+                console.log('[WeatherEffects] Horror auto-clear');
                 setSpecialEffect(null);
             }
         }, duration);
@@ -817,8 +919,26 @@ export function triggerHorror(duration = 15000) {
 
 export function exitHorror() {
     if (currentSpecial === 'horror') {
+        console.log('[WeatherEffects] exitHorror');
         setSpecialEffect(null);
     }
+}
+
+// Toggle debug mode
+export function setDebugMode(enabled) {
+    debugMode = enabled;
+    console.log('[WeatherEffects] Debug mode:', enabled);
+    
+    // Update existing layers
+    document.querySelectorAll('.tribunal-weather-layer').forEach(layer => {
+        if (enabled) {
+            layer.classList.add('debug-mode');
+        } else {
+            layer.classList.remove('debug-mode');
+        }
+    });
+    
+    updateDebugIndicator();
 }
 
 // Process message for weather keywords
@@ -856,6 +976,8 @@ export const setEffectsIntensity = setIntensity;
 // ═══════════════════════════════════════════════════════════════
 
 export function initWeatherEffects() {
+    console.log('[WeatherEffects] Initializing...');
+    
     // Inject CSS
     if (!document.getElementById('tribunal-weather-css')) {
         const style = document.createElement('style');
@@ -863,40 +985,64 @@ export function initWeatherEffects() {
         style.textContent = WEATHER_CSS;
         document.head.appendChild(style);
         console.log('[WeatherEffects] CSS injected');
+    } else {
+        console.log('[WeatherEffects] CSS already exists');
     }
     
-    // Add debug indicator
+    // Add init indicator (green dot)
     if (!document.getElementById('weather-init-indicator')) {
         const dot = document.createElement('div');
         dot.id = 'weather-init-indicator';
         dot.style.cssText = 'position:fixed;bottom:5px;left:5px;width:8px;height:8px;background:#0f0;border-radius:50%;z-index:99999;pointer-events:none;';
         document.body.appendChild(dot);
+        console.log('[WeatherEffects] Init indicator added');
     }
     
-    console.log('[WeatherEffects] Initialized');
+    console.log('[WeatherEffects] Initialization complete');
     return true;
 }
 
-// Test function for settings panel
+// Test function for settings panel - DIRECT effect trigger
 export function testEffect(effectType) {
-    console.log('[WeatherEffects] Testing:', effectType);
+    console.log('[WeatherEffects] testEffect called with:', effectType);
     
+    // Ensure CSS is loaded
     if (!document.getElementById('tribunal-weather-css')) {
+        console.log('[WeatherEffects] CSS not found, initializing...');
         initWeatherEffects();
     }
     
+    // Clear everything first
     clearEffects();
+    currentWeather = null;
+    currentPeriod = null;
+    currentSpecial = null;
     
-    if (effectType === 'clear') {
-        return;
+    if (!effectType || effectType === 'clear') {
+        console.log('[WeatherEffects] Cleared all effects');
+        updateDebugIndicator();
+        return true;
     }
     
-    // Handle both direct effect types and categorized input
-    if (EFFECT_CREATORS[effectType]) {
-        addEffect(effectType);
-    } else {
-        console.warn('[WeatherEffects] Unknown effect type:', effectType);
-    }
+    // Directly add the effect
+    const success = addEffect(effectType);
+    console.log('[WeatherEffects] testEffect result:', success);
+    
+    updateDebugIndicator();
+    return success;
+}
+
+// Quick test - call from console: tribunalTestWeather()
+if (typeof window !== 'undefined') {
+    window.tribunalTestWeather = (type = 'snow') => {
+        console.log('[WeatherEffects] Quick test:', type);
+        initWeatherEffects();
+        testEffect(type);
+    };
+    
+    window.tribunalDebugWeather = (enabled = true) => {
+        setDebugMode(enabled);
+    };
 }
 
 export default {
@@ -914,6 +1060,7 @@ export default {
     exitHorror,
     processMessageForWeather,
     testEffect,
+    setDebugMode,
     // Aliases
     getWeatherEffectsState: getState,
     setWeatherState: setWeather,
