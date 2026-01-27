@@ -153,10 +153,9 @@ export const INVENTORY_TAB_HTML = `
                                 <span>108</span>
                             </div>
                             <div class="radio-needle" id="ie-radio-needle" style="left: 50%;"></div>
-                        </div>
-                        
-                        <div class="radio-display-station">
-                            <span class="radio-station-name" id="ie-station-name">DAYBREAK</span>
+                            <div class="radio-dial-station">
+                                <span class="radio-station-name" id="ie-station-name">DAYBREAK</span>
+                            </div>
                         </div>
                     </div>
                     
