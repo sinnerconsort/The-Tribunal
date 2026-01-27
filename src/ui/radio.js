@@ -1,6 +1,7 @@
 /**
- * The Tribunal - FELD MREF Plus+ Radio
- * Ambient soundscape player synced with weather effects
+ * The Tribunal - Slipstream SCA Radio
+ * Tricentennial Electrics ambient soundscape player
+ * Synced with weather effects system
  * 
  * @version 1.0.0
  */

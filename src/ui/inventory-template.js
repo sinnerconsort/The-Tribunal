@@ -128,7 +128,7 @@ export const INVENTORY_TAB_HTML = `
     </div>
     
     <!-- ═══════════════════════════════════════════════════════════════
-         RADIO SUBTAB - FELD MREF Plus+ Ambient Radio
+         RADIO SUBTAB - Slipstream SCA Ambient Radio
          ═══════════════════════════════════════════════════════════════ -->
     <div class="inventory-subcontent radio-subcontent" data-subcontent="radio">
         <div class="ie-radio-section">
@@ -140,7 +140,7 @@ export const INVENTORY_TAB_HTML = `
                     <div class="radio-display">
                         <div class="radio-display-header">
                             <span class="radio-label-fm">FM</span>
-                            <span class="radio-label-brand">FELD MREF PLUS+</span>
+                            <span class="radio-label-brand">Slipstream SCA</span>
                             <span class="radio-label-am">AM</span>
                         </div>
                         
@@ -264,7 +264,7 @@ export const INVENTORY_TAB_HTML = `
                             <div class="radio-on-air-light"></div>
                             <span class="radio-on-air-text">ON AIR</span>
                         </div>
-                        <span class="radio-brand">FELD</span>
+                        <span class="radio-brand">TRICENTENNIAL</span>
                     </div>
                 </div>
             </div>
