@@ -1,363 +1,292 @@
 /**
- * The Tribunal - Weather System Integration
- * Connects to weather-effects.js (visuals)
+ * Weather Integration Module - The Tribunal
+ * Bridges weather-effects.js with SillyTavern events
  * 
- * Handles:
- * - Auto-detection from AI messages
- * - Pale status integration
- * - Time-based period detection
- * - ST event hooks
- * 
- * @version 1.1.0 - Self-contained (no weather-time dependency)
+ * v2.0.0 - Clean rewrite with chat scanning + event emitter
  */
 
+import { getContext } from '../../../../extensions.js';
+import { eventSource, event_types } from '../../../../../script.js';
+
+// Import everything from weather-effects
 import {
     initWeatherEffects,
-    setWeatherState,
+    setWeather,
+    setPeriod,
     setSpecialEffect,
-    processMessageForWeather,
+    setIntensity,
+    setEnabled,
+    getState,
     triggerPale,
     exitPale,
     isInPale,
     triggerHorror,
-    getWeatherEffectsState,
-    setEffectsEnabled,
-    setEffectsIntensity
+    exitHorror,
+    processMessageForWeather,
+    testEffect,
+    getAvailableEffects,
+    onWeatherChange,
+    subscribe
 } from './weather-effects.js';
 
-// Self-contained period helper (no weather-time.js dependency)
-function getWeatherTimeState() {
-    const now = new Date();
-    const hour = now.getHours();
-    
-    let period = 'pale-sun';  // Default daytime
-    if (hour >= 5 && hour < 7) period = 'pale-sun';      // Dawn
-    else if (hour >= 7 && hour < 12) period = 'pale-sun'; // Morning
-    else if (hour >= 12 && hour < 17) period = 'pale-sun'; // Afternoon
-    else if (hour >= 17 && hour < 20) period = 'city-night'; // Evening
-    else if (hour >= 20 || hour < 5) period = 'quiet-night'; // Night
-    
-    return {
-        period,
-        weather: null,
-        location: 'outdoor'
-    };
-}
-
-function formatPeriodForDisplay(periodKey) {
-    if (!periodKey) return 'Unknown';
-    return periodKey
-        .toLowerCase()
-        .split(/[-_]/)
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-}
-
 // ═══════════════════════════════════════════════════════════════
-// STATE & CONFIG
+// STATE
 // ═══════════════════════════════════════════════════════════════
 
-let autoDetectEnabled = true;
-let lastProcessedMessageId = null;
-
-// Settings defaults
-const DEFAULT_SETTINGS = {
+let config = {
     effectsEnabled: true,
     autoDetect: true,
     intensity: 'light',
-    horrorDuration: 30000,  // 30 seconds auto-clear for horror
-    syncWithTimeOfDay: true
+    syncWithTimeOfDay: true,
+    skipEventListeners: false
 };
 
-// ═══════════════════════════════════════════════════════════════
-// PERIOD MAPPING
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Map weather-time period to effects period
- * @param {string} period - Period from weather-time.js
- * @param {Object} options - Additional context
- * @returns {string} Effects period
- */
-function mapPeriodToEffects(period, options = {}) {
-    const { location = 'outdoor' } = options;
-    
-    // Indoor overrides period effects
-    if (location === 'indoor') {
-        return null;  // Indoor uses special effect instead
-    }
-    
-    switch (period) {
-        case 'MORNING':
-        case 'AFTERNOON':
-        case 'LATE_AFTERNOON':
-            return 'day';
-            
-        case 'EVENING':
-        case 'NIGHT':
-        case 'LATE_NIGHT':
-            // Default to city night, can be overridden by keywords
-            return 'city-night';
-            
-        default:
-            return 'day';
-    }
-}
-
-/**
- * Map weather-time weather to effects weather
- * @param {Object} weatherData - Data from weather-time.js
- * @returns {string|null} Effects weather type
- */
-function mapWeatherToEffects(weatherData) {
-    if (!weatherData) return null;
-    
-    const { conditions, description } = weatherData;
-    
-    // Check conditions text
-    const lower = (conditions || description || '').toLowerCase();
-    
-    if (lower.includes('rain') || lower.includes('storm') || lower.includes('drizzle') || lower.includes('shower')) {
-        return 'rain';
-    }
-    if (lower.includes('snow') || lower.includes('blizzard') || lower.includes('flurr')) {
-        return 'snow';
-    }
-    if (lower.includes('fog') || lower.includes('mist') || lower.includes('haz')) {
-        return 'fog';
-    }
-    if (lower.includes('wind') || lower.includes('gust') || lower.includes('breez')) {
-        return 'wind';
-    }
-    if (lower.includes('clear') || lower.includes('sunny') || lower.includes('cloud')) {
-        return 'clear';
-    }
-    
-    return null;
-}
+let initialized = false;
 
 // ═══════════════════════════════════════════════════════════════
-// SYNC WITH WEATHER-TIME DATA
+// CHAT SCANNING
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Sync visual effects with weather-time.js data
- * Called when weather-time state updates
+ * Scan recent chat messages for weather hints
+ * Called on CHAT_CHANGED to set initial weather state
  */
-export function syncWithWeatherTime() {
-    const timeState = getWeatherTimeState();
-    if (!timeState) return;
+function scanChatForWeather(messageCount = 5) {
+    if (!config.autoDetect) return;
     
-    const { period, weather, location } = timeState;
-    
-    // Don't sync if in Pale (Pale overrides everything)
-    if (isInPale()) return;
-    
-    const effectsPeriod = mapPeriodToEffects(period, { location });
-    const effectsWeather = mapWeatherToEffects(weather);
-    
-    // Check if indoor
-    const special = (location === 'indoor') ? 'indoor' : null;
-    
-    setWeatherState({
-        weather: effectsWeather,
-        period: effectsPeriod,
-        special: special
-    });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// MESSAGE PROCESSING
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Process AI message for weather/horror/pale triggers
- * @param {string} messageText - The message content
- * @param {string} messageId - Unique message ID (to prevent double-processing)
- */
-export function processMessage(messageText, messageId = null) {
-    // Prevent double-processing
-    if (messageId && messageId === lastProcessedMessageId) return;
-    if (messageId) lastProcessedMessageId = messageId;
-    
-    if (!autoDetectEnabled) return;
-    
-    // Detect conditions from text
-    const detected = processMessageForWeather(messageText, false);  // Don't apply yet
-    
-    // Handle special cases first
-    if (detected.special === 'pale') {
-        triggerPale();
-        return;  // Pale overrides everything
-    }
-    
-    if (detected.special === 'horror') {
-        triggerHorror(DEFAULT_SETTINGS.horrorDuration);
-        // Horror can layer on top, so continue processing
-        delete detected.special;
-    }
-    
-    // Apply remaining detected conditions
-    if (Object.keys(detected).length > 0) {
-        setWeatherState(detected);
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// PALE STATUS INTEGRATION
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Called when Pale status is applied (from state.js)
- */
-export function onPaleStatusApplied() {
-    triggerPale();
-}
-
-/**
- * Called when Pale status is removed
- */
-export function onPaleStatusRemoved() {
-    exitPale();
-    // Resync with current time/weather
-    syncWithWeatherTime();
-}
-
-/**
- * Check a status object for Pale-like conditions
- * @param {Object} status - Status object from game state
- * @returns {boolean} Whether this indicates Pale state
- */
-export function isPaleStatus(status) {
-    if (!status || !status.name) return false;
-    
-    const paleTriggers = [
-        'pale', 'unconscious', 'passed out', 'fainted', 'blackout',
-        'dissociating', 'dissociation', 'catatonic', 'coma'
-    ];
-    
-    const lower = status.name.toLowerCase();
-    return paleTriggers.some(trigger => lower.includes(trigger));
-}
-
-// ═══════════════════════════════════════════════════════════════
-// ST EVENT HANDLERS
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Hook into SillyTavern events
- * Call this in index.js init
- */
-export function setupWeatherEventListeners() {
     try {
-        const { eventSource, event_types } = SillyTavern.getContext();
+        const ctx = getContext();
+        if (!ctx?.chat?.length) return;
         
-        // Process incoming AI messages
-        eventSource.on(event_types.MESSAGE_RECEIVED, (messageIndex) => {
-            try {
-                const context = SillyTavern.getContext();
-                const message = context.chat?.[messageIndex];
-                
-                if (message && !message.is_user) {
-                    processMessage(message.mes, `msg-${messageIndex}`);
+        const recentMessages = ctx.chat.slice(-messageCount);
+        
+        // Scan oldest to newest so most recent wins
+        for (const msg of recentMessages) {
+            if (msg?.mes) {
+                const result = processMessageForWeather(msg.mes);
+                if (result) {
+                    console.log('[WeatherIntegration] Auto-detected from chat:', result);
                 }
-            } catch (e) {
-                console.warn('[WeatherIntegration] Error processing message:', e);
             }
-        });
-        
-        // Clear effects on chat change (optional - can remove if you want persistence)
-        eventSource.on(event_types.CHAT_CHANGED, () => {
-            // Resync with weather-time
-            syncWithWeatherTime();
-        });
-        
-        console.log('[WeatherIntegration] Event listeners registered');
-        
+        }
     } catch (e) {
-        console.warn('[WeatherIntegration] Could not register ST events:', e);
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// SETTINGS INTEGRATION
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Apply settings from extension settings
- * @param {Object} settings - Settings object
- */
-export function applyWeatherSettings(settings = {}) {
-    const merged = { ...DEFAULT_SETTINGS, ...settings };
-    
-    setEffectsEnabled(merged.effectsEnabled);
-    setEffectsIntensity(merged.intensity);
-    autoDetectEnabled = merged.autoDetect;
-    
-    if (merged.syncWithTimeOfDay) {
-        syncWithWeatherTime();
+        console.warn('[WeatherIntegration] Error scanning chat:', e.message);
     }
 }
 
 /**
- * Get current settings for saving
+ * Process a single new message for weather keywords
  */
-export function getWeatherSettings() {
-    const state = getWeatherEffectsState();
-    return {
-        effectsEnabled: state.enabled,
-        autoDetect: autoDetectEnabled,
-        intensity: state.intensity
-    };
+function processNewMessage(message) {
+    if (!config.autoDetect || !message) return;
+    
+    const result = processMessageForWeather(message);
+    if (result) {
+        console.log('[WeatherIntegration] Detected from new message:', result);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// INITIALIZATION
+// EVENT HANDLERS
+// ═══════════════════════════════════════════════════════════════
+
+function onChatChanged() {
+    console.log('[WeatherIntegration] Chat changed - scanning');
+    setTimeout(() => scanChatForWeather(5), 500);
+}
+
+function onMessageReceived(data) {
+    try {
+        const ctx = getContext();
+        if (!ctx?.chat?.length) return;
+        
+        const lastMessage = ctx.chat[ctx.chat.length - 1];
+        if (lastMessage?.mes) {
+            processNewMessage(lastMessage.mes);
+        }
+    } catch (e) {
+        console.warn('[WeatherIntegration] Error on message:', e.message);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PUBLIC API
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Initialize the complete weather system
- * @param {Object} settings - Optional initial settings
- * @param {boolean} settings.skipEventListeners - Skip ST event registration (if handled externally)
+ * Initialize the weather system
  */
-export function initWeatherSystem(settings = {}) {
-    // Init visual effects
+export function initWeatherSystem(options = {}) {
+    if (initialized) {
+        console.log('[WeatherIntegration] Already initialized');
+        return true;
+    }
+    
+    config = { ...config, ...options };
+    console.log('[WeatherIntegration] Initializing with config:', config);
+    
+    // Initialize CSS and effects
     initWeatherEffects();
     
     // Apply settings
-    applyWeatherSettings(settings);
+    setEnabled(config.effectsEnabled);
+    setIntensity(config.intensity);
     
-    // Setup ST event hooks (unless handled externally)
-    if (!settings.skipEventListeners) {
-        setupWeatherEventListeners();
+    // Register event listeners
+    if (!config.skipEventListeners) {
+        if (event_types.CHAT_CHANGED) {
+            eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
+        }
+        if (event_types.MESSAGE_RECEIVED) {
+            eventSource.on(event_types.MESSAGE_RECEIVED, onMessageReceived);
+        }
     }
     
-    // Initial sync with weather-time
-    syncWithWeatherTime();
+    // Initial scan
+    setTimeout(() => {
+        const ctx = getContext();
+        if (ctx?.chat?.length > 0) {
+            scanChatForWeather(5);
+        }
+    }, 1000);
     
-    console.log('[WeatherIntegration] Weather system initialized');
+    initialized = true;
+    console.log('[WeatherIntegration] Initialization complete');
+    return true;
+}
+
+/**
+ * Set weather state (wrapper for index.js)
+ */
+export function setWeatherState(weatherOrState) {
+    return setWeather(weatherOrState);
+}
+
+/**
+ * Set effects enabled
+ */
+export function setEffectsEnabled(enabled) {
+    config.effectsEnabled = enabled;
+    return setEnabled(enabled);
+}
+
+/**
+ * Set effects intensity
+ */
+export function setEffectsIntensity(intensity) {
+    config.intensity = intensity;
+    return setIntensity(intensity);
+}
+
+/**
+ * Enable/disable auto-detection
+ */
+export function setAutoDetect(enabled) {
+    config.autoDetect = enabled;
+}
+
+/**
+ * Manual chat scan trigger
+ */
+export function rescanChat() {
+    scanChatForWeather(10);
+}
+
+/**
+ * Get debug info
+ */
+export function debugWeather() {
+    const state = getState();
+    const available = getAvailableEffects();
+    return {
+        config,
+        state,
+        available,
+        initialized
+    };
+}
+
+/**
+ * Process a message (for external callers)
+ */
+export function processMessage(message) {
+    return processMessageForWeather(message);
+}
+
+/**
+ * Sync weather with watch time
+ */
+export function syncWithWeatherTime(watchState) {
+    if (!watchState?.time) return;
+    
+    const hour = parseInt(watchState.time.split(':')[0], 10);
+    if (isNaN(hour)) return;
+    
+    const state = getState();
+    // Only set period if no weather/special active
+    if (!state.weather && !state.special) {
+        if (hour >= 6 && hour < 18) {
+            setPeriod('day');
+        } else if (hour >= 22 || hour < 5) {
+            setPeriod('quiet-night');
+        } else {
+            setPeriod('city-night');
+        }
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// EXPORTS FOR MANUAL CONTROL
+// RE-EXPORTS - Everything index.js and radio might need
 // ═══════════════════════════════════════════════════════════════
 
 export {
-    // Re-export from weather-effects for convenience
+    // Core functions
+    setWeather,
+    setPeriod,
+    setSpecialEffect,
+    setIntensity,
+    setEnabled,
+    getState,
+    
+    // Special effects
+    triggerPale,
+    exitPale,
+    isInPale,
+    triggerHorror,
+    exitHorror,
+    
+    // Utilities
+    testEffect,
+    getAvailableEffects,
+    
+    // Event system for Radio
+    onWeatherChange,
+    subscribe
+};
+
+export default {
+    initWeatherSystem,
     setWeatherState,
+    setEffectsEnabled,
+    setEffectsIntensity,
+    setAutoDetect,
+    rescanChat,
+    debugWeather,
+    processMessage,
+    syncWithWeatherTime,
+    // Direct exports
+    setWeather,
+    setPeriod,
     setSpecialEffect,
     triggerPale,
     exitPale,
-    triggerHorror,
     isInPale,
-    getWeatherEffectsState,
-    setEffectsEnabled,
-    setEffectsIntensity
+    triggerHorror,
+    exitHorror,
+    getState,
+    testEffect,
+    getAvailableEffects,
+    // Event system
+    onWeatherChange,
+    subscribe
 };
-
-// Debug helpers
-export function debugWeather() {
-    console.log('Weather Effects State:', getWeatherEffectsState());
-    console.log('Weather Time State:', getWeatherTimeState());
-    console.log('Auto-detect enabled:', autoDetectEnabled);
-}
