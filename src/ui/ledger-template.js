@@ -11,11 +11,6 @@ export const LEDGER_TAB_HTML = `
         <button class="ledger-subtab ledger-subtab-active" data-ledger-tab="cases">CASES</button>
         <button class="ledger-subtab" data-ledger-tab="map">MAP</button>
         <button class="ledger-subtab ledger-subtab-secret" data-ledger-tab="compartment">???</button>
-        
-        <!-- Crack overlay - appears as compartment is discovered -->
-        <div class="ledger-crack-overlay">
-            <div class="ledger-crack-line"></div>
-        </div>
     </div>
     
     <!-- CASES sub-content - Notebook paper -->
