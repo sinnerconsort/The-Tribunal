@@ -333,6 +333,36 @@
 }
 
 /* Visualizer bars */
+/* EQ Container */
+.radio-eq {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 3px;
+    height: 50px;
+    position: relative;
+    z-index: 2;
+}
+
+/* EQ Bars */
+.radio-eq-bar {
+    width: 6px;
+    border-radius: 3px;
+    transition: height 0.1s ease-out, background 0.3s;
+    background: linear-gradient(180deg, #3a2a20 0%, #2a1a10 100%);
+    height: 100%;
+}
+
+.tribunal-radio.is-playing .radio-eq-bar {
+    background: linear-gradient(180deg, 
+        var(--radio-playing) 0%, 
+        #22c55e 50%, 
+        #166534 100%
+    );
+    box-shadow: 0 0 4px rgba(74, 222, 128, 0.3);
+}
+
+/* Legacy visualizer support */
 .radio-visualizer {
     display: flex;
     align-items: flex-end;
@@ -358,6 +388,16 @@
         #166534 100%
     );
     box-shadow: 0 0 4px rgba(74, 222, 128, 0.3);
+}
+
+/* Station panel styling */
+.radio-station-panel {
+    max-height: 200px;
+    overflow-y: auto;
+    margin: 0 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-left: 2px solid #8b7355;
+    border-right: 2px solid #8b7355;
 }
 
 /* ═══════════════════════════════════════════════════════════════
