@@ -181,9 +181,8 @@
     position: relative;
     background: linear-gradient(180deg, #1a1412 0%, #0a0806 100%);
     border-radius: 4px;
-    padding: 8px 10px;
-    margin-bottom: 8px;
-    min-height: 50px;
+    padding: 8px 10px 4px 10px;
+    min-height: 70px;  /* Increased for station name */
 }
 
 .radio-dial-markers {
@@ -219,14 +218,29 @@
     border-top: 6px solid var(--radio-needle);
 }
 
-/* Station name display */
+/* Station name display - now inside the dial */
 .radio-display-station {
-    text-align: center;
-    padding: 4px;
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 2px;
+    display: none;  /* Hide the old cream section */
 }
 
+/* Station name shown in dial area */
+.radio-dial-station {
+    text-align: center;
+    padding: 8px 4px 4px 4px;
+    margin-top: 4px;
+}
+
+.radio-dial-station .radio-station-name,
+.radio-dial .radio-station-name {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--radio-display);
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    text-shadow: 0 0 8px rgba(245, 230, 200, 0.3);
+}
+
+/* Legacy support for old station name element */
 .radio-station-name {
     font-size: 0.8rem;
     font-weight: 700;
@@ -393,31 +407,39 @@
     box-shadow: 0 0 4px rgba(74, 222, 128, 0.3);
 }
 
-/* Station panel styling - with grate texture like speaker */
+/* Station panel styling with scrolling grate */
 .radio-station-panel {
     max-height: 200px;
     overflow-y: auto;
     margin: 0 12px;
-    background: #1a1412;
     border-left: 2px solid #8b7355;
     border-right: 2px solid #8b7355;
     position: relative;
+    /* Grate overlaid on background */
+    background: 
+        repeating-linear-gradient(
+            0deg,
+            transparent 0px,
+            transparent 3px,
+            rgba(0, 0, 0, 0.35) 3px,
+            rgba(0, 0, 0, 0.35) 5px
+        ),
+        #1a1412;
+    background-attachment: local;  /* Scrolls with content */
 }
 
-/* Horizontal grate lines over station list */
-.radio-station-panel::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: repeating-linear-gradient(
-        0deg,
-        transparent 0px,
-        transparent 3px,
-        rgba(0, 0, 0, 0.3) 3px,
-        rgba(0, 0, 0, 0.3) 5px
-    );
-    z-index: 1;
+/* Station items - no conflicting backgrounds */
+.radio-station-panel .radio-station-item {
+    background: transparent;
+}
+
+.radio-station-panel .radio-station-item:hover {
+    background: rgba(212, 165, 116, 0.12);
+}
+
+.radio-station-panel .radio-station-item.active {
+    background: rgba(212, 165, 116, 0.2);
+    border: 1px solid rgba(212, 165, 116, 0.3);
 }
 
 /* ═══════════════════════════════════════════════════════════════
