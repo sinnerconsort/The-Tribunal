@@ -12,6 +12,9 @@ export const LEDGER_TAB_HTML = `
         <button class="ledger-subtab" data-ledger-tab="map">MAP</button>
         <button class="ledger-subtab ledger-subtab-secret" data-ledger-tab="compartment">???</button>
         
+        <!-- Debug button - tap to reveal compartment (remove in production) -->
+        <button class="ledger-debug-btn" id="ledger-debug-reveal" title="Debug: Reveal compartment">⚙</button>
+        
         <!-- Crack overlay - appears as compartment is discovered -->
         <div class="ledger-crack-overlay">
             <div class="ledger-crack-line"></div>
@@ -288,6 +291,51 @@ export function getCurrentTimePeriod() {
     if (hour >= 17 && hour < 21) return 'evening';
     if (hour >= 21 || hour < 2) return 'late_night';
     return 'deep_night';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEBUG BUTTON BINDING
+// Call this after the ledger HTML is in the DOM
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Bind the debug button click handler
+ * Call this from panel-helpers.js after ledger is rendered
+ */
+export function bindLedgerDebug() {
+    const debugBtn = document.getElementById('ledger-debug-reveal');
+    if (!debugBtn) return;
+    
+    debugBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        // Toggle: if revealed, hide. If hidden, reveal.
+        const secretTab = document.querySelector('.ledger-subtab-secret');
+        const isRevealed = secretTab?.classList.contains('revealed');
+        
+        if (isRevealed) {
+            // Hide it
+            secretTab?.classList.remove('revealed', 'cracking');
+            document.querySelector('.ledger-subtabs')?.classList.remove('compartment-revealed');
+            document.querySelector('.ledger-crack-line')?.classList.remove('stage-1', 'stage-2', 'stage-3');
+            document.querySelector('[data-ledger-tab="cases"]')?.click();
+            
+            if (typeof toastr !== 'undefined') {
+                toastr.info('Compartment hidden', 'Debug');
+            }
+        } else {
+            // Reveal it
+            updateCrackStage(3);
+            setTimeout(() => {
+                revealCompartment();
+                if (typeof toastr !== 'undefined') {
+                    toastr.success('Compartment revealed!', 'Debug');
+                }
+            }, 300);
+        }
+    });
+    
+    console.log('[The Tribunal] Debug button bound');
 }
 
 // ═══════════════════════════════════════════════════════════════
