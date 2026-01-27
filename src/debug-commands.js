@@ -1,11 +1,9 @@
 /**
  * The Tribunal - Debug Slash Commands
  * For testing compartment on mobile without console access
+ * 
+ * Uses event listener to wait for ST to be ready
  */
-
-// SillyTavern imports for slash commands
-import { SlashCommand, SlashCommandParser } from '../../../slash-commands.js';
-import { SlashCommandArgument, SlashCommandNamedArgument } from '../../../slash-commands/SlashCommandArgument.js';
 
 import { 
     revealCompartment, 
@@ -14,52 +12,53 @@ import {
     updateBadgeInfo 
 } from './ui/ledger-template.js';
 
-// Register slash commands
-function registerDebugCommands() {
+// Wait for SillyTavern to be fully loaded, then register commands
+jQuery(async () => {
+    // Give ST a moment to initialize slash commands
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    if (typeof SlashCommandParser === 'undefined') {
+        console.error('[The Tribunal] SlashCommandParser not available');
+        return;
+    }
+    
     try {
-        // /tribunal-reveal - Reveal the secret compartment
+        // /tribunal-reveal
         SlashCommandParser.addCommandObject(SlashCommand.fromProps({
             name: 'tribunal-reveal',
             callback: () => {
                 updateCrackStage(3);
                 setTimeout(() => revealCompartment(), 500);
-                if (typeof toastr !== 'undefined') {
-                    toastr.success('Secret compartment revealed', 'The Tribunal');
-                }
+                toastr.success('Secret compartment revealed', 'The Tribunal');
                 return '';
             },
             helpString: 'Reveal the secret compartment in the Ledger tab',
         }));
 
-        // /tribunal-crack [stage] - Set crack stage 0-3
+        // /tribunal-crack [stage]
         SlashCommandParser.addCommandObject(SlashCommand.fromProps({
             name: 'tribunal-crack',
             callback: (args, value) => {
                 const stage = parseInt(value) || 0;
-                if (stage < 0 || stage > 3) {
-                    toastr?.warning('Stage must be 0-3', 'The Tribunal');
-                    return '';
-                }
-                updateCrackStage(stage);
-                toastr?.info(`Crack stage set to ${stage}`, 'The Tribunal');
+                updateCrackStage(Math.max(0, Math.min(3, stage)));
+                toastr.info(`Crack stage: ${stage}`, 'The Tribunal');
                 return '';
             },
             unnamedArgumentList: [
                 SlashCommandArgument.fromProps({
                     description: 'Crack stage (0-3)',
-                    isRequired: true,
+                    isRequired: false,
                 }),
             ],
-            helpString: 'Set the compartment crack stage (0=none, 1=hairline, 2=spreading, 3=full)',
+            helpString: 'Set crack stage (0-3)',
         }));
 
-        // /tribunal-fortune [text] - Set fortune text
+        // /tribunal-fortune [text]
         SlashCommandParser.addCommandObject(SlashCommand.fromProps({
             name: 'tribunal-fortune',
             callback: (args, value) => {
-                const text = value || 'The fortune is blank. How fitting.';
-                updateFortune(text, 'The Damaged Ledger');
-                toastr?.info('Fortune updated', 'The Tribunal');
+                updateFortune(value || 'The fortune is blank.', 'The Damaged Ledger');
+                toastr.info('Fortune updated', 'The Tribunal');
                 return '';
             },
             unnamedArgumentList: [
@@ -68,48 +67,10 @@ function registerDebugCommands() {
                     isRequired: false,
                 }),
             ],
-            helpString: 'Set the fortune text in the compartment',
+            helpString: 'Set fortune text',
         }));
 
-        // /tribunal-badge - Set badge info
-        SlashCommandParser.addCommandObject(SlashCommand.fromProps({
-            name: 'tribunal-badge',
-            callback: (args) => {
-                updateBadgeInfo({
-                    name: args.name || 'HARRY DU BOIS',
-                    rank: args.rank || 'LIEUTENANT',
-                    badgeNumber: args.badge || 'LTN-2JFR',
-                    sessions: parseInt(args.sessions) || 5,
-                });
-                toastr?.info('Badge updated', 'The Tribunal');
-                return '';
-            },
-            namedArgumentList: [
-                SlashCommandNamedArgument.fromProps({
-                    name: 'name',
-                    description: 'Officer name',
-                    isRequired: false,
-                }),
-                SlashCommandNamedArgument.fromProps({
-                    name: 'rank',
-                    description: 'Officer rank',
-                    isRequired: false,
-                }),
-                SlashCommandNamedArgument.fromProps({
-                    name: 'badge',
-                    description: 'Badge number',
-                    isRequired: false,
-                }),
-                SlashCommandNamedArgument.fromProps({
-                    name: 'sessions',
-                    description: 'Session count (affects dots)',
-                    isRequired: false,
-                }),
-            ],
-            helpString: 'Set badge info. Usage: /tribunal-badge name="JOHN DOE" rank="SERGEANT" sessions=7',
-        }));
-
-        // /tribunal-hide - Hide the compartment again (for re-testing)
+        // /tribunal-hide
         SlashCommandParser.addCommandObject(SlashCommand.fromProps({
             name: 'tribunal-hide',
             callback: () => {
@@ -121,22 +82,16 @@ function registerDebugCommands() {
                 subtabsContainer?.classList.remove('compartment-revealed');
                 crackLine?.classList.remove('stage-1', 'stage-2', 'stage-3');
                 
-                // Switch back to cases if on compartment
-                const casesTab = document.querySelector('[data-ledger-tab="cases"]');
-                casesTab?.click();
-                
-                toastr?.info('Compartment hidden', 'The Tribunal');
+                document.querySelector('[data-ledger-tab="cases"]')?.click();
+                toastr.info('Compartment hidden', 'The Tribunal');
                 return '';
             },
-            helpString: 'Hide the secret compartment (for re-testing reveal)',
+            helpString: 'Hide the secret compartment',
         }));
 
-        console.log('[The Tribunal] Debug slash commands registered');
+        console.log('[The Tribunal] Debug commands registered: /tribunal-reveal, /tribunal-hide, /tribunal-crack, /tribunal-fortune');
         
     } catch (error) {
-        console.error('[The Tribunal] Failed to register debug commands:', error);
+        console.error('[The Tribunal] Failed to register commands:', error);
     }
-}
-
-// Register immediately - ST should have slash commands ready by extension load time
-registerDebugCommands();
+});
