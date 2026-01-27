@@ -1,7 +1,7 @@
 /**
  * The Tribunal - Settings Tab Template
  * RC-41-CFG Configuration Form
- * v0.4.0 - Full weather effects palette
+ * v0.4.0 - Added Weather Source settings with API integration
  */
 
 export const SETTINGS_TAB_HTML = `
@@ -221,14 +221,6 @@ export const SETTINGS_TAB_HTML = `
                     <em>Visual atmosphere effects behind chat</em>
                 </div>
                 
-                <label class="rcm-checkbox-row">
-                    <input type="checkbox" id="cfg-weather-auto" checked>
-                    <span>Auto-detect from messages</span>
-                </label>
-                <div class="rcm-field-note">
-                    <em>Scan chat for weather/time/mood keywords</em>
-                </div>
-                
                 <div class="rcm-field-row">
                     <label class="rcm-field-label">PARTICLE DENSITY:</label>
                     <select id="cfg-weather-intensity" class="rcm-select">
@@ -238,41 +230,39 @@ export const SETTINGS_TAB_HTML = `
                     </select>
                 </div>
                 
-                <div class="rcm-field-note" style="margin-top: 12px; margin-bottom: 6px;">
-                    <em>☁️ Weather:</em>
-                </div>
-                <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px;">
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="rain">🌧️ Rain</button>
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="snow">❄️ Snow</button>
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="storm" style="background:#252535;border-color:#4a4a6a;">⛈️ Storm</button>
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="fog">🌫️ Fog</button>
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="wind">💨 Wind</button>
+                <div class="rcm-field-note" style="margin-top: 12px; margin-bottom: 8px;">
+                    <em>⚗️ Test Effects:</em>
                 </div>
                 
-                <div class="rcm-field-note" style="margin-bottom: 6px;">
-                    <em>🌊 Ambient:</em>
-                </div>
-                <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px;">
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="waves" style="background:#1a2a3a;border-color:#3a5a7a;">🌊 Waves</button>
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="smoke" style="background:#2a2a2a;border-color:#4a4a4a;">🚬 Smoke</button>
-                </div>
-                
-                <div class="rcm-field-note" style="margin-bottom: 6px;">
-                    <em>🕐 Time of Day:</em>
-                </div>
-                <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px;">
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="day" style="background:#3a3520;border-color:#6a6530;">☀️ Day</button>
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="city-night" style="background:#202040;border-color:#404080;">🌃 City</button>
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="quiet-night" style="background:#102020;border-color:#304040;">🌙 Night</button>
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="indoor" style="background:#302820;border-color:#604830;">🏠 Indoor</button>
-                </div>
-                
-                <div class="rcm-field-note" style="margin-bottom: 6px;">
-                    <em>⚠️ Special:</em>
-                </div>
-                <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px;">
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-special="horror" style="background:#3a2020;border-color:#6a3030;">🔪 Horror</button>
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-special="pale" style="background:#404040;border-color:#606060;">👁️ Pale</button>
+                <div class="rcm-weather-palette">
+                    <div class="rcm-field-note" style="margin-bottom: 4px;"><em>☁️ Weather:</em></div>
+                    <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="rain">🌧️ Rain</button>
+                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="snow">❄️ Snow</button>
+                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="storm">⛈️ Storm</button>
+                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="fog">🌫️ Fog</button>
+                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="wind">💨 Wind</button>
+                    </div>
+                    
+                    <div class="rcm-field-note" style="margin-bottom: 4px;"><em>🌊 Ambient:</em></div>
+                    <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="waves" style="background: #203040;">🌊 Waves</button>
+                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="smoke" style="background: #303030;">🚬 Smoke</button>
+                    </div>
+                    
+                    <div class="rcm-field-note" style="margin-bottom: 4px;"><em>🕐 Time of Day:</em></div>
+                    <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="day" style="background: #5a4a30;">☀️ Day</button>
+                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="city-night" style="background: #202040;">🌃 City</button>
+                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="quiet-night" style="background: #102020;">🌙 Night</button>
+                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="indoor" style="background: #3a3020;">🏠 Indoor</button>
+                    </div>
+                    
+                    <div class="rcm-field-note" style="margin-bottom: 4px;"><em>⚠️ Special:</em></div>
+                    <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
+                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-special="horror" style="background: #3a2020; border-color: #6a3030;">🔪 Horror</button>
+                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-special="pale" style="background: #404040; border-color: #606060;">👁️ Pale</button>
+                    </div>
                 </div>
                 
                 <button id="cfg-weather-clear" class="rcm-btn rcm-btn-secondary" style="width: 100%;">
@@ -281,6 +271,81 @@ export const SETTINGS_TAB_HTML = `
                 
                 <div id="weather-status-display" class="rcm-field-note" style="text-align: center; margin-top: 8px;">
                     <em>Status: checking...</em>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section IX: Weather Source -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">IX. WEATHER SOURCE</div>
+            <div class="rcm-section-content">
+                <div class="rcm-field-note" style="margin-bottom: 10px;">
+                    <em>Where should time & weather come from?</em>
+                </div>
+                
+                <div class="rcm-radio-group" style="margin-bottom: 12px;">
+                    <label class="rcm-radio-row">
+                        <input type="radio" name="cfg-weather-source" id="cfg-weather-source-rp" value="rp" checked>
+                        <span>📖 RP Mode (chat-detected)</span>
+                    </label>
+                    <div class="rcm-field-note" style="margin-left: 24px; margin-bottom: 8px;">
+                        <em>Scans messages for weather keywords</em>
+                    </div>
+                    
+                    <label class="rcm-radio-row">
+                        <input type="radio" name="cfg-weather-source" id="cfg-weather-source-real" value="real">
+                        <span>🌍 Real-World (Open-Meteo API)</span>
+                    </label>
+                    <div class="rcm-field-note" style="margin-left: 24px;">
+                        <em>Your actual local weather & time</em>
+                    </div>
+                </div>
+                
+                <div id="weather-real-options" style="display: none; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px; margin-bottom: 12px;">
+                    <div class="rcm-field-row" style="margin-bottom: 8px;">
+                        <label class="rcm-field-label">📍 LOCATION:</label>
+                        <div style="display: flex; gap: 6px;">
+                            <input type="text" id="cfg-weather-location" class="rcm-input" 
+                                   placeholder="Seattle, WA" style="flex: 1;">
+                            <button id="cfg-weather-auto-location" class="rcm-btn rcm-btn-small" title="Auto-detect from IP">
+                                🎯
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="rcm-field-row" style="margin-bottom: 8px;">
+                        <label class="rcm-field-label">🌡️ UNITS:</label>
+                        <div class="rcm-radio-group-inline" style="display: flex; gap: 16px;">
+                            <label class="rcm-radio-row">
+                                <input type="radio" name="cfg-weather-units" id="cfg-weather-units-f" value="fahrenheit" checked>
+                                <span>°F</span>
+                            </label>
+                            <label class="rcm-radio-row">
+                                <input type="radio" name="cfg-weather-units" id="cfg-weather-units-c" value="celsius">
+                                <span>°C</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div id="weather-current-display" style="text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px; margin-bottom: 8px;">
+                        <div style="font-size: 11px; color: #888; margin-bottom: 4px;">CURRENT CONDITIONS</div>
+                        <div id="weather-current-info" style="font-size: 14px;">
+                            <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+                        </div>
+                        <div id="weather-current-location" style="font-size: 10px; color: #666; margin-top: 4px;"></div>
+                    </div>
+                    
+                    <button id="cfg-weather-refresh" class="rcm-btn rcm-btn-dashed" style="width: 100%;">
+                        🔄 Refresh Weather
+                    </button>
+                </div>
+                
+                <label class="rcm-checkbox-row">
+                    <input type="checkbox" id="cfg-weather-auto" checked>
+                    <span>Auto-detect keywords (RP mode)</span>
+                </label>
+                <div class="rcm-field-note">
+                    <em>Scan chat for weather/horror/pale keywords</em>
                 </div>
             </div>
         </div>

@@ -2,7 +2,7 @@
  * The Tribunal - Settings Handlers
  * Wires the Settings tab inputs to state persistence
  * 
- * @version 4.4.0 - FIXED: Settings actually save now (was creating new object instead of mutating)
+ * @version 5.0.0 - Added Weather Source settings (Real-World API vs RP mode)
  */
 
 import { getSettings, saveSettings } from '../core/state.js';
@@ -50,6 +50,15 @@ const SETTINGS_IDS = {
     themeDecay: 'cfg-theme-decay',
     internalizeDischarge: 'cfg-internalize-discharge',
     
+    // Weather Source (Section IX)
+    weatherSourceRP: 'cfg-weather-source-rp',
+    weatherSourceReal: 'cfg-weather-source-real',
+    weatherLocation: 'cfg-weather-location',
+    weatherAutoLocation: 'cfg-weather-auto-location',
+    weatherUnitsF: 'cfg-weather-units-f',
+    weatherUnitsC: 'cfg-weather-units-c',
+    weatherRefresh: 'cfg-weather-refresh',
+    
     // Actions
     lockPositions: 'cfg-lock-positions',
     saveButton: 'cfg-save-settings',
@@ -91,6 +100,9 @@ export function initSettingsTab() {
     
     // Bind weather test buttons
     bindWeatherTestButtons();
+    
+    // Bind weather source handlers
+    bindWeatherSourceHandlers();
     
     console.log('[Tribunal] Settings handlers initialized');
 }
@@ -287,6 +299,7 @@ export function saveAllSettings() {
     if (!settings.contacts) settings.contacts = {};
     if (!settings.thoughts) settings.thoughts = {};
     if (!settings.ui) settings.ui = {};
+    if (!settings.weather) settings.weather = {};
     
     // FIX: Mutate the existing object instead of creating a new one
     // Connection settings
@@ -782,16 +795,6 @@ function bindWeatherTestButtons() {
         });
     }
     
-    const autoCheckbox = document.getElementById('cfg-weather-auto');
-    if (autoCheckbox) {
-        autoCheckbox.addEventListener('change', () => {
-            const settings = getSettings();
-            if (!settings.weather) settings.weather = {};
-            settings.weather.autoDetect = autoCheckbox.checked;
-            saveSettings();
-        });
-    }
-    
     const intensitySelect = document.getElementById('cfg-weather-intensity');
     if (intensitySelect) {
         intensitySelect.addEventListener('change', () => {
@@ -831,8 +834,302 @@ function updateWeatherStatus(text) {
     }
 }
 
+// ═══════════════════════════════════════════════════════════════
+// WEATHER SOURCE HANDLERS (Section IX)
+// ═══════════════════════════════════════════════════════════════
+
 /**
- * Get current weather settings
+ * Bind weather source section handlers
+ */
+function bindWeatherSourceHandlers() {
+    const sourceRP = document.getElementById(SETTINGS_IDS.weatherSourceRP);
+    const sourceReal = document.getElementById(SETTINGS_IDS.weatherSourceReal);
+    const realOptions = document.getElementById('weather-real-options');
+    const locationInput = document.getElementById(SETTINGS_IDS.weatherLocation);
+    const autoLocationBtn = document.getElementById(SETTINGS_IDS.weatherAutoLocation);
+    const refreshBtn = document.getElementById(SETTINGS_IDS.weatherRefresh);
+    const unitsF = document.getElementById(SETTINGS_IDS.weatherUnitsF);
+    const unitsC = document.getElementById(SETTINGS_IDS.weatherUnitsC);
+    const autoCheckbox = document.getElementById('cfg-weather-auto');
+    
+    if (!sourceRP || !sourceReal) {
+        // Retry if elements not ready
+        setTimeout(bindWeatherSourceHandlers, 500);
+        return;
+    }
+    
+    // Toggle real options visibility
+    function updateRealOptionsVisibility() {
+        if (realOptions) {
+            realOptions.style.display = sourceReal.checked ? 'block' : 'none';
+        }
+        
+        // Update watch mode if available
+        if (window.tribunalSetWatchMode) {
+            window.tribunalSetWatchMode(sourceReal.checked ? 'real' : 'rp');
+        }
+        
+        // Fetch weather if switching to real mode
+        if (sourceReal.checked) {
+            fetchAndDisplayWeather();
+        }
+    }
+    
+    sourceRP.addEventListener('change', () => {
+        updateRealOptionsVisibility();
+        saveWeatherSourceSettings();
+    });
+    
+    sourceReal.addEventListener('change', () => {
+        updateRealOptionsVisibility();
+        saveWeatherSourceSettings();
+    });
+    
+    // Auto-detect location
+    if (autoLocationBtn) {
+        autoLocationBtn.addEventListener('click', async () => {
+            autoLocationBtn.disabled = true;
+            autoLocationBtn.textContent = '⏳';
+            
+            try {
+                const response = await fetch('http://ip-api.com/json/?fields=city,regionName,country');
+                const data = await response.json();
+                
+                if (data.city) {
+                    const location = data.regionName 
+                        ? `${data.city}, ${data.regionName}`
+                        : `${data.city}, ${data.country}`;
+                    
+                    if (locationInput) {
+                        locationInput.value = location;
+                    }
+                    
+                    saveWeatherSourceSettings();
+                    fetchAndDisplayWeather();
+                    
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success(`Location: ${location}`, 'Weather', { timeOut: 2000 });
+                    }
+                }
+            } catch (e) {
+                console.error('[Weather] Location detection failed:', e);
+                if (typeof toastr !== 'undefined') {
+                    toastr.error('Could not detect location', 'Weather');
+                }
+            }
+            
+            autoLocationBtn.disabled = false;
+            autoLocationBtn.textContent = '🎯';
+        });
+    }
+    
+    // Refresh weather button
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            fetchAndDisplayWeather(true);
+        });
+    }
+    
+    // Units toggle
+    if (unitsF) {
+        unitsF.addEventListener('change', () => {
+            saveWeatherSourceSettings();
+            fetchAndDisplayWeather();
+        });
+    }
+    if (unitsC) {
+        unitsC.addEventListener('change', () => {
+            saveWeatherSourceSettings();
+            fetchAndDisplayWeather();
+        });
+    }
+    
+    // Auto-detect checkbox
+    if (autoCheckbox) {
+        autoCheckbox.addEventListener('change', () => {
+            const settings = getSettings();
+            if (!settings.weather) settings.weather = {};
+            settings.weather.autoDetect = autoCheckbox.checked;
+            saveSettings();
+        });
+    }
+    
+    // Location input (save on blur)
+    if (locationInput) {
+        locationInput.addEventListener('blur', () => {
+            saveWeatherSourceSettings();
+        });
+        locationInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                saveWeatherSourceSettings();
+                fetchAndDisplayWeather(true);
+            }
+        });
+    }
+    
+    // Initialize from saved settings
+    loadWeatherSourceSettings();
+    updateRealOptionsVisibility();
+    
+    console.log('[Tribunal] Weather source handlers bound');
+}
+
+/**
+ * Save weather source settings
+ */
+function saveWeatherSourceSettings() {
+    const settings = getSettings();
+    if (!settings) return;
+    
+    if (!settings.weather) settings.weather = {};
+    
+    const sourceReal = document.getElementById(SETTINGS_IDS.weatherSourceReal);
+    const locationInput = document.getElementById(SETTINGS_IDS.weatherLocation);
+    const unitsC = document.getElementById(SETTINGS_IDS.weatherUnitsC);
+    
+    settings.weather.source = sourceReal?.checked ? 'real' : 'rp';
+    settings.weather.location = locationInput?.value || '';
+    settings.weather.units = unitsC?.checked ? 'celsius' : 'fahrenheit';
+    
+    saveSettings();
+}
+
+/**
+ * Load weather source settings into UI
+ */
+function loadWeatherSourceSettings() {
+    const settings = getSettings();
+    if (!settings?.weather) return;
+    
+    const sourceRP = document.getElementById(SETTINGS_IDS.weatherSourceRP);
+    const sourceReal = document.getElementById(SETTINGS_IDS.weatherSourceReal);
+    const locationInput = document.getElementById(SETTINGS_IDS.weatherLocation);
+    const unitsF = document.getElementById(SETTINGS_IDS.weatherUnitsF);
+    const unitsC = document.getElementById(SETTINGS_IDS.weatherUnitsC);
+    const autoCheckbox = document.getElementById('cfg-weather-auto');
+    
+    if (settings.weather.source === 'real') {
+        if (sourceReal) sourceReal.checked = true;
+    } else {
+        if (sourceRP) sourceRP.checked = true;
+    }
+    
+    if (locationInput && settings.weather.location) {
+        locationInput.value = settings.weather.location;
+    }
+    
+    if (settings.weather.units === 'celsius') {
+        if (unitsC) unitsC.checked = true;
+    } else {
+        if (unitsF) unitsF.checked = true;
+    }
+    
+    if (autoCheckbox) {
+        autoCheckbox.checked = settings.weather.autoDetect ?? true;
+    }
+}
+
+/**
+ * Fetch and display current weather from Open-Meteo API
+ */
+async function fetchAndDisplayWeather(forceRefresh = false) {
+    const infoEl = document.getElementById('weather-current-info');
+    const locationEl = document.getElementById('weather-current-location');
+    
+    if (!infoEl) return;
+    
+    infoEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+    
+    try {
+        const settings = getSettings();
+        const useCelsius = settings?.weather?.units === 'celsius';
+        const locationString = settings?.weather?.location || '';
+        
+        // Get coordinates
+        let lat, lon, locationName;
+        
+        if (locationString) {
+            // Geocode the location
+            const geoUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(locationString)}&count=1&language=en&format=json`;
+            const geoResponse = await fetch(geoUrl);
+            const geoData = await geoResponse.json();
+            
+            if (geoData.results?.length > 0) {
+                lat = geoData.results[0].latitude;
+                lon = geoData.results[0].longitude;
+                locationName = `${geoData.results[0].name}, ${geoData.results[0].admin1 || geoData.results[0].country}`;
+            } else {
+                throw new Error('Location not found');
+            }
+        } else {
+            // Use IP geolocation
+            const ipResponse = await fetch('http://ip-api.com/json/?fields=lat,lon,city,regionName');
+            const ipData = await ipResponse.json();
+            lat = ipData.lat;
+            lon = ipData.lon;
+            locationName = `${ipData.city}, ${ipData.regionName}`;
+        }
+        
+        // Fetch weather
+        const unit = useCelsius ? 'celsius' : 'fahrenheit';
+        const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code&temperature_unit=${unit}`;
+        const weatherResponse = await fetch(weatherUrl);
+        const weatherData = await weatherResponse.json();
+        
+        const temp = Math.round(weatherData.current.temperature_2m);
+        const code = weatherData.current.weather_code;
+        const condition = getWeatherConditionText(code);
+        const icon = getWeatherIconClass(code);
+        
+        // Display
+        infoEl.innerHTML = `<i class="fa-solid ${icon}"></i> ${condition}, ${temp}°${useCelsius ? 'C' : 'F'}`;
+        if (locationEl) {
+            locationEl.textContent = locationName;
+        }
+        
+        // Update watch if in real mode
+        if (window.tribunalRefreshWeather) {
+            window.tribunalRefreshWeather();
+        }
+        
+    } catch (e) {
+        console.error('[Weather] Fetch failed:', e);
+        infoEl.innerHTML = `<i class="fa-solid fa-exclamation-triangle"></i> ${e.message || 'Failed to fetch'}`;
+    }
+}
+
+/**
+ * Get weather condition text from WMO code
+ */
+function getWeatherConditionText(code) {
+    const conditions = {
+        0: 'Clear', 1: 'Mostly Clear', 2: 'Partly Cloudy', 3: 'Overcast',
+        45: 'Foggy', 48: 'Rime Fog',
+        51: 'Light Drizzle', 53: 'Drizzle', 55: 'Heavy Drizzle',
+        61: 'Light Rain', 63: 'Rain', 65: 'Heavy Rain',
+        71: 'Light Snow', 73: 'Snow', 75: 'Heavy Snow',
+        80: 'Rain Showers', 81: 'Showers', 82: 'Heavy Showers',
+        95: 'Thunderstorm', 96: 'Thunderstorm + Hail', 99: 'Severe Storm'
+    };
+    return conditions[code] || 'Unknown';
+}
+
+/**
+ * Get Font Awesome icon class from WMO code
+ */
+function getWeatherIconClass(code) {
+    if (code === 0 || code === 1) return 'fa-sun';
+    if (code === 2 || code === 3) return 'fa-cloud';
+    if (code === 45 || code === 48) return 'fa-smog';
+    if (code >= 51 && code <= 67) return 'fa-cloud-rain';
+    if (code >= 71 && code <= 77) return 'fa-snowflake';
+    if (code >= 80 && code <= 82) return 'fa-cloud-showers-heavy';
+    if (code >= 95) return 'fa-cloud-bolt';
+    return 'fa-cloud';
+}
+
+/**
+ * Get current weather settings (combined effects + source)
  * @returns {object} Weather settings
  */
 export function getWeatherSettings() {
@@ -840,6 +1137,9 @@ export function getWeatherSettings() {
     return {
         enabled: settings?.weather?.enabled ?? true,
         autoDetect: settings?.weather?.autoDetect ?? true,
-        intensity: settings?.weather?.intensity ?? 'light'
+        intensity: settings?.weather?.intensity || 'light',
+        source: settings?.weather?.source || 'rp',
+        location: settings?.weather?.location || '',
+        units: settings?.weather?.units || 'fahrenheit'
     };
 }
