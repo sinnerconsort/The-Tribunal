@@ -813,3 +813,6 @@ jQuery(async () => {
     }
 });
 
+import { initRadio } from './src/ui/radio.js';
+// In init():
+initRadio();
