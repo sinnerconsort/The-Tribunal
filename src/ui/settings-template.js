@@ -1,7 +1,7 @@
 /**
  * The Tribunal - Settings Tab Template
  * RC-41-CFG Configuration Form
- * v0.3.3 - Added Lock Positions toggle
+ * v0.4.0 - Full weather effects palette
  */
 
 export const SETTINGS_TAB_HTML = `
@@ -226,7 +226,7 @@ export const SETTINGS_TAB_HTML = `
                     <span>Auto-detect from messages</span>
                 </label>
                 <div class="rcm-field-note">
-                    <em>Scan chat for weather/horror/pale keywords</em>
+                    <em>Scan chat for weather/time/mood keywords</em>
                 </div>
                 
                 <div class="rcm-field-row">
@@ -238,22 +238,41 @@ export const SETTINGS_TAB_HTML = `
                     </select>
                 </div>
                 
-                <div class="rcm-field-note" style="margin-top: 12px; margin-bottom: 8px;">
-                    <em>⚗️ Test Effects:</em>
+                <div class="rcm-field-note" style="margin-top: 12px; margin-bottom: 6px;">
+                    <em>☁️ Weather:</em>
                 </div>
-                
-                <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="snow">❄️ Snow</button>
+                <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px;">
                     <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="rain">🌧️ Rain</button>
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="snow">❄️ Snow</button>
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="storm" style="background:#252535;border-color:#4a4a6a;">⛈️ Storm</button>
                     <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="fog">🌫️ Fog</button>
                     <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="wind">💨 Wind</button>
                 </div>
                 
-                <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-special="horror" style="background: #3a2020; border-color: #6a3030;">🔪 Horror</button>
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-special="pale" style="background: #404040; border-color: #606060;">👁️ Pale</button>
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="city-night" style="background: #202040;">🌃 City</button>
-                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="quiet-night" style="background: #102020;">🌙 Night</button>
+                <div class="rcm-field-note" style="margin-bottom: 6px;">
+                    <em>🌊 Ambient:</em>
+                </div>
+                <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px;">
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="waves" style="background:#1a2a3a;border-color:#3a5a7a;">🌊 Waves</button>
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="smoke" style="background:#2a2a2a;border-color:#4a4a4a;">🚬 Smoke</button>
+                </div>
+                
+                <div class="rcm-field-note" style="margin-bottom: 6px;">
+                    <em>🕐 Time of Day:</em>
+                </div>
+                <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px;">
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="day" style="background:#3a3520;border-color:#6a6530;">☀️ Day</button>
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="city-night" style="background:#202040;border-color:#404080;">🌃 City</button>
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="quiet-night" style="background:#102020;border-color:#304040;">🌙 Night</button>
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="indoor" style="background:#302820;border-color:#604830;">🏠 Indoor</button>
+                </div>
+                
+                <div class="rcm-field-note" style="margin-bottom: 6px;">
+                    <em>⚠️ Special:</em>
+                </div>
+                <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px;">
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-special="horror" style="background:#3a2020;border-color:#6a3030;">🔪 Horror</button>
+                    <button class="rcm-btn rcm-btn-small weather-test-btn" data-special="pale" style="background:#404040;border-color:#606060;">👁️ Pale</button>
                 </div>
                 
                 <button id="cfg-weather-clear" class="rcm-btn rcm-btn-secondary" style="width: 100%;">
