@@ -11,6 +11,7 @@
 
 import { getContext } from '../../../extensions.js';
 import { eventSource, event_types } from '../../../../script.js';
+import './src/debug-commands.js';
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - State Management
