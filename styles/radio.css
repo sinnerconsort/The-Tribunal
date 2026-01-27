@@ -1,6 +1,6 @@
 /**
- * The Tribunal - FELD MREF Plus+ Radio
- * Chonky radiocomputer design with FM/AM bands
+ * The Tribunal - Slipstream SCA Radio
+ * Tricentennial Electrics chonky radiocomputer
  * Proper margin-right for FELD DEVICE clearance (matches ledger pattern)
  */
 
@@ -66,17 +66,18 @@
     z-index: 0;
 }
 
-/* Antenna */
+/* Antenna - positioned at top right, extends upward when playing */
 .radio-antenna {
     position: absolute;
-    top: -20px;
+    bottom: calc(100% - 8px);  /* Anchor at top of radio */
     right: 30px;
     width: 4px;
     height: 20px;
     background: linear-gradient(180deg, #888 0%, #666 100%);
     border-radius: 2px 2px 0 0;
-    transition: height 0.3s ease;
-    z-index: 10;
+    transition: height 0.3s ease, bottom 0.3s ease;
+    z-index: 100;  /* Above everything */
+    transform-origin: bottom center;
 }
 
 .radio-antenna::after {
@@ -91,8 +92,10 @@
     border-radius: 50%;
 }
 
+/* When playing - antenna extends upward */
 .tribunal-radio.is-playing .radio-antenna {
-    height: 80px;
+    height: 60px;
+    bottom: calc(100% - 8px);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -104,7 +107,7 @@
     display: flex;
     flex-direction: column;
     border-radius: 8px;
-    overflow: hidden;
+    overflow: visible;  /* Don't clip antenna */
     background: linear-gradient(180deg, #4a3a2a 0%, #3a2a1a 100%);
     z-index: 1;
 }
@@ -390,14 +393,31 @@
     box-shadow: 0 0 4px rgba(74, 222, 128, 0.3);
 }
 
-/* Station panel styling */
+/* Station panel styling - with grate texture like speaker */
 .radio-station-panel {
     max-height: 200px;
     overflow-y: auto;
     margin: 0 12px;
-    background: rgba(0, 0, 0, 0.3);
+    background: #1a1412;
     border-left: 2px solid #8b7355;
     border-right: 2px solid #8b7355;
+    position: relative;
+}
+
+/* Horizontal grate lines over station list */
+.radio-station-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 3px,
+        rgba(0, 0, 0, 0.3) 3px,
+        rgba(0, 0, 0, 0.3) 5px
+    );
+    z-index: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -451,11 +471,12 @@
 }
 
 .radio-brand {
-    font-size: 1.1rem;
+    font-size: 0.75rem;
     font-weight: 700;
-    letter-spacing: 3px;
+    letter-spacing: 2px;
     color: #5a4a3a;
     font-family: var(--ie-font-header, Georgia, serif);
+    text-transform: uppercase;
 }
 
 /* ═══════════════════════════════════════════════════════════════
