@@ -2,7 +2,7 @@
  * The Tribunal - Settings Handlers
  * Wires the Settings tab inputs to state persistence
  * 
- * @version 5.0.0 - Added Weather Source settings (Real-World API vs RP mode)
+ * @version 5.1.0 - Added Debug section handlers + Weather dropdown handlers
  */
 
 import { getSettings, saveSettings } from '../core/state.js';
@@ -59,6 +59,22 @@ const SETTINGS_IDS = {
     weatherUnitsC: 'cfg-weather-units-c',
     weatherRefresh: 'cfg-weather-refresh',
     
+    // Debug (Section X)
+    debugCompartment: 'cfg-debug-compartment',
+    debugCrack: 'cfg-debug-crack',
+    applyCrack: 'cfg-apply-crack',
+    debugStatus: 'debug-status-display',
+    
+    // Weather dropdowns (new)
+    testWeather: 'cfg-test-weather',
+    applyWeather: 'cfg-apply-weather',
+    testAmbient: 'cfg-test-ambient',
+    applyAmbient: 'cfg-apply-ambient',
+    testPeriod: 'cfg-test-period',
+    applyPeriod: 'cfg-apply-period',
+    testSpecial: 'cfg-test-special',
+    applySpecial: 'cfg-apply-special',
+    
     // Actions
     lockPositions: 'cfg-lock-positions',
     saveButton: 'cfg-save-settings',
@@ -98,11 +114,17 @@ export function initSettingsTab() {
     // Use retry logic in case elements aren't ready yet
     bindInputHandlersWithRetry();
     
-    // Bind weather test buttons
+    // Bind weather test buttons (legacy button grid)
     bindWeatherTestButtons();
+    
+    // Bind weather dropdown handlers (new)
+    bindWeatherDropdowns();
     
     // Bind weather source handlers
     bindWeatherSourceHandlers();
+    
+    // Bind debug handlers (Section X)
+    bindDebugHandlers();
     
     console.log('[Tribunal] Settings handlers initialized');
 }
@@ -727,18 +749,133 @@ export function isInvestigationFabEnabled() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// DEBUG HANDLERS (Section X)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Bind debug section handlers
+ */
+function bindDebugHandlers() {
+    const compartmentBtn = document.getElementById(SETTINGS_IDS.debugCompartment);
+    const crackSelect = document.getElementById(SETTINGS_IDS.debugCrack);
+    const applyCrackBtn = document.getElementById(SETTINGS_IDS.applyCrack);
+    const statusDisplay = document.getElementById(SETTINGS_IDS.debugStatus);
+    
+    // Toggle compartment button
+    if (compartmentBtn) {
+        compartmentBtn.addEventListener('click', () => {
+            const secretTab = document.querySelector('.ledger-subtab-secret');
+            const isRevealed = secretTab?.classList.contains('revealed');
+            
+            if (isRevealed) {
+                // Hide it
+                hideCompartment();
+                if (statusDisplay) statusDisplay.innerHTML = '<em>Compartment: Hidden</em>';
+                if (typeof toastr !== 'undefined') {
+                    toastr.info('Compartment hidden', 'Debug');
+                }
+            } else {
+                // Reveal it
+                setCrackStage(3);
+                setTimeout(() => {
+                    revealCompartment();
+                    if (statusDisplay) statusDisplay.innerHTML = '<em>Compartment: Revealed ✓</em>';
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success('Compartment revealed!', 'Debug');
+                    }
+                }, 300);
+            }
+        });
+        console.log('[Tribunal] Debug: Compartment toggle bound');
+    }
+    
+    // Crack stage apply button
+    if (applyCrackBtn && crackSelect) {
+        applyCrackBtn.addEventListener('click', () => {
+            const stage = parseInt(crackSelect.value) || 0;
+            setCrackStage(stage);
+            
+            if (typeof toastr !== 'undefined') {
+                toastr.info(`Crack stage: ${stage}`, 'Debug');
+            }
+        });
+        console.log('[Tribunal] Debug: Crack stage bound');
+    }
+    
+    console.log('[Tribunal] Debug handlers initialized');
+}
+
+/**
+ * Reveal the secret compartment
+ */
+function revealCompartment() {
+    const secretTab = document.querySelector('.ledger-subtab-secret');
+    const subtabsContainer = document.querySelector('.ledger-subtabs');
+    
+    if (secretTab) {
+        secretTab.classList.add('revealed');
+        subtabsContainer?.classList.add('compartment-revealed');
+        console.log('[Tribunal] Compartment revealed');
+    }
+}
+
+/**
+ * Hide the secret compartment
+ */
+function hideCompartment() {
+    const secretTab = document.querySelector('.ledger-subtab-secret');
+    const subtabsContainer = document.querySelector('.ledger-subtabs');
+    const crackLine = document.querySelector('.ledger-crack-line');
+    
+    secretTab?.classList.remove('revealed', 'cracking');
+    subtabsContainer?.classList.remove('compartment-revealed');
+    crackLine?.classList.remove('stage-1', 'stage-2', 'stage-3');
+    
+    // Switch back to cases tab if on compartment
+    const casesTab = document.querySelector('[data-ledger-tab="cases"]');
+    casesTab?.click();
+    
+    console.log('[Tribunal] Compartment hidden');
+}
+
+/**
+ * Set crack stage (0-3)
+ */
+function setCrackStage(stage) {
+    const crackLine = document.querySelector('.ledger-crack-line');
+    if (!crackLine) {
+        console.warn('[Tribunal] .ledger-crack-line not found');
+        return;
+    }
+    
+    // Remove all stage classes
+    crackLine.classList.remove('stage-1', 'stage-2', 'stage-3');
+    
+    // Add appropriate stage
+    if (stage >= 1) crackLine.classList.add('stage-1');
+    if (stage >= 2) crackLine.classList.add('stage-2');
+    if (stage >= 3) {
+        crackLine.classList.add('stage-3');
+        // At stage 3, show the tab as "cracking"
+        document.querySelector('.ledger-subtab-secret')?.classList.add('cracking');
+    }
+    
+    console.log(`[Tribunal] Crack stage: ${stage}`);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // WEATHER EFFECTS HANDLERS
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Bind weather test button handlers
+ * Bind weather test button handlers (legacy button grid)
  * Uses window.tribunal* functions set up by index.js
  */
 function bindWeatherTestButtons() {
     // Retry if elements not ready yet
     const testButtons = document.querySelectorAll('.weather-test-btn');
     if (testButtons.length === 0) {
-        setTimeout(bindWeatherTestButtons, 500);
+        // No buttons found - might be using new dropdown UI, skip silently
         return;
     }
     
@@ -822,6 +959,80 @@ function bindWeatherTestButtons() {
     }, 1000);
     
     console.log('[Tribunal] Weather test buttons bound');
+}
+
+/**
+ * Bind weather dropdown handlers (new dropdown UI)
+ */
+function bindWeatherDropdowns() {
+    // Weather dropdown
+    const weatherSelect = document.getElementById(SETTINGS_IDS.testWeather);
+    const applyWeatherBtn = document.getElementById(SETTINGS_IDS.applyWeather);
+    
+    if (applyWeatherBtn && weatherSelect) {
+        applyWeatherBtn.addEventListener('click', () => {
+            const value = weatherSelect.value;
+            if (value && window.tribunalSetWeather) {
+                window.tribunalSetWeather({ weather: value });
+                updateWeatherStatus(`Weather: ${value}`);
+            } else if (value) {
+                updateWeatherStatus(`Weather: ${value} (system not ready)`);
+            }
+        });
+    }
+    
+    // Ambient dropdown
+    const ambientSelect = document.getElementById(SETTINGS_IDS.testAmbient);
+    const applyAmbientBtn = document.getElementById(SETTINGS_IDS.applyAmbient);
+    
+    if (applyAmbientBtn && ambientSelect) {
+        applyAmbientBtn.addEventListener('click', () => {
+            const value = ambientSelect.value;
+            if (value && window.tribunalSetWeather) {
+                window.tribunalSetWeather({ weather: value });
+                updateWeatherStatus(`Ambient: ${value}`);
+            } else if (value) {
+                updateWeatherStatus(`Ambient: ${value} (system not ready)`);
+            }
+        });
+    }
+    
+    // Time/Period dropdown
+    const periodSelect = document.getElementById(SETTINGS_IDS.testPeriod);
+    const applyPeriodBtn = document.getElementById(SETTINGS_IDS.applyPeriod);
+    
+    if (applyPeriodBtn && periodSelect) {
+        applyPeriodBtn.addEventListener('click', () => {
+            const value = periodSelect.value;
+            if (value && window.tribunalSetWeather) {
+                window.tribunalSetWeather({ period: value });
+                updateWeatherStatus(`Period: ${value}`);
+            } else if (value) {
+                updateWeatherStatus(`Period: ${value} (system not ready)`);
+            }
+        });
+    }
+    
+    // Special dropdown
+    const specialSelect = document.getElementById(SETTINGS_IDS.testSpecial);
+    const applySpecialBtn = document.getElementById(SETTINGS_IDS.applySpecial);
+    
+    if (applySpecialBtn && specialSelect) {
+        applySpecialBtn.addEventListener('click', () => {
+            const value = specialSelect.value;
+            if (value === 'horror' && window.tribunalTriggerHorror) {
+                window.tribunalTriggerHorror(15000);
+                updateWeatherStatus('Horror mode (15s)');
+            } else if (value === 'pale' && window.tribunalTriggerPale) {
+                window.tribunalTriggerPale();
+                updateWeatherStatus('The Pale active');
+            } else if (value) {
+                updateWeatherStatus(`Special: ${value} (system not ready)`);
+            }
+        });
+    }
+    
+    console.log('[Tribunal] Weather dropdown handlers bound');
 }
 
 /**
