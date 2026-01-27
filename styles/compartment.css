@@ -1,0 +1,491 @@
+/**
+ * The Tribunal - Secret Compartment Interior
+ * Styles for dice, fortune wrapper, badge, and commentary
+ * 
+ * ADDITIVE - Import AFTER ledger.css
+ * Base .ledger-compartment styling is in ledger.css
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   SECRET TAB - Hidden/Reveal States
+   ═══════════════════════════════════════════════════════════════ */
+
+.ledger-subtab-secret {
+    opacity: 0;
+    width: 0;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    overflow: hidden;
+    pointer-events: none;
+    transition: all 0.5s ease;
+    color: var(--ie-accent-orange);
+}
+
+/* Cracking state - ghostly appearance */
+.ledger-subtab-secret.cracking {
+    opacity: 0.3;
+    width: auto;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    pointer-events: none;
+    filter: blur(1px);
+}
+
+/* Fully revealed */
+.ledger-subtab-secret.revealed {
+    opacity: 1;
+    width: auto;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    pointer-events: auto;
+    filter: none;
+    animation: secretTabReveal 0.6s ease-out;
+}
+
+@keyframes secretTabReveal {
+    0% { 
+        opacity: 0; 
+        transform: translateY(-4px) scale(0.95); 
+        filter: blur(3px); 
+    }
+    50% { 
+        opacity: 0.7;
+        filter: blur(1px);
+    }
+    100% { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+        filter: blur(0); 
+    }
+}
+
+/* Crack overlay in tab bar */
+.ledger-crack-overlay {
+    position: absolute;
+    right: 80px;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.ledger-crack-line {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2px;
+    height: 0;
+    background: linear-gradient(to bottom, 
+        transparent,
+        rgba(180, 140, 100, 0.4),
+        rgba(212, 165, 116, 0.7),
+        rgba(180, 140, 100, 0.4),
+        transparent
+    );
+    transition: height 0.8s ease;
+    box-shadow: 0 0 4px rgba(212, 165, 116, 0.3);
+}
+
+.ledger-crack-line.stage-1 { 
+    height: 30%; 
+}
+
+.ledger-crack-line.stage-2 { 
+    height: 70%; 
+    box-shadow: 0 0 6px rgba(212, 165, 116, 0.4);
+    width: 3px;
+}
+
+.ledger-crack-line.stage-3 { 
+    height: 100%; 
+    box-shadow: 0 0 10px rgba(212, 165, 116, 0.5);
+    width: 3px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPARTMENT INTERIOR LAYOUT
+   ═══════════════════════════════════════════════════════════════ */
+
+.compartment-interior {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 10px 0;
+}
+
+.compartment-item {
+    position: relative;
+    z-index: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   POLICE DICE
+   ═══════════════════════════════════════════════════════════════ */
+
+.compartment-dice {
+    text-align: center;
+    padding: 15px;
+}
+
+.dice-pair {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.die {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(145deg, #f5f0e6 0%, #e8e0d0 100%);
+    border-radius: 6px;
+    box-shadow: 
+        2px 2px 4px rgba(0, 0, 0, 0.4),
+        inset 1px 1px 2px rgba(255, 255, 255, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transform: rotate(-5deg);
+}
+
+.die:last-child {
+    transform: rotate(8deg);
+}
+
+.die .pip {
+    width: 10px;
+    height: 10px;
+    background: #1a1510;
+    border-radius: 50%;
+    box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Different pip layouts for different values */
+.die.die-one .pip {
+    /* Single center pip - default */
+}
+
+.die.die-six {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 3px;
+    padding: 6px;
+}
+
+.die.die-six .pip {
+    width: 8px;
+    height: 8px;
+}
+
+.dice-label {
+    font-family: var(--ie-font-header);
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    color: rgba(212, 165, 116, 0.7);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.dice-subtext {
+    font-size: 0.55rem;
+    font-style: italic;
+    color: rgba(212, 165, 116, 0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GUM WRAPPER / FORTUNE
+   ═══════════════════════════════════════════════════════════════ */
+
+.compartment-fortune {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.fortune-wrapper {
+    width: 90%;
+    max-width: 280px;
+    background: linear-gradient(135deg, #d4a030 0%, #c49020 50%, #b48018 100%);
+    border-radius: 3px;
+    padding: 10px;
+    box-shadow: 
+        2px 3px 6px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    position: relative;
+}
+
+/* Wrapper crinkle texture */
+.fortune-wrapper::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='crinkle'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23crinkle)'/%3E%3C/svg%3E");
+    opacity: 0.08;
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+.wrapper-brand {
+    font-family: 'Georgia', serif;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #2a1a08;
+    text-align: center;
+    letter-spacing: 3px;
+    text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.wrapper-flavor {
+    font-family: 'Georgia', serif;
+    font-size: 0.6rem;
+    font-style: italic;
+    color: #3a2a10;
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.fortune-paper {
+    background: linear-gradient(to bottom, #f8f4e8 0%, #f0ebe0 100%);
+    border-radius: 2px;
+    padding: 12px;
+    margin-top: 5px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.fortune-text {
+    font-family: 'Georgia', serif;
+    font-size: 0.7rem;
+    line-height: 1.6;
+    color: #2c2416;
+    text-align: center;
+    font-style: italic;
+    min-height: 40px;
+}
+
+.fortune-source {
+    font-size: 0.55rem;
+    color: #6a5a4a;
+    text-align: right;
+    margin-top: 8px;
+}
+
+.fortune-draw-btn {
+    background: rgba(212, 165, 116, 0.15);
+    border: 1px solid rgba(212, 165, 116, 0.3);
+    color: rgba(212, 165, 116, 0.8);
+    padding: 8px 16px;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.fortune-draw-btn:hover {
+    background: rgba(212, 165, 116, 0.25);
+    border-color: rgba(212, 165, 116, 0.5);
+    color: rgba(212, 165, 116, 1);
+}
+
+.fortune-draw-btn i {
+    margin-right: 6px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RCM BADGE
+   ═══════════════════════════════════════════════════════════════ */
+
+.compartment-badge {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0;
+}
+
+.rcm-badge {
+    width: 90%;
+    max-width: 260px;
+    background: linear-gradient(180deg, #1a2a4a 0%, #152040 50%, #0f1830 100%);
+    border: 2px solid #3a4a6a;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 
+        0 4px 8px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    position: relative;
+}
+
+/* Badge wear/scratches */
+.rcm-badge::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='scratch'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23scratch)'/%3E%3C/svg%3E");
+    opacity: 0.05;
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+.badge-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+}
+
+.badge-org {
+    font-family: var(--ie-font-header);
+    font-size: 0.5rem;
+    letter-spacing: 1.5px;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+}
+
+.badge-photo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.photo-placeholder {
+    width: 60px;
+    height: 70px;
+    background: linear-gradient(to bottom, #2a3a5a 0%, #1a2a4a 100%);
+    border: 1px solid #4a5a7a;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 1.5rem;
+}
+
+.badge-info {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.badge-name {
+    font-family: var(--ie-font-header);
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: #e8e0d0;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+}
+
+.badge-rank {
+    font-size: 0.55rem;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.badge-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    color: rgba(212, 165, 116, 0.8);
+    letter-spacing: 1px;
+}
+
+.badge-perforations {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.perf-dots {
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    color: rgba(212, 165, 116, 0.6);
+}
+
+.perf-label {
+    font-size: 0.45rem;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPARTMENT COMMENTARY
+   ═══════════════════════════════════════════════════════════════ */
+
+.compartment-commentary {
+    margin-top: 15px;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border-left: 2px solid rgba(212, 165, 116, 0.4);
+    border-radius: 0 4px 4px 0;
+}
+
+.commentary-text {
+    font-family: 'Georgia', serif;
+    font-size: 0.65rem;
+    font-style: italic;
+    line-height: 1.6;
+    color: rgba(212, 165, 116, 0.7);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPARTMENT RESPONSIVE
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 400px) {
+    .fortune-wrapper {
+        width: 95%;
+    }
+    
+    .rcm-badge {
+        width: 95%;
+    }
+    
+    .die {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .fortune-text {
+        font-size: 0.65rem;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATION - Fortune Draw
+   ═══════════════════════════════════════════════════════════════ */
+
+.fortune-text.drawing {
+    animation: fortuneReveal 0.5s ease-out;
+}
+
+@keyframes fortuneReveal {
+    0% {
+        opacity: 0;
+        filter: blur(4px);
+        transform: translateY(5px);
+    }
+    100% {
+        opacity: 1;
+        filter: blur(0);
+        transform: translateY(0);
+    }
+}
+
+/* Dice roll animation */
+.die.rolling {
+    animation: diceRoll 0.4s ease-out;
+}
+
+@keyframes diceRoll {
+    0% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(90deg) scale(1.1); }
+    50% { transform: rotate(180deg) scale(1); }
+    75% { transform: rotate(270deg) scale(1.1); }
+    100% { transform: rotate(360deg) scale(1); }
+}
