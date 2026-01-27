@@ -21,14 +21,15 @@
     color: var(--ie-accent-orange);
 }
 
-/* Cracking state - ghostly appearance */
+/* Cracking state - ghostly appearance (teaser before full reveal) */
 .ledger-subtab-secret.cracking {
-    opacity: 0.3;
+    opacity: 0.4;
     width: auto;
     padding-left: 12px !important;
     padding-right: 12px !important;
     pointer-events: none;
     filter: blur(1px);
+    color: rgba(212, 165, 116, 0.6);
 }
 
 /* Fully revealed */
@@ -57,51 +58,6 @@
         transform: translateY(0) scale(1); 
         filter: blur(0); 
     }
-}
-
-/* Crack overlay in tab bar */
-.ledger-crack-overlay {
-    position: absolute;
-    right: 80px;
-    top: 0;
-    bottom: 0;
-    width: 6px;
-    pointer-events: none;
-    z-index: 10;
-}
-
-.ledger-crack-line {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 2px;
-    height: 0;
-    background: linear-gradient(to bottom, 
-        transparent,
-        rgba(180, 140, 100, 0.4),
-        rgba(212, 165, 116, 0.7),
-        rgba(180, 140, 100, 0.4),
-        transparent
-    );
-    transition: height 0.8s ease;
-    box-shadow: 0 0 4px rgba(212, 165, 116, 0.3);
-}
-
-.ledger-crack-line.stage-1 { 
-    height: 30%; 
-}
-
-.ledger-crack-line.stage-2 { 
-    height: 70%; 
-    box-shadow: 0 0 6px rgba(212, 165, 116, 0.4);
-    width: 3px;
-}
-
-.ledger-crack-line.stage-3 { 
-    height: 100%; 
-    box-shadow: 0 0 10px rgba(212, 165, 116, 0.5);
-    width: 3px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
