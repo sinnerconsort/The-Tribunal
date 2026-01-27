@@ -1,7 +1,7 @@
 /**
  * The Tribunal - Settings Tab Template
  * RC-41-CFG Configuration Form
- * v0.4.0 - Added Weather Source settings with API integration
+ * v0.5.0 - Added Debug section, converted weather effects to dropdown
  */
 
 export const SETTINGS_TAB_HTML = `
@@ -150,10 +150,10 @@ export const SETTINGS_TAB_HTML = `
             <div class="rcm-section-content">
                 <label class="rcm-checkbox-row">
                     <input type="checkbox" id="cfg-auto-contacts">
-                    <span>Auto-detect NPCs from chat</span>
+                    <span>Auto-detect contacts from chat</span>
                 </label>
                 <div class="rcm-field-note">
-                    <em>Scan messages for new characters</em>
+                    <em>Scan messages for new NPCs and names</em>
                 </div>
                 
                 <label class="rcm-checkbox-row">
@@ -169,43 +169,37 @@ export const SETTINGS_TAB_HTML = `
             <div class="rcm-section-content">
                 <label class="rcm-checkbox-row">
                     <input type="checkbox" id="cfg-auto-thoughts">
-                    <span>Auto-suggest thoughts from themes</span>
+                    <span>Auto-suggest thoughts</span>
                 </label>
                 <div class="rcm-field-note">
-                    <em>When themes spike, suggest generating a thought</em>
+                    <em>Suggest thoughts based on conversation themes</em>
                 </div>
                 
                 <label class="rcm-checkbox-row">
                     <input type="checkbox" id="cfg-auto-generate-thoughts">
-                    <span>Auto-generate (no confirmation)</span>
+                    <span>AI-generate new thoughts</span>
                 </label>
                 <div class="rcm-field-note">
-                    <em>Automatically create thoughts when themes are high</em>
+                    <em>Create custom thoughts via API</em>
                 </div>
                 
-                <div class="rcm-field-row">
-                    <label for="cfg-theme-threshold">Theme spike threshold</label>
-                    <input type="number" id="cfg-theme-threshold" min="3" max="10" value="8" class="rcm-input-small">
-                </div>
-                <div class="rcm-field-note">
-                    <em>How high themes must reach (3-10, default 8)</em>
+                <div class="rcm-field-grid">
+                    <div class="rcm-field-item">
+                        <label class="rcm-field-label">SPIKE THRESHOLD:</label>
+                        <input type="number" id="cfg-theme-threshold" class="rcm-input" 
+                               value="8" min="3" max="20">
+                    </div>
+                    <div class="rcm-field-item">
+                        <label class="rcm-field-label">INTERNALIZE DISCHARGE:</label>
+                        <input type="number" id="cfg-internalize-discharge" class="rcm-input" 
+                               value="5" min="1" max="10">
+                    </div>
                 </div>
                 
                 <label class="rcm-checkbox-row">
                     <input type="checkbox" id="cfg-theme-decay" checked>
                     <span>Enable theme decay</span>
                 </label>
-                <div class="rcm-field-note">
-                    <em>Themes decrease when not reinforced</em>
-                </div>
-                
-                <div class="rcm-field-row">
-                    <label for="cfg-internalize-discharge">Internalize discharge</label>
-                    <input type="number" id="cfg-internalize-discharge" min="1" max="10" value="5" class="rcm-input-small">
-                </div>
-                <div class="rcm-field-note">
-                    <em>Theme reduction when thought completes (1-10)</em>
-                </div>
             </div>
         </div>
         
@@ -215,62 +209,82 @@ export const SETTINGS_TAB_HTML = `
             <div class="rcm-section-content">
                 <label class="rcm-checkbox-row">
                     <input type="checkbox" id="cfg-weather-enabled" checked>
-                    <span>Enable weather effects</span>
+                    <span>Enable weather particles</span>
                 </label>
-                <div class="rcm-field-note">
-                    <em>Visual atmosphere effects behind chat</em>
-                </div>
                 
                 <div class="rcm-field-row">
-                    <label class="rcm-field-label">PARTICLE DENSITY:</label>
+                    <label class="rcm-field-label">INTENSITY:</label>
                     <select id="cfg-weather-intensity" class="rcm-select">
-                        <option value="light" selected>Light (mobile-friendly)</option>
+                        <option value="light">Light (subtle)</option>
                         <option value="medium">Medium</option>
                         <option value="heavy">Heavy (performance impact)</option>
                     </select>
                 </div>
                 
+                <!-- Simplified Test Effects - Dropdowns -->
                 <div class="rcm-field-note" style="margin-top: 12px; margin-bottom: 8px;">
                     <em>⚗️ Test Effects:</em>
                 </div>
                 
-                <div class="rcm-weather-palette">
-                    <div class="rcm-field-note" style="margin-bottom: 4px;"><em>☁️ Weather:</em></div>
-                    <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
-                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="rain">🌧️ Rain</button>
-                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="snow">❄️ Snow</button>
-                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="storm">⛈️ Storm</button>
-                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="fog">🌫️ Fog</button>
-                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="wind">💨 Wind</button>
-                    </div>
-                    
-                    <div class="rcm-field-note" style="margin-bottom: 4px;"><em>🌊 Ambient:</em></div>
-                    <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
-                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="waves" style="background: #203040;">🌊 Waves</button>
-                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-weather="smoke" style="background: #303030;">🚬 Smoke</button>
-                    </div>
-                    
-                    <div class="rcm-field-note" style="margin-bottom: 4px;"><em>🕐 Time of Day:</em></div>
-                    <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
-                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="day" style="background: #5a4a30;">☀️ Day</button>
-                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="city-night" style="background: #202040;">🌃 City</button>
-                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="quiet-night" style="background: #102020;">🌙 Night</button>
-                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-period="indoor" style="background: #3a3020;">🏠 Indoor</button>
-                    </div>
-                    
-                    <div class="rcm-field-note" style="margin-bottom: 4px;"><em>⚠️ Special:</em></div>
-                    <div class="rcm-weather-test-grid" style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;">
-                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-special="horror" style="background: #3a2020; border-color: #6a3030;">🔪 Horror</button>
-                        <button class="rcm-btn rcm-btn-small weather-test-btn" data-special="pale" style="background: #404040; border-color: #606060;">👁️ Pale</button>
+                <div class="rcm-field-row">
+                    <label class="rcm-field-label">WEATHER:</label>
+                    <div style="display: flex; gap: 6px;">
+                        <select id="cfg-test-weather" class="rcm-select" style="flex: 1;">
+                            <option value="">-- None --</option>
+                            <option value="rain">🌧️ Rain</option>
+                            <option value="snow">❄️ Snow</option>
+                            <option value="storm">⛈️ Storm</option>
+                            <option value="fog">🌫️ Fog</option>
+                            <option value="wind">💨 Wind</option>
+                        </select>
+                        <button class="rcm-btn rcm-btn-small" id="cfg-apply-weather" title="Apply">▶</button>
                     </div>
                 </div>
                 
-                <button id="cfg-weather-clear" class="rcm-btn rcm-btn-secondary" style="width: 100%;">
+                <div class="rcm-field-row">
+                    <label class="rcm-field-label">AMBIENT:</label>
+                    <div style="display: flex; gap: 6px;">
+                        <select id="cfg-test-ambient" class="rcm-select" style="flex: 1;">
+                            <option value="">-- None --</option>
+                            <option value="waves">🌊 Waves</option>
+                            <option value="smoke">🚬 Smoke</option>
+                        </select>
+                        <button class="rcm-btn rcm-btn-small" id="cfg-apply-ambient" title="Apply">▶</button>
+                    </div>
+                </div>
+                
+                <div class="rcm-field-row">
+                    <label class="rcm-field-label">TIME/SCENE:</label>
+                    <div style="display: flex; gap: 6px;">
+                        <select id="cfg-test-period" class="rcm-select" style="flex: 1;">
+                            <option value="">-- None --</option>
+                            <option value="day">☀️ Day</option>
+                            <option value="city-night">🌃 City Night</option>
+                            <option value="quiet-night">🌙 Quiet Night</option>
+                            <option value="indoor">🏠 Indoor</option>
+                        </select>
+                        <button class="rcm-btn rcm-btn-small" id="cfg-apply-period" title="Apply">▶</button>
+                    </div>
+                </div>
+                
+                <div class="rcm-field-row">
+                    <label class="rcm-field-label">SPECIAL:</label>
+                    <div style="display: flex; gap: 6px;">
+                        <select id="cfg-test-special" class="rcm-select" style="flex: 1;">
+                            <option value="">-- None --</option>
+                            <option value="horror">🔪 Horror</option>
+                            <option value="pale">👁️ Pale</option>
+                        </select>
+                        <button class="rcm-btn rcm-btn-small" id="cfg-apply-special" title="Apply">▶</button>
+                    </div>
+                </div>
+                
+                <button id="cfg-weather-clear" class="rcm-btn rcm-btn-secondary" style="width: 100%; margin-top: 8px;">
                     ✕ Clear All Effects
                 </button>
                 
                 <div id="weather-status-display" class="rcm-field-note" style="text-align: center; margin-top: 8px;">
-                    <em>Status: checking...</em>
+                    <em>Status: Ready ✓</em>
                 </div>
             </div>
         </div>
@@ -346,6 +360,39 @@ export const SETTINGS_TAB_HTML = `
                 </label>
                 <div class="rcm-field-note">
                     <em>Scan chat for weather/horror/pale keywords</em>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section X: Debug / Testing -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">X. DEBUG / TESTING</div>
+            <div class="rcm-section-content">
+                <div class="rcm-field-note" style="margin-bottom: 10px;">
+                    <em>🔧 Development tools - remove in production</em>
+                </div>
+                
+                <div class="rcm-debug-buttons" style="display: flex; flex-direction: column; gap: 8px;">
+                    <button id="cfg-debug-compartment" class="rcm-btn rcm-btn-dashed">
+                        🔓 Toggle Secret Compartment
+                    </button>
+                    
+                    <div class="rcm-field-row">
+                        <label class="rcm-field-label">CRACK STAGE:</label>
+                        <div style="display: flex; gap: 6px;">
+                            <select id="cfg-debug-crack" class="rcm-select" style="flex: 1;">
+                                <option value="0">0 - Hidden</option>
+                                <option value="1">1 - Hairline</option>
+                                <option value="2">2 - Spreading</option>
+                                <option value="3">3 - Full</option>
+                            </select>
+                            <button class="rcm-btn rcm-btn-small" id="cfg-apply-crack" title="Apply">▶</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="debug-status-display" class="rcm-field-note" style="text-align: center; margin-top: 8px;">
+                    <em>Compartment: Hidden</em>
                 </div>
             </div>
         </div>
