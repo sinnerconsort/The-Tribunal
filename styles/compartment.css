@@ -7,6 +7,34 @@
  */
 
 /* ═══════════════════════════════════════════════════════════════
+   DEBUG BUTTON - Remove in production
+   ═══════════════════════════════════════════════════════════════ */
+
+.ledger-debug-btn {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(212, 165, 116, 0.2);
+    border: 1px solid rgba(212, 165, 116, 0.4);
+    color: rgba(212, 165, 116, 0.8);
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ledger-debug-btn:hover {
+    background: rgba(212, 165, 116, 0.3);
+    color: rgba(212, 165, 116, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════
    SECRET TAB - Hidden/Reveal States
    ═══════════════════════════════════════════════════════════════ */
 
