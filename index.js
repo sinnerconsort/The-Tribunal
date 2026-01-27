@@ -724,6 +724,15 @@ async function init() {
     });
     
     startWatch();
+    
+    // Initialize radio
+    import('./src/ui/radio.js').then(module => {
+        module.initRadio();
+        console.log('[Tribunal] Radio initialized');
+    }).catch(err => {
+        console.warn('[Tribunal] Radio not loaded:', err.message);
+    });
+    
     registerEvents();
     
     eventSource.on(event_types.MESSAGE_RECEIVED, onNewAIMessage);
@@ -812,7 +821,3 @@ jQuery(async () => {
         }
     }
 });
-
-import { initRadio } from './src/ui/radio.js';
-// In init():
-initRadio();
