@@ -104,8 +104,8 @@ export const NEWSPAPER_STRIP_HTML = `
     
     <!-- Date Line -->
     <div class="peripherique-dateline">
-        <span class="issue-number">No. <span id="newspaper-issue">????</span></span>
-        <span class="dateline-location">REVACHOL, <span id="newspaper-date">??? ??, ??</span></span>
+        <span class="issue-number">No. <span id="newspaper-issue">3847</span></span>
+        <span class="dateline-location">REVACHOL, <span id="newspaper-date">JANUARY 28, '51</span></span>
         <span class="paper-price">◉ 1.5</span>
     </div>
     
@@ -134,20 +134,13 @@ export const NEWSPAPER_STRIP_CSS = `
 .peripherique-paper {
     position: relative;
     margin: -10px -12px 12px -12px;
-    background: #2a2520;
+    background-color: #2a2520;
     font-family: 'Times New Roman', Georgia, 'Noto Serif', serif;
     user-select: none;
     border: 3px solid #4a4035;
     box-shadow: 
         0 4px 16px rgba(0,0,0,0.4),
-        inset 0 0 100px rgba(0,0,0,0.3);
-    
-    /* Aged paper texture overlay */
-    background-image: 
-        linear-gradient(180deg, 
-            rgba(42, 37, 32, 0.95) 0%, 
-            rgba(35, 30, 25, 0.98) 100%),
-        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E");
+        inset 0 0 60px rgba(0,0,0,0.4);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -160,7 +153,7 @@ export const NEWSPAPER_STRIP_CSS = `
     align-items: center;
     padding: 8px 12px;
     border-bottom: 1px solid #4a4035;
-    background: linear-gradient(180deg, rgba(50,45,38,0.9) 0%, rgba(42,37,32,0.95) 100%);
+    background: #32302a;
 }
 
 /* Weather Box */
@@ -171,7 +164,7 @@ export const NEWSPAPER_STRIP_CSS = `
     gap: 2px 8px;
     padding: 6px 10px;
     border: 1px solid #5a5045;
-    background: rgba(35, 30, 25, 0.8);
+    background: #252220;
     font-size: 10px;
     line-height: 1.3;
 }
@@ -212,27 +205,27 @@ export const NEWSPAPER_STRIP_CSS = `
 
 /* Masthead */
 .peripherique-masthead {
-    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     padding: 0 15px;
+    white-space: nowrap;
 }
 
 .masthead-bracket {
-    font-size: 20px;
+    font-size: 18px;
     color: #6a5a48;
-    vertical-align: middle;
     font-weight: 300;
 }
 
 .masthead-title {
     font-family: 'Playfair Display', 'Times New Roman', Georgia, serif;
-    font-size: 28px;
+    font-size: 22px;
     font-weight: 400;
-    letter-spacing: 6px;
+    letter-spacing: 4px;
     color: #d4c8b8;
     text-transform: uppercase;
-    text-shadow: 
-        1px 1px 2px rgba(0,0,0,0.5),
-        0 0 20px rgba(180, 160, 130, 0.1);
 }
 
 /* Publication Info */
@@ -256,7 +249,7 @@ export const NEWSPAPER_STRIP_CSS = `
     font-size: 10px;
     color: #9a8a78;
     border-bottom: 2px solid #5a5045;
-    background: rgba(35, 30, 25, 0.6);
+    background: #2d2825;
 }
 
 .issue-number {
@@ -284,9 +277,7 @@ export const NEWSPAPER_STRIP_CSS = `
 .peripherique-shivers {
     padding: 14px 20px 12px;
     text-align: center;
-    background: linear-gradient(180deg, 
-        rgba(35, 30, 25, 0.4) 0%, 
-        rgba(40, 35, 28, 0.6) 100%);
+    background: #2a2520;
     border-bottom: 1px solid #4a4035;
 }
 
@@ -333,7 +324,7 @@ export const NEWSPAPER_STRIP_CSS = `
     letter-spacing: 3px;
     color: #7a6a58;
     text-transform: uppercase;
-    background: linear-gradient(180deg, rgba(40,35,28,0.5) 0%, rgba(35,30,25,0.7) 100%);
+    background: #252220;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -696,8 +687,11 @@ export function initNewspaperStrip() {
     
     mapContent.insertAdjacentHTML('afterbegin', NEWSPAPER_STRIP_HTML);
     
-    connectToWeatherSystem();
-    updateNewspaperFromWatch();
+    // Small delay to ensure DOM is ready
+    setTimeout(() => {
+        connectToWeatherSystem();
+        updateNewspaperFromWatch();
+    }, 50);
     
     console.log('[Périphérique] ✓ Newspaper initialized');
 }
