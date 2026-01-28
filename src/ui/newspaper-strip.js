@@ -384,7 +384,7 @@ export const NEWSPAPER_STRIP_CSS = `
     }
     
     .masthead-title {
-        font-size: 20px;
+        font-size: 12px;
         letter-spacing: 3px;
     }
     
