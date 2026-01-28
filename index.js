@@ -2,7 +2,7 @@
  * The Tribunal - SillyTavern Extension
  * A standalone text based Disco Elysium system
  * 
- * v0.11.0 - Added weather effects system
+ * v0.11.1 - Added ledger voices (drawer dice + fortunes in secret compartment)
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -117,7 +117,7 @@ export { initInvestigation, updateSceneContext, openInvestigation, closeInvestig
 // ═══════════════════════════════════════════════════════════════
 
 const extensionName = 'the-tribunal';
-const extensionVersion = '0.11.0';
+const extensionVersion = '0.11.1';
 
 // ═══════════════════════════════════════════════════════════════
 // CHAT-ONLY FAB VISIBILITY
@@ -731,6 +731,28 @@ async function init() {
         console.log('[Tribunal] Radio initialized');
     }).catch(err => {
         console.warn('[Tribunal] Radio not loaded:', err.message);
+    });
+    
+    // Initialize ledger voices (drawer dice + fortunes in secret compartment)
+    import('./src/systems/ledger-voices.js').then(module => {
+        // Delay init slightly to ensure compartment DOM exists
+        setTimeout(() => {
+            module.initLedgerVoices();
+            console.log('[Tribunal] Ledger voices initialized');
+        }, 1000);
+        
+        // Expose debug helpers
+        window.TribunalLedger = {
+            rollDice: module.rollDrawerDice,
+            drawFortune: module.drawFortune,
+            getDiceStats: module.getDiceStats,
+            getFortuneStats: module.getFortuneStats,
+            getCurrentLuck: module.getCurrentLuckModifier,
+            updateFAB: module.updateFABLuckIndicator,
+            VOICES: module.LEDGER_VOICES
+        };
+    }).catch(err => {
+        console.warn('[Tribunal] Ledger voices not loaded:', err.message);
     });
     
     registerEvents();
