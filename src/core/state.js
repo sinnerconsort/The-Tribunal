@@ -547,9 +547,34 @@ export function setTime(time) {
     saveChatState();
 }
 
+// ═══════════════════════════════════════════════════════════════
+// LOCATIONS
+// ═══════════════════════════════════════════════════════════════
+
 /**
- * Add a location
- * @param {object} location - { id, name, description, discovered }
+ * Get current location
+ * @returns {object|null} Current location object
+ */
+export function getCurrentLocation() {
+    const state = getChatState();
+    return state?.ledger?.currentLocation || null;
+}
+
+/**
+ * Set current location
+ * @param {object|null} location - Location object or null
+ */
+export function setCurrentLocation(location) {
+    const state = getChatState();
+    if (!state) return;
+    
+    state.ledger.currentLocation = location ? { ...location } : null;
+    saveChatState();
+}
+
+/**
+ * Add a new location to discovered locations
+ * @param {object} location - Location object
  */
 export function addLocation(location) {
     const state = getChatState();
@@ -560,10 +585,113 @@ export function addLocation(location) {
     }
     
     // Don't add duplicates
-    if (!state.ledger.locations.find(l => l.id === location.id)) {
-        state.ledger.locations.push(location);
-        saveChatState();
+    if (state.ledger.locations.find(l => l.id === location.id)) {
+        return;
     }
+    
+    state.ledger.locations.push({
+        id: location.id,
+        name: location.name,
+        district: location.district || null,
+        description: location.description || null,
+        visited: location.visited ?? false,
+        events: location.events || [],
+        discovered: location.discovered || new Date().toISOString()
+    });
+    
+    saveChatState();
+}
+
+/**
+ * Update a location
+ * @param {string} id - Location ID
+ * @param {object} updates - Fields to update
+ */
+export function updateLocation(id, updates) {
+    const state = getChatState();
+    if (!state?.ledger?.locations) return;
+    
+    const loc = state.ledger.locations.find(l => l.id === id);
+    if (loc) {
+        Object.assign(loc, updates);
+    }
+    
+    // Also update currentLocation if it matches
+    if (state.ledger.currentLocation?.id === id) {
+        Object.assign(state.ledger.currentLocation, updates);
+    }
+    
+    saveChatState();
+}
+
+/**
+ * Remove a location
+ * @param {string} id - Location ID
+ */
+export function removeLocation(id) {
+    const state = getChatState();
+    if (!state?.ledger?.locations) return;
+    
+    state.ledger.locations = state.ledger.locations.filter(l => l.id !== id);
+    
+    // Clear currentLocation if it was the removed one
+    if (state.ledger.currentLocation?.id === id) {
+        state.ledger.currentLocation = null;
+    }
+    
+    saveChatState();
+}
+
+/**
+ * Add an event to a location
+ * @param {string} locationId - Location ID
+ * @param {object} event - Event object { text, timestamp }
+ */
+export function addLocationEvent(locationId, event) {
+    const state = getChatState();
+    if (!state?.ledger?.locations) return;
+    
+    const loc = state.ledger.locations.find(l => l.id === locationId);
+    if (loc) {
+        if (!loc.events) loc.events = [];
+        loc.events.push({
+            text: event.text,
+            timestamp: event.timestamp || new Date().toISOString()
+        });
+    }
+    
+    // Also update currentLocation if it matches
+    if (state.ledger.currentLocation?.id === locationId) {
+        if (!state.ledger.currentLocation.events) state.ledger.currentLocation.events = [];
+        state.ledger.currentLocation.events.push({
+            text: event.text,
+            timestamp: event.timestamp || new Date().toISOString()
+        });
+    }
+    
+    saveChatState();
+}
+
+/**
+ * Remove an event from a location
+ * @param {string} locationId - Location ID
+ * @param {number} eventIndex - Index of event to remove
+ */
+export function removeLocationEvent(locationId, eventIndex) {
+    const state = getChatState();
+    if (!state?.ledger?.locations) return;
+    
+    const loc = state.ledger.locations.find(l => l.id === locationId);
+    if (loc?.events) {
+        loc.events.splice(eventIndex, 1);
+    }
+    
+    // Also update currentLocation if it matches
+    if (state.ledger.currentLocation?.id === locationId) {
+        state.ledger.currentLocation.events?.splice(eventIndex, 1);
+    }
+    
+    saveChatState();
 }
 
 
