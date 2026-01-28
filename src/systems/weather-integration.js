@@ -518,8 +518,13 @@ const PERIOD_PATTERNS = {
 
 const SPECIAL_PATTERNS = {
     pale: /\b(pale|void|unconscious|dreaming|limbo|between|threshold|nowhere|dissociat)\b/i,
-    horror: /\b(horror|dread|terror|fear|blood|bloody|murder|death|dead|corpse|scream|knife|stab)\b/i
+    // Horror has two tiers - intense words trigger immediately, mild words need 3+ matches
+    horror: null  // Handled specially in scanForKeywords()
 };
+
+// Horror detection - split into intense (instant trigger) vs mild (need multiple)
+const HORROR_INTENSE = /\b(corpse|murder|mutilat|dismember|gore|entrails|viscera|eviscerat)\b/i;
+const HORROR_MILD = /\b(horror|dread|terror|fear|blood|bloody|death|dead|scream|knife|stab|kill|killer)\b/gi;
 
 /**
  * Scan message for weather keywords (fallback when no JSON found)
@@ -527,14 +532,26 @@ const SPECIAL_PATTERNS = {
 function scanForKeywords(message) {
     if (!message || typeof message !== 'string') return null;
     
-    // Check special effects first (highest priority)
-    for (const [effect, pattern] of Object.entries(SPECIAL_PATTERNS)) {
-        if (pattern.test(message)) {
-            return { type: 'special', value: effect };
-        }
+    // Check pale first (highest priority)
+    if (SPECIAL_PATTERNS.pale?.test(message)) {
+        return { type: 'special', value: 'pale' };
     }
     
-    // Check weather patterns
+    // Check horror with tiered detection:
+    // - Intense words trigger immediately
+    // - Mild words need 3+ matches to trigger
+    if (HORROR_INTENSE.test(message)) {
+        console.log('[Weather] Horror triggered by intense keyword');
+        return { type: 'special', value: 'horror' };
+    }
+    
+    const mildMatches = message.match(HORROR_MILD);
+    if (mildMatches && mildMatches.length >= 3) {
+        console.log('[Weather] Horror triggered by', mildMatches.length, 'mild keywords:', mildMatches);
+        return { type: 'special', value: 'horror' };
+    }
+    
+    // Check weather patterns (now gets priority over weak horror signals)
     for (const [weather, pattern] of Object.entries(WEATHER_PATTERNS)) {
         if (pattern.test(message)) {
             return { type: 'weather', value: weather };
