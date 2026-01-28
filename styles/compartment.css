@@ -280,14 +280,16 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
+    flex: 1; /* Take up available space */
+    justify-content: center; /* Center vertically in the flex space */
 }
 
-/* Horizontal envelope container */
+/* Horizontal envelope container - BIGGER */
 .dora-envelope {
     width: 100%;
-    max-width: 220px;
-    height: 70px;
+    max-width: 280px;
+    height: 110px;
     position: relative;
     cursor: pointer;
     transition: transform 0.3s ease;
@@ -302,9 +304,9 @@
     width: 100%;
     height: 100%;
     background: linear-gradient(90deg, #c4b490 0%, #d4c4a0 50%, #c4b490 100%);
-    border-radius: 3px;
+    border-radius: 4px;
     position: relative;
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     overflow: hidden;
 }
 
@@ -324,18 +326,18 @@
     position: absolute;
     top: 0;
     right: 0;
-    width: 40%;
+    width: 35%;
     height: 100%;
-    background: linear-gradient(270deg, rgba(0,0,0,0.06) 0%, transparent 100%);
+    background: linear-gradient(270deg, rgba(0,0,0,0.08) 0%, transparent 100%);
     pointer-events: none;
 }
 
-/* Flap on right side */
+/* Flap on right side - triangle pointing left */
 .envelope-flap {
     position: absolute;
     top: 0;
     right: 0;
-    width: 45px;
+    width: 70px;
     height: 100%;
     background: linear-gradient(90deg, #d4c4a0 0%, #e4d4b0 100%);
     clip-path: polygon(100% 0, 100% 100%, 0 50%);
@@ -348,18 +350,18 @@
 .wax-seal {
     position: absolute;
     top: 50%;
-    left: -12px;
+    left: -18px;
     transform: translateY(-50%);
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
     background: radial-gradient(circle at 35% 35%,
         #a03030 0%, #802020 40%, #601818 70%, #501010 100%
     );
     border-radius: 50%;
     box-shadow: 
-        0 2px 4px rgba(0, 0, 0, 0.4),
-        inset 0 -2px 3px rgba(0, 0, 0, 0.3),
-        inset 0 2px 3px rgba(255, 255, 255, 0.1);
+        0 2px 6px rgba(0, 0, 0, 0.4),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 2px 4px rgba(255, 255, 255, 0.1);
     z-index: 4;
     transition: all 0.3s ease;
 }
@@ -371,7 +373,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
     font-family: 'Georgia', serif;
-    font-size: 12px;
+    font-size: 16px;
     font-weight: bold;
     color: rgba(0, 0, 0, 0.25);
 }
@@ -379,13 +381,13 @@
 /* Letter paper inside - slides out right */
 .letter-paper {
     position: absolute;
-    top: 6px;
-    bottom: 6px;
-    left: 8px;
-    right: 50px;
+    top: 10px;
+    bottom: 10px;
+    left: 12px;
+    right: 75px;
     background: linear-gradient(90deg, #faf6ee 0%, #f4f0e4 100%);
     border-radius: 2px;
-    padding: 8px 10px;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -408,32 +410,32 @@
 
 .dora-envelope.envelope-open .letter-paper {
     opacity: 1;
-    transform: translateX(30px);
+    transform: translateX(40px);
 }
 
-/* Letter text - compact for horizontal */
+/* Letter text - bigger now */
 .letter-text {
     font-family: 'Georgia', serif;
     font-style: italic;
-    font-size: 9px;
+    font-size: 11px;
     color: #2a2420;
-    line-height: 1.4;
+    line-height: 1.5;
     text-align: center;
 }
 
 .letter-signature {
     font-family: 'Courier New', monospace;
-    font-size: 7px;
+    font-size: 8px;
     color: #6a5a4a;
     text-align: right;
-    margin-top: 4px;
+    margin-top: 6px;
 }
 
 /* Label */
 .envelope-label {
     font-family: 'Courier New', monospace;
-    font-size: 7px;
-    color: rgba(212, 165, 116, 0.35);
+    font-size: 8px;
+    color: rgba(212, 165, 116, 0.4);
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -441,20 +443,20 @@
 /* Draw button */
 .draw-fortune-btn {
     font-family: 'Courier New', monospace;
-    font-size: 8px;
-    color: rgba(212, 165, 116, 0.55);
-    background: rgba(212, 165, 116, 0.08);
-    border: 1px dashed rgba(212, 165, 116, 0.25);
-    padding: 5px 12px;
+    font-size: 9px;
+    color: rgba(212, 165, 116, 0.6);
+    background: rgba(212, 165, 116, 0.1);
+    border: 1px dashed rgba(212, 165, 116, 0.3);
+    padding: 6px 14px;
     cursor: pointer;
     transition: all 0.2s;
     border-radius: 2px;
 }
 
 .draw-fortune-btn:hover {
-    background: rgba(212, 165, 116, 0.15);
-    border-color: rgba(212, 165, 116, 0.4);
-    color: rgba(212, 165, 116, 0.75);
+    background: rgba(212, 165, 116, 0.18);
+    border-color: rgba(212, 165, 116, 0.45);
+    color: rgba(212, 165, 116, 0.8);
 }
 
 /* ═══════════════════════════════════════════════════════════════
