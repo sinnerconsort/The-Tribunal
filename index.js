@@ -301,8 +301,8 @@ async function triggerVoiceGeneration(messageText = null, manualTrigger = false)
                 renderVoices(voices, container);
             }
             
-            // Also append to chat if setting enabled
-            if (settings.voices?.appendToChat) {
+            // Append to chat (default: ON unless explicitly disabled)
+            if (settings.voices?.appendToChat !== false) {
                 appendVoicesToChat(voices);
             }
             
