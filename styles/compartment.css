@@ -1,6 +1,6 @@
 /**
  * The Tribunal - Secret Compartment Interior
- * Dice Set Sirens, Gum Wrapper, Fortune Envelope
+ * Dice Set Sirens, Gum Wrapper, Dora's Letter
  * 
  * ADDITIVE - Import AFTER ledger.css
  */
@@ -20,7 +20,6 @@
     color: var(--ie-accent-orange);
 }
 
-/* Cracking state - ghostly teaser */
 .ledger-subtab-secret.cracking {
     opacity: 0.4;
     width: auto;
@@ -31,7 +30,6 @@
     color: rgba(212, 165, 116, 0.6);
 }
 
-/* Fully revealed */
 .ledger-subtab-secret.revealed {
     opacity: 1;
     width: auto;
@@ -43,33 +41,26 @@
 }
 
 @keyframes secretTabReveal {
-    0% { 
-        opacity: 0; 
-        transform: translateY(-4px) scale(0.95); 
-        filter: blur(3px); 
-    }
-    50% { 
-        opacity: 0.7;
-        filter: blur(1px);
-    }
-    100% { 
-        opacity: 1; 
-        transform: translateY(0) scale(1); 
-        filter: blur(0); 
-    }
+    0% { opacity: 0; transform: translateY(-4px) scale(0.95); filter: blur(3px); }
+    50% { opacity: 0.7; filter: blur(1px); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   COMPARTMENT CONTAINER - Match other ledger subcontents
+   COMPARTMENT CONTAINER - MATCH LEDGER-PAPER EXACTLY
    ═══════════════════════════════════════════════════════════════ */
 
 .ledger-compartment {
-    /* CRITICAL: Match the exact constraints of other subcontent areas */
-    padding: 0 !important;
+    /* CRITICAL: Match ledger-paper margins exactly */
+    flex: 1 !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    position: relative;
-    contain: layout paint;
+    margin-left: -12px !important;
+    margin-right: 10px !important; /* Gap from FELD DEVICE */
+    padding-left: 45px !important; /* Room for hole punches */
+    padding-right: 16px !important;
+    padding-top: 20px !important;
+    padding-bottom: 20px !important;
     
     /* Dark leather interior */
     background: 
@@ -78,7 +69,10 @@
             #2a2018 30%, 
             #1f1812 70%, 
             #15120e 100%
-        );
+        ) !important;
+    
+    position: relative;
+    box-sizing: border-box;
 }
 
 /* Leather grain texture */
@@ -87,7 +81,7 @@
     position: absolute;
     inset: 0;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
-    opacity: 0.15;
+    opacity: 0.12;
     pointer-events: none;
     z-index: 0;
 }
@@ -97,73 +91,60 @@
     content: '';
     position: absolute;
     inset: 0;
-    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+    box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.5);
     pointer-events: none;
     z-index: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   INTERIOR LAYOUT - Constrained properly
+   INTERIOR LAYOUT
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-interior {
     position: relative;
     z-index: 2;
-    padding: 20px 16px;
     display: flex;
     flex-direction: column;
     gap: 24px;
-    /* Don't exceed container */
+    min-height: 100%;
     box-sizing: border-box;
-    width: 100%;
 }
 
 /* Top row: Dice left, Wrapper right */
 .compartment-top-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: 12px;
     align-items: center;
     justify-items: center;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DICE SET SIRENS - Icosahedral gems (d20-style polyhedra)
+   DICE SET SIRENS - Icosahedral gems
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-dice {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .dice-pair {
     display: flex;
-    gap: 8px;
+    gap: 6px;
     justify-content: center;
 }
 
-/* Individual icosahedral die - hexagon shape */
 .siren-die {
-    width: 44px;
-    height: 50px;
+    width: 40px;
+    height: 46px;
     position: relative;
-    /* Hexagonal gem shape */
-    clip-path: polygon(
-        50% 0%, 
-        100% 25%, 
-        100% 75%, 
-        50% 100%, 
-        0% 75%, 
-        0% 25%
-    );
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
 
-/* Red die (ruby siren) */
 .siren-die.die-red {
-    background: linear-gradient(
-        135deg,
+    background: linear-gradient(135deg,
         rgba(180, 40, 60, 0.85) 0%,
         rgba(120, 20, 40, 0.9) 30%,
         rgba(200, 60, 80, 0.7) 50%,
@@ -171,15 +152,13 @@
         rgba(140, 30, 50, 0.8) 100%
     );
     box-shadow: 
-        inset 0 0 15px rgba(255, 100, 120, 0.3),
-        inset -4px -4px 12px rgba(0, 0, 0, 0.4),
-        0 3px 8px rgba(0, 0, 0, 0.5);
+        inset 0 0 12px rgba(255, 100, 120, 0.3),
+        inset -3px -3px 10px rgba(0, 0, 0, 0.4),
+        0 3px 6px rgba(0, 0, 0, 0.5);
 }
 
-/* Blue die (sapphire siren) */
 .siren-die.die-blue {
-    background: linear-gradient(
-        135deg,
+    background: linear-gradient(135deg,
         rgba(30, 80, 120, 0.85) 0%,
         rgba(20, 60, 100, 0.9) 30%,
         rgba(60, 120, 160, 0.7) 50%,
@@ -187,73 +166,64 @@
         rgba(40, 90, 130, 0.8) 100%
     );
     box-shadow: 
-        inset 0 0 15px rgba(100, 180, 255, 0.3),
-        inset -4px -4px 12px rgba(0, 0, 0, 0.4),
-        0 3px 8px rgba(0, 0, 0, 0.5);
+        inset 0 0 12px rgba(100, 180, 255, 0.3),
+        inset -3px -3px 10px rgba(0, 0, 0, 0.4),
+        0 3px 6px rgba(0, 0, 0, 0.5);
 }
 
-/* Gem facet shine */
 .siren-die::before {
     content: '';
     position: absolute;
-    top: 8px;
-    left: 10px;
-    width: 12px;
-    height: 6px;
-    background: linear-gradient(
-        135deg,
-        rgba(255, 255, 255, 0.5) 0%,
-        rgba(255, 255, 255, 0.1) 100%
-    );
+    top: 6px;
+    left: 8px;
+    width: 10px;
+    height: 5px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 100%);
     clip-path: polygon(0% 0%, 100% 0%, 70% 100%, 30% 100%);
 }
 
-/* Facet lines overlay */
 .siren-die::after {
     content: '';
     position: absolute;
     inset: 0;
     background: 
         linear-gradient(60deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%),
-        linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.08) 50%, transparent 60%),
-        linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.12) 50%, transparent 60%);
+        linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.08) 50%, transparent 60%);
     pointer-events: none;
 }
 
 .dice-label {
     font-family: 'Courier New', monospace;
-    font-size: 9px;
+    font-size: 8px;
     color: rgba(212, 165, 116, 0.5);
     text-transform: uppercase;
     letter-spacing: 1px;
-    text-align: center;
 }
 
 .dice-flavor {
     font-style: italic;
-    font-size: 8px;
+    font-size: 7px;
     color: rgba(212, 165, 116, 0.35);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   GUM WRAPPER - Foil stick wrapper, partially open
+   GUM WRAPPER
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     position: relative;
 }
 
-/* Floating scent */
 .scent-text {
     position: absolute;
-    top: -16px;
+    top: -14px;
     right: 0;
     font-style: italic;
-    font-size: 9px;
+    font-size: 8px;
     color: rgba(212, 165, 116, 0.25);
     animation: scentFloat 4s ease-in-out infinite;
 }
@@ -264,194 +234,240 @@
 }
 
 .gum-wrapper {
-    width: 80px;
-    height: 28px;
+    width: 70px;
+    height: 24px;
     position: relative;
-    /* Silver foil wrapper */
-    background: linear-gradient(
-        90deg,
-        #a8a8a8 0%,
-        #d8d8d8 15%,
-        #c8c8c8 35%,
-        #e8e8e8 50%,
-        #c8c8c8 65%,
-        #d8d8d8 85%,
-        #a8a8a8 100%
+    background: linear-gradient(90deg,
+        #a8a8a8 0%, #d8d8d8 15%, #c8c8c8 35%,
+        #e8e8e8 50%, #c8c8c8 65%, #d8d8d8 85%, #a8a8a8 100%
     );
     border-radius: 2px;
-    box-shadow: 
-        0 2px 5px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4);
     transform: rotate(-3deg);
 }
 
-/* Crinkle texture */
-.gum-wrapper::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='crinkle'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23crinkle)'/%3E%3C/svg%3E");
-    opacity: 0.08;
-    mix-blend-mode: multiply;
-    border-radius: 2px;
-}
-
-/* Opened end showing gum stick */
 .gum-wrapper::after {
     content: '';
     position: absolute;
-    right: -6px;
-    top: 4px;
-    width: 14px;
-    height: 20px;
-    /* Exposed gum - pale tan with chevron texture hint */
-    background: 
-        repeating-linear-gradient(
-            -45deg,
-            #d8c8b0 0px,
-            #d8c8b0 2px,
-            #e0d0b8 2px,
-            #e0d0b8 4px
-        );
+    right: -5px;
+    top: 3px;
+    width: 12px;
+    height: 18px;
+    background: repeating-linear-gradient(-45deg, #d8c8b0 0px, #d8c8b0 2px, #e0d0b8 2px, #e0d0b8 4px);
     border-radius: 1px;
-    box-shadow: 
-        inset 0 0 3px rgba(0, 0, 0, 0.1),
-        -1px 0 2px rgba(0, 0, 0, 0.15);
+    box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.1), -1px 0 2px rgba(0, 0, 0, 0.15);
 }
 
 .wrapper-flavor {
     font-family: 'Courier New', monospace;
-    font-size: 8px;
+    font-size: 7px;
     color: rgba(212, 165, 116, 0.4);
-    text-align: center;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   FORTUNE ENVELOPE - Manila envelope with fortune slip
+   DORA'S LETTER - Envelope with Wax Seal
    ═══════════════════════════════════════════════════════════════ */
 
-.compartment-envelope {
+.compartment-letter {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 10px;
+    flex: 1;
 }
 
-.fortune-envelope {
+/* The envelope container */
+.dora-envelope {
     width: 100%;
-    max-width: 260px;
-    background: linear-gradient(
-        180deg,
-        #c4a878 0%,
-        #b89860 50%,
-        #a88850 100%
-    );
-    border-radius: 3px;
-    padding: 14px;
+    max-width: 240px;
     position: relative;
-    box-shadow: 
-        0 3px 8px rgba(0, 0, 0, 0.35),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    transition: transform 0.3s ease;
 }
 
-/* Envelope flap (open) */
-.fortune-envelope::before {
-    content: '';
-    position: absolute;
-    top: -10px;
-    left: 12%;
-    right: 12%;
-    height: 20px;
-    background: linear-gradient(
-        180deg,
-        #d4b888 0%,
-        #c4a878 100%
-    );
-    clip-path: polygon(0% 100%, 50% 0%, 100% 100%);
-    transform: rotateX(155deg);
-    transform-origin: bottom;
+.dora-envelope:hover {
+    transform: scale(1.02);
 }
 
-/* Paper texture */
-.fortune-envelope::after {
+/* Envelope body */
+.envelope-body {
+    background: linear-gradient(180deg, #d4c4a0 0%, #c4b490 50%, #b4a480 100%);
+    border-radius: 4px;
+    padding: 0;
+    position: relative;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+    min-height: 100px;
+    overflow: hidden;
+}
+
+/* Paper texture on envelope */
+.envelope-body::before {
     content: '';
     position: absolute;
     inset: 0;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E");
-    opacity: 0.06;
+    opacity: 0.08;
     pointer-events: none;
-    border-radius: 3px;
 }
 
-/* Fortune slip */
-.fortune-slip {
-    background: linear-gradient(
-        180deg,
-        #f8f4e8 0%,
-        #f0ece0 100%
+/* Inner V shadow */
+.envelope-body::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, 
+        rgba(0,0,0,0.08) 0%, 
+        transparent 100%
     );
-    padding: 12px 14px;
+    clip-path: polygon(0 0, 50% 60%, 100% 0);
+    pointer-events: none;
+}
+
+/* Envelope flap - closed state */
+.envelope-flap {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 55px;
+    background: linear-gradient(180deg, #e4d4b0 0%, #d4c4a0 100%);
+    clip-path: polygon(0 0, 50% 100%, 100% 0);
+    transform-origin: top center;
+    transition: transform 0.5s ease;
+    z-index: 3;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Wax seal */
+.wax-seal {
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 36px;
+    background: radial-gradient(circle at 35% 35%,
+        #a03030 0%,
+        #802020 40%,
+        #601818 70%,
+        #501010 100%
+    );
+    border-radius: 50%;
+    box-shadow: 
+        0 2px 6px rgba(0, 0, 0, 0.4),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 2px 4px rgba(255, 255, 255, 0.1);
+    z-index: 4;
+    transition: all 0.3s ease;
+}
+
+/* Seal letter D for Dora */
+.wax-seal::after {
+    content: 'D';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Georgia', serif;
+    font-size: 16px;
+    font-weight: bold;
+    color: rgba(0, 0, 0, 0.3);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Letter inside (the fortune) */
+.letter-paper {
+    background: linear-gradient(180deg, #faf6ee 0%, #f4f0e4 100%);
+    margin: 55px 12px 12px 12px;
+    padding: 14px;
     border-radius: 2px;
     position: relative;
     z-index: 1;
-    box-shadow: 
-        0 1px 3px rgba(0, 0, 0, 0.12),
-        inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+    min-height: 80px;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all 0.4s ease 0.2s;
 }
 
-.fortune-text {
+/* OPEN STATE */
+.dora-envelope.envelope-open .envelope-flap {
+    transform: rotateX(180deg);
+}
+
+.dora-envelope.envelope-open .wax-seal {
+    opacity: 0.3;
+    transform: translateX(-50%) scale(0.8);
+}
+
+.dora-envelope.envelope-open .letter-paper {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Letter text */
+.letter-text {
     font-family: 'Georgia', serif;
     font-style: italic;
-    font-size: 12px;
+    font-size: 11px;
     color: #2a2420;
-    line-height: 1.5;
+    line-height: 1.6;
     text-align: center;
     margin-bottom: 8px;
 }
 
-.fortune-source {
+.letter-signature {
     font-family: 'Courier New', monospace;
     font-size: 9px;
-    color: #6a5a4a;
+    color: #5a5045;
     text-align: right;
 }
 
-/* Draw button */
+/* Label under envelope */
+.envelope-label {
+    font-family: 'Courier New', monospace;
+    font-size: 8px;
+    color: rgba(212, 165, 116, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Draw new fortune button */
 .draw-fortune-btn {
     font-family: 'Courier New', monospace;
-    font-size: 10px;
-    color: rgba(212, 165, 116, 0.7);
-    background: rgba(212, 165, 116, 0.12);
-    border: 1px dashed rgba(212, 165, 116, 0.35);
-    padding: 7px 16px;
+    font-size: 9px;
+    color: rgba(212, 165, 116, 0.6);
+    background: rgba(212, 165, 116, 0.1);
+    border: 1px dashed rgba(212, 165, 116, 0.3);
+    padding: 6px 14px;
     cursor: pointer;
     transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
     border-radius: 2px;
 }
 
 .draw-fortune-btn:hover {
-    background: rgba(212, 165, 116, 0.2);
-    border-color: rgba(212, 165, 116, 0.5);
-    color: rgba(212, 165, 116, 0.9);
+    background: rgba(212, 165, 116, 0.18);
+    border-color: rgba(212, 165, 116, 0.45);
+    color: rgba(212, 165, 116, 0.8);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   COMMENTARY - Ledger's voice at bottom
+   COMMENTARY - Push to bottom
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-commentary {
     margin-top: auto;
     padding: 10px 14px;
-    border-left: 2px solid rgba(212, 165, 116, 0.25);
-    background: rgba(0, 0, 0, 0.15);
+    border-left: 2px solid rgba(212, 165, 116, 0.2);
+    background: rgba(0, 0, 0, 0.12);
 }
 
 .commentary-text {
     font-style: italic;
-    font-size: 11px;
-    color: rgba(212, 165, 116, 0.6);
+    font-size: 10px;
+    color: rgba(212, 165, 116, 0.55);
     line-height: 1.5;
 }
