@@ -119,30 +119,23 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DICE SET SIRENS - With dark card backing, tilted
+   DICE SET SIRENS - Loose gems in drawer
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-dice {
     position: absolute;
     top: 20px;
-    left: 15px;
+    left: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
-    transform: rotate(-15deg);
-    /* Dark card backing */
-    background: linear-gradient(145deg, #2a2520 0%, #1a1815 100%);
-    padding: 14px 16px 10px 16px;
-    border-radius: 4px;
-    box-shadow: 
-        0 4px 10px rgba(0,0,0,0.5),
-        inset 0 1px 0 rgba(255,255,255,0.05);
+    transform: rotate(-12deg);
 }
 
 .dice-pair {
     display: flex;
-    gap: 8px;
+    gap: 10px;
 }
 
 .siren-die {
