@@ -114,7 +114,7 @@
 
 .drawer-items {
     position: relative;
-    height: 320px;
+    height: 260px;
     margin-bottom: 10px;
 }
 
@@ -262,17 +262,17 @@
 
 .compartment-matchbook {
     position: absolute;
-    top: 130px;
-    right: 25px;
-    transform: rotate(12deg);
+    top: 100px;
+    right: 20px;
+    transform: rotate(8deg);
 }
 
 .matchbook {
-    width: 48px;
-    height: 62px;
+    width: 44px;
+    height: 58px;
     position: relative;
-    /* Matchbook cover - dark teal/green like Whirling */
-    background: linear-gradient(180deg, #1a4a4a 0%, #0d3535 50%, #1a4a4a 100%);
+    /* Matchbook cover - dark teal like Whirling */
+    background: linear-gradient(180deg, #1a4a4a 0%, #0d3535 100%);
     border-radius: 2px 2px 0 0;
     box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
     overflow: hidden;
@@ -285,30 +285,37 @@
     bottom: 0;
     left: 0;
     right: 0;
-    height: 10px;
+    height: 8px;
     background: linear-gradient(90deg, #2a2a2a 0%, #3a3a3a 50%, #2a2a2a 100%);
 }
 
-/* Matchbook text/logo */
+/* Matchbook text - contained properly */
 .matchbook-text {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    top: 6px;
+    left: 4px;
+    right: 4px;
+    bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     font-family: 'Georgia', serif;
-    font-size: 6px;
+    font-size: 5px;
     font-weight: bold;
     color: #c9a227;
     text-align: center;
-    line-height: 1.2;
+    line-height: 1.3;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
+    overflow: hidden;
 }
 
 .matchbook-subtext {
-    font-size: 5px;
-    color: rgba(201, 162, 39, 0.7);
+    font-size: 4px;
+    color: rgba(201, 162, 39, 0.6);
     font-weight: normal;
+    letter-spacing: 0.5px;
     margin-top: 2px;
 }
 
@@ -318,8 +325,8 @@
 
 .compartment-pencil {
     position: absolute;
-    top: 180px;
-    left: 40px;
+    top: 140px;
+    left: 30px;
     transform: rotate(-20deg);
 }
 
@@ -385,8 +392,8 @@
 
 .compartment-coins {
     position: absolute;
-    bottom: 20px;
-    right: 35px;
+    bottom: 10px;
+    right: 25px;
 }
 
 .coin {
@@ -412,7 +419,7 @@
 .coin:nth-child(3) { top: -5px; left: 28px; width: 16px; height: 16px; }
 
 /* ═══════════════════════════════════════════════════════════════
-   DORA'S LETTER - Bottom of drawer
+   DORA'S LETTER - Vertical envelope, opens from top
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-letter {
@@ -420,14 +427,13 @@
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    margin-top: auto;
+    margin-top: 10px;
 }
 
-/* Horizontal envelope container */
+/* Vertical envelope container */
 .dora-envelope {
-    width: 100%;
-    max-width: 260px;
-    height: 100px;
+    width: 200px;
+    height: 140px;
     position: relative;
     cursor: pointer;
     transition: transform 0.3s ease;
@@ -438,15 +444,15 @@
     transform: rotate(-2deg) scale(1.02);
 }
 
-/* Envelope body - horizontal */
+/* Envelope body */
 .envelope-body {
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, #c4b490 0%, #d4c4a0 50%, #c4b490 100%);
-    border-radius: 4px;
+    background: linear-gradient(180deg, #d4c4a0 0%, #c4b490 50%, #b4a480 100%);
+    border-radius: 3px;
     position: relative;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    overflow: hidden;
+    overflow: visible;
 }
 
 /* Paper texture */
@@ -457,40 +463,42 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E");
     opacity: 0.06;
     pointer-events: none;
+    border-radius: 3px;
 }
 
-/* Inner diagonal shadow */
+/* Inner V shadow */
 .envelope-body::after {
     content: '';
     position: absolute;
     top: 0;
+    left: 0;
     right: 0;
-    width: 35%;
-    height: 100%;
-    background: linear-gradient(270deg, rgba(0,0,0,0.08) 0%, transparent 100%);
+    height: 50%;
+    background: linear-gradient(180deg, rgba(0,0,0,0.06) 0%, transparent 100%);
+    clip-path: polygon(0 0, 50% 50%, 100% 0);
     pointer-events: none;
 }
 
-/* Flap on right side - triangle pointing left */
+/* Flap on top - triangle pointing down */
 .envelope-flap {
     position: absolute;
     top: 0;
+    left: 0;
     right: 0;
-    width: 65px;
-    height: 100%;
-    background: linear-gradient(90deg, #d4c4a0 0%, #e4d4b0 100%);
-    clip-path: polygon(100% 0, 100% 100%, 0 50%);
-    transform-origin: right center;
-    transition: transform 0.4s ease;
+    height: 70px;
+    background: linear-gradient(180deg, #e4d4b0 0%, #d4c4a0 100%);
+    clip-path: polygon(0 0, 50% 100%, 100% 0);
+    transform-origin: top center;
+    transition: transform 0.5s ease;
     z-index: 3;
 }
 
 /* Wax seal on flap */
 .wax-seal {
     position: absolute;
-    top: 50%;
-    left: -16px;
-    transform: translateY(-50%);
+    bottom: -14px;
+    left: 50%;
+    transform: translateX(-50%);
     width: 32px;
     height: 32px;
     background: radial-gradient(circle at 35% 35%,
@@ -517,39 +525,39 @@
     color: rgba(0, 0, 0, 0.25);
 }
 
-/* Letter paper inside - slides out right */
+/* Letter paper inside */
 .letter-paper {
     position: absolute;
-    top: 8px;
-    bottom: 8px;
-    left: 10px;
-    right: 70px;
-    background: linear-gradient(90deg, #faf6ee 0%, #f4f0e4 100%);
+    top: 50px;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    background: linear-gradient(180deg, #faf6ee 0%, #f4f0e4 100%);
     border-radius: 2px;
     padding: 10px 12px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
-    transform: translateX(0);
+    transform: translateY(0);
     opacity: 0;
-    transition: all 0.4s ease 0.1s;
+    transition: all 0.4s ease 0.15s;
     z-index: 1;
 }
 
-/* OPEN STATE - flap swings right, letter slides out */
+/* OPEN STATE - flap rotates up */
 .dora-envelope.envelope-open .envelope-flap {
-    transform: rotateY(-160deg);
+    transform: rotateX(180deg);
 }
 
 .dora-envelope.envelope-open .wax-seal {
-    opacity: 0.4;
-    transform: translateY(-50%) scale(0.85);
+    opacity: 0.3;
+    transform: translateX(-50%) scale(0.8);
 }
 
 .dora-envelope.envelope-open .letter-paper {
     opacity: 1;
-    transform: translateX(35px);
+    transform: translateY(-30px);
 }
 
 /* Letter text */
@@ -567,10 +575,10 @@
     font-size: 8px;
     color: #6a5a4a;
     text-align: right;
-    margin-top: 5px;
+    margin-top: 6px;
 }
 
-/* Draw button - small */
+/* Draw button */
 .draw-fortune-btn {
     font-family: 'Courier New', monospace;
     font-size: 8px;
