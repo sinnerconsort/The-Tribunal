@@ -2,7 +2,8 @@
  * The Tribunal - Watch Functionality
  * Real-time / RP-time toggle with weather display
  * 
- * v2.0.0 - Integrated with weather effects system
+ * v2.1.0 - Fixed date display (shows real date in both modes)
+ *        - Integrated with weather effects system
  *        - Added Open-Meteo API for real weather
  *        - Auto-sync between watch ↔ effects ↔ newspaper
  */
@@ -177,7 +178,8 @@ async function connectWeatherEffects() {
     if (weatherEffects) return;
     
     try {
-        weatherEffects = await import('./weather-integration.js');
+        // weather-integration.js is in ../systems/ relative to ui/
+        weatherEffects = await import('../systems/weather-integration.js');
         
         // Subscribe to weather changes
         if (weatherEffects.subscribe) {
@@ -273,10 +275,11 @@ export async function updateWatch() {
         day = now.getDate();
         weather = await getCurrentWeather();
     } else {
+        const now = new Date();
         hours = rpTime.hours % 12;
         minutes = rpTime.minutes;
         seconds = 0;
-        day = '??';
+        day = now.getDate();  // Use real date even in RP mode
         weather = rpWeather;
     }
     
@@ -326,11 +329,11 @@ function updateNewspaper() {
     const tempEl = document.getElementById('newspaper-weather-temp');
     
     if (dateEl) {
-        if (watchMode === 'real') {
-            dateEl.textContent = `${now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()} ${now.getDate()}`;
-        } else {
-            dateEl.textContent = '??? ??';
-        }
+        // Always use real date - it's meta info that shouldn't break immersion
+        const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+        const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 
+                       'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+        dateEl.textContent = `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`;
     }
     
     if (periodEl) periodEl.textContent = period;
