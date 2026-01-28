@@ -134,18 +134,24 @@ export const LEDGER_TAB_HTML = `
                 
             </div>
             
-            <!-- FORTUNE ENVELOPE -->
-            <div class="compartment-envelope">
-                <div class="fortune-envelope">
-                    <div class="fortune-slip">
-                        <div class="fortune-text" id="compartment-fortune-text">
-                            The answer you seek is not in the ledger. It never was.
+            <!-- DORA'S LETTER - Tap to open/close -->
+            <div class="compartment-letter">
+                <div class="dora-envelope" id="dora-envelope">
+                    <div class="envelope-flap">
+                        <div class="wax-seal"></div>
+                    </div>
+                    <div class="envelope-body">
+                        <div class="letter-paper">
+                            <div class="letter-text" id="compartment-fortune-text">
+                                The answer you seek is not in the ledger. It never was.
+                            </div>
+                            <div class="letter-signature">— The Damaged Ledger</div>
                         </div>
-                        <div class="fortune-source">— The Damaged Ledger</div>
                     </div>
                 </div>
+                <div class="envelope-label">A LETTER FROM DORA</div>
                 <button class="draw-fortune-btn" id="fortune-draw-btn">
-                    ↻ Draw Fortune
+                    ↻ New Fortune
                 </button>
             </div>
             
@@ -207,10 +213,36 @@ export function updateCrackStage(stage) {
  */
 export function updateFortune(text, source = 'The Damaged Ledger') {
     const textEl = document.getElementById('compartment-fortune-text');
-    const sourceEl = document.querySelector('.fortune-source');
+    const sourceEl = document.querySelector('.letter-signature');
     
     if (textEl) textEl.textContent = text;
     if (sourceEl) sourceEl.textContent = `— ${source}`;
+}
+
+/**
+ * Toggle envelope open/closed
+ */
+export function toggleEnvelope() {
+    const envelope = document.getElementById('dora-envelope');
+    if (envelope) {
+        envelope.classList.toggle('envelope-open');
+    }
+}
+
+/**
+ * Initialize envelope click handler
+ * Call this after ledger DOM is ready
+ */
+export function initEnvelopeHandler() {
+    const envelope = document.getElementById('dora-envelope');
+    if (envelope) {
+        envelope.addEventListener('click', (e) => {
+            // Don't toggle if clicking the draw button
+            if (e.target.closest('.draw-fortune-btn')) return;
+            toggleEnvelope();
+        });
+        console.log('[The Tribunal] Envelope handler initialized');
+    }
 }
 
 /**
@@ -264,4 +296,6 @@ if (typeof window !== 'undefined') {
     window.TribunalDebug.revealCompartment = debugRevealCompartment;
     window.TribunalDebug.updateCrackStage = updateCrackStage;
     window.TribunalDebug.updateFortune = updateFortune;
+    window.TribunalDebug.toggleEnvelope = toggleEnvelope;
+    window.TribunalDebug.initEnvelope = initEnvelopeHandler;
 }

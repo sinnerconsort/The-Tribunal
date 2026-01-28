@@ -815,7 +815,27 @@ function revealCompartment() {
     if (secretTab) {
         secretTab.classList.add('revealed');
         subtabsContainer?.classList.add('compartment-revealed');
+        
+        // Initialize envelope click handler
+        initEnvelopeHandler();
+        
         console.log('[Tribunal] Compartment revealed');
+    }
+}
+
+/**
+ * Initialize envelope click handler
+ */
+function initEnvelopeHandler() {
+    const envelope = document.getElementById('dora-envelope');
+    if (envelope && !envelope.dataset.handlerBound) {
+        envelope.addEventListener('click', (e) => {
+            // Don't toggle if clicking the draw button
+            if (e.target.closest('.draw-fortune-btn')) return;
+            envelope.classList.toggle('envelope-open');
+        });
+        envelope.dataset.handlerBound = 'true';
+        console.log('[Tribunal] Envelope handler initialized');
     }
 }
 
