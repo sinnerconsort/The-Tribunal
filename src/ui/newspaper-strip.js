@@ -221,7 +221,7 @@ export const NEWSPAPER_STRIP_CSS = `
 
 .masthead-title {
     font-family: 'Playfair Display', 'Times New Roman', Georgia, serif;
-    font-size: 16px;
+    font-size: 12px;
     font-weight: 400;
     letter-spacing: 3px;
     color: #d4c8b8;
