@@ -1,9 +1,8 @@
 /**
  * The Tribunal - Secret Compartment Interior
- * Styles for dice, fortune wrapper, badge, and commentary
+ * Dice Set Sirens, Gum Wrapper, Fortune Envelope
  * 
  * ADDITIVE - Import AFTER ledger.css
- * Base .ledger-compartment styling is in ledger.css
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -21,7 +20,7 @@
     color: var(--ie-accent-orange);
 }
 
-/* Cracking state - ghostly appearance (teaser before full reveal) */
+/* Cracking state - ghostly teaser */
 .ledger-subtab-secret.cracking {
     opacity: 0.4;
     width: auto;
@@ -61,387 +60,398 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   COMPARTMENT INTERIOR LAYOUT
+   COMPARTMENT CONTAINER - Match other ledger subcontents
    ═══════════════════════════════════════════════════════════════ */
 
-.compartment-interior {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    padding: 10px 0;
+.ledger-compartment {
+    /* CRITICAL: Match the exact constraints of other subcontent areas */
+    padding: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    position: relative;
+    contain: layout paint;
+    
+    /* Dark leather interior */
+    background: 
+        linear-gradient(135deg, 
+            #1a1410 0%, 
+            #2a2018 30%, 
+            #1f1812 70%, 
+            #15120e 100%
+        );
 }
 
-.compartment-item {
-    position: relative;
+/* Leather grain texture */
+.ledger-compartment::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
+    opacity: 0.15;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Vignette shadow */
+.ledger-compartment::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
     z-index: 1;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   POLICE DICE
+   INTERIOR LAYOUT - Constrained properly
+   ═══════════════════════════════════════════════════════════════ */
+
+.compartment-interior {
+    position: relative;
+    z-index: 2;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    /* Don't exceed container */
+    box-sizing: border-box;
+    width: 100%;
+}
+
+/* Top row: Dice left, Wrapper right */
+.compartment-top-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: center;
+    justify-items: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DICE SET SIRENS - Icosahedral gems (d20-style polyhedra)
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-dice {
-    text-align: center;
-    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
 }
 
 .dice-pair {
     display: flex;
+    gap: 8px;
     justify-content: center;
-    gap: 15px;
-    margin-bottom: 10px;
 }
 
-.die {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(145deg, #f5f0e6 0%, #e8e0d0 100%);
-    border-radius: 6px;
-    box-shadow: 
-        2px 2px 4px rgba(0, 0, 0, 0.4),
-        inset 1px 1px 2px rgba(255, 255, 255, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* Individual icosahedral die - hexagon shape */
+.siren-die {
+    width: 44px;
+    height: 50px;
     position: relative;
-    transform: rotate(-5deg);
+    /* Hexagonal gem shape */
+    clip-path: polygon(
+        50% 0%, 
+        100% 25%, 
+        100% 75%, 
+        50% 100%, 
+        0% 75%, 
+        0% 25%
+    );
 }
 
-.die:last-child {
-    transform: rotate(8deg);
-}
-
-.die .pip {
-    width: 10px;
-    height: 10px;
-    background: #1a1510;
-    border-radius: 50%;
-    box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-/* Different pip layouts for different values */
-.die.die-one .pip {
-    /* Single center pip - default */
-}
-
-.die.die-six {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(3, 1fr);
-    gap: 3px;
-    padding: 6px;
-}
-
-.die.die-six .pip {
-    width: 8px;
-    height: 8px;
-}
-
-.dice-label {
-    font-family: var(--ie-font-header);
-    font-size: 0.6rem;
-    letter-spacing: 2px;
-    color: rgba(212, 165, 116, 0.7);
-    text-transform: uppercase;
-    margin-bottom: 4px;
-}
-
-.dice-subtext {
-    font-size: 0.55rem;
-    font-style: italic;
-    color: rgba(212, 165, 116, 0.5);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   GUM WRAPPER / FORTUNE
-   ═══════════════════════════════════════════════════════════════ */
-
-.compartment-fortune {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-}
-
-.fortune-wrapper {
-    width: 90%;
-    max-width: 280px;
-    background: linear-gradient(135deg, #d4a030 0%, #c49020 50%, #b48018 100%);
-    border-radius: 3px;
-    padding: 10px;
+/* Red die (ruby siren) */
+.siren-die.die-red {
+    background: linear-gradient(
+        135deg,
+        rgba(180, 40, 60, 0.85) 0%,
+        rgba(120, 20, 40, 0.9) 30%,
+        rgba(200, 60, 80, 0.7) 50%,
+        rgba(100, 15, 30, 0.95) 70%,
+        rgba(140, 30, 50, 0.8) 100%
+    );
     box-shadow: 
-        2px 3px 6px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    position: relative;
+        inset 0 0 15px rgba(255, 100, 120, 0.3),
+        inset -4px -4px 12px rgba(0, 0, 0, 0.4),
+        0 3px 8px rgba(0, 0, 0, 0.5);
 }
 
-/* Wrapper crinkle texture */
-.fortune-wrapper::before {
+/* Blue die (sapphire siren) */
+.siren-die.die-blue {
+    background: linear-gradient(
+        135deg,
+        rgba(30, 80, 120, 0.85) 0%,
+        rgba(20, 60, 100, 0.9) 30%,
+        rgba(60, 120, 160, 0.7) 50%,
+        rgba(15, 50, 90, 0.95) 70%,
+        rgba(40, 90, 130, 0.8) 100%
+    );
+    box-shadow: 
+        inset 0 0 15px rgba(100, 180, 255, 0.3),
+        inset -4px -4px 12px rgba(0, 0, 0, 0.4),
+        0 3px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Gem facet shine */
+.siren-die::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 10px;
+    width: 12px;
+    height: 6px;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.5) 0%,
+        rgba(255, 255, 255, 0.1) 100%
+    );
+    clip-path: polygon(0% 0%, 100% 0%, 70% 100%, 30% 100%);
+}
+
+/* Facet lines overlay */
+.siren-die::after {
     content: '';
     position: absolute;
     inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='crinkle'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23crinkle)'/%3E%3C/svg%3E");
-    opacity: 0.08;
+    background: 
+        linear-gradient(60deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%),
+        linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.08) 50%, transparent 60%),
+        linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.12) 50%, transparent 60%);
     pointer-events: none;
-    border-radius: inherit;
 }
 
-.wrapper-brand {
-    font-family: 'Georgia', serif;
-    font-size: 0.9rem;
-    font-weight: bold;
-    color: #2a1a08;
+.dice-label {
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
+    color: rgba(212, 165, 116, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 1px;
     text-align: center;
-    letter-spacing: 3px;
-    text-shadow: 1px 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.dice-flavor {
+    font-style: italic;
+    font-size: 8px;
+    color: rgba(212, 165, 116, 0.35);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GUM WRAPPER - Foil stick wrapper, partially open
+   ═══════════════════════════════════════════════════════════════ */
+
+.compartment-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+/* Floating scent */
+.scent-text {
+    position: absolute;
+    top: -16px;
+    right: 0;
+    font-style: italic;
+    font-size: 9px;
+    color: rgba(212, 165, 116, 0.25);
+    animation: scentFloat 4s ease-in-out infinite;
+}
+
+@keyframes scentFloat {
+    0%, 100% { transform: translateY(0); opacity: 0.25; }
+    50% { transform: translateY(-3px); opacity: 0.4; }
+}
+
+.gum-wrapper {
+    width: 80px;
+    height: 28px;
+    position: relative;
+    /* Silver foil wrapper */
+    background: linear-gradient(
+        90deg,
+        #a8a8a8 0%,
+        #d8d8d8 15%,
+        #c8c8c8 35%,
+        #e8e8e8 50%,
+        #c8c8c8 65%,
+        #d8d8d8 85%,
+        #a8a8a8 100%
+    );
+    border-radius: 2px;
+    box-shadow: 
+        0 2px 5px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    transform: rotate(-3deg);
+}
+
+/* Crinkle texture */
+.gum-wrapper::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='crinkle'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23crinkle)'/%3E%3C/svg%3E");
+    opacity: 0.08;
+    mix-blend-mode: multiply;
+    border-radius: 2px;
+}
+
+/* Opened end showing gum stick */
+.gum-wrapper::after {
+    content: '';
+    position: absolute;
+    right: -6px;
+    top: 4px;
+    width: 14px;
+    height: 20px;
+    /* Exposed gum - pale tan with chevron texture hint */
+    background: 
+        repeating-linear-gradient(
+            -45deg,
+            #d8c8b0 0px,
+            #d8c8b0 2px,
+            #e0d0b8 2px,
+            #e0d0b8 4px
+        );
+    border-radius: 1px;
+    box-shadow: 
+        inset 0 0 3px rgba(0, 0, 0, 0.1),
+        -1px 0 2px rgba(0, 0, 0, 0.15);
 }
 
 .wrapper-flavor {
-    font-family: 'Georgia', serif;
-    font-size: 0.6rem;
-    font-style: italic;
-    color: #3a2a10;
+    font-family: 'Courier New', monospace;
+    font-size: 8px;
+    color: rgba(212, 165, 116, 0.4);
     text-align: center;
-    margin-bottom: 8px;
 }
 
-.fortune-paper {
-    background: linear-gradient(to bottom, #f8f4e8 0%, #f0ebe0 100%);
+/* ═══════════════════════════════════════════════════════════════
+   FORTUNE ENVELOPE - Manila envelope with fortune slip
+   ═══════════════════════════════════════════════════════════════ */
+
+.compartment-envelope {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.fortune-envelope {
+    width: 100%;
+    max-width: 260px;
+    background: linear-gradient(
+        180deg,
+        #c4a878 0%,
+        #b89860 50%,
+        #a88850 100%
+    );
+    border-radius: 3px;
+    padding: 14px;
+    position: relative;
+    box-shadow: 
+        0 3px 8px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Envelope flap (open) */
+.fortune-envelope::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 12%;
+    right: 12%;
+    height: 20px;
+    background: linear-gradient(
+        180deg,
+        #d4b888 0%,
+        #c4a878 100%
+    );
+    clip-path: polygon(0% 100%, 50% 0%, 100% 100%);
+    transform: rotateX(155deg);
+    transform-origin: bottom;
+}
+
+/* Paper texture */
+.fortune-envelope::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E");
+    opacity: 0.06;
+    pointer-events: none;
+    border-radius: 3px;
+}
+
+/* Fortune slip */
+.fortune-slip {
+    background: linear-gradient(
+        180deg,
+        #f8f4e8 0%,
+        #f0ece0 100%
+    );
+    padding: 12px 14px;
     border-radius: 2px;
-    padding: 12px;
-    margin-top: 5px;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.12),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
 .fortune-text {
     font-family: 'Georgia', serif;
-    font-size: 0.7rem;
-    line-height: 1.6;
-    color: #2c2416;
-    text-align: center;
     font-style: italic;
-    min-height: 40px;
+    font-size: 12px;
+    color: #2a2420;
+    line-height: 1.5;
+    text-align: center;
+    margin-bottom: 8px;
 }
 
 .fortune-source {
-    font-size: 0.55rem;
+    font-family: 'Courier New', monospace;
+    font-size: 9px;
     color: #6a5a4a;
     text-align: right;
-    margin-top: 8px;
 }
 
-.fortune-draw-btn {
-    background: rgba(212, 165, 116, 0.15);
-    border: 1px solid rgba(212, 165, 116, 0.3);
-    color: rgba(212, 165, 116, 0.8);
-    padding: 8px 16px;
-    border-radius: 3px;
-    font-size: 0.6rem;
-    letter-spacing: 1px;
+/* Draw button */
+.draw-fortune-btn {
+    font-family: 'Courier New', monospace;
+    font-size: 10px;
+    color: rgba(212, 165, 116, 0.7);
+    background: rgba(212, 165, 116, 0.12);
+    border: 1px dashed rgba(212, 165, 116, 0.35);
+    padding: 7px 16px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    font-family: inherit;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 2px;
 }
 
-.fortune-draw-btn:hover {
-    background: rgba(212, 165, 116, 0.25);
+.draw-fortune-btn:hover {
+    background: rgba(212, 165, 116, 0.2);
     border-color: rgba(212, 165, 116, 0.5);
-    color: rgba(212, 165, 116, 1);
-}
-
-.fortune-draw-btn i {
-    margin-right: 6px;
+    color: rgba(212, 165, 116, 0.9);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   RCM BADGE
-   ═══════════════════════════════════════════════════════════════ */
-
-.compartment-badge {
-    display: flex;
-    justify-content: center;
-    padding: 10px 0;
-}
-
-.rcm-badge {
-    width: 90%;
-    max-width: 260px;
-    background: linear-gradient(180deg, #1a2a4a 0%, #152040 50%, #0f1830 100%);
-    border: 2px solid #3a4a6a;
-    border-radius: 8px;
-    padding: 12px;
-    box-shadow: 
-        0 4px 8px rgba(0, 0, 0, 0.5),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    position: relative;
-}
-
-/* Badge wear/scratches */
-.rcm-badge::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='scratch'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23scratch)'/%3E%3C/svg%3E");
-    opacity: 0.05;
-    pointer-events: none;
-    border-radius: inherit;
-}
-
-.badge-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 8px;
-    margin-bottom: 10px;
-}
-
-.badge-org {
-    font-family: var(--ie-font-header);
-    font-size: 0.5rem;
-    letter-spacing: 1.5px;
-    color: rgba(255, 255, 255, 0.7);
-    text-align: center;
-}
-
-.badge-photo {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 10px;
-}
-
-.photo-placeholder {
-    width: 60px;
-    height: 70px;
-    background: linear-gradient(to bottom, #2a3a5a 0%, #1a2a4a 100%);
-    border: 1px solid #4a5a7a;
-    border-radius: 3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(255, 255, 255, 0.3);
-    font-size: 1.5rem;
-}
-
-.badge-info {
-    text-align: center;
-    margin-bottom: 10px;
-}
-
-.badge-name {
-    font-family: var(--ie-font-header);
-    font-size: 0.75rem;
-    font-weight: bold;
-    color: #e8e0d0;
-    letter-spacing: 1px;
-    margin-bottom: 2px;
-}
-
-.badge-rank {
-    font-size: 0.55rem;
-    color: rgba(255, 255, 255, 0.5);
-    letter-spacing: 1px;
-    margin-bottom: 4px;
-}
-
-.badge-number {
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.6rem;
-    color: rgba(212, 165, 116, 0.8);
-    letter-spacing: 1px;
-}
-
-.badge-perforations {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.perf-dots {
-    font-size: 0.7rem;
-    letter-spacing: 2px;
-    color: rgba(212, 165, 116, 0.6);
-}
-
-.perf-label {
-    font-size: 0.45rem;
-    letter-spacing: 2px;
-    color: rgba(255, 255, 255, 0.4);
-    margin-top: 2px;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   COMPARTMENT COMMENTARY
+   COMMENTARY - Ledger's voice at bottom
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-commentary {
-    margin-top: 15px;
-    padding: 12px 16px;
-    background: rgba(0, 0, 0, 0.3);
-    border-left: 2px solid rgba(212, 165, 116, 0.4);
-    border-radius: 0 4px 4px 0;
+    margin-top: auto;
+    padding: 10px 14px;
+    border-left: 2px solid rgba(212, 165, 116, 0.25);
+    background: rgba(0, 0, 0, 0.15);
 }
 
 .commentary-text {
-    font-family: 'Georgia', serif;
-    font-size: 0.65rem;
     font-style: italic;
-    line-height: 1.6;
-    color: rgba(212, 165, 116, 0.7);
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   COMPARTMENT RESPONSIVE
-   ═══════════════════════════════════════════════════════════════ */
-
-@media (max-width: 400px) {
-    .fortune-wrapper {
-        width: 95%;
-    }
-    
-    .rcm-badge {
-        width: 95%;
-    }
-    
-    .die {
-        width: 35px;
-        height: 35px;
-    }
-    
-    .fortune-text {
-        font-size: 0.65rem;
-    }
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   ANIMATION - Fortune Draw
-   ═══════════════════════════════════════════════════════════════ */
-
-.fortune-text.drawing {
-    animation: fortuneReveal 0.5s ease-out;
-}
-
-@keyframes fortuneReveal {
-    0% {
-        opacity: 0;
-        filter: blur(4px);
-        transform: translateY(5px);
-    }
-    100% {
-        opacity: 1;
-        filter: blur(0);
-        transform: translateY(0);
-    }
-}
-
-/* Dice roll animation */
-.die.rolling {
-    animation: diceRoll 0.4s ease-out;
-}
-
-@keyframes diceRoll {
-    0% { transform: rotate(0deg) scale(1); }
-    25% { transform: rotate(90deg) scale(1.1); }
-    50% { transform: rotate(180deg) scale(1); }
-    75% { transform: rotate(270deg) scale(1.1); }
-    100% { transform: rotate(360deg) scale(1); }
+    font-size: 11px;
+    color: rgba(212, 165, 116, 0.6);
+    line-height: 1.5;
 }
