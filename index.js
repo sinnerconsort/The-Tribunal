@@ -41,6 +41,7 @@ import { initStatus, refreshStatusFromState } from './src/ui/status-handlers.js'
 import { initSettingsTab } from './src/ui/settings-handlers.js';
 import { initCabinetHandlers, refreshCabinet } from './src/ui/cabinet-handler.js';
 import { initNewspaperStrip, updateNewspaperStrip } from './src/ui/newspaper-strip.js';
+import { initLocationHandlers, refreshLocations } from './src/ui/location-handlers.js';
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Weather System (lazy loaded - see init())
@@ -565,6 +566,7 @@ function refreshAllPanels() {
     console.log('[Tribunal] UI refreshed from state');
 }
 
+refreshLocations();
 // ═══════════════════════════════════════════════════════════════
 // EXTENSION SETTINGS PANEL
 // ═══════════════════════════════════════════════════════════════
@@ -725,7 +727,9 @@ async function init() {
     }).catch(err => {
         console.warn('[Tribunal] Contacts handlers not loaded:', err.message);
     });
-    
+
+    initLocationHandlers();
+
     startWatch();
     
     // Initialize radio
