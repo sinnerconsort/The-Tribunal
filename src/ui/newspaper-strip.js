@@ -214,16 +214,16 @@ export const NEWSPAPER_STRIP_CSS = `
 }
 
 .masthead-bracket {
-    font-size: 18px;
+    font-size: 14px;
     color: #6a5a48;
     font-weight: 300;
 }
 
 .masthead-title {
     font-family: 'Playfair Display', 'Times New Roman', Georgia, serif;
-    font-size: 22px;
+    font-size: 16px;
     font-weight: 400;
-    letter-spacing: 4px;
+    letter-spacing: 3px;
     color: #d4c8b8;
     text-transform: uppercase;
 }
@@ -522,14 +522,14 @@ export function updateNewspaperStrip(data) {
         issueEl.textContent = issueNumber;
     }
     
-    // Update date
+    // Update date - always show something valid
     const dateEl = document.getElementById('newspaper-date');
     if (dateEl) {
-        if (data.dayOfWeek && data.day) {
-            const now = new Date();
-            const month = now.toLocaleDateString('en-US', { month: 'long' }).toUpperCase();
-            dateEl.textContent = `${data.dayOfWeek}, ${month} ${data.day}, '51`;
-        }
+        const now = new Date();
+        const dayOfWeek = data.dayOfWeek || now.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
+        const day = data.day || now.getDate();
+        const month = now.toLocaleDateString('en-US', { month: 'long' }).toUpperCase();
+        dateEl.textContent = `${month} ${day}, '51`;
     }
     
     // Update weather icon
