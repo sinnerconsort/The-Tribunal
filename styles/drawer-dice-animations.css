@@ -4,12 +4,91 @@
  */
 
 /* ═══════════════════════════════════════════════════════════════
+   INVESTIGATION FAB - LUCK INDICATOR
+   Shows when drawer dice luck is active
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Good luck - golden sparkle */
+#tribunal-investigation-fab.luck-positive {
+    animation: fabLuckPositive 2s ease-in-out infinite;
+    box-shadow: 
+        0 0 8px rgba(212, 165, 116, 0.6),
+        0 0 16px rgba(155, 107, 158, 0.3);
+}
+
+#tribunal-investigation-fab.luck-positive::after {
+    content: '✦';
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    font-size: 12px;
+    color: #d4a574;
+    animation: sparkleFloat 1.5s ease-in-out infinite;
+    text-shadow: 0 0 4px rgba(212, 165, 116, 0.8);
+}
+
+@keyframes fabLuckPositive {
+    0%, 100% { 
+        box-shadow: 
+            0 0 8px rgba(212, 165, 116, 0.4),
+            0 0 16px rgba(155, 107, 158, 0.2);
+    }
+    50% { 
+        box-shadow: 
+            0 0 12px rgba(212, 165, 116, 0.7),
+            0 0 24px rgba(155, 107, 158, 0.4);
+    }
+}
+
+@keyframes sparkleFloat {
+    0%, 100% { 
+        transform: translateY(0) rotate(0deg); 
+        opacity: 1;
+    }
+    50% { 
+        transform: translateY(-3px) rotate(15deg); 
+        opacity: 0.7;
+    }
+}
+
+/* Bad luck - red shadow */
+#tribunal-investigation-fab.luck-negative {
+    animation: fabLuckNegative 2s ease-in-out infinite;
+}
+
+#tribunal-investigation-fab.luck-negative::after {
+    content: '✕';
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    font-size: 10px;
+    color: #b54b4b;
+    animation: cursePulse 1s ease-in-out infinite;
+    text-shadow: 0 0 4px rgba(181, 75, 75, 0.8);
+}
+
+@keyframes fabLuckNegative {
+    0%, 100% { 
+        box-shadow: 0 0 8px rgba(181, 75, 75, 0.3);
+    }
+    50% { 
+        box-shadow: 0 0 12px rgba(181, 75, 75, 0.5);
+    }
+}
+
+@keyframes cursePulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
    DICE INTERACTION STATES
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-dice {
     cursor: pointer;
     transition: transform 0.2s ease;
+    perspective: 200px;
 }
 
 .compartment-dice:hover {
@@ -21,55 +100,88 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DICE ROLLING ANIMATION
+   DICE ROLLING ANIMATION - Actual tumble/spin!
    ═══════════════════════════════════════════════════════════════ */
 
-.siren-die.die-rolling {
-    animation: diceShake 0.6s ease-in-out;
+.siren-die {
+    transition: transform 0.1s ease;
+    transform-style: preserve-3d;
 }
 
-@keyframes diceShake {
-    0% { transform: rotate(-18deg) translate(0, 0); }
-    10% { transform: rotate(-25deg) translate(-3px, -2px); }
-    20% { transform: rotate(-10deg) translate(4px, -3px); }
-    30% { transform: rotate(-30deg) translate(-2px, 2px); }
-    40% { transform: rotate(-5deg) translate(3px, -1px); }
-    50% { transform: rotate(-22deg) translate(-4px, 3px); }
-    60% { transform: rotate(-15deg) translate(2px, -2px); }
-    70% { transform: rotate(-28deg) translate(-1px, 1px); }
-    80% { transform: rotate(-12deg) translate(1px, -1px); }
-    90% { transform: rotate(-20deg) translate(-1px, 0px); }
-    100% { transform: rotate(-18deg) translate(0, 0); }
+/* Red die - tumbles left */
+.siren-die.die-red.die-rolling {
+    animation: diceTumbleRed 0.7s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
-/* Blue die has different base rotation */
+@keyframes diceTumbleRed {
+    0% { 
+        transform: rotate(-18deg) translateY(0); 
+    }
+    15% { 
+        transform: rotate(-40deg) translateY(-12px) rotateX(90deg); 
+    }
+    30% { 
+        transform: rotate(-10deg) translateY(-8px) rotateX(180deg) rotateY(45deg); 
+    }
+    45% { 
+        transform: rotate(-55deg) translateY(-15px) rotateX(270deg) rotateY(90deg); 
+    }
+    60% { 
+        transform: rotate(-25deg) translateY(-6px) rotateX(360deg) rotateY(135deg); 
+    }
+    75% { 
+        transform: rotate(-35deg) translateY(-3px) rotateX(405deg) rotateY(160deg); 
+    }
+    90% { 
+        transform: rotate(-20deg) translateY(-1px) rotateX(430deg); 
+    }
+    100% { 
+        transform: rotate(-18deg) translateY(0) rotateX(360deg); 
+    }
+}
+
+/* Blue die - tumbles right (offset timing) */
 .siren-die.die-blue.die-rolling {
-    animation: diceShakeBlue 0.6s ease-in-out;
+    animation: diceTumbleBlue 0.7s cubic-bezier(0.25, 0.1, 0.25, 1) 0.05s;
 }
 
-@keyframes diceShakeBlue {
-    0% { transform: rotate(10deg) translate(0, 0); }
-    10% { transform: rotate(18deg) translate(3px, -2px); }
-    20% { transform: rotate(5deg) translate(-4px, -3px); }
-    30% { transform: rotate(22deg) translate(2px, 2px); }
-    40% { transform: rotate(8deg) translate(-3px, -1px); }
-    50% { transform: rotate(15deg) translate(4px, 3px); }
-    60% { transform: rotate(3deg) translate(-2px, -2px); }
-    70% { transform: rotate(20deg) translate(1px, 1px); }
-    80% { transform: rotate(12deg) translate(-1px, -1px); }
-    90% { transform: rotate(8deg) translate(1px, 0px); }
-    100% { transform: rotate(10deg) translate(0, 0); }
+@keyframes diceTumbleBlue {
+    0% { 
+        transform: rotate(10deg) translateY(0); 
+    }
+    15% { 
+        transform: rotate(35deg) translateY(-14px) rotateX(-90deg) rotateY(-30deg); 
+    }
+    30% { 
+        transform: rotate(5deg) translateY(-10px) rotateX(-180deg) rotateY(-60deg); 
+    }
+    45% { 
+        transform: rotate(50deg) translateY(-16px) rotateX(-270deg) rotateY(-90deg); 
+    }
+    60% { 
+        transform: rotate(20deg) translateY(-7px) rotateX(-360deg) rotateY(-120deg); 
+    }
+    75% { 
+        transform: rotate(30deg) translateY(-3px) rotateX(-405deg) rotateY(-150deg); 
+    }
+    90% { 
+        transform: rotate(12deg) translateY(-1px) rotateX(-430deg); 
+    }
+    100% { 
+        transform: rotate(10deg) translateY(0) rotateX(-360deg); 
+    }
 }
 
-/* Result pulse */
+/* Bounce settle at the end */
 .siren-die.die-result {
-    animation: diceResultPulse 0.5s ease-out;
+    animation: diceSettle 0.4s ease-out;
 }
 
-@keyframes diceResultPulse {
-    0% { filter: brightness(1); }
-    50% { filter: brightness(1.4); }
-    100% { filter: brightness(1); }
+@keyframes diceSettle {
+    0% { transform: scale(1.1); filter: brightness(1.3); }
+    40% { transform: scale(0.95); }
+    70% { transform: scale(1.02); }
+    100% { transform: scale(1); filter: brightness(1); }
 }
 
 /* ═══════════════════════════════════════════════════════════════
