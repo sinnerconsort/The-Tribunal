@@ -1,0 +1,205 @@
+/**
+ * The Tribunal - Drawer Dice Animations
+ * ADDITIVE - Import after compartment.css
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   DICE INTERACTION STATES
+   ═══════════════════════════════════════════════════════════════ */
+
+.compartment-dice {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.compartment-dice:hover {
+    transform: scale(1.05);
+}
+
+.compartment-dice:active {
+    transform: scale(0.98);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DICE ROLLING ANIMATION
+   ═══════════════════════════════════════════════════════════════ */
+
+.siren-die.die-rolling {
+    animation: diceShake 0.6s ease-in-out;
+}
+
+@keyframes diceShake {
+    0% { transform: rotate(-18deg) translate(0, 0); }
+    10% { transform: rotate(-25deg) translate(-3px, -2px); }
+    20% { transform: rotate(-10deg) translate(4px, -3px); }
+    30% { transform: rotate(-30deg) translate(-2px, 2px); }
+    40% { transform: rotate(-5deg) translate(3px, -1px); }
+    50% { transform: rotate(-22deg) translate(-4px, 3px); }
+    60% { transform: rotate(-15deg) translate(2px, -2px); }
+    70% { transform: rotate(-28deg) translate(-1px, 1px); }
+    80% { transform: rotate(-12deg) translate(1px, -1px); }
+    90% { transform: rotate(-20deg) translate(-1px, 0px); }
+    100% { transform: rotate(-18deg) translate(0, 0); }
+}
+
+/* Blue die has different base rotation */
+.siren-die.die-blue.die-rolling {
+    animation: diceShakeBlue 0.6s ease-in-out;
+}
+
+@keyframes diceShakeBlue {
+    0% { transform: rotate(10deg) translate(0, 0); }
+    10% { transform: rotate(18deg) translate(3px, -2px); }
+    20% { transform: rotate(5deg) translate(-4px, -3px); }
+    30% { transform: rotate(22deg) translate(2px, 2px); }
+    40% { transform: rotate(8deg) translate(-3px, -1px); }
+    50% { transform: rotate(15deg) translate(4px, 3px); }
+    60% { transform: rotate(3deg) translate(-2px, -2px); }
+    70% { transform: rotate(20deg) translate(1px, 1px); }
+    80% { transform: rotate(12deg) translate(-1px, -1px); }
+    90% { transform: rotate(8deg) translate(1px, 0px); }
+    100% { transform: rotate(10deg) translate(0, 0); }
+}
+
+/* Result pulse */
+.siren-die.die-result {
+    animation: diceResultPulse 0.5s ease-out;
+}
+
+@keyframes diceResultPulse {
+    0% { filter: brightness(1); }
+    50% { filter: brightness(1.4); }
+    100% { filter: brightness(1); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CRIT ROLL EFFECTS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Snake Eyes glow - red */
+.compartment-dice.crit-fail .siren-die {
+    animation: snakeEyesGlow 1s ease-in-out;
+}
+
+@keyframes snakeEyesGlow {
+    0% { box-shadow: 0 0 0 rgba(180, 75, 75, 0); }
+    50% { box-shadow: 0 0 15px rgba(180, 75, 75, 0.6), 0 0 30px rgba(180, 75, 75, 0.3); }
+    100% { box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5); }
+}
+
+/* Boxcars glow - gold/purple */
+.compartment-dice.crit-success .siren-die {
+    animation: boxcarsGlow 1s ease-in-out;
+}
+
+@keyframes boxcarsGlow {
+    0% { box-shadow: 0 0 0 rgba(155, 107, 158, 0); }
+    50% { box-shadow: 0 0 15px rgba(212, 165, 116, 0.6), 0 0 30px rgba(155, 107, 158, 0.4); }
+    100% { box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DICE RESULT DISPLAY IN COMMENTARY
+   ═══════════════════════════════════════════════════════════════ */
+
+.dice-result-display {
+    font-family: 'IBM Plex Mono', 'Courier New', monospace;
+    letter-spacing: 2px;
+    display: block;
+    margin-bottom: 6px;
+}
+
+/* Commentary with dice result styling */
+.compartment-commentary {
+    transition: border-color 0.3s ease;
+}
+
+/* Color border based on roll type */
+.compartment-commentary.roll-crit-fail {
+    border-left-color: var(--physique, #b54b4b);
+}
+
+.compartment-commentary.roll-crit-success {
+    border-left-color: var(--psyche, #9b6b9e);
+}
+
+.compartment-commentary.roll-normal {
+    border-left-color: var(--ie-accent, #d4a574);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FORTUNE BUTTON STATES
+   ═══════════════════════════════════════════════════════════════ */
+
+.draw-fortune-btn.drawing {
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+/* Fortune reveal animation */
+.letter-text {
+    transition: color 0.3s ease, opacity 0.3s ease;
+}
+
+.letter-signature {
+    transition: color 0.3s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LUCK INDICATOR (optional - shows active luck modifier)
+   ═══════════════════════════════════════════════════════════════ */
+
+.luck-indicator {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 2px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.luck-indicator.active {
+    opacity: 1;
+}
+
+.luck-indicator.luck-positive {
+    color: var(--psyche, #9b6b9e);
+    background: rgba(155, 107, 158, 0.15);
+    border: 1px solid rgba(155, 107, 158, 0.3);
+}
+
+.luck-indicator.luck-negative {
+    color: var(--physique, #b54b4b);
+    background: rgba(181, 75, 75, 0.15);
+    border: 1px solid rgba(181, 75, 75, 0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOOLTIP FOR DICE (shows "Roll the dice")
+   ═══════════════════════════════════════════════════════════════ */
+
+.compartment-dice::after {
+    content: 'roll';
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    color: rgba(212, 165, 116, 0.3);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.compartment-dice:hover::after {
+    opacity: 1;
+}
+
+.compartment-dice.rolling::after {
+    opacity: 0;
+}
