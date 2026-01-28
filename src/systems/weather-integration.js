@@ -1,10 +1,9 @@
 /**
  * Weather Integration Module - The Tribunal
  * ALL-IN-ONE: Effects + Integration + Event Emitter
- * v3.1.0 - Added JSON world state parsing
- *        - Improved keyword detection
- *        - Better debug logging
- *        - Fixed event emission chain
+ * v3.2.0 - HTML comment world state parsing (invisible to user!)
+ *        - Format: <!--WORLD{"weather":"Snow","time":"3:45 PM"}-->
+ *        - Falls back to visible JSON for backwards compatibility
  */
 
 import { getContext } from '../../../../../extensions.js';
@@ -417,41 +416,61 @@ function renderEffects() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// JSON WORLD STATE PARSING (NEW!)
+// WORLD STATE PARSING
+// Supports: HTML comments (invisible), JSON blocks, raw JSON
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Try to extract JSON world state block from message
- * Looks for patterns like:
- * {
- *   "weather": "Snow",
- *   "temperature": { "value": 45, "unit": "F" },
- *   ...
- * }
+ * Try to extract world state from message
+ * Priority order:
+ * 1. HTML comment: <!--WORLD{...}--> (invisible to user!)
+ * 2. JSON code block: ```json {...} ```
+ * 3. Raw JSON with "weather" field
+ * 
+ * Recommended format for LLM system prompt:
+ * <!--WORLD{"weather":"Snow","time":"3:45 PM","location":"Snowdin"}-->
  */
 function extractWorldState(message) {
     if (!message || typeof message !== 'string') return null;
     
-    // Look for JSON block containing weather field
-    // Match both fenced code blocks and raw JSON
-    const patterns = [
+    // ═══════════════════════════════════════════════════════════
+    // PRIORITY 1: HTML Comment (invisible to user!)
+    // Format: <!--WORLD{...}-->
+    // ═══════════════════════════════════════════════════════════
+    const htmlCommentPattern = /<!--\s*WORLD\s*(\{[\s\S]*?\})\s*-->/i;
+    const commentMatch = message.match(htmlCommentPattern);
+    if (commentMatch) {
+        try {
+            const parsed = JSON.parse(commentMatch[1]);
+            if (parsed.weather || parsed.time || parsed.location) {
+                console.log('[Weather] ✓ Parsed HTML comment world state:', parsed);
+                return parsed;
+            }
+        } catch (e) {
+            console.log('[Weather] HTML comment JSON parse failed:', e.message);
+        }
+    }
+    
+    // ═══════════════════════════════════════════════════════════
+    // PRIORITY 2: Visible JSON (fallback for older prompts)
+    // ═══════════════════════════════════════════════════════════
+    const visiblePatterns = [
         /```json\s*(\{[\s\S]*?"weather"[\s\S]*?\})\s*```/i,
         /```\s*(\{[\s\S]*?"weather"[\s\S]*?\})\s*```/i,
         /(\{[^{}]*"weather"\s*:\s*"[^"]+(?:"[^{}]*|\{[^{}]*\}[^{}]*)*\})/i
     ];
     
-    for (const pattern of patterns) {
+    for (const pattern of visiblePatterns) {
         const match = message.match(pattern);
         if (match) {
             try {
                 const parsed = JSON.parse(match[1]);
                 if (parsed.weather) {
-                    console.log('[Weather] ✓ Parsed JSON world state:', parsed);
+                    console.log('[Weather] ✓ Parsed visible JSON world state:', parsed);
                     return parsed;
                 }
             } catch (e) {
-                // JSON parse failed, try next pattern
-                console.log('[Weather] JSON parse attempt failed:', e.message);
+                console.log('[Weather] Visible JSON parse attempt failed:', e.message);
             }
         }
     }
