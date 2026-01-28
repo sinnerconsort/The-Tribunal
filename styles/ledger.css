@@ -1325,38 +1325,8 @@
     display: none;
 }
 
-/* Weathered/stained bottom edge */
-.ledger-paper.grid-paper::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 120px;
-    pointer-events: none;
-    background: 
-        /* Water damage / age staining gradient */
-        linear-gradient(to top,
-            rgba(180, 160, 130, 0.15) 0%,
-            rgba(160, 140, 110, 0.08) 30%,
-            rgba(140, 120, 100, 0.03) 60%,
-            transparent 100%
-        ),
-        /* Uneven edge stains */
-        radial-gradient(ellipse 80% 40% at 20% 100%, 
-            rgba(150, 130, 100, 0.12) 0%, 
-            transparent 70%
-        ),
-        radial-gradient(ellipse 60% 50% at 70% 100%, 
-            rgba(140, 120, 90, 0.1) 0%, 
-            transparent 60%
-        ),
-        radial-gradient(ellipse 40% 30% at 90% 100%, 
-            rgba(160, 140, 110, 0.08) 0%, 
-            transparent 50%
-        );
-    z-index: 2;
-}
+/* NOTE: Removed weathered/stained bottom edge gradient - 
+   was causing visual conflicts with notes textarea */
 
 /* ═══════════════════════════════════════════════════════════════
    MARTINAISE MAP SVG
