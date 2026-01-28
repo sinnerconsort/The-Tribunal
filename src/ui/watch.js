@@ -2,9 +2,9 @@
  * The Tribunal - Watch Functionality
  * Real-time / RP-time toggle with weather display
  * 
- * v2.0.0 - Integrated with weather effects system
- *        - Added Open-Meteo API for real weather
- *        - Auto-sync between watch ↔ effects ↔ newspaper
+ * v2.0.1 - Fixed import path for weather-integration.js
+ *        - Added fallback weather detection
+ *        - Added debug logging for weather connection
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -172,24 +172,41 @@ async function fetchRealWeather() {
 
 /**
  * Connect to weather effects system
+ * FIXED: Correct import path from ui/ to systems/
  */
 async function connectWeatherEffects() {
     if (weatherEffects) return;
     
     try {
-        weatherEffects = await import('./weather-integration.js');
+        // FIXED: Correct relative path from src/ui/ to src/systems/
+        weatherEffects = await import('../systems/weather-integration.js');
+        console.log('[Watch] Weather effects module loaded successfully');
         
         // Subscribe to weather changes
         if (weatherEffects.subscribe) {
             weatherUnsubscribe = weatherEffects.subscribe((data) => {
+                console.log('[Watch] Received weather event:', data);
                 if (watchMode === 'rp') {
                     onWeatherEffectChange(data);
                 }
             });
-            console.log('[Watch] Connected to weather effects');
+            console.log('[Watch] ✓ Subscribed to weather effects');
+        } else {
+            console.warn('[Watch] Weather effects module has no subscribe function');
         }
+        
+        // Also try to get initial state
+        if (weatherEffects.getState) {
+            const initialState = weatherEffects.getState();
+            console.log('[Watch] Initial weather state:', initialState);
+            if (initialState.weather && watchMode === 'rp') {
+                onWeatherEffectChange(initialState);
+            }
+        }
+        
     } catch (e) {
-        console.warn('[Watch] Weather effects not available:', e.message);
+        console.error('[Watch] ✗ Failed to connect weather effects:', e.message);
+        console.error('[Watch] Stack:', e.stack);
     }
 }
 
@@ -197,9 +214,12 @@ async function connectWeatherEffects() {
  * Handle weather effect changes (in RP mode)
  */
 function onWeatherEffectChange(data) {
+    console.log('[Watch] Processing weather change:', data);
+    
     // Update RP weather from effects
     if (data.weather) {
         rpWeather = EFFECTS_TO_WATCH[data.weather] || data.weather;
+        console.log('[Watch] Set rpWeather to:', rpWeather);
     } else if (data.period) {
         // Use period to determine day/night if no weather
         if (data.period === 'day') rpWeather = 'clear-day';
@@ -298,9 +318,12 @@ export async function updateWatch() {
 /**
  * Update newspaper strip to match watch
  */
-function updateNewspaper() {
+export function updateNewspaper() {
     const strip = document.getElementById('newspaper-strip');
-    if (!strip) return;
+    if (!strip) {
+        console.log('[Watch] Newspaper strip not found');
+        return;
+    }
     
     const now = new Date();
     const hour = watchMode === 'real' ? now.getHours() : rpTime.hours;
@@ -316,7 +339,9 @@ function updateNewspaper() {
     
     // Get weather text
     const weather = watchMode === 'real' ? (realWeatherCache?.weather || 'clear') : rpWeather;
-    const weatherText = weather.replace('-day', '').replace('-night', '').replace('y', 'y');
+    const weatherText = weather.replace('-day', '').replace('-night', '');
+    
+    console.log('[Watch] Updating newspaper - weather:', weather, 'period:', period);
     
     // Update elements
     const dateEl = document.getElementById('newspaper-date');
@@ -390,6 +415,8 @@ export function toggleWatchMode() {
  * Start the watch interval
  */
 export async function startWatch() {
+    console.log('[Watch] Starting...');
+    
     // Connect to weather effects
     await connectWeatherEffects();
     
@@ -442,6 +469,7 @@ export function setRPTime(hours, minutes) {
  */
 export function setRPWeather(weather) {
     rpWeather = weather;
+    console.log('[Watch] setRPWeather called with:', weather);
     
     if (watchMode === 'rp') {
         updateWatch();
@@ -509,4 +537,35 @@ export function restoreWatchState(state) {
     if (state.rpWeather) rpWeather = state.rpWeather;
     updateWatch();
     updateNewspaper();
+}
+
+/**
+ * Force refresh weather from effects
+ */
+export function refreshFromEffects() {
+    if (weatherEffects?.getState) {
+        const state = weatherEffects.getState();
+        console.log('[Watch] Force refresh from effects:', state);
+        if (state.weather && watchMode === 'rp') {
+            onWeatherEffectChange(state);
+        }
+    }
+}
+
+/**
+ * Debug: Log current state
+ */
+export function debugWatch() {
+    console.log('[Watch Debug]', {
+        watchMode,
+        rpTime,
+        rpWeather,
+        weatherEffectsLoaded: !!weatherEffects,
+        subscribed: !!weatherUnsubscribe,
+        realWeatherCache
+    });
+    
+    if (weatherEffects?.debugWeather) {
+        console.log('[Watch Debug] Weather effects:', weatherEffects.debugWeather());
+    }
 }
