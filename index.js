@@ -702,7 +702,7 @@ async function init() {
             autoDetect: true,
             intensity: 'light',
             syncWithTimeOfDay: true,
-            skipEventListeners: true
+            skipEventListeners: false
         });
         weatherLoaded = true;
         console.log('[Tribunal] Weather effects system initialized');
