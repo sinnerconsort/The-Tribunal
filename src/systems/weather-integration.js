@@ -1,7 +1,10 @@
 /**
  * Weather Integration Module - The Tribunal
  * ALL-IN-ONE: Effects + Integration + Event Emitter
- * v3.2.1 - Fixed z-index (was 10, now 9999) so effects show above UI
+ * v3.1.0 - Added JSON world state parsing
+ *        - Improved keyword detection
+ *        - Better debug logging
+ *        - Fixed event emission chain
  */
 
 import { getContext } from '../../../../../extensions.js';
@@ -22,8 +25,9 @@ export function onWeatherChange(event, callback) {
 export function subscribe(callback) { return onWeatherChange('anyChange', callback); }
 
 function emit(event, data) {
-    listeners[event]?.forEach(cb => { try { cb(data); } catch(e) {} });
-    if (event !== 'anyChange') listeners.anyChange?.forEach(cb => { try { cb(data); } catch(e) {} });
+    console.log(`[Weather] Emitting ${event}:`, data);
+    listeners[event]?.forEach(cb => { try { cb(data); } catch(e) { console.error('[Weather] Listener error:', e); } });
+    if (event !== 'anyChange') listeners.anyChange?.forEach(cb => { try { cb(data); } catch(e) { console.error('[Weather] Listener error:', e); } });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -34,134 +38,11 @@ let effectsEnabled = true;
 let currentWeather = null;
 let currentPeriod = null;
 let currentSpecial = null;
+let currentTemp = null;
+let currentLocation = null;
 let effectIntensity = 'medium';
 let initialized = false;
 let config = { effectsEnabled: true, autoDetect: true, intensity: 'light', syncWithTimeOfDay: true, skipEventListeners: false };
-
-// UI update callbacks - set by initWeatherSystem or externally
-let uiCallbacks = {
-    onWeatherUpdate: null,  // Called with { weather, period, special }
-    onPeriodUpdate: null,
-    onSpecialUpdate: null
-};
-
-/**
- * Register UI callbacks for weather changes
- * Call this from index.js after watch/newspaper are initialized
- */
-export function setUICallbacks(callbacks) {
-    uiCallbacks = { ...uiCallbacks, ...callbacks };
-    console.log('[Weather] UI callbacks registered');
-}
-
-/**
- * Propagate weather state to UI components
- */
-function propagateToUI() {
-    const state = { weather: currentWeather, period: currentPeriod, special: currentSpecial };
-    
-    // Get current date for newspaper
-    const now = new Date();
-    const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-    const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 
-                   'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
-    
-    // Try registered callbacks first
-    if (uiCallbacks.onWeatherUpdate) {
-        try { uiCallbacks.onWeatherUpdate(state); } catch(e) { console.warn('[Weather] UI callback error:', e); }
-    }
-    
-    // Also try window globals (for lazy-loaded modules)
-    if (typeof window !== 'undefined') {
-        // Update newspaper strip if available
-        if (window.tribunalUpdateNewspaper) {
-            try {
-                window.tribunalUpdateNewspaper({
-                    weather: mapWeatherToNewspaper(currentWeather),
-                    weatherText: capitalizeWeather(currentWeather),
-                    period: mapPeriodToNewspaper(currentPeriod),
-                    // Include date info
-                    dayOfWeek: DAYS[now.getDay()],
-                    day: now.getDate(),
-                    month: MONTHS[now.getMonth()]
-                });
-                console.log('[Weather] Newspaper updated:', currentWeather, currentPeriod);
-            } catch(e) { console.warn('[Weather] Newspaper update failed:', e); }
-        }
-        
-        // Update watch via setRPWeather if available
-        if (window.tribunalSetRPWeather) {
-            try {
-                const watchWeather = mapWeatherToWatch(currentWeather);
-                window.tribunalSetRPWeather(watchWeather);
-                console.log('[Weather] Watch updated:', watchWeather);
-            } catch(e) { console.warn('[Weather] Watch update failed:', e); }
-        }
-        
-        // Also try window.setRPWeather (direct export)
-        if (!window.tribunalSetRPWeather && window.setRPWeather) {
-            try {
-                window.setRPWeather(mapWeatherToWatch(currentWeather));
-            } catch(e) {}
-        }
-        
-        // Generate Shivers atmospheric quip
-        if (window.tribunalOnWeatherChange) {
-            try {
-                window.tribunalOnWeatherChange({
-                    weather: currentWeather,
-                    period: currentPeriod,
-                    location: null
-                });
-            } catch(e) { console.warn('[Weather] Shivers update failed:', e); }
-        }
-    }
-}
-
-/**
- * Capitalize weather for display
- */
-function capitalizeWeather(weather) {
-    if (!weather) return 'Unknown';
-    return weather.charAt(0).toUpperCase() + weather.slice(1);
-}
-
-/**
- * Map weather-integration weather to newspaper format
- */
-function mapWeatherToNewspaper(weather) {
-    const mapping = {
-        rain: 'rain', storm: 'storm', snow: 'snow', 
-        fog: 'fog', wind: 'wind', clear: 'clear',
-        waves: 'overcast', smoke: 'overcast'
-    };
-    return mapping[weather] || 'overcast';
-}
-
-/**
- * Map period to newspaper edition
- */
-function mapPeriodToNewspaper(period) {
-    const mapping = {
-        'day': 'morning',
-        'city-night': 'evening', 
-        'quiet-night': 'night',
-        'indoor': 'morning'
-    };
-    return mapping[period] || 'morning';
-}
-
-/**
- * Map weather to watch icon format
- */
-function mapWeatherToWatch(weather) {
-    const mapping = {
-        rain: 'rainy', storm: 'stormy', snow: 'snowy',
-        fog: 'foggy', wind: 'windy', clear: 'clear',
-        waves: 'cloudy', smoke: 'cloudy'
-    };
-    return mapping[weather] || 'cloudy';
-}
 
 const PARTICLE_COUNTS = {
     light:  { rain: 15, snow: 12, fog: 3, debris: 6, dust: 6, stars: 15, fireflies: 5, lightning: 1, waves: 3, smoke: 4 },
@@ -176,7 +57,7 @@ function getParticleCount(type) { return PARTICLE_COUNTS[effectIntensity]?.[type
 // ═══════════════════════════════════════════════════════════════
 
 const WEATHER_CSS = `
-.tribunal-weather-layer{position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;pointer-events:none!important;overflow:hidden!important;z-index:9999!important}
+.tribunal-weather-layer{position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;pointer-events:none!important;overflow:hidden!important;z-index:10!important}
 .fx-snowflake{position:absolute;color:white;text-shadow:0 0 8px rgba(255,255,255,0.8);animation:snowfall linear infinite}
 @keyframes snowfall{0%{transform:translateY(-20px) rotate(0deg);opacity:0}10%{opacity:1}90%{opacity:0.8}100%{transform:translateY(100vh) rotate(360deg);opacity:0}}
 .fx-raindrop{position:absolute;width:2px;background:linear-gradient(transparent,rgba(174,194,224,0.8));animation:rainfall linear infinite}
@@ -536,13 +417,91 @@ function renderEffects() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// AUTO-DETECTION
+// JSON WORLD STATE PARSING (NEW!)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Try to extract JSON world state block from message
+ * Looks for patterns like:
+ * {
+ *   "weather": "Snow",
+ *   "temperature": { "value": 45, "unit": "F" },
+ *   ...
+ * }
+ */
+function extractWorldState(message) {
+    if (!message || typeof message !== 'string') return null;
+    
+    // Look for JSON block containing weather field
+    // Match both fenced code blocks and raw JSON
+    const patterns = [
+        /```json\s*(\{[\s\S]*?"weather"[\s\S]*?\})\s*```/i,
+        /```\s*(\{[\s\S]*?"weather"[\s\S]*?\})\s*```/i,
+        /(\{[^{}]*"weather"\s*:\s*"[^"]+(?:"[^{}]*|\{[^{}]*\}[^{}]*)*\})/i
+    ];
+    
+    for (const pattern of patterns) {
+        const match = message.match(pattern);
+        if (match) {
+            try {
+                const parsed = JSON.parse(match[1]);
+                if (parsed.weather) {
+                    console.log('[Weather] ✓ Parsed JSON world state:', parsed);
+                    return parsed;
+                }
+            } catch (e) {
+                // JSON parse failed, try next pattern
+                console.log('[Weather] JSON parse attempt failed:', e.message);
+            }
+        }
+    }
+    
+    return null;
+}
+
+/**
+ * Map JSON weather strings to internal weather types
+ */
+const JSON_WEATHER_MAP = {
+    'clear': 'clear',
+    'sunny': 'clear',
+    'cloudy': 'fog',
+    'overcast': 'fog',
+    'rain': 'rain',
+    'rainy': 'rain',
+    'light rain': 'rain',
+    'heavy rain': 'storm',
+    'storm': 'storm',
+    'stormy': 'storm',
+    'thunderstorm': 'storm',
+    'snow': 'snow',
+    'snowy': 'snow',
+    'snowing': 'snow',
+    'light snow': 'snow',
+    'heavy snow': 'snow',
+    'blizzard': 'snow',
+    'fog': 'fog',
+    'foggy': 'fog',
+    'mist': 'fog',
+    'misty': 'fog',
+    'wind': 'wind',
+    'windy': 'wind'
+};
+
+function normalizeWeatherFromJSON(weatherStr) {
+    if (!weatherStr) return null;
+    const lower = weatherStr.toLowerCase().trim();
+    return JSON_WEATHER_MAP[lower] || lower;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// KEYWORD-BASED AUTO-DETECTION (FALLBACK)
 // ═══════════════════════════════════════════════════════════════
 
 const WEATHER_PATTERNS = {
     storm: /\b(storm|stormy|thunder|thunderstorm|lightning|tempest|gale|downpour|torrential)\b/i,
     rain: /\b(rain|raining|rainy|drizzle|drizzling|shower|showers|wet|damp|precipitation)\b/i,
-    snow: /\b(snow|snowing|snowy|blizzard|flurries|frost|frosted|freezing|ice|icy|sleet)\b/i,
+    snow: /\b(snow|snowing|snowy|blizzard|flurries|frost|frosted|freezing|ice|icy|sleet|frozen|cold)\b/i,
     fog: /\b(fog|foggy|mist|misty|haze|hazy|murky|smog|overcast)\b/i,
     wind: /\b(wind|windy|gust|gusty|breezy|breeze)\b/i,
     waves: /\b(wave|waves|ocean|sea|harbor|harbour|dock|pier|beach|shore|coastal|tide)\b/i,
@@ -554,63 +513,102 @@ const PERIOD_PATTERNS = {
     'city-night': /\b(city night|urban night|neon|streetlight|downtown at night)\b/i,
     'quiet-night': /\b(night|nighttime|evening|dusk|dark|moonlight|moonlit|starry|midnight)\b/i,
     'day': /\b(day|daytime|morning|afternoon|noon|daylight|dawn|sunrise|sunset)\b/i,
-    'indoor': /\b(inside|indoor|indoors|room|office|apartment|house|home|building|interior)\b/i
+    'indoor': /\b(inside|indoor|indoors|room|office|apartment|house|home|building|interior|cave)\b/i
 };
 
 const SPECIAL_PATTERNS = {
     pale: /\b(pale|void|unconscious|dreaming|limbo|between|threshold|nowhere|dissociat)\b/i,
-    // Horror requires STRONG keywords - common words like "dead/death/blood" are too frequent in RP
-    horror: /\b(horror|dread|terror|terrified|gruesome|nightmarish|abomination|mutilated)\b/i
+    horror: /\b(horror|dread|terror|fear|blood|bloody|murder|death|dead|corpse|scream|knife|stab)\b/i
 };
 
-// Additional horror words that need 2+ matches to trigger
-const HORROR_SOFT_KEYWORDS = /\b(blood|bloody|murder|death|dead|corpse|scream|knife|stab|fear|fearful)\b/gi;
-const HORROR_SOFT_THRESHOLD = 3; // Need 3+ soft keywords to trigger horror
-
 /**
- * Check if horror should trigger based on keyword density
+ * Scan message for weather keywords (fallback when no JSON found)
  */
-function shouldTriggerHorror(message) {
-    // Strong keywords trigger immediately
-    if (SPECIAL_PATTERNS.horror.test(message)) return true;
+function scanForKeywords(message) {
+    if (!message || typeof message !== 'string') return null;
     
-    // Soft keywords need multiple matches
-    const matches = message.match(HORROR_SOFT_KEYWORDS);
-    return matches && matches.length >= HORROR_SOFT_THRESHOLD;
+    // Check special effects first (highest priority)
+    for (const [effect, pattern] of Object.entries(SPECIAL_PATTERNS)) {
+        if (pattern.test(message)) {
+            return { type: 'special', value: effect };
+        }
+    }
+    
+    // Check weather patterns
+    for (const [weather, pattern] of Object.entries(WEATHER_PATTERNS)) {
+        if (pattern.test(message)) {
+            return { type: 'weather', value: weather };
+        }
+    }
+    
+    // Check period patterns
+    for (const [period, pattern] of Object.entries(PERIOD_PATTERNS)) {
+        if (pattern.test(message)) {
+            return { type: 'period', value: period };
+        }
+    }
+    
+    return null;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// UNIFIED MESSAGE PROCESSING
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Process a message for weather data
+ * 1. First tries JSON world state extraction
+ * 2. Falls back to keyword scanning
+ * 3. Updates state and emits events
+ */
 function processMessageForWeather(message) {
     if (!message || typeof message !== 'string') return null;
     
-    // PRIORITY 1: Weather (most important for atmosphere)
-    for (const [weather, pattern] of Object.entries(WEATHER_PATTERNS)) {
-        if (pattern.test(message)) { 
-            setWeather(weather); 
-            return { type: 'weather', value: weather }; 
+    console.log('[Weather] Processing message (length:', message.length, ')');
+    
+    // Try JSON first
+    const worldState = extractWorldState(message);
+    if (worldState) {
+        const weather = normalizeWeatherFromJSON(worldState.weather);
+        if (weather) {
+            console.log('[Weather] ✓ Using JSON weather:', weather);
+            setWeather(weather);
+            
+            // Also extract temperature if available
+            if (worldState.temperature?.value) {
+                currentTemp = worldState.temperature;
+                console.log('[Weather] Temperature:', currentTemp);
+            }
+            
+            // Also extract location if available
+            if (worldState.location) {
+                currentLocation = worldState.location;
+                console.log('[Weather] Location:', currentLocation);
+            }
+            
+            return { type: 'weather', value: weather, source: 'json', worldState };
         }
     }
     
-    // PRIORITY 2: Time period
-    for (const [period, pattern] of Object.entries(PERIOD_PATTERNS)) {
-        if (pattern.test(message)) { 
-            setPeriod(period); 
-            return { type: 'period', value: period }; 
+    // Fallback to keyword scanning
+    console.log('[Weather] No JSON found, scanning keywords...');
+    const keywordResult = scanForKeywords(message);
+    
+    if (keywordResult) {
+        console.log('[Weather] ✓ Keyword detected:', keywordResult);
+        
+        if (keywordResult.type === 'special') {
+            setSpecialEffect(keywordResult.value);
+        } else if (keywordResult.type === 'weather') {
+            setWeather(keywordResult.value);
+        } else if (keywordResult.type === 'period') {
+            setPeriod(keywordResult.value);
         }
+        
+        return { ...keywordResult, source: 'keywords' };
     }
     
-    // PRIORITY 3: Special effects (only if no weather/period detected)
-    // Pale - check normally
-    if (SPECIAL_PATTERNS.pale.test(message)) {
-        setSpecialEffect('pale');
-        return { type: 'special', value: 'pale' };
-    }
-    
-    // Horror - requires strong keyword OR multiple soft keywords
-    if (shouldTriggerHorror(message)) {
-        setSpecialEffect('horror');
-        return { type: 'special', value: 'horror' };
-    }
-    
+    console.log('[Weather] No weather data found in message');
     return null;
 }
 
@@ -627,25 +625,36 @@ export function setWeather(weatherOrState) {
     } else if (typeof weatherOrState === 'string') {
         currentWeather = weatherOrState || null;
     }
+    
+    console.log('[Weather] setWeather:', previous.weather, '→', currentWeather);
     renderEffects();
-    propagateToUI();  // Update watch + newspaper
-    if (previous.weather !== currentWeather) emit('weatherChange', { weather: currentWeather, period: currentPeriod, special: currentSpecial, intensity: effectIntensity, previous });
+    
+    // Always emit so subscribers get updates
+    emit('weatherChange', { 
+        weather: currentWeather, 
+        period: currentPeriod, 
+        special: currentSpecial, 
+        intensity: effectIntensity, 
+        temp: currentTemp,
+        location: currentLocation,
+        previous 
+    });
 }
 
 export function setPeriod(period) {
     const previous = { weather: currentWeather, period: currentPeriod, special: currentSpecial };
     currentPeriod = period;
+    console.log('[Weather] setPeriod:', previous.period, '→', currentPeriod);
     renderEffects();
-    propagateToUI();  // Update watch + newspaper
-    if (previous.period !== currentPeriod) emit('periodChange', { weather: currentWeather, period: currentPeriod, special: currentSpecial, intensity: effectIntensity, previous });
+    emit('periodChange', { weather: currentWeather, period: currentPeriod, special: currentSpecial, intensity: effectIntensity, previous });
 }
 
 export function setSpecialEffect(effect) {
     const previous = { weather: currentWeather, period: currentPeriod, special: currentSpecial };
     currentSpecial = effect;
+    console.log('[Weather] setSpecialEffect:', previous.special, '→', currentSpecial);
     renderEffects();
-    // Don't propagate special effects to watch/newspaper - they're overlay effects only
-    if (previous.special !== currentSpecial) emit('specialChange', { weather: currentWeather, period: currentPeriod, special: currentSpecial, intensity: effectIntensity, previous });
+    emit('specialChange', { weather: currentWeather, period: currentPeriod, special: currentSpecial, intensity: effectIntensity, previous });
 }
 
 export function setIntensity(intensity) {
@@ -655,7 +664,15 @@ export function setIntensity(intensity) {
 export function setEnabled(enabled) { effectsEnabled = enabled; renderEffects(); }
 
 export function getState() {
-    return { enabled: effectsEnabled, weather: currentWeather, period: currentPeriod, special: currentSpecial, intensity: effectIntensity };
+    return { 
+        enabled: effectsEnabled, 
+        weather: currentWeather, 
+        period: currentPeriod, 
+        special: currentSpecial, 
+        intensity: effectIntensity,
+        temp: currentTemp,
+        location: currentLocation
+    };
 }
 
 export function triggerPale() { setSpecialEffect('pale'); }
@@ -684,26 +701,56 @@ export function testEffect(effectType) {
 // ═══════════════════════════════════════════════════════════════
 
 function scanChatForWeather(messageCount = 5) {
-    if (!config.autoDetect) return;
+    if (!config.autoDetect) {
+        console.log('[Weather] Auto-detect disabled, skipping scan');
+        return;
+    }
+    
     try {
         const ctx = getContext();
-        if (!ctx?.chat?.length) return;
-        for (const msg of ctx.chat.slice(-messageCount)) {
-            if (msg?.mes) { const result = processMessageForWeather(msg.mes); if (result) console.log('[Weather] Auto-detected:', result); }
+        if (!ctx?.chat?.length) {
+            console.log('[Weather] No chat context available');
+            return;
         }
-    } catch (e) { console.warn('[Weather] Scan error:', e.message); }
+        
+        console.log('[Weather] Scanning last', messageCount, 'messages...');
+        
+        // Scan from newest to oldest, stop on first match
+        const messages = ctx.chat.slice(-messageCount).reverse();
+        for (const msg of messages) {
+            if (msg?.mes) {
+                const result = processMessageForWeather(msg.mes);
+                if (result) {
+                    console.log('[Weather] ✓ Found weather in chat:', result);
+                    return; // Stop after first match
+                }
+            }
+        }
+        
+        console.log('[Weather] No weather found in recent messages');
+    } catch (e) { 
+        console.error('[Weather] Scan error:', e.message); 
+    }
 }
 
-function onChatChanged() { console.log('[Weather] Chat changed'); setTimeout(() => scanChatForWeather(5), 500); }
+function onChatChanged() { 
+    console.log('[Weather] Chat changed event'); 
+    setTimeout(() => scanChatForWeather(10), 500); 
+}
 
 function onMessageReceived() {
     try {
         const ctx = getContext();
         if (ctx?.chat?.length && config.autoDetect) {
             const lastMessage = ctx.chat[ctx.chat.length - 1];
-            if (lastMessage?.mes) processMessageForWeather(lastMessage.mes);
+            if (lastMessage?.mes) {
+                console.log('[Weather] New message received, processing...');
+                processMessageForWeather(lastMessage.mes);
+            }
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error('[Weather] Message handler error:', e);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -711,47 +758,42 @@ function onMessageReceived() {
 // ═══════════════════════════════════════════════════════════════
 
 export function initWeatherSystem(options = {}) {
-    if (initialized) { console.log('[Weather] Already initialized'); return true; }
+    if (initialized) { 
+        console.log('[Weather] Already initialized'); 
+        return true; 
+    }
+    
     config = { ...config, ...options };
-    console.log('[Weather] Initializing...', config);
+    console.log('[Weather] Initializing with config:', config);
+    
     injectCSS();
     effectsEnabled = config.effectsEnabled;
     effectIntensity = config.intensity;
     
-    // Accept UI callbacks in options
-    if (options.setRPWeather) {
-        uiCallbacks.onWeatherUpdate = (state) => {
-            try { options.setRPWeather(mapWeatherToWatch(state.weather)); } catch(e) {}
-        };
-    }
-    if (options.updateNewspaper) {
-        const existingCallback = uiCallbacks.onWeatherUpdate;
-        uiCallbacks.onWeatherUpdate = (state) => {
-            if (existingCallback) existingCallback(state);
-            try { 
-                const now = new Date();
-                const DAYS = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-                const MONTHS = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 
-                               'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
-                options.updateNewspaper({
-                    weather: mapWeatherToNewspaper(state.weather),
-                    weatherText: capitalizeWeather(state.weather),
-                    period: mapPeriodToNewspaper(state.period),
-                    dayOfWeek: DAYS[now.getDay()],
-                    day: now.getDate(),
-                    month: MONTHS[now.getMonth()]
-                }); 
-            } catch(e) {}
-        };
+    if (!config.skipEventListeners) {
+        console.log('[Weather] Registering event listeners...');
+        if (event_types.CHAT_CHANGED) {
+            eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
+            console.log('[Weather] ✓ Registered CHAT_CHANGED listener');
+        }
+        if (event_types.MESSAGE_RECEIVED) {
+            eventSource.on(event_types.MESSAGE_RECEIVED, onMessageReceived);
+            console.log('[Weather] ✓ Registered MESSAGE_RECEIVED listener');
+        }
     }
     
-    if (!config.skipEventListeners) {
-        if (event_types.CHAT_CHANGED) eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
-        if (event_types.MESSAGE_RECEIVED) eventSource.on(event_types.MESSAGE_RECEIVED, onMessageReceived);
-    }
-    setTimeout(() => { const ctx = getContext(); if (ctx?.chat?.length > 0) scanChatForWeather(5); }, 1000);
+    // Initial scan after a delay
+    setTimeout(() => { 
+        const ctx = getContext(); 
+        if (ctx?.chat?.length > 0) {
+            console.log('[Weather] Initial chat scan...');
+            scanChatForWeather(10); 
+        }
+    }, 1000);
+    
     initialized = true;
-    console.log('[Weather] Ready!');
+    console.log('[Weather] ✓ System ready!');
+    console.log('[Weather] Subscribers:', listeners.anyChange.length);
     return true;
 }
 
@@ -760,6 +802,7 @@ export const setWeatherState = setWeather;
 export const setEffectsEnabled = setEnabled;
 export const setEffectsIntensity = setIntensity;
 export const processMessage = processMessageForWeather;
+
 export function syncWithWeatherTime(watchState) {
     if (!watchState?.time) return;
     const hour = parseInt(watchState.time.split(':')[0], 10);
@@ -771,16 +814,46 @@ export function syncWithWeatherTime(watchState) {
         else setPeriod('city-night');
     }
 }
+
 export function debugWeather() {
-    return { config, state: getState(), available: getAvailableEffects(), initialized, cssInjected: !!document.getElementById('tribunal-weather-css'), layerCount: document.querySelectorAll('.tribunal-weather-layer').length };
+    const debug = { 
+        config, 
+        state: getState(), 
+        available: getAvailableEffects(), 
+        initialized, 
+        cssInjected: !!document.getElementById('tribunal-weather-css'), 
+        layerCount: document.querySelectorAll('.tribunal-weather-layer').length,
+        subscribers: {
+            weatherChange: listeners.weatherChange.length,
+            periodChange: listeners.periodChange.length,
+            specialChange: listeners.specialChange.length,
+            anyChange: listeners.anyChange.length
+        }
+    };
+    console.log('[Weather Debug]', debug);
+    return debug;
 }
-export function rescanChat() { scanChatForWeather(10); }
-export function setAutoDetect(enabled) { config.autoDetect = enabled; }
+
+export function rescanChat() { 
+    console.log('[Weather] Manual rescan triggered');
+    scanChatForWeather(10); 
+}
+
+export function setAutoDetect(enabled) { 
+    config.autoDetect = enabled; 
+    console.log('[Weather] Auto-detect:', enabled);
+}
+
+// Force an immediate update with specific weather (for testing)
+export function forceWeather(weather) {
+    console.log('[Weather] Force setting weather to:', weather);
+    setWeather(weather);
+}
 
 export default {
     initWeatherSystem, setWeather, setPeriod, setSpecialEffect, setIntensity, setEnabled, getState,
     triggerPale, exitPale, isInPale, triggerHorror, exitHorror, processMessage: processMessageForWeather,
     testEffect, getAvailableEffects, onWeatherChange, subscribe, debugWeather, rescanChat, setAutoDetect,
     syncWithWeatherTime, setWeatherState: setWeather, setEffectsEnabled: setEnabled, setEffectsIntensity: setIntensity,
-    setUICallbacks  // NEW: Register callbacks for watch/newspaper updates
+    forceWeather
 };
