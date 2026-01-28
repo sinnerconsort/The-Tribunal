@@ -221,7 +221,7 @@ export const NEWSPAPER_STRIP_CSS = `
 
 .masthead-title {
     font-family: 'Playfair Display', 'Times New Roman', Georgia, serif;
-    font-size: 12px;
+    font-size: 16px;
     font-weight: 400;
     letter-spacing: 3px;
     color: #d4c8b8;
@@ -384,12 +384,12 @@ export const NEWSPAPER_STRIP_CSS = `
     }
     
     .masthead-title {
-        font-size: 12px;
-        letter-spacing: 3px;
+        font-size: 14px;
+        letter-spacing: 2px;
     }
     
     .masthead-bracket {
-        font-size: 14px;
+        font-size: 10px;
     }
     
     .peripherique-weather-box {
@@ -431,12 +431,12 @@ export const NEWSPAPER_STRIP_CSS = `
 
 @media (max-width: 360px) {
     .masthead-title {
-        font-size: 16px;
-        letter-spacing: 2px;
+        font-size: 12px;
+        letter-spacing: 1px;
     }
     
     .masthead-bracket {
-        display: none;
+        font-size: 8px;
     }
     
     .peripherique-weather-box {
