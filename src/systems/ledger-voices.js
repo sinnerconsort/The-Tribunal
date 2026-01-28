@@ -547,6 +547,27 @@ export function getFortuneStats() {
 // ═══════════════════════════════════════════════════════════════
 
 /**
+ * Update investigation FAB to show luck status
+ * Call this after dice rolls or on interval
+ */
+export function updateFABLuckIndicator() {
+    const fab = document.getElementById('tribunal-investigation-fab');
+    if (!fab) return;
+    
+    const luck = getCurrentLuckModifier();
+    
+    // Remove existing luck classes
+    fab.classList.remove('luck-positive', 'luck-negative');
+    
+    // Add appropriate class
+    if (luck > 0) {
+        fab.classList.add('luck-positive');
+    } else if (luck < 0) {
+        fab.classList.add('luck-negative');
+    }
+}
+
+/**
  * Initialize drawer dice click handlers
  * Call after DOM is ready
  */
@@ -559,6 +580,9 @@ export function initDrawerDice() {
     
     diceContainer.style.cursor = 'pointer';
     diceContainer.addEventListener('click', handleDiceClick);
+    
+    // Also update FAB when luck expires (check every 30s)
+    setInterval(updateFABLuckIndicator, 30000);
     
     console.log('[Ledger Voices] Drawer dice initialized');
 }
@@ -609,6 +633,9 @@ async function handleDiceClick(e) {
     
     // Dispatch events for other systems
     window.dispatchEvent(new CustomEvent('tribunal:diceRoll', { detail: result }));
+    
+    // Update FAB luck indicator
+    updateFABLuckIndicator();
     
     // Dispatch specific crit events for investigation integration
     if (result.isCrit) {
@@ -740,6 +767,7 @@ if (typeof window !== 'undefined') {
         // Luck integration
         getCurrentLuckModifier,
         consumeLuckModifier,
+        updateFABLuckIndicator,
         
         // Voice definitions
         LEDGER_VOICES,
@@ -752,7 +780,7 @@ if (typeof window !== 'undefined') {
 export default {
     // Core systems
     rollDrawerDice,
-    getLedgerCommentForCheck,  // NEW: Hook for dice.js integration
+    getLedgerCommentForCheck,  // Hook for dice.js integration
     drawFortune,
     
     // State tracking
@@ -765,6 +793,7 @@ export default {
     getCurrentLuckModifier,
     consumeLuckModifier,
     getLuckModifier,
+    updateFABLuckIndicator,
     
     // Initialization
     initLedgerVoices,

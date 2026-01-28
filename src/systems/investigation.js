@@ -1,9 +1,13 @@
 /**
- * The Tribunal - Investigation Module v6.0
+ * The Tribunal - Investigation Module v6.1
  * "La Revacholière" - Environmental Scanner & Item Discovery
  * 
  * PURPOSE: Scan environments for objects, items, and details to populate inventory
  * NOT FOR: Character analysis or dialogue reactions (that's the voice system)
+ * 
+ * CHANGES v6.1:
+ * - Drawer dice luck integration (boxcars/snake eyes affect scans)
+ * - Graceful fallback if luck module not present
  * 
  * IMPROVEMENTS v6.0:
  * - JSON output format for reliable parsing (RPG Companion pattern)
@@ -40,6 +44,36 @@ import {
     getObjectIcon,
     getNarratorDifficulty
 } from '../data/discovery-contexts.js';
+
+// ═══════════════════════════════════════════════════════════════
+// DRAWER DICE LUCK (Optional integration with ledger-voices.js)
+// ═══════════════════════════════════════════════════════════════
+
+let luckModule = null;
+
+function getInvestigationLuck(consume = true) {
+    if (luckModule) {
+        return luckModule.getInvestigationLuck(consume);
+    }
+    return { hasLuck: false, promptInjection: '', difficultyModifier: 0 };
+}
+
+function applyLuckToDifficulty(difficulty, luck) {
+    if (luckModule) {
+        return luckModule.applyLuckToDifficulty(difficulty, luck);
+    }
+    return difficulty;
+}
+
+// Try to load luck module (non-blocking)
+import('./dice-ledger-integration.js')
+    .then(m => {
+        luckModule = m;
+        console.log('[Investigation] Drawer dice luck integration loaded');
+    })
+    .catch(() => {
+        console.log('[Investigation] Luck integration not available (optional)');
+    });
 
 // ═══════════════════════════════════════════════════════════════
 // STATE
@@ -916,9 +950,23 @@ async function doInvestigate() {
 async function generateEnvironmentScan(sceneText, selectedSkills) {
     const context = buildInvestigationContext(sceneText);
     
+    // Check for drawer dice luck (from secret compartment)
+    const luck = getInvestigationLuck(true);
+    const luckPrompt = luck.hasLuck ? luck.promptInjection : '';
+    
+    if (luck.hasLuck) {
+        console.log(`[Investigation] Luck applied: ${luck.luckValue > 0 ? 'FORTUNE' : 'MISFORTUNE'}`);
+    }
+    
     // Roll skill checks
     const skillsWithChecks = selectedSkills.map(s => {
-        const difficulty = getNarratorDifficulty(s.isPrimary ? 'primary' : 'secondary');
+        let difficulty = getNarratorDifficulty(s.isPrimary ? 'primary' : 'secondary');
+        
+        // Apply drawer dice luck to difficulty
+        if (luck.hasLuck) {
+            difficulty = applyLuckToDifficulty(difficulty, luck);
+        }
+        
         const checkResult = rollSkillCheck(s.level, difficulty);
         return {
             ...s,
@@ -933,7 +981,7 @@ async function generateEnvironmentScan(sceneText, selectedSkills) {
     }).join('\n');
 
     const systemPrompt = `You are generating an ENVIRONMENTAL SCAN for a Disco Elysium-style RPG.
-You scan the ENVIRONMENT for OBJECTS and ITEMS. Objects can SPEAK DIRECTLY to the player.
+${luckPrompt}You scan the ENVIRONMENT for OBJECTS and ITEMS. Objects can SPEAK DIRECTLY to the player.
 
 CRITICAL CHARACTER INFO:
 - Player Character: ${context.characterContext}
