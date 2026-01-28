@@ -97,7 +97,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   INTERIOR LAYOUT
+   INTERIOR LAYOUT - Fill vertical space
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-interior {
@@ -105,9 +105,17 @@
     z-index: 2;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 20px;
     min-height: 100%;
     box-sizing: border-box;
+    justify-content: space-between; /* Spread items vertically */
+}
+
+/* Top section container */
+.compartment-top-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 /* Top row: Dice left, Wrapper right */
@@ -265,21 +273,21 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DORA'S LETTER - Envelope with Wax Seal
+   DORA'S LETTER - Horizontal Envelope, opens from side
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-letter {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    flex: 1;
+    gap: 8px;
 }
 
-/* The envelope container */
+/* Horizontal envelope container */
 .dora-envelope {
     width: 100%;
-    max-width: 240px;
+    max-width: 220px;
+    height: 70px;
     position: relative;
     cursor: pointer;
     transition: transform 0.3s ease;
@@ -289,82 +297,73 @@
     transform: scale(1.02);
 }
 
-/* Envelope body */
+/* Envelope body - horizontal */
 .envelope-body {
-    background: linear-gradient(180deg, #d4c4a0 0%, #c4b490 50%, #b4a480 100%);
-    border-radius: 4px;
-    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #c4b490 0%, #d4c4a0 50%, #c4b490 100%);
+    border-radius: 3px;
     position: relative;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-    min-height: 100px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.35);
     overflow: hidden;
 }
 
-/* Paper texture on envelope */
+/* Paper texture */
 .envelope-body::before {
     content: '';
     position: absolute;
     inset: 0;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='paper'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23paper)'/%3E%3C/svg%3E");
-    opacity: 0.08;
+    opacity: 0.06;
     pointer-events: none;
 }
 
-/* Inner V shadow */
+/* Inner diagonal shadow */
 .envelope-body::after {
     content: '';
     position: absolute;
     top: 0;
-    left: 0;
     right: 0;
-    height: 50%;
-    background: linear-gradient(180deg, 
-        rgba(0,0,0,0.08) 0%, 
-        transparent 100%
-    );
-    clip-path: polygon(0 0, 50% 60%, 100% 0);
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(270deg, rgba(0,0,0,0.06) 0%, transparent 100%);
     pointer-events: none;
 }
 
-/* Envelope flap - closed state */
+/* Flap on right side */
 .envelope-flap {
     position: absolute;
     top: 0;
-    left: 0;
     right: 0;
-    height: 55px;
-    background: linear-gradient(180deg, #e4d4b0 0%, #d4c4a0 100%);
-    clip-path: polygon(0 0, 50% 100%, 100% 0);
-    transform-origin: top center;
-    transition: transform 0.5s ease;
+    width: 45px;
+    height: 100%;
+    background: linear-gradient(90deg, #d4c4a0 0%, #e4d4b0 100%);
+    clip-path: polygon(100% 0, 100% 100%, 0 50%);
+    transform-origin: right center;
+    transition: transform 0.4s ease;
     z-index: 3;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Wax seal */
+/* Wax seal on flap */
 .wax-seal {
     position: absolute;
-    bottom: -15px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 36px;
-    height: 36px;
+    top: 50%;
+    left: -12px;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
     background: radial-gradient(circle at 35% 35%,
-        #a03030 0%,
-        #802020 40%,
-        #601818 70%,
-        #501010 100%
+        #a03030 0%, #802020 40%, #601818 70%, #501010 100%
     );
     border-radius: 50%;
     box-shadow: 
-        0 2px 6px rgba(0, 0, 0, 0.4),
-        inset 0 -2px 4px rgba(0, 0, 0, 0.3),
-        inset 0 2px 4px rgba(255, 255, 255, 0.1);
+        0 2px 4px rgba(0, 0, 0, 0.4),
+        inset 0 -2px 3px rgba(0, 0, 0, 0.3),
+        inset 0 2px 3px rgba(255, 255, 255, 0.1);
     z-index: 4;
     transition: all 0.3s ease;
 }
 
-/* Seal letter D for Dora */
 .wax-seal::after {
     content: 'D';
     position: absolute;
@@ -372,102 +371,106 @@
     left: 50%;
     transform: translate(-50%, -50%);
     font-family: 'Georgia', serif;
-    font-size: 16px;
+    font-size: 12px;
     font-weight: bold;
-    color: rgba(0, 0, 0, 0.3);
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
+    color: rgba(0, 0, 0, 0.25);
 }
 
-/* Letter inside (the fortune) */
+/* Letter paper inside - slides out right */
 .letter-paper {
-    background: linear-gradient(180deg, #faf6ee 0%, #f4f0e4 100%);
-    margin: 55px 12px 12px 12px;
-    padding: 14px;
+    position: absolute;
+    top: 6px;
+    bottom: 6px;
+    left: 8px;
+    right: 50px;
+    background: linear-gradient(90deg, #faf6ee 0%, #f4f0e4 100%);
     border-radius: 2px;
-    position: relative;
-    z-index: 1;
-    min-height: 80px;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+    transform: translateX(0);
     opacity: 0;
-    transform: translateY(-20px);
-    transition: all 0.4s ease 0.2s;
+    transition: all 0.4s ease 0.1s;
+    z-index: 1;
 }
 
-/* OPEN STATE */
+/* OPEN STATE - flap swings right, letter slides out */
 .dora-envelope.envelope-open .envelope-flap {
-    transform: rotateX(180deg);
+    transform: rotateY(-160deg);
 }
 
 .dora-envelope.envelope-open .wax-seal {
-    opacity: 0.3;
-    transform: translateX(-50%) scale(0.8);
+    opacity: 0.4;
+    transform: translateY(-50%) scale(0.85);
 }
 
 .dora-envelope.envelope-open .letter-paper {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(30px);
 }
 
-/* Letter text */
+/* Letter text - compact for horizontal */
 .letter-text {
     font-family: 'Georgia', serif;
     font-style: italic;
-    font-size: 11px;
+    font-size: 9px;
     color: #2a2420;
-    line-height: 1.6;
+    line-height: 1.4;
     text-align: center;
-    margin-bottom: 8px;
 }
 
 .letter-signature {
     font-family: 'Courier New', monospace;
-    font-size: 9px;
-    color: #5a5045;
+    font-size: 7px;
+    color: #6a5a4a;
     text-align: right;
+    margin-top: 4px;
 }
 
-/* Label under envelope */
+/* Label */
 .envelope-label {
     font-family: 'Courier New', monospace;
-    font-size: 8px;
-    color: rgba(212, 165, 116, 0.4);
+    font-size: 7px;
+    color: rgba(212, 165, 116, 0.35);
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
-/* Draw new fortune button */
+/* Draw button */
 .draw-fortune-btn {
     font-family: 'Courier New', monospace;
-    font-size: 9px;
-    color: rgba(212, 165, 116, 0.6);
-    background: rgba(212, 165, 116, 0.1);
-    border: 1px dashed rgba(212, 165, 116, 0.3);
-    padding: 6px 14px;
+    font-size: 8px;
+    color: rgba(212, 165, 116, 0.55);
+    background: rgba(212, 165, 116, 0.08);
+    border: 1px dashed rgba(212, 165, 116, 0.25);
+    padding: 5px 12px;
     cursor: pointer;
     transition: all 0.2s;
     border-radius: 2px;
 }
 
 .draw-fortune-btn:hover {
-    background: rgba(212, 165, 116, 0.18);
-    border-color: rgba(212, 165, 116, 0.45);
-    color: rgba(212, 165, 116, 0.8);
+    background: rgba(212, 165, 116, 0.15);
+    border-color: rgba(212, 165, 116, 0.4);
+    color: rgba(212, 165, 116, 0.75);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   COMMENTARY - Push to bottom
+   COMMENTARY - Ledger's voice, more prominent
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-commentary {
-    margin-top: auto;
-    padding: 10px 14px;
-    border-left: 2px solid rgba(212, 165, 116, 0.2);
-    background: rgba(0, 0, 0, 0.12);
+    padding: 16px 18px;
+    border-left: 3px solid rgba(212, 165, 116, 0.25);
+    background: rgba(0, 0, 0, 0.15);
+    margin-top: auto; /* Push to bottom */
 }
 
 .commentary-text {
     font-style: italic;
-    font-size: 10px;
-    color: rgba(212, 165, 116, 0.55);
-    line-height: 1.5;
+    font-size: 12px;
+    color: rgba(212, 165, 116, 0.6);
+    line-height: 1.6;
 }
