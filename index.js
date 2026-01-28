@@ -303,7 +303,10 @@ async function triggerVoiceGeneration(messageText = null, manualTrigger = false)
             
             // Append to chat (default: ON unless explicitly disabled)
             if (settings.voices?.appendToChat !== false) {
-                appendVoicesToChat(voices);
+                const chatContainer = document.getElementById('chat');
+                if (chatContainer) {
+                    appendVoicesToChat(voices, chatContainer);
+                }
             }
             
             // FIX: Save generated voices to state for persistence
