@@ -2,7 +2,7 @@
  * The Tribunal - SillyTavern Extension
  * A standalone text based Disco Elysium system
  * 
- * v0.11.1 - Added ledger voices (drawer dice + fortunes in secret compartment)
+ * v0.11.2 - Secret compartment unlock system + skill-colored toasts
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -117,7 +117,7 @@ export { initInvestigation, updateSceneContext, openInvestigation, closeInvestig
 // ═══════════════════════════════════════════════════════════════
 
 const extensionName = 'the-tribunal';
-const extensionVersion = '0.11.1';
+const extensionVersion = '0.11.2';
 
 // ═══════════════════════════════════════════════════════════════
 // CHAT-ONLY FAB VISIBILITY
@@ -753,6 +753,35 @@ async function init() {
         };
     }).catch(err => {
         console.warn('[Tribunal] Ledger voices not loaded:', err.message);
+    });
+    
+    // Initialize compartment unlock system (secret tab revelation)
+    import('./src/systems/compartment-unlock.js').then(module => {
+        setTimeout(() => {
+            module.initCompartmentUnlock();
+            
+            // Check for unlock progression when panel opens
+            // Also check periodically in case user leaves panel open past midnight
+            setInterval(() => {
+                if (document.querySelector('.ledger-subtab-secret')) {
+                    module.checkCompartmentProgression();
+                }
+            }, 60000); // Check every minute
+            
+            console.log('[Tribunal] Compartment unlock system initialized');
+        }, 1500);
+        
+        // Expose debug helpers
+        window.TribunalCompartment = {
+            check: module.checkCompartmentProgression,
+            getStage: module.getCrackStage,
+            isRevealed: module.isCompartmentRevealed,
+            isLateNight: module.isLateNight,
+            forceReveal: module.forceReveal,
+            reset: module.resetCompartment
+        };
+    }).catch(err => {
+        console.warn('[Tribunal] Compartment unlock not loaded:', err.message);
     });
     
     registerEvents();
