@@ -916,33 +916,6 @@ async function doInvestigate() {
 async function generateEnvironmentScan(sceneText, selectedSkills) {
     const context = buildInvestigationContext(sceneText);
     
-    // ═══════════════════════════════════════════════════════════
-    // ▼▼▼ ADD THESE 2 LINES ▼▼▼
-    // ═══════════════════════════════════════════════════════════
-    const luck = getInvestigationLuck(true);
-    const luckPrompt = luck.hasLuck ? luck.promptInjection : '';
-    // ═══════════════════════════════════════════════════════════
-    
-    // Roll skill checks
-    const skillsWithChecks = selectedSkills.map(s => {
-        const difficulty = getNarratorDifficulty(s.isPrimary ? 'primary' : 'secondary');
-        // ═══════════════════════════════════════════════════════════
-        // ▼▼▼ REPLACE THE LINE ABOVE WITH THIS ▼▼▼
-        // ═══════════════════════════════════════════════════════════
-        let difficulty = getNarratorDifficulty(s.isPrimary ? 'primary' : 'secondary');
-        if (luck.hasLuck) {
-            difficulty = applyLuckToDifficulty(difficulty, luck);
-        }
-        // ═══════════════════════════════════════════════════════════
-        
-        const checkResult = rollSkillCheck(s.level, difficulty);
-        return {
-            ...s,
-            checkResult,
-            difficultyName: getDifficultyName(difficulty)
-        };
-    });
-    
     // Roll skill checks
     const skillsWithChecks = selectedSkills.map(s => {
         const difficulty = getNarratorDifficulty(s.isPrimary ? 'primary' : 'secondary');
@@ -960,7 +933,6 @@ async function generateEnvironmentScan(sceneText, selectedSkills) {
     }).join('\n');
 
     const systemPrompt = `You are generating an ENVIRONMENTAL SCAN for a Disco Elysium-style RPG.
-${luckPrompt}
 You scan the ENVIRONMENT for OBJECTS and ITEMS. Objects can SPEAK DIRECTLY to the player.
 
 CRITICAL CHARACTER INFO:
