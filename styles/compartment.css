@@ -119,32 +119,29 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DICE SET SIRENS - Loose gems in drawer
+   DICE SET SIRENS - Scattered loose gems
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-dice {
     position: absolute;
-    top: 20px;
-    left: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    transform: rotate(-12deg);
+    top: 15px;
+    left: 15px;
 }
 
 .dice-pair {
     display: flex;
-    gap: 10px;
+    gap: 22px;
+    align-items: flex-start;
 }
 
 .siren-die {
-    width: 36px;
-    height: 42px;
+    width: 38px;
+    height: 44px;
     position: relative;
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
 
+/* Red die - tilted one way */
 .siren-die.die-red {
     background: linear-gradient(135deg,
         rgba(180, 40, 60, 0.85) 0%,
@@ -157,8 +154,10 @@
         inset 0 0 10px rgba(255, 100, 120, 0.3),
         inset -3px -3px 8px rgba(0, 0, 0, 0.4),
         0 3px 6px rgba(0, 0, 0, 0.5);
+    transform: rotate(-18deg);
 }
 
+/* Blue die - tilted other way, offset */
 .siren-die.die-blue {
     background: linear-gradient(135deg,
         rgba(30, 80, 120, 0.85) 0%,
@@ -171,6 +170,8 @@
         inset 0 0 10px rgba(100, 180, 255, 0.3),
         inset -3px -3px 8px rgba(0, 0, 0, 0.4),
         0 3px 6px rgba(0, 0, 0, 0.5);
+    transform: rotate(10deg);
+    margin-top: 10px;
 }
 
 .siren-die::before {
@@ -184,40 +185,26 @@
     clip-path: polygon(0% 0%, 100% 0%, 70% 100%, 30% 100%);
 }
 
+/* Hide label */
 .dice-label {
-    font-family: 'Courier New', monospace;
-    font-size: 7px;
-    color: rgba(212, 165, 116, 0.4);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: nowrap;
+    display: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   GUM WRAPPER - Upper right, slight angle
+   GUM WRAPPER - Upper right, no label
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-wrapper {
     position: absolute;
-    top: 20px;
-    right: 25px;
-    transform: rotate(8deg);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
+    top: 15px;
+    right: 30px;
+    transform: rotate(5deg);
 }
 
-.scent-text {
-    font-style: italic;
-    font-size: 8px;
-    color: rgba(212, 165, 116, 0.25);
-    animation: scentFloat 4s ease-in-out infinite;
-}
-
-@keyframes scentFloat {
-    0%, 100% { transform: translateY(0); opacity: 0.25; }
-    50% { transform: translateY(-3px); opacity: 0.4; }
+/* Hide scent text and flavor label */
+.scent-text,
+.wrapper-flavor {
+    display: none;
 }
 
 .gum-wrapper {
@@ -241,12 +228,6 @@
     height: 16px;
     background: repeating-linear-gradient(-45deg, #d8c8b0 0px, #d8c8b0 2px, #e0d0b8 2px, #e0d0b8 4px);
     border-radius: 1px;
-}
-
-.wrapper-flavor {
-    font-family: 'Courier New', monospace;
-    font-size: 6px;
-    color: rgba(212, 165, 116, 0.35);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -380,36 +361,88 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   LOOSE COINS - Scattered lower right
+   LOOSE COINS - Scattered in drawer
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-coins {
     position: absolute;
-    bottom: 10px;
-    right: 25px;
+    bottom: 15px;
+    right: 20px;
 }
 
 .coin {
     position: absolute;
-    width: 18px;
-    height: 18px;
     background: radial-gradient(circle at 35% 35%, #c0a060 0%, #a08040 60%, #806020 100%);
     border-radius: 50%;
     box-shadow: 0 2px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
 }
 
-.coin {
-    position: absolute;
-    width: 18px;
+.coin:nth-child(1) { 
+    top: 0; 
+    left: 0; 
+    width: 18px; 
     height: 18px;
-    background: radial-gradient(circle at 35% 35%, #c0a060 0%, #a08040 60%, #806020 100%);
-    border-radius: 50%;
-    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    transform: rotate(-10deg);
+}
+.coin:nth-child(2) { 
+    top: 12px; 
+    left: 20px; 
+    width: 16px; 
+    height: 16px;
+    transform: rotate(25deg); 
+}
+.coin:nth-child(3) { 
+    top: -8px; 
+    left: 35px; 
+    width: 17px; 
+    height: 17px;
+    transform: rotate(5deg);
 }
 
-.coin:nth-child(1) { top: 0; left: 0; }
-.coin:nth-child(2) { top: 8px; left: 14px; transform: rotate(15deg); }
-.coin:nth-child(3) { top: -5px; left: 28px; width: 16px; height: 16px; }
+/* ═══════════════════════════════════════════════════════════════
+   CIGARETTE STUB - Below letter area
+   ═══════════════════════════════════════════════════════════════ */
+
+.compartment-cigarette {
+    position: absolute;
+    bottom: 5px;
+    left: 25px;
+    transform: rotate(12deg);
+}
+
+.cigarette-stub {
+    width: 55px;
+    height: 7px;
+    position: relative;
+    /* Paper/tobacco body - cream colored */
+    background: linear-gradient(180deg, #f0e8d8 0%, #e0d4c0 50%, #d0c4b0 100%);
+    border-radius: 3px;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* Filter end - tan/cork colored */
+.cigarette-stub::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 16px;
+    height: 100%;
+    background: linear-gradient(180deg, #c4a060 0%, #b08040 50%, #a07030 100%);
+    border-radius: 0 3px 3px 0;
+}
+
+/* Burnt end - dark ash */
+.cigarette-stub::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 6px;
+    height: 100%;
+    background: linear-gradient(90deg, #2a2a2a 0%, #4a4a4a 60%, #6a6050 100%);
+    border-radius: 3px 0 0 3px;
+}
 
 /* ═══════════════════════════════════════════════════════════════
    DORA'S LETTER - Vertical envelope, opens from top
