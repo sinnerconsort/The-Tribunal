@@ -108,74 +108,54 @@ export const LEDGER_TAB_HTML = `
     
     <!-- SECRET COMPARTMENT sub-content - Dark leather interior -->
     <div class="ledger-subcontent ledger-compartment" data-ledger-content="compartment">
-        <!-- Floating apricot scent -->
-        <span class="ledger-apricot-scent">~ apricot ~</span>
         
         <!-- Compartment interior layout -->
         <div class="compartment-interior">
             
-            <!-- Police Dice -->
-            <div class="compartment-item compartment-dice">
-                <div class="dice-pair">
-                    <div class="die die-one">
-                        <span class="pip"></span>
+            <!-- TOP ROW: Dice (left) | Wrapper (right) -->
+            <div class="compartment-top-row">
+                
+                <!-- Dice Set Sirens - Icosahedral gems -->
+                <div class="compartment-dice">
+                    <div class="dice-pair">
+                        <div class="siren-die die-red"></div>
+                        <div class="siren-die die-blue"></div>
                     </div>
-                    <div class="die die-one">
-                        <span class="pip"></span>
-                    </div>
+                    <div class="dice-label">DICE SET SIRENS</div>
+                    <div class="dice-flavor">From the dice maker.</div>
                 </div>
-                <div class="dice-label">POLICE DICE</div>
-                <div class="dice-subtext">Snake eyes. Of course.</div>
+                
+                <!-- Gum Wrapper -->
+                <div class="compartment-wrapper">
+                    <span class="scent-text">~ apricot ~</span>
+                    <div class="gum-wrapper"></div>
+                    <div class="wrapper-flavor">AROMA • Apricot</div>
+                </div>
+                
             </div>
             
-            <!-- Gum Wrapper / Fortune -->
-            <div class="compartment-item compartment-fortune">
-                <div class="fortune-wrapper">
-                    <div class="wrapper-brand">AROMA</div>
-                    <div class="wrapper-flavor">Apricot</div>
-                    <div class="fortune-paper">
+            <!-- FORTUNE ENVELOPE -->
+            <div class="compartment-envelope">
+                <div class="fortune-envelope">
+                    <div class="fortune-slip">
                         <div class="fortune-text" id="compartment-fortune-text">
-                            The answer you seek is not in the ledger.
-                            It never was.
+                            The answer you seek is not in the ledger. It never was.
                         </div>
                         <div class="fortune-source">— The Damaged Ledger</div>
                     </div>
                 </div>
-                <button class="fortune-draw-btn" id="fortune-draw-btn">
-                    <i class="fa-solid fa-rotate"></i> Draw Fortune
+                <button class="draw-fortune-btn" id="fortune-draw-btn">
+                    ↻ Draw Fortune
                 </button>
             </div>
             
-            <!-- RCM Badge -->
-            <div class="compartment-item compartment-badge">
-                <div class="rcm-badge">
-                    <div class="badge-header">
-                        <div class="badge-org">RCM • REVACHOL CITIZENS MILITIA</div>
-                    </div>
-                    <div class="badge-photo">
-                        <div class="photo-placeholder">
-                            <i class="fa-solid fa-user-secret"></i>
-                        </div>
-                    </div>
-                    <div class="badge-info">
-                        <div class="badge-name" id="badge-name">NAME UNKNOWN</div>
-                        <div class="badge-rank" id="badge-rank">RANK UNKNOWN</div>
-                        <div class="badge-number" id="badge-number">LTN-????</div>
-                    </div>
-                    <div class="badge-perforations">
-                        <span class="perf-dots" id="badge-perforations">●●●●●○○○○○</span>
-                        <span class="perf-label">SESSIONS</span>
-                    </div>
+            <!-- Ledger Commentary -->
+            <div class="compartment-commentary">
+                <div class="commentary-text" id="compartment-commentary">
+                    "You found it. The hidden drawer. The one I pretend doesn't exist."
                 </div>
             </div>
             
-        </div>
-        
-        <!-- Ledger Commentary -->
-        <div class="compartment-commentary">
-            <div class="commentary-text" id="compartment-commentary">
-                "You found it. The hidden drawer. The one I pretend doesn't exist."
-            </div>
         </div>
     </div>
 </div>`;
@@ -220,27 +200,6 @@ export function updateCrackStage(stage) {
     }
     
     console.log(`[The Tribunal] Crack stage: ${stage}`);
-}
-
-/**
- * Update badge info from profile
- */
-export function updateBadgeInfo(profile = {}) {
-    const nameEl = document.getElementById('badge-name');
-    const rankEl = document.getElementById('badge-rank');
-    const numberEl = document.getElementById('badge-number');
-    const perfsEl = document.getElementById('badge-perforations');
-    
-    if (nameEl) nameEl.textContent = profile.name || 'NAME UNKNOWN';
-    if (rankEl) rankEl.textContent = profile.rank || 'RANK UNKNOWN';
-    if (numberEl) numberEl.textContent = profile.badgeNumber || 'LTN-????';
-    
-    // Update perforation dots based on sessions
-    if (perfsEl && typeof profile.sessions === 'number') {
-        const filled = Math.min(profile.sessions, 10);
-        const empty = 10 - filled;
-        perfsEl.textContent = '●'.repeat(filled) + '○'.repeat(empty);
-    }
 }
 
 /**
@@ -305,5 +264,4 @@ if (typeof window !== 'undefined') {
     window.TribunalDebug.revealCompartment = debugRevealCompartment;
     window.TribunalDebug.updateCrackStage = updateCrackStage;
     window.TribunalDebug.updateFortune = updateFortune;
-    window.TribunalDebug.updateBadge = updateBadgeInfo;
 }
