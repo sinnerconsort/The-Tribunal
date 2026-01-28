@@ -112,29 +112,53 @@ export const LEDGER_TAB_HTML = `
         <!-- Compartment interior layout -->
         <div class="compartment-interior">
             
-            <!-- TOP ROW: Dice (left) | Wrapper (right) -->
-            <div class="compartment-top-row">
+            <!-- Scattered items area -->
+            <div class="drawer-items">
                 
-                <!-- Dice Set Sirens - Icosahedral gems -->
+                <!-- Dice Set Sirens - Upper left, tilted with card backing -->
                 <div class="compartment-dice">
                     <div class="dice-pair">
                         <div class="siren-die die-red"></div>
                         <div class="siren-die die-blue"></div>
                     </div>
                     <div class="dice-label">DICE SET SIRENS</div>
-                    <div class="dice-flavor">From the dice maker.</div>
                 </div>
                 
-                <!-- Gum Wrapper -->
+                <!-- Gum Wrapper - Upper right -->
                 <div class="compartment-wrapper">
                     <span class="scent-text">~ apricot ~</span>
                     <div class="gum-wrapper"></div>
                     <div class="wrapper-flavor">AROMA • Apricot</div>
                 </div>
                 
+                <!-- Whirling-in-Rags Matchbook - Middle -->
+                <div class="compartment-matchbook">
+                    <div class="matchbook">
+                        <div class="matchbook-text">
+                            WHIRLING<br>IN RAGS
+                            <div class="matchbook-subtext">MARTINAISE</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pencil stub - scattered -->
+                <div class="compartment-pencil">
+                    <div class="pencil-stub">
+                        <div class="pencil-eraser"></div>
+                        <div class="pencil-band"></div>
+                    </div>
+                </div>
+                
+                <!-- Loose réal coins -->
+                <div class="compartment-coins">
+                    <div class="coin"></div>
+                    <div class="coin"></div>
+                    <div class="coin"></div>
+                </div>
+                
             </div>
             
-            <!-- DORA'S LETTER - Tap to open/close -->
+            <!-- DORA'S LETTER - Bottom, tap to open -->
             <div class="compartment-letter">
                 <div class="dora-envelope" id="dora-envelope">
                     <div class="envelope-flap">
@@ -149,7 +173,6 @@ export const LEDGER_TAB_HTML = `
                         </div>
                     </div>
                 </div>
-                <div class="envelope-label">A LETTER FROM DORA</div>
                 <button class="draw-fortune-btn" id="fortune-draw-btn">
                     ↻ New Fortune
                 </button>
