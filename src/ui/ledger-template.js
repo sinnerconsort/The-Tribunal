@@ -60,7 +60,7 @@ export const LEDGER_TAB_HTML = `
     <div class="ledger-subcontent ledger-paper grid-paper" data-ledger-content="map">
         <!-- District Map -->
         <div class="district-map">
-            <div class="map-sticky-note">
+            <div class="map-sticky-note" id="map-sticky-note">
                 remember to check the dumpster
             </div>
             <svg viewBox="0 0 400 280" xmlns="http://www.w3.org/2000/svg">
@@ -95,15 +95,54 @@ export const LEDGER_TAB_HTML = `
         </div>
         <div class="map-caption">DISTRICT MAP — NOT TO SCALE</div>
         
-        <div class="ledger-section-header">
-            POINTS OF INTEREST
+        <!-- Current Location Display -->
+        <div class="current-location-card" id="current-location-card">
+            <div class="current-location-header">
+                <i class="fa-solid fa-location-dot"></i>
+                <span class="current-location-name" id="current-location-name">Unknown Location</span>
+                <button class="location-edit-btn" id="location-edit-btn" title="Change location">
+                    <i class="fa-solid fa-pen"></i>
+                </button>
+            </div>
+            
+            <!-- Recent Events at this location -->
+            <div class="location-events" id="location-events">
+                <div class="events-header">
+                    <span class="events-dots">• • •</span>
+                    <span>RECENT EVENTS</span>
+                </div>
+                <ul class="events-list" id="events-list">
+                    <!-- Events will be rendered here -->
+                </ul>
+                <p class="events-empty" id="events-empty">No events recorded</p>
+            </div>
+            
+            <!-- Add Event Button -->
+            <button class="add-event-btn" id="add-event-btn">
+                <i class="fa-solid fa-plus"></i> Add Event
+            </button>
         </div>
-        <p class="ledger-empty">No locations discovered</p>
         
         <div class="ledger-section-header">
-            NOTES
+            // DISCOVERED LOCATIONS <span id="locations-count"></span>
         </div>
-        <textarea class="ledger-notes" placeholder="Write your notes here..."></textarea>
+        
+        <!-- Locations List -->
+        <div id="locations-list" class="locations-list">
+            <!-- Location cards will be rendered here -->
+        </div>
+        
+        <p class="ledger-empty locations-empty" id="locations-empty">No locations discovered</p>
+        
+        <!-- Add Location Button -->
+        <button class="locations-add-btn" id="locations-add-btn">
+            <i class="fa-solid fa-map-pin"></i> Add Location
+        </button>
+        
+        <div class="ledger-section-header">
+            // NOTES
+        </div>
+        <textarea class="ledger-notes" id="map-notes" placeholder="Write your notes here..."></textarea>
     </div>
     
     <!-- SECRET COMPARTMENT sub-content - Dark leather interior -->
