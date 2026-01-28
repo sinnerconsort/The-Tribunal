@@ -115,20 +115,17 @@ export const LEDGER_TAB_HTML = `
             <!-- Scattered items area -->
             <div class="drawer-items">
                 
-                <!-- Dice Set Sirens - Upper left, tilted with card backing -->
+                <!-- Dice Set Sirens - scattered loose -->
                 <div class="compartment-dice">
                     <div class="dice-pair">
                         <div class="siren-die die-red"></div>
                         <div class="siren-die die-blue"></div>
                     </div>
-                    <div class="dice-label">DICE SET SIRENS</div>
                 </div>
                 
-                <!-- Gum Wrapper - Upper right -->
+                <!-- Gum Wrapper - scattered -->
                 <div class="compartment-wrapper">
-                    <span class="scent-text">~ apricot ~</span>
                     <div class="gum-wrapper"></div>
-                    <div class="wrapper-flavor">AROMA • Apricot</div>
                 </div>
                 
                 <!-- Whirling-in-Rags Matchbook - Middle -->
@@ -154,6 +151,11 @@ export const LEDGER_TAB_HTML = `
                     <div class="coin"></div>
                     <div class="coin"></div>
                     <div class="coin"></div>
+                </div>
+                
+                <!-- Cigarette stub -->
+                <div class="compartment-cigarette">
+                    <div class="cigarette-stub"></div>
                 </div>
                 
             </div>
