@@ -97,56 +97,57 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   INTERIOR LAYOUT - Fill vertical space
+   INTERIOR LAYOUT - Scattered drawer items
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-interior {
     position: relative;
     z-index: 2;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
     min-height: 100%;
     box-sizing: border-box;
-    justify-content: space-between; /* Spread items vertically */
-}
-
-/* Top section container */
-.compartment-top-section {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-/* Top row: Dice left, Wrapper right */
-.compartment-top-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    align-items: center;
-    justify-items: center;
+    /* No flexbox - we'll position items absolutely for scattered look */
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DICE SET SIRENS - Icosahedral gems
+   SCATTERED ITEMS AREA - Main drawer content
+   ═══════════════════════════════════════════════════════════════ */
+
+.drawer-items {
+    position: relative;
+    height: 320px;
+    margin-bottom: 10px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DICE SET SIRENS - With dark card backing, tilted
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-dice {
+    position: absolute;
+    top: 20px;
+    left: 15px;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 6px;
+    transform: rotate(-15deg);
+    /* Dark card backing */
+    background: linear-gradient(145deg, #2a2520 0%, #1a1815 100%);
+    padding: 14px 16px 10px 16px;
+    border-radius: 4px;
+    box-shadow: 
+        0 4px 10px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.05);
 }
 
 .dice-pair {
     display: flex;
-    gap: 6px;
-    justify-content: center;
+    gap: 8px;
 }
 
 .siren-die {
-    width: 40px;
-    height: 46px;
+    width: 36px;
+    height: 42px;
     position: relative;
     clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 }
@@ -160,8 +161,8 @@
         rgba(140, 30, 50, 0.8) 100%
     );
     box-shadow: 
-        inset 0 0 12px rgba(255, 100, 120, 0.3),
-        inset -3px -3px 10px rgba(0, 0, 0, 0.4),
+        inset 0 0 10px rgba(255, 100, 120, 0.3),
+        inset -3px -3px 8px rgba(0, 0, 0, 0.4),
         0 3px 6px rgba(0, 0, 0, 0.5);
 }
 
@@ -174,62 +175,47 @@
         rgba(40, 90, 130, 0.8) 100%
     );
     box-shadow: 
-        inset 0 0 12px rgba(100, 180, 255, 0.3),
-        inset -3px -3px 10px rgba(0, 0, 0, 0.4),
+        inset 0 0 10px rgba(100, 180, 255, 0.3),
+        inset -3px -3px 8px rgba(0, 0, 0, 0.4),
         0 3px 6px rgba(0, 0, 0, 0.5);
 }
 
 .siren-die::before {
     content: '';
     position: absolute;
-    top: 6px;
-    left: 8px;
-    width: 10px;
-    height: 5px;
+    top: 5px;
+    left: 7px;
+    width: 9px;
+    height: 4px;
     background: linear-gradient(135deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.1) 100%);
     clip-path: polygon(0% 0%, 100% 0%, 70% 100%, 30% 100%);
 }
 
-.siren-die::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: 
-        linear-gradient(60deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%),
-        linear-gradient(120deg, transparent 40%, rgba(255,255,255,0.08) 50%, transparent 60%);
-    pointer-events: none;
-}
-
 .dice-label {
     font-family: 'Courier New', monospace;
-    font-size: 8px;
-    color: rgba(212, 165, 116, 0.5);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-.dice-flavor {
-    font-style: italic;
     font-size: 7px;
-    color: rgba(212, 165, 116, 0.35);
+    color: rgba(212, 165, 116, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   GUM WRAPPER
+   GUM WRAPPER - Upper right, slight angle
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-wrapper {
+    position: absolute;
+    top: 20px;
+    right: 25px;
+    transform: rotate(8deg);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 6px;
-    position: relative;
+    gap: 4px;
 }
 
 .scent-text {
-    position: absolute;
-    top: -14px;
-    right: 0;
     font-style: italic;
     font-size: 8px;
     color: rgba(212, 165, 116, 0.25);
@@ -242,61 +228,214 @@
 }
 
 .gum-wrapper {
-    width: 70px;
-    height: 24px;
+    width: 65px;
+    height: 22px;
     position: relative;
     background: linear-gradient(90deg,
         #a8a8a8 0%, #d8d8d8 15%, #c8c8c8 35%,
         #e8e8e8 50%, #c8c8c8 65%, #d8d8d8 85%, #a8a8a8 100%
     );
     border-radius: 2px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4);
-    transform: rotate(-3deg);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
 .gum-wrapper::after {
     content: '';
     position: absolute;
-    right: -5px;
+    right: -4px;
     top: 3px;
-    width: 12px;
-    height: 18px;
+    width: 10px;
+    height: 16px;
     background: repeating-linear-gradient(-45deg, #d8c8b0 0px, #d8c8b0 2px, #e0d0b8 2px, #e0d0b8 4px);
     border-radius: 1px;
-    box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.1), -1px 0 2px rgba(0, 0, 0, 0.15);
 }
 
 .wrapper-flavor {
     font-family: 'Courier New', monospace;
-    font-size: 7px;
-    color: rgba(212, 165, 116, 0.4);
+    font-size: 6px;
+    color: rgba(212, 165, 116, 0.35);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DORA'S LETTER - Horizontal Envelope, opens from side
+   MATCHBOOK - Scattered in middle-right area
+   ═══════════════════════════════════════════════════════════════ */
+
+.compartment-matchbook {
+    position: absolute;
+    top: 130px;
+    right: 25px;
+    transform: rotate(12deg);
+}
+
+.matchbook {
+    width: 48px;
+    height: 62px;
+    position: relative;
+    /* Matchbook cover - dark teal/green like Whirling */
+    background: linear-gradient(180deg, #1a4a4a 0%, #0d3535 50%, #1a4a4a 100%);
+    border-radius: 2px 2px 0 0;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+}
+
+/* Strike strip at bottom */
+.matchbook::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 10px;
+    background: linear-gradient(90deg, #2a2a2a 0%, #3a3a3a 50%, #2a2a2a 100%);
+}
+
+/* Matchbook text/logo */
+.matchbook-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Georgia', serif;
+    font-size: 6px;
+    font-weight: bold;
+    color: #c9a227;
+    text-align: center;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.matchbook-subtext {
+    font-size: 5px;
+    color: rgba(201, 162, 39, 0.7);
+    font-weight: normal;
+    margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PENCIL STUB - Lower middle area, scattered
+   ═══════════════════════════════════════════════════════════════ */
+
+.compartment-pencil {
+    position: absolute;
+    top: 180px;
+    left: 40px;
+    transform: rotate(-20deg);
+}
+
+.pencil-stub {
+    width: 60px;
+    height: 8px;
+    position: relative;
+    /* Yellow pencil body */
+    background: linear-gradient(180deg, #e8c840 0%, #d4b030 50%, #c0a020 100%);
+    border-radius: 1px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Pencil tip */
+.pencil-stub::before {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 0;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 4px 8px 4px 0;
+    border-color: transparent #e8d8c0 transparent transparent;
+}
+
+/* Graphite tip */
+.pencil-stub::after {
+    content: '';
+    position: absolute;
+    left: -10px;
+    top: 3px;
+    width: 3px;
+    height: 2px;
+    background: #2a2a2a;
+    border-radius: 0 1px 1px 0;
+}
+
+/* Eraser end */
+.pencil-eraser {
+    position: absolute;
+    right: -3px;
+    top: -1px;
+    width: 6px;
+    height: 10px;
+    background: linear-gradient(90deg, #c08080 0%, #a06060 100%);
+    border-radius: 0 2px 2px 0;
+}
+
+/* Metal band */
+.pencil-band {
+    position: absolute;
+    right: 3px;
+    top: -1px;
+    width: 4px;
+    height: 10px;
+    background: linear-gradient(90deg, #a0a0a0 0%, #c0c0c0 50%, #a0a0a0 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOOSE COINS - Scattered lower right
+   ═══════════════════════════════════════════════════════════════ */
+
+.compartment-coins {
+    position: absolute;
+    bottom: 20px;
+    right: 35px;
+}
+
+.coin {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: radial-gradient(circle at 35% 35%, #c0a060 0%, #a08040 60%, #806020 100%);
+    border-radius: 50%;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.coin {
+    position: absolute;
+    width: 18px;
+    height: 18px;
+    background: radial-gradient(circle at 35% 35%, #c0a060 0%, #a08040 60%, #806020 100%);
+    border-radius: 50%;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.coin:nth-child(1) { top: 0; left: 0; }
+.coin:nth-child(2) { top: 8px; left: 14px; transform: rotate(15deg); }
+.coin:nth-child(3) { top: -5px; left: 28px; width: 16px; height: 16px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   DORA'S LETTER - Bottom of drawer
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-letter {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    flex: 1; /* Take up available space */
-    justify-content: center; /* Center vertically in the flex space */
+    gap: 8px;
+    margin-top: auto;
 }
 
-/* Horizontal envelope container - BIGGER */
+/* Horizontal envelope container */
 .dora-envelope {
     width: 100%;
-    max-width: 280px;
-    height: 110px;
+    max-width: 260px;
+    height: 100px;
     position: relative;
     cursor: pointer;
     transition: transform 0.3s ease;
+    transform: rotate(-2deg);
 }
 
 .dora-envelope:hover {
-    transform: scale(1.02);
+    transform: rotate(-2deg) scale(1.02);
 }
 
 /* Envelope body - horizontal */
@@ -337,7 +476,7 @@
     position: absolute;
     top: 0;
     right: 0;
-    width: 70px;
+    width: 65px;
     height: 100%;
     background: linear-gradient(90deg, #d4c4a0 0%, #e4d4b0 100%);
     clip-path: polygon(100% 0, 100% 100%, 0 50%);
@@ -350,16 +489,16 @@
 .wax-seal {
     position: absolute;
     top: 50%;
-    left: -18px;
+    left: -16px;
     transform: translateY(-50%);
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     background: radial-gradient(circle at 35% 35%,
         #a03030 0%, #802020 40%, #601818 70%, #501010 100%
     );
     border-radius: 50%;
     box-shadow: 
-        0 2px 6px rgba(0, 0, 0, 0.4),
+        0 2px 5px rgba(0, 0, 0, 0.4),
         inset 0 -2px 4px rgba(0, 0, 0, 0.3),
         inset 0 2px 4px rgba(255, 255, 255, 0.1);
     z-index: 4;
@@ -373,7 +512,7 @@
     left: 50%;
     transform: translate(-50%, -50%);
     font-family: 'Georgia', serif;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
     color: rgba(0, 0, 0, 0.25);
 }
@@ -381,13 +520,13 @@
 /* Letter paper inside - slides out right */
 .letter-paper {
     position: absolute;
-    top: 10px;
-    bottom: 10px;
-    left: 12px;
-    right: 75px;
+    top: 8px;
+    bottom: 8px;
+    left: 10px;
+    right: 70px;
     background: linear-gradient(90deg, #faf6ee 0%, #f4f0e4 100%);
     border-radius: 2px;
-    padding: 12px 14px;
+    padding: 10px 12px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -410,14 +549,14 @@
 
 .dora-envelope.envelope-open .letter-paper {
     opacity: 1;
-    transform: translateX(40px);
+    transform: translateX(35px);
 }
 
-/* Letter text - bigger now */
+/* Letter text */
 .letter-text {
     font-family: 'Georgia', serif;
     font-style: italic;
-    font-size: 11px;
+    font-size: 10px;
     color: #2a2420;
     line-height: 1.5;
     text-align: center;
@@ -428,35 +567,26 @@
     font-size: 8px;
     color: #6a5a4a;
     text-align: right;
-    margin-top: 6px;
+    margin-top: 5px;
 }
 
-/* Label */
-.envelope-label {
-    font-family: 'Courier New', monospace;
-    font-size: 8px;
-    color: rgba(212, 165, 116, 0.4);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-}
-
-/* Draw button */
+/* Draw button - small */
 .draw-fortune-btn {
     font-family: 'Courier New', monospace;
-    font-size: 9px;
-    color: rgba(212, 165, 116, 0.6);
-    background: rgba(212, 165, 116, 0.1);
-    border: 1px dashed rgba(212, 165, 116, 0.3);
-    padding: 6px 14px;
+    font-size: 8px;
+    color: rgba(212, 165, 116, 0.5);
+    background: rgba(212, 165, 116, 0.08);
+    border: 1px dashed rgba(212, 165, 116, 0.25);
+    padding: 4px 10px;
     cursor: pointer;
     transition: all 0.2s;
     border-radius: 2px;
 }
 
 .draw-fortune-btn:hover {
-    background: rgba(212, 165, 116, 0.18);
-    border-color: rgba(212, 165, 116, 0.45);
-    color: rgba(212, 165, 116, 0.8);
+    background: rgba(212, 165, 116, 0.15);
+    border-color: rgba(212, 165, 116, 0.4);
+    color: rgba(212, 165, 116, 0.7);
 }
 
 /* ═══════════════════════════════════════════════════════════════
