@@ -2,7 +2,7 @@
  * The Tribunal - SillyTavern Extension
  * A standalone text based Disco Elysium system
  * 
- * v0.11.2 - Secret compartment unlock system + skill-colored toasts
+ * v0.12.0 - World State Parser integration
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -66,11 +66,16 @@ let setEffectsIntensity = () => {};
 let debugWeather = () => console.log('[Tribunal] Weather not loaded');
 
 // ═══════════════════════════════════════════════════════════════
-// IMPORTS - Voice Generation
+// IMPORTS - Voice Generation & Extraction (lazy loaded)
 // ═══════════════════════════════════════════════════════════════
 let extractFromMessage = async () => ({ error: 'not loaded' });
 let processExtractionResults = async () => ({});
 let generateEquipmentFromMessage = async () => ({ equipment: [], removed: [] });
+
+// World State Parser (lazy loaded)
+let processWorldTag = () => ({ updated: false, noTag: true });
+let worldParserLoaded = false;
+
 import { generateVoicesForMessage } from './src/voice/generation.js';
 import { renderVoices, appendVoicesToChat, clearVoices } from './src/voice/render-voices.js';
 
@@ -123,7 +128,7 @@ export { initInvestigation, updateSceneContext, openInvestigation, closeInvestig
 // ═══════════════════════════════════════════════════════════════
 
 const extensionName = 'the-tribunal';
-const extensionVersion = '0.11.2';
+const extensionVersion = '0.12.0';
 
 // ═══════════════════════════════════════════════════════════════
 // CHAT-ONLY FAB VISIBILITY
@@ -344,7 +349,7 @@ async function triggerVoiceGeneration(messageText = null, manualTrigger = false)
  * Handler for new AI messages
  */
 /**
- * NEW onNewAIMessage function with extraction support:
+ * NEW onNewAIMessage function with WORLD tag parsing + extraction support:
  */
 
 function onNewAIMessage(messageIndex) {
@@ -357,6 +362,30 @@ function onNewAIMessage(messageIndex) {
     if (!message || message.is_user) return;
     
     console.log('[Tribunal] New AI message detected, index:', messageIndex);
+    
+    const settings = getSettings();
+    
+    // ═══════════════════════════════════════════════════════════════
+    // WORLD TAG PARSING - Fast, no API call, runs first
+    // Parses <!--- WORLD{"weather":"...","location":"...",...} --->
+    // ═══════════════════════════════════════════════════════════════
+    
+    if (worldParserLoaded && settings?.worldState?.parseWorldTags !== false) {
+        try {
+            const worldResult = processWorldTag(message.mes, {
+                updateLocation: true,
+                updateWeather: settings?.worldState?.syncWeather !== false,
+                updateTime: settings?.worldState?.syncTime !== false,
+                notify: settings?.worldState?.showNotifications ?? true
+            });
+            
+            if (worldResult.updated) {
+                console.log('[Tribunal] World state updated from WORLD tag:', worldResult);
+            }
+        } catch (e) {
+            console.warn('[Tribunal] World tag processing failed:', e.message);
+        }
+    }
     
     // Process message for weather/horror/pale keywords (if weather loaded)
     if (weatherLoaded && processWeatherMessage) {
@@ -403,10 +432,10 @@ function onNewAIMessage(messageIndex) {
     
     // ═══════════════════════════════════════════════════════════════
     // AI EXTRACTION - Extract quests, contacts, locations from message
+    // Only runs if enabled AND world tag didn't provide location
     // ═══════════════════════════════════════════════════════════════
     
-    const settings = getSettings();
-    if (settings?.extraction?.enabled !== false) {
+    if (settings?.extraction?.enabled !== false || settings?.worldState?.useAIExtractor) {
         runExtraction(message.mes);
     }
 }
@@ -803,6 +832,21 @@ try {
 } catch (e) {
     console.warn('[Tribunal] AI Extractor not loaded:', e.message);
 }
+
+    // ═══════════════════════════════════════════════════════════════
+    // WORLD STATE PARSER - Lazy load
+    // ═══════════════════════════════════════════════════════════════
+    try {
+        const worldParser = await import('./src/systems/world-parser.js');
+        processWorldTag = worldParser.processWorldTag;
+        worldParserLoaded = true;
+        console.log('[Tribunal] World Parser loaded');
+        
+        // Expose debug helper
+        window.tribunalWorldParser = worldParser.debugWorldParser;
+    } catch (e) {
+        console.warn('[Tribunal] World Parser not loaded:', e.message);
+    }
     
     // Initialize weather effects system (lazy loaded)
     try {
