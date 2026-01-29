@@ -546,22 +546,84 @@ function showWardrobeDialog() {
 export function initEquipmentHandlers() {
     console.log('[Equipment] Initializing handlers with wardrobe system...');
     
-    // Scan button
-    const scanBtn = document.getElementById('ie-equip-scan-btn');
+    // Find or create button container
+    const ticketContainer = document.querySelector('.equip-ticket-container') || 
+                           document.querySelector('#ie-equipment-tab');
+    
+    // Find existing add button or its container
+    let addBtn = document.getElementById('ie-equip-add-btn');
+    
+    // Scan button - find or create
+    let scanBtn = document.getElementById('ie-equip-scan-btn');
+    if (!scanBtn) {
+        console.log('[Equipment] Creating scan button...');
+        scanBtn = document.createElement('button');
+        scanBtn.id = 'ie-equip-scan-btn';
+        scanBtn.className = 'equip-ticket-add-btn equip-scan-btn';
+        scanBtn.innerHTML = '🔍 SCAN PERSONA';
+        scanBtn.title = 'Scan your persona for clothing items';
+        
+        // Insert before add button or at end of container
+        if (addBtn) {
+            addBtn.parentNode.insertBefore(scanBtn, addBtn);
+        } else if (ticketContainer) {
+            // Find the disclaimer text and insert before it
+            const disclaimer = ticketContainer.querySelector('.equip-ticket-disclaimer');
+            if (disclaimer) {
+                disclaimer.parentNode.insertBefore(scanBtn, disclaimer);
+            } else {
+                ticketContainer.appendChild(scanBtn);
+            }
+        }
+    }
+    
     if (scanBtn) {
         scanBtn.addEventListener('click', scanForEquipment);
         console.log('[Equipment] ✓ Scan button ready');
     }
     
     // Add button
-    const addBtn = document.getElementById('ie-equip-add-btn');
+    if (!addBtn) {
+        console.log('[Equipment] Creating add button...');
+        addBtn = document.createElement('button');
+        addBtn.id = 'ie-equip-add-btn';
+        addBtn.className = 'equip-ticket-add-btn';
+        addBtn.innerHTML = '+ ADD ITEM';
+        addBtn.title = 'Manually add an item';
+        
+        if (scanBtn) {
+            scanBtn.parentNode.insertBefore(addBtn, scanBtn.nextSibling);
+        } else if (ticketContainer) {
+            const disclaimer = ticketContainer.querySelector('.equip-ticket-disclaimer');
+            if (disclaimer) {
+                disclaimer.parentNode.insertBefore(addBtn, disclaimer);
+            } else {
+                ticketContainer.appendChild(addBtn);
+            }
+        }
+    }
+    
     if (addBtn) {
         addBtn.addEventListener('click', showAddItemDialog);
         console.log('[Equipment] ✓ Add button ready');
     }
     
-    // Wardrobe button (if exists)
-    const wardrobeBtn = document.getElementById('ie-equip-wardrobe-btn');
+    // Wardrobe button - create if we have a container
+    let wardrobeBtn = document.getElementById('ie-equip-wardrobe-btn');
+    if (!wardrobeBtn && addBtn) {
+        wardrobeBtn = document.createElement('button');
+        wardrobeBtn.id = 'ie-equip-wardrobe-btn';
+        wardrobeBtn.className = 'equip-ticket-add-btn equip-wardrobe-btn';
+        wardrobeBtn.innerHTML = '👕 WARDROBE';
+        wardrobeBtn.title = 'Browse your saved wardrobe';
+        wardrobeBtn.style.marginTop = '4px';
+        wardrobeBtn.style.fontSize = '0.7rem';
+        wardrobeBtn.style.padding = '8px';
+        wardrobeBtn.style.opacity = '0.7';
+        
+        addBtn.parentNode.insertBefore(wardrobeBtn, addBtn.nextSibling);
+    }
+    
     if (wardrobeBtn) {
         wardrobeBtn.addEventListener('click', showWardrobeDialog);
         console.log('[Equipment] ✓ Wardrobe button ready');
