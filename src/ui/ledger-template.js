@@ -95,49 +95,11 @@ export const LEDGER_TAB_HTML = `
         </div>
         <div class="map-caption">DISTRICT MAP — NOT TO SCALE</div>
         
-        <!-- Current Location Display -->
-        <div class="current-location-card" id="current-location-card">
-            <div class="current-location-header">
-                <i class="fa-solid fa-location-dot"></i>
-                <span class="current-location-name" id="current-location-name">Unknown Location</span>
-                <button class="location-edit-btn" id="location-edit-btn" title="Change location">
-                    <i class="fa-solid fa-pen"></i>
-                </button>
-            </div>
-            
-            <!-- Recent Events at this location -->
-            <div class="location-events" id="location-events">
-                <div class="events-header">
-                    <span class="events-dots">• • •</span>
-                    <span>RECENT EVENTS</span>
-                </div>
-                <ul class="events-list" id="events-list">
-                    <!-- Events will be rendered here -->
-                </ul>
-                <p class="events-empty" id="events-empty">No events recorded</p>
-            </div>
-            
-            <!-- Add Event Button -->
-            <button class="add-event-btn" id="add-event-btn">
-                <i class="fa-solid fa-plus"></i> Add Event
-            </button>
-        </div>
-        
-        <div class="ledger-section-header">
-            DISCOVERED LOCATIONS <span id="locations-count"></span>
-        </div>
-        
-        <!-- Locations List -->
-        <div id="locations-list" class="locations-list">
-            <!-- Location cards will be rendered here -->
-        </div>
-        
-        <p class="ledger-empty locations-empty" id="locations-empty">No locations discovered</p>
-        
-        <!-- Add Location Button -->
-        <button class="locations-add-btn" id="locations-add-btn">
-            <i class="fa-solid fa-map-pin"></i> Add Location
-        </button>
+        <!-- ═══════════════════════════════════════════════════════════
+             FIELD NOTEBOOK - Location tracking
+             JS renders everything inside this container
+             ═══════════════════════════════════════════════════════════ -->
+        <div id="field-notebook-container"></div>
         
         <div class="ledger-section-header">
             NOTES

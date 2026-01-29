@@ -252,14 +252,12 @@ export function refreshLocations() {
             const newName = nameEl?.value.trim();
             
             if (selectedId) {
-                // Set existing location as current
                 const loc = locations.find(l => l.id === selectedId);
                 if (loc) {
                     setCurrentLocation(loc);
                     if (!loc.visited) updateLocation(loc.id, { visited: true });
                 }
             } else if (newName) {
-                // Create new location and set as current
                 const newLoc = {
                     id: `loc_${Date.now()}`,
                     name: newName,
@@ -268,7 +266,6 @@ export function refreshLocations() {
                     events: [],
                     discovered: new Date().toISOString()
                 };
-                
                 addLocation(newLoc);
                 setCurrentLocation(newLoc);
             }
@@ -411,7 +408,7 @@ export function initLocationHandlers() {
     console.log('[Tribunal] Location handlers ✅');
 }
 
-// Call from index.js on CHAT_CHANGED if needed
+// Called from index.js on chat change
 export function onChatChanged() {
     resetUIState();
     refreshLocations();
