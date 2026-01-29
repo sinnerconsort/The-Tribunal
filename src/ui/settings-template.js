@@ -1,7 +1,7 @@
 /**
  * The Tribunal - Settings Tab Template
  * RC-41-CFG Configuration Form
- * v0.5.0 - Added Debug section, converted weather effects to dropdown
+ * v0.6.0 - Added World State section (III.6)
  */
 
 export const SETTINGS_TAB_HTML = `
@@ -93,6 +93,65 @@ export const SETTINGS_TAB_HTML = `
                 </label>
                 <div class="rcm-field-note">
                     <em>Floating action button for scene investigation</em>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section III.6: World State -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">III.6 WORLD STATE</div>
+            <div class="rcm-section-content">
+                <div class="rcm-field-note" style="margin-bottom: 10px;">
+                    <em>🌍 Auto-sync location, weather & time from chat</em>
+                </div>
+                
+                <label class="rcm-checkbox-row">
+                    <input type="checkbox" id="cfg-parse-world-tags" checked>
+                    <span>Parse WORLD tags</span>
+                </label>
+                <div class="rcm-field-note">
+                    <em>Extract &lt;!--- WORLD{...} ---&gt; from messages</em>
+                </div>
+                
+                <div style="margin-left: 20px; margin-top: 8px;">
+                    <label class="rcm-checkbox-row">
+                        <input type="checkbox" id="cfg-world-sync-weather" checked>
+                        <span>Sync weather to watch</span>
+                    </label>
+                    
+                    <label class="rcm-checkbox-row">
+                        <input type="checkbox" id="cfg-world-sync-time" checked>
+                        <span>Sync time to watch</span>
+                    </label>
+                    
+                    <label class="rcm-checkbox-row">
+                        <input type="checkbox" id="cfg-world-notify" checked>
+                        <span>Show location notifications</span>
+                    </label>
+                </div>
+                
+                <div style="border-top: 1px dashed rgba(255,255,255,0.2); margin: 12px 0; padding-top: 12px;">
+                    <label class="rcm-checkbox-row">
+                        <input type="checkbox" id="cfg-use-ai-extractor">
+                        <span>AI location extraction</span>
+                    </label>
+                    <div class="rcm-field-note">
+                        <em>⚠️ Uses extra API call if no WORLD tag found</em>
+                    </div>
+                </div>
+                
+                <div style="border-top: 1px dashed rgba(255,255,255,0.2); margin: 12px 0; padding-top: 12px;">
+                    <label class="rcm-checkbox-row">
+                        <input type="checkbox" id="cfg-inject-world-tag">
+                        <span>Show injection prompt</span>
+                    </label>
+                    <div id="world-tag-inject-preview" style="display: none; margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; font-size: 10px;">
+                        <div style="color: #888; margin-bottom: 4px;">Add to Author's Note or System Prompt:</div>
+                        <code id="world-tag-inject-code" style="display: block; word-break: break-all; color: #a8d4a8; font-family: monospace; font-size: 9px;">[Always start responses with: &lt;!--- WORLD{"weather":"...","temp":##,"location":"Place, Area","time":"H:MM PM"} ---&gt;]</code>
+                        <button id="cfg-copy-world-inject" class="rcm-btn rcm-btn-small" style="margin-top: 6px; width: 100%;">
+                            📋 Copy to Clipboard
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
