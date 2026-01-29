@@ -26,6 +26,33 @@ let generateEquipmentFromMessage = null;
 // INLINE HELPERS (avoid external imports)
 // ═══════════════════════════════════════════════════════════════
 
+/**
+ * Get ST user persona description
+ * ST stores this in power_user.persona_description
+ */
+function getSTPersonaDescription() {
+    // Try window.power_user first (most reliable)
+    if (window.power_user?.persona_description) {
+        return window.power_user.persona_description;
+    }
+    
+    // Fallback: try importing from script.js at runtime
+    try {
+        const script = window.SillyTavern?.getContext?.() || {};
+        if (script.power_user?.persona_description) {
+            return script.power_user.persona_description;
+        }
+    } catch (e) {
+        // Ignore
+    }
+    
+    return null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INLINE HELPERS (avoid external imports)
+// ═══════════════════════════════════════════════════════════════
+
 const EQUIPMENT_EMOJI = {
     hat: '🎩', headwear: '🎩',
     jacket: '🧥', coat: '🧥', shirt: '👔', top: '👕',
@@ -193,41 +220,58 @@ async function scanForEquipment() {
         }
     }
     
-    // Gather text to scan - focus on USER/PLAYER, not AI character
+    // Gather text to scan - multiple sources
     const textParts = [];
+    const ctx = getContext();
     
     // 1. Tribunal's persona context (player character)
     const persona = getPersona();
     if (persona?.context) {
+        console.log('[Tribunal] Scan: Found Tribunal persona context');
         textParts.push(`[PLAYER CHARACTER]\n${persona.context}`);
     }
     
-    // 2. SillyTavern user persona (if available)
-    const ctx = getContext();
-    if (ctx?.name1) {
-        // Try to get ST user persona
-        const userPersona = ctx.persona?.description || ctx.default_persona?.description;
-        if (userPersona) {
-            textParts.push(`[USER PERSONA]\n${userPersona}`);
+    // 2. SillyTavern user persona (power_user.persona_description)
+    const stPersona = getSTPersonaDescription();
+    if (stPersona) {
+        console.log('[Tribunal] Scan: Found ST persona description');
+        textParts.push(`[USER PERSONA]\n${stPersona}`);
+    }
+    
+    // 3. If no user persona found, check AI character (they often describe player appearance)
+    if (textParts.length === 0 && ctx?.characters) {
+        const char = ctx.characters[ctx.characterId];
+        if (char?.description) {
+            console.log('[Tribunal] Scan: Falling back to AI character description');
+            textParts.push(`[CHARACTER DESCRIPTION]\n${char.description}`);
+        }
+        if (char?.first_mes) {
+            console.log('[Tribunal] Scan: Including AI first message');
+            textParts.push(`[GREETING]\n${char.first_mes}`);
         }
     }
     
-    // 3. Recent chat messages - look for player actions/descriptions
-    // (where player might describe what they're wearing)
+    // 4. Recent chat messages - look for player actions/descriptions
     if (ctx?.chat) {
         const recentMessages = ctx.chat.slice(-10);
+        let chatText = '';
         for (const msg of recentMessages) {
             if (msg.mes) {
-                // Include user messages (they might describe their outfit)
-                // and AI messages (might describe player's appearance)
-                textParts.push(msg.mes);
+                chatText += msg.mes + '\n';
             }
         }
+        if (chatText.trim()) {
+            console.log('[Tribunal] Scan: Found', recentMessages.length, 'recent messages');
+            textParts.push(`[RECENT CHAT]\n${chatText}`);
+        }
     }
+    
+    // Log what we're scanning
+    console.log('[Tribunal] Scan sources found:', textParts.length);
     
     if (textParts.length === 0) {
         if (typeof toastr !== 'undefined') {
-            toastr.info('Nothing to scan', 'Equipment');
+            toastr.warning('No persona or chat to scan. Set your character description!', 'Equipment', { timeOut: 5000 });
         }
         return;
     }
