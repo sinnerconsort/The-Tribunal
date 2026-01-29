@@ -2,7 +2,7 @@
  * The Tribunal - Location Handlers
  * Field Notebook style with INLINE forms (no modals!)
  * 
- * @version 2.0.0 - Field Notebook
+ * @version 2.1.0 - Clean Field Notebook
  */
 
 import { 
@@ -16,7 +16,6 @@ import {
     removeLocationEvent
 } from '../core/state.js';
 import { saveChatState } from '../core/persistence.js';
-import { eventSource, event_types } from '../../../../../../script.js';
 
 // ═══════════════════════════════════════════════════════════════
 // STATE HELPERS
@@ -51,14 +50,24 @@ function resetUIState() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════
+
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // MAIN RENDER - Field Notebook
 // ═══════════════════════════════════════════════════════════════
 
 export function refreshLocations() {
     const container = document.getElementById('field-notebook-container');
     if (!container) {
-        // Fallback: try old IDs for backwards compat
-        renderLegacy();
+        console.warn('[Tribunal] field-notebook-container not found');
         return;
     }
     
@@ -243,12 +252,14 @@ export function refreshLocations() {
             const newName = nameEl?.value.trim();
             
             if (selectedId) {
+                // Set existing location as current
                 const loc = locations.find(l => l.id === selectedId);
                 if (loc) {
                     setCurrentLocation(loc);
                     if (!loc.visited) updateLocation(loc.id, { visited: true });
                 }
             } else if (newName) {
+                // Create new location and set as current
                 const newLoc = {
                     id: `loc_${Date.now()}`,
                     name: newName,
@@ -257,6 +268,7 @@ export function refreshLocations() {
                     events: [],
                     discovered: new Date().toISOString()
                 };
+                
                 addLocation(newLoc);
                 setCurrentLocation(newLoc);
             }
@@ -390,87 +402,19 @@ export function refreshLocations() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// LEGACY RENDER - for old HTML structure
-// ═══════════════════════════════════════════════════════════════
-
-function renderLegacy() {
-    const nameEl = document.getElementById('current-location-name');
-    const current = getCurrentLocation();
-    
-    if (nameEl) {
-        nameEl.textContent = current?.name || 'Unknown Location';
-    }
-    
-    // Events
-    const listEl = document.getElementById('events-list');
-    const emptyEl = document.getElementById('events-empty');
-    
-    if (listEl) {
-        const events = getCurrentLocationEvents();
-        
-        if (events.length === 0) {
-            listEl.innerHTML = '';
-            if (emptyEl) emptyEl.style.display = 'block';
-        } else {
-            if (emptyEl) emptyEl.style.display = 'none';
-            const recentEvents = events.slice(-5).reverse();
-            listEl.innerHTML = recentEvents.map((event, index) => `
-                <li data-event-index="${events.length - 1 - index}">
-                    ${escapeHtml(event.text)}
-                </li>
-            `).join('');
-        }
-    }
-    
-    // Locations
-    const locListEl = document.getElementById('locations-list');
-    const locEmptyEl = document.getElementById('locations-empty');
-    
-    if (locListEl) {
-        const locations = getLocations();
-        
-        if (locations.length === 0) {
-            locListEl.innerHTML = '';
-            if (locEmptyEl) locEmptyEl.style.display = 'block';
-        } else {
-            if (locEmptyEl) locEmptyEl.style.display = 'none';
-            locListEl.innerHTML = locations.map(loc => `
-                <div class="location-card ${current?.id === loc.id ? 'current' : ''}" data-location-id="${loc.id}">
-                    ${escapeHtml(loc.name)}
-                </div>
-            `).join('');
-        }
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// UTILITIES
-// ═══════════════════════════════════════════════════════════════
-
-function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
-
-// ═══════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
 
 export function initLocationHandlers() {
     console.log('[Tribunal] Initializing location handlers (Field Notebook)...');
-    
-    // Reset UI state on chat change
-    if (eventSource && event_types?.CHAT_CHANGED) {
-        eventSource.on(event_types.CHAT_CHANGED, () => {
-            resetUIState();
-            setTimeout(refreshLocations, 100);
-        });
-    }
-    
     refreshLocations();
     console.log('[Tribunal] Location handlers ✅');
+}
+
+// Call from index.js on CHAT_CHANGED if needed
+export function onChatChanged() {
+    resetUIState();
+    refreshLocations();
 }
 
 // ═══════════════════════════════════════════════════════════════
