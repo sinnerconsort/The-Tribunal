@@ -813,6 +813,14 @@ try {
         console.warn('[Tribunal] Contacts handlers not loaded:', err.message);
     });
 
+    // Initialize equipment handlers
+import('./src/ui/equipment-handlers.js').then(module => {
+    module.initEquipmentHandlers();
+    console.log('[Tribunal] Equipment handlers initialized');
+}).catch(err => {
+    console.warn('[Tribunal] Equipment handlers not loaded:', err.message);
+});
+
     initLocationHandlers();
     console.log('[Tribunal] Location handlers initialized');
 
