@@ -115,7 +115,7 @@ export function refreshLocations() {
                 <div class="notebook-location" id="notebook-current-loc">
                     ${escapeHtml(current?.name || 'Unknown Location')}
                     ${current?.district ? `<span class="notebook-district">(${escapeHtml(current.district)})</span>` : ''}
-                    <button class="notebook-investigate-btn" id="notebook-investigate" title="Investigate here" ${!current ? 'disabled' : ''}>🔍</button>
+                    <button class="notebook-investigate-btn" id="notebook-investigate" title="Investigate here">🔍</button>
                     <button class="notebook-edit-btn" id="notebook-edit-location" title="Change location">✎</button>
                 </div>
             </div>
@@ -255,8 +255,8 @@ export function refreshLocations() {
     // ─────────────────────────────────────────────────────────
     
     // STEP 3: Investigate button - opens Investigation panel
+    // Works even at "Unknown Location" - Investigation can still scan the scene
     container.querySelector('#notebook-investigate')?.addEventListener('click', () => {
-        if (!current) return;
         openInvestigationPanel();
     });
     
