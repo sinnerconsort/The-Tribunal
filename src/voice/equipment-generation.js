@@ -141,7 +141,7 @@ export async function generateEquipmentFromMessage(messageText, options = {}) {
         const systemPrompt = `You are an expert at analyzing roleplay scenes for clothing and accessories mentioned. You generate rich, evocative item data in the style of Disco Elysium - where every item tells a story and the skills in your head have opinions about everything. Output only valid JSON.`;
         
         const response = await callAPI(systemPrompt, prompt, {
-            maxTokens: 1500,
+            maxTokens: 2500,
             temperature: 0.7, // Slightly creative for descriptions/quips
             timeout
         });
@@ -185,17 +185,52 @@ function parseEquipmentResponse(response) {
     
     let cleaned = response.trim();
     
+    // Log raw response for debugging
+    console.log('[Equipment Gen] Raw response:', cleaned.substring(0, 500));
+    
+    // Check for "no equipment" type responses
+    const noEquipmentPatterns = [
+        /no (clothing|equipment|items|accessories)/i,
+        /nothing to extract/i,
+        /empty arrays/i,
+        /"equipment"\s*:\s*\[\s*\]/
+    ];
+    
+    for (const pattern of noEquipmentPatterns) {
+        if (pattern.test(cleaned)) {
+            console.log('[Equipment Gen] No equipment detected in response');
+            return { equipment: [], removed: [] };
+        }
+    }
+    
     // Remove markdown code blocks
     cleaned = cleaned.replace(/^```json?\s*/i, '');
     cleaned = cleaned.replace(/\s*```$/i, '');
+    cleaned = cleaned.replace(/```json?\s*/gi, '');
+    cleaned = cleaned.replace(/```/g, '');
     
-    // Find JSON object
+    // Find JSON object - handle nested braces properly
     const jsonStart = cleaned.indexOf('{');
-    const jsonEnd = cleaned.lastIndexOf('}');
+    if (jsonStart === -1) {
+        console.warn('[Equipment Gen] No JSON object found');
+        return { equipment: [], removed: [] }; // Return empty, not null
+    }
     
-    if (jsonStart === -1 || jsonEnd === -1) {
-        console.warn('[Equipment Gen] No JSON found in response');
-        return null;
+    // Find matching closing brace
+    let braceCount = 0;
+    let jsonEnd = -1;
+    for (let i = jsonStart; i < cleaned.length; i++) {
+        if (cleaned[i] === '{') braceCount++;
+        if (cleaned[i] === '}') braceCount--;
+        if (braceCount === 0) {
+            jsonEnd = i;
+            break;
+        }
+    }
+    
+    if (jsonEnd === -1) {
+        console.warn('[Equipment Gen] No matching closing brace');
+        return { equipment: [], removed: [] };
     }
     
     cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
@@ -207,10 +242,12 @@ function parseEquipmentResponse(response) {
         if (!Array.isArray(parsed.equipment)) parsed.equipment = [];
         if (!Array.isArray(parsed.removed)) parsed.removed = [];
         
+        console.log('[Equipment Gen] Parsed successfully:', parsed.equipment.length, 'items');
         return parsed;
     } catch (e) {
-        console.error('[Equipment Gen] JSON parse error:', e);
-        return null;
+        console.error('[Equipment Gen] JSON parse error:', e.message);
+        console.error('[Equipment Gen] Attempted to parse:', cleaned.substring(0, 300));
+        return { equipment: [], removed: [] }; // Return empty, not null (avoids error toast)
     }
 }
 
