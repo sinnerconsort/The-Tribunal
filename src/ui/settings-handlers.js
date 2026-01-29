@@ -79,6 +79,15 @@ const SETTINGS_IDS = {
     lockPositions: 'cfg-lock-positions',
     saveButton: 'cfg-save-settings',
     resetPositions: 'cfg-reset-positions'
+
+    // World State (Section III.6)
+    parseWorldTags: 'cfg-parse-world-tags',
+    worldSyncWeather: 'cfg-world-sync-weather',
+    worldSyncTime: 'cfg-world-sync-time',
+    worldNotify: 'cfg-world-notify',
+    useAIExtractor: 'cfg-use-ai-extractor',
+    injectWorldTag: 'cfg-inject-world-tag',
+    copyWorldInject: 'cfg-copy-world-inject',
 };
 
 // Track if handlers are bound to prevent duplicates
@@ -125,6 +134,9 @@ export function initSettingsTab() {
     
     // Bind debug handlers (Section X)
     bindDebugHandlers();
+
+    // Bind world state handlers
+    bindWorldStateHandlers();
     
     console.log('[Tribunal] Settings handlers initialized');
 }
@@ -229,6 +241,17 @@ export function refreshSettingsFromState() {
     // Contact Detection
     setCheckbox(SETTINGS_IDS.autoContacts, settings.contacts?.autoDetect ?? false);
     setCheckbox(SETTINGS_IDS.contactsNotify, settings.contacts?.showNotifications ?? true);
+
+    // World State
+    setCheckbox(SETTINGS_IDS.parseWorldTags, settings.worldState?.parseWorldTags ?? true);
+    setCheckbox(SETTINGS_IDS.worldSyncWeather, settings.worldState?.syncWeather ?? true);
+    setCheckbox(SETTINGS_IDS.worldSyncTime, settings.worldState?.syncTime ?? true);
+    setCheckbox(SETTINGS_IDS.worldNotify, settings.worldState?.showNotifications ?? true);
+    setCheckbox(SETTINGS_IDS.useAIExtractor, settings.worldState?.useAIExtractor ?? false);
+    setCheckbox(SETTINGS_IDS.injectWorldTag, settings.worldState?.injectWorldTag ?? false);
+    
+    // Update inject preview visibility
+    updateWorldTagInjectPreview();
     
     // Thought Cabinet
     setCheckbox(SETTINGS_IDS.autoThoughts, settings.thoughts?.autoSuggest ?? false);
@@ -316,6 +339,7 @@ export function saveAllSettings() {
     if (!settings.api) settings.api = {};
     if (!settings.voices) settings.voices = {};
     if (!settings.investigation) settings.investigation = {};
+    if (!settings.worldState) settings.worldState = {};
     if (!settings.vitals) settings.vitals = {};
     if (!settings.cases) settings.cases = {};
     if (!settings.contacts) settings.contacts = {};
@@ -354,6 +378,14 @@ export function saveAllSettings() {
     // Contact Detection
     settings.contacts.autoDetect = getCheckbox(SETTINGS_IDS.autoContacts, false);
     settings.contacts.showNotifications = getCheckbox(SETTINGS_IDS.contactsNotify, true);
+
+        // World State
+    settings.worldState.parseWorldTags = getCheckbox(SETTINGS_IDS.parseWorldTags, true);
+    settings.worldState.syncWeather = getCheckbox(SETTINGS_IDS.worldSyncWeather, true);
+    settings.worldState.syncTime = getCheckbox(SETTINGS_IDS.worldSyncTime, true);
+    settings.worldState.showNotifications = getCheckbox(SETTINGS_IDS.worldNotify, true);
+    settings.worldState.useAIExtractor = getCheckbox(SETTINGS_IDS.useAIExtractor, false);
+    settings.worldState.injectWorldTag = getCheckbox(SETTINGS_IDS.injectWorldTag, false);
     
     // Thought Cabinet
     settings.thoughts.autoSuggest = getCheckbox(SETTINGS_IDS.autoThoughts, false);
@@ -572,6 +604,103 @@ function bindTestConnection() {
             btn.disabled = false;
         }, 3000);
     });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WORLD STATE HANDLERS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Update world tag injection preview visibility
+ */
+function updateWorldTagInjectPreview() {
+    const checkbox = document.getElementById('cfg-inject-world-tag');
+    const preview = document.getElementById('world-tag-inject-preview');
+    
+    if (checkbox && preview) {
+        preview.style.display = checkbox.checked ? 'block' : 'none';
+    }
+}
+
+/**
+ * Bind World State handlers
+ * Call this from initSettingsTab()
+ */
+function bindWorldStateHandlers() {
+    // Inject toggle - show/hide preview
+    const injectCheckbox = document.getElementById('cfg-inject-world-tag');
+    if (injectCheckbox) {
+        injectCheckbox.addEventListener('change', () => {
+            updateWorldTagInjectPreview();
+            // Auto-save this setting
+            const settings = getSettings();
+            if (!settings.worldState) settings.worldState = {};
+            settings.worldState.injectWorldTag = injectCheckbox.checked;
+            saveSettings();
+        });
+    }
+    
+    // Copy button
+    const copyBtn = document.getElementById('cfg-copy-world-inject');
+    if (copyBtn) {
+        copyBtn.addEventListener('click', async () => {
+            const injectionText = `[Always start responses with: <!--- WORLD{"weather":"...","temp":##,"location":"Place, Area","time":"H:MM PM"} --->]`;
+            
+            try {
+                await navigator.clipboard.writeText(injectionText);
+                copyBtn.textContent = '✓ Copied!';
+                if (typeof toastr !== 'undefined') {
+                    toastr.success('Copied to clipboard', 'World Tag');
+                }
+            } catch (e) {
+                // Fallback for mobile/non-https
+                const codeEl = document.getElementById('world-tag-inject-code');
+                if (codeEl) {
+                    // Select the text
+                    const range = document.createRange();
+                    range.selectNodeContents(codeEl);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+                copyBtn.textContent = '📋 Select & Copy';
+            }
+            
+            setTimeout(() => {
+                copyBtn.textContent = '📋 Copy to Clipboard';
+            }, 2000);
+        });
+    }
+    
+    // Auto-save on change for all world state checkboxes
+    const worldStateIds = [
+        'cfg-parse-world-tags',
+        'cfg-world-sync-weather', 
+        'cfg-world-sync-time',
+        'cfg-world-notify',
+        'cfg-use-ai-extractor'
+    ];
+    
+    worldStateIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('change', () => {
+                const settings = getSettings();
+                if (!settings.worldState) settings.worldState = {};
+                
+                settings.worldState.parseWorldTags = document.getElementById('cfg-parse-world-tags')?.checked ?? true;
+                settings.worldState.syncWeather = document.getElementById('cfg-world-sync-weather')?.checked ?? true;
+                settings.worldState.syncTime = document.getElementById('cfg-world-sync-time')?.checked ?? true;
+                settings.worldState.showNotifications = document.getElementById('cfg-world-notify')?.checked ?? true;
+                settings.worldState.useAIExtractor = document.getElementById('cfg-use-ai-extractor')?.checked ?? false;
+                
+                saveSettings();
+                console.log('[Tribunal] World state settings saved');
+            });
+        }
+    });
+    
+    console.log('[Tribunal] World state handlers bound');
 }
 
 // ═══════════════════════════════════════════════════════════════
