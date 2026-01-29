@@ -14,6 +14,8 @@ import {
     getChatState
 } from '../core/state.js';
 
+import { eventSource, event_types } from '../../../../../../script.js';
+
 // ═══════════════════════════════════════════════════════════════
 // INLINE HELPERS (avoid external imports)
 // ═══════════════════════════════════════════════════════════════
@@ -205,6 +207,14 @@ export function initEquipmentHandlers() {
     const container = document.getElementById('ie-equip-items-list');
     if (container) {
         container.addEventListener('click', handleEquipmentClick);
+    }
+    
+    // Listen for chat changes to refresh UI
+    if (eventSource && event_types?.CHAT_CHANGED) {
+        eventSource.on(event_types.CHAT_CHANGED, () => {
+            setTimeout(refreshEquipment, 100); // Small delay for state to load
+        });
+        console.log('[Tribunal] Equipment listening for CHAT_CHANGED');
     }
     
     // Initial render
