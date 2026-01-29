@@ -43,6 +43,7 @@ import { initCabinetHandlers, refreshCabinet } from './src/ui/cabinet-handler.js
 import { initNewspaperStrip, updateNewspaperStrip } from './src/ui/newspaper-strip.js';
 import { initLocationHandlers, refreshLocations } from './src/ui/location-handlers.js';
 
+
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Weather System (lazy loaded - see init())
 // ═══════════════════════════════════════════════════════════════
@@ -65,7 +66,7 @@ let debugWeather = () => console.log('[Tribunal] Weather not loaded');
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Voice Generation
 // ═══════════════════════════════════════════════════════════════
-
+import { extractFromMessage, processExtractionResults } from './src/data/ai-extractor.js';
 import { generateVoicesForMessage } from './src/voice/generation.js';
 import { renderVoices, appendVoicesToChat, clearVoices } from './src/voice/render-voices.js';
 
@@ -338,6 +339,10 @@ async function triggerVoiceGeneration(messageText = null, manualTrigger = false)
 /**
  * Handler for new AI messages
  */
+/**
+ * NEW onNewAIMessage function with extraction support:
+ */
+
 function onNewAIMessage(messageIndex) {
     const ctx = getContext();
     const chat = ctx?.chat;
@@ -358,7 +363,72 @@ function onNewAIMessage(messageIndex) {
     setTimeout(() => {
         triggerVoiceGeneration(message.mes, false);
     }, 500);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // AI EXTRACTION - Extract quests, contacts, locations from message
+    // ═══════════════════════════════════════════════════════════════
+    
+    const settings = getSettings();
+    if (settings?.extraction?.enabled !== false) {
+        runExtraction(message.mes);
+    }
 }
+
+/**
+ * Run AI extraction on a message (separate async function to not block)
+ */
+async function runExtraction(messageText) {
+    try {
+        const state = getChatState();
+        if (!state) return;
+        
+        // Get existing data for context
+        const existingCases = Object.values(state.cases || {});
+        const existingContacts = Object.values(state.contacts || {});
+        const existingLocations = state.ledger?.locations || [];
+        
+        // Extract data from message
+        const results = await extractFromMessage(messageText, {
+            existingCases,
+            existingContacts,
+            existingLocations
+        });
+        
+        if (results.error) {
+            console.warn('[Tribunal] Extraction error:', results.error);
+            return;
+        }
+        
+        // Process results and update state
+        // Note: casesModule and contactsModule need to be imported if you want 
+        // those to auto-track too. For now, just locations:
+        const processed = await processExtractionResults(results, {
+            notifyCallback: (msg, type) => {
+                console.log(`[Tribunal] ${type}: ${msg}`);
+                if (typeof toastr !== 'undefined') {
+                    if (type.includes('location')) {
+                        toastr.info(msg, 'Location', { timeOut: 3000 });
+                    }
+                }
+            },
+            locationsModule: true  // Enable location processing
+            // casesModule: casesModule,     // Uncomment if you have cases module
+            // contactsModule: contactsModule // Uncomment if you have contacts module
+        });
+        
+        // Refresh UI if anything was extracted
+        if (processed.locationsCreated.length > 0 || 
+            processed.locationsVisited.length > 0 ||
+            processed.currentLocationSet) {
+            refreshLocations();
+            console.log('[Tribunal] Locations refreshed after extraction');
+        }
+        
+    } catch (e) {
+        console.warn('[Tribunal] Extraction failed:', e.message);
+    }
+}
+
 
 /**
  * Manual rescan of last message
