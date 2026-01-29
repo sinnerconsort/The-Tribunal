@@ -1,6 +1,8 @@
 /**
  * The Tribunal - Equipment Tab CSS
  * Martinaise Cleaners ticket item styling and detail panel
+ * 
+ * UPDATED: Added scan button and wardrobe button styles
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -42,22 +44,22 @@
 }
 
 /* Equipped vs stored visual distinction */
-.equip-ticket-item.equip-item-equipped {
+.equip-ticket-item.equipped {
     color: var(--inventory-ink, #2c2416);
 }
 
-.equip-ticket-item.equip-item-stored {
+.equip-ticket-item.stored {
     color: var(--inventory-ink-faded, #5a5045);
     opacity: 0.7;
 }
 
-.equip-ticket-item.equip-item-stored .equip-item-name {
+.equip-ticket-item.stored .equip-item-name {
     text-decoration: line-through;
     text-decoration-color: rgba(90, 80, 69, 0.4);
 }
 
 /* Checkbox */
-.equip-item-check {
+.equip-item-checkbox {
     font-size: 1.1rem;
     width: 20px;
     text-align: center;
@@ -66,12 +68,8 @@
     transition: transform 0.1s;
 }
 
-.equip-item-check:hover {
+.equip-item-checkbox:hover {
     transform: scale(1.2);
-}
-
-.equip-item-check:active {
-    transform: scale(0.95);
 }
 
 /* Emoji */
@@ -133,6 +131,61 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   BUTTONS - SCAN, ADD, WARDROBE
+   ═══════════════════════════════════════════════════════════════ */
+
+.equip-ticket-add-btn {
+    display: block;
+    width: calc(100% - 24px);
+    margin: 8px 12px 4px;
+    padding: 12px;
+    background: transparent;
+    border: 2px dashed var(--inventory-line, rgba(90, 74, 58, 0.25));
+    border-radius: 3px;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--inventory-ink-faded, #5a5045);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.equip-ticket-add-btn:hover {
+    background: rgba(201, 162, 39, 0.1);
+    border-color: var(--inventory-accent, #c9a227);
+    color: var(--inventory-ink, #2c2416);
+}
+
+.equip-ticket-add-btn:active {
+    transform: scale(0.98);
+}
+
+/* Scan button - highlighted as primary action */
+.equip-scan-btn {
+    background: rgba(201, 162, 39, 0.08);
+    border-color: var(--inventory-accent, #c9a227);
+    color: var(--inventory-ink, #2c2416);
+}
+
+.equip-scan-btn:hover {
+    background: rgba(201, 162, 39, 0.2);
+    border-style: solid;
+}
+
+/* Wardrobe button - subtle secondary */
+.equip-wardrobe-btn {
+    font-size: 0.7rem !important;
+    padding: 8px !important;
+    opacity: 0.7;
+    margin-bottom: 8px !important;
+}
+
+.equip-wardrobe-btn:hover {
+    opacity: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    EQUIPMENT DETAIL PANEL
    ═══════════════════════════════════════════════════════════════ */
 
@@ -146,6 +199,10 @@
     box-shadow: 
         0 4px 12px rgba(0, 0, 0, 0.15),
         inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.equip-detail-panel.visible {
+    display: block;
 }
 
 .equip-detail-header {
@@ -331,41 +388,6 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ADD ITEM BUTTON
-   ═══════════════════════════════════════════════════════════════ */
-
-.equip-ticket-add-btn {
-    display: block;
-    width: calc(100% - 24px);
-    margin: 8px 12px 12px;
-    padding: 12px;
-    background: transparent;
-    border: 2px dashed var(--inventory-line, rgba(90, 74, 58, 0.25));
-    border-radius: 3px;
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 1px;
-    color: var(--inventory-ink-faded, #5a5045);
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.equip-ticket-add-btn:hover {
-    background: rgba(201, 162, 39, 0.1);
-    border-color: var(--inventory-accent, #c9a227);
-    color: var(--inventory-ink, #2c2416);
-}
-
-.equip-ticket-add-btn:active {
-    transform: scale(0.98);
-}
-
-.equip-scan-btn {
-    /* Match your add button style */
-    margin-right: 0.5rem;
-}
-/* ═══════════════════════════════════════════════════════════════
    RESPONSIVE ADJUSTMENTS
    ═══════════════════════════════════════════════════════════════ */
 
@@ -406,5 +428,10 @@
     .equip-detail-quips,
     .equip-detail-actions {
         padding: 10px 12px;
+    }
+    
+    .equip-ticket-add-btn {
+        padding: 10px;
+        font-size: 0.7rem;
     }
 }
