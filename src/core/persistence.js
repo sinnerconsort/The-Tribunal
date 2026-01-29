@@ -245,6 +245,7 @@ function sanitizeChatState(state) {
     if (!state.vitals) state.vitals = { ...defaults.vitals };
     if (!state.thoughtCabinet) state.thoughtCabinet = { ...defaults.thoughtCabinet };
     if (!state.inventory) state.inventory = { ...defaults.inventory };
+    if (!state.equipment) state.equipment = { ...defaults.equipment };
     if (!state.ledger) state.ledger = { ...defaults.ledger };
     if (!state.relationships) state.relationships = {};
     if (!state.voices) state.voices = { ...defaults.voices };
@@ -259,6 +260,7 @@ function sanitizeChatState(state) {
     if (!Array.isArray(state.inventory.carried)) state.inventory.carried = [];
     if (!Array.isArray(state.inventory.worn)) state.inventory.worn = [];
     if (!Array.isArray(state.inventory.stored)) state.inventory.stored = [];
+    if (!Array.isArray(state.equipment.items)) state.equipment.items = [];
     if (!Array.isArray(state.ledger.cases)) state.ledger.cases = [];
     if (!Array.isArray(state.ledger.notes)) state.ledger.notes = [];
     if (!Array.isArray(state.ledger.locations)) state.ledger.locations = [];
