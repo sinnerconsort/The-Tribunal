@@ -1,437 +1,286 @@
 /**
- * The Tribunal - Equipment Tab CSS
- * Martinaise Cleaners ticket item styling and detail panel
- * 
- * UPDATED: Added scan button and wardrobe button styles
+ * Equipment CSS - Inline forms (no modals)
  */
 
-/* ═══════════════════════════════════════════════════════════════
-   EQUIPMENT TICKET ITEMS
-   ═══════════════════════════════════════════════════════════════ */
-
-.equip-ticket-items-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 8px 0;
-    max-height: 280px;
-    overflow-y: auto;
-}
-
-.equip-ticket-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px dashed transparent;
-    border-radius: 2px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    font-size: 0.8rem;
-}
-
-.equip-ticket-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(201, 162, 39, 0.3);
-}
-
-.equip-ticket-item.equip-item-selected {
-    background: rgba(201, 162, 39, 0.15);
-    border-color: var(--inventory-accent, #c9a227);
-    border-style: solid;
-}
-
-/* Equipped vs stored visual distinction */
-.equip-ticket-item.equipped {
-    color: var(--inventory-ink, #2c2416);
-}
-
-.equip-ticket-item.stored {
-    color: var(--inventory-ink-faded, #5a5045);
-    opacity: 0.7;
-}
-
-.equip-ticket-item.stored .equip-item-name {
-    text-decoration: line-through;
-    text-decoration-color: rgba(90, 80, 69, 0.4);
-}
-
-/* Checkbox */
-.equip-item-checkbox {
-    font-size: 1.1rem;
-    width: 20px;
-    text-align: center;
-    cursor: pointer;
-    user-select: none;
-    transition: transform 0.1s;
-}
-
-.equip-item-checkbox:hover {
-    transform: scale(1.2);
-}
-
-/* Emoji */
-.equip-item-emoji {
-    font-size: 1rem;
-    width: 24px;
-    text-align: center;
-}
-
-/* Name */
-.equip-item-name {
-    flex: 1;
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* Bonus tag */
-.equip-item-bonus {
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: var(--inventory-accent, #c9a227);
-    background: rgba(201, 162, 39, 0.1);
-    padding: 2px 6px;
-    border-radius: 3px;
-    white-space: nowrap;
-}
-
-/* Remove button */
-.equip-item-remove {
-    opacity: 0;
-    background: none;
-    border: none;
-    color: #999;
-    font-size: 1.2rem;
-    cursor: pointer;
-    padding: 0 4px;
-    transition: all 0.15s;
-    line-height: 1;
-}
-
-.equip-ticket-item:hover .equip-item-remove {
-    opacity: 0.6;
-}
-
-.equip-item-remove:hover {
-    opacity: 1 !important;
-    color: #c41e3a;
-}
-
-/* Empty state */
+/* Items list */
 .equip-ticket-empty {
     text-align: center;
     color: var(--inventory-ink-faded, #5a5045);
     font-style: italic;
     padding: 20px;
-    font-size: 0.85rem;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   BUTTONS - SCAN, ADD, WARDROBE
-   ═══════════════════════════════════════════════════════════════ */
-
-.equip-ticket-add-btn {
-    display: block;
-    width: calc(100% - 24px);
-    margin: 8px 12px 4px;
-    padding: 12px;
-    background: transparent;
-    border: 2px dashed var(--inventory-line, rgba(90, 74, 58, 0.25));
-    border-radius: 3px;
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 1px;
-    color: var(--inventory-ink-faded, #5a5045);
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.equip-ticket-add-btn:hover {
-    background: rgba(201, 162, 39, 0.1);
-    border-color: var(--inventory-accent, #c9a227);
-    color: var(--inventory-ink, #2c2416);
-}
-
-.equip-ticket-add-btn:active {
-    transform: scale(0.98);
-}
-
-/* Scan button - highlighted as primary action */
-.equip-scan-btn {
-    background: rgba(201, 162, 39, 0.08);
-    border-color: var(--inventory-accent, #c9a227);
-    color: var(--inventory-ink, #2c2416);
-}
-
-.equip-scan-btn:hover {
-    background: rgba(201, 162, 39, 0.2);
-    border-style: solid;
-}
-
-/* Wardrobe button - subtle secondary */
-.equip-wardrobe-btn {
-    font-size: 0.7rem !important;
-    padding: 8px !important;
-    opacity: 0.7;
-    margin-bottom: 8px !important;
-}
-
-.equip-wardrobe-btn:hover {
-    opacity: 1;
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   EQUIPMENT DETAIL PANEL
-   ═══════════════════════════════════════════════════════════════ */
-
-.equip-detail-panel {
-    display: none;
-    background: linear-gradient(180deg, #f8f4e8 0%, #f0e8d8 100%);
-    border: 2px solid var(--inventory-accent, #c9a227);
-    border-radius: 4px;
-    margin: 12px 0;
-    padding: 0;
-    box-shadow: 
-        0 4px 12px rgba(0, 0, 0, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.5);
-}
-
-.equip-detail-panel.visible {
-    display: block;
-}
-
-.equip-detail-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 14px;
-    background: linear-gradient(180deg, 
-        var(--inventory-accent, #c9a227) 0%, 
-        #b8922a 100%
-    );
-    border-radius: 2px 2px 0 0;
-}
-
-.equip-detail-emoji {
-    font-size: 1.5rem;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
-}
-
-.equip-detail-title {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-.equip-detail-name {
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #1a1408;
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-.equip-detail-type {
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    font-size: 0.65rem;
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: rgba(26, 20, 8, 0.6);
-}
-
-.equip-detail-close {
-    background: rgba(0, 0, 0, 0.1);
-    border: none;
-    color: #1a1408;
-    font-size: 1.2rem;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.equip-detail-close:hover {
-    background: rgba(0, 0, 0, 0.2);
-}
-
-/* Description */
-.equip-detail-desc {
-    padding: 14px;
     margin: 0;
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    font-size: 0.8rem;
-    font-style: italic;
-    color: var(--inventory-ink, #2c2416);
-    line-height: 1.5;
-    border-bottom: 1px dashed var(--inventory-line, rgba(90, 74, 58, 0.15));
 }
 
-/* Stats */
-.equip-detail-stats {
-    padding: 10px 14px;
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    font-size: 0.75rem;
-    color: var(--inventory-ink, #2c2416);
-    border-bottom: 1px dashed var(--inventory-line, rgba(90, 74, 58, 0.15));
+/* Individual item */
+.equip-ticket-item {
+    margin-bottom: 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(90, 74, 58, 0.1);
 }
 
-.equip-detail-stats strong {
+.equip-ticket-item.stored {
+    opacity: 0.6;
+}
+
+.equip-ticket-item.expanded {
+    border-color: var(--inventory-accent, #c9a227);
+}
+
+.equip-item-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+}
+
+.equip-item-checkbox {
+    font-size: 1rem;
     color: var(--inventory-accent, #c9a227);
 }
 
-/* Voice quips */
-.equip-detail-quips {
-    padding: 10px 14px;
-    border-bottom: 1px dashed var(--inventory-line, rgba(90, 74, 58, 0.15));
+.equip-item-emoji {
+    font-size: 1.1rem;
 }
 
-.equip-detail-quips-header {
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
+.equip-item-name {
+    flex: 1;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--inventory-ink, #2c2416);
+}
+
+.equip-item-bonus {
+    font-size: 0.7rem;
+    color: var(--inventory-accent, #c9a227);
+}
+
+.equip-item-expand {
+    font-size: 0.7rem;
     color: var(--inventory-ink-faded, #5a5045);
-    margin-bottom: 8px;
 }
 
-.equip-detail-quip {
-    margin-bottom: 8px;
-    padding-left: 8px;
-    border-left: 2px solid currentColor;
+/* Expanded details */
+.equip-item-details {
+    padding: 0 12px 12px;
+    border-top: 1px dashed rgba(90, 74, 58, 0.15);
+    margin-top: 4px;
 }
 
-.equip-detail-quip:last-child {
-    margin-bottom: 0;
-}
-
-.equip-quip-skill {
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    display: block;
-    margin-bottom: 2px;
-}
-
-.equip-quip-text {
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    font-size: 0.75rem;
+.equip-item-desc {
+    font-size: 0.8rem;
     font-style: italic;
     color: var(--inventory-ink, #2c2416);
+    margin: 10px 0;
     line-height: 1.4;
 }
 
-/* Actions */
-.equip-detail-actions {
-    display: flex;
-    gap: 8px;
-    padding: 12px 14px;
+.equip-item-quips {
+    margin: 10px 0;
 }
 
-.equip-detail-toggle-btn,
-.equip-detail-delete-btn {
-    flex: 1;
-    padding: 10px 12px;
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+.equip-quip {
     font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    border: 2px dashed;
+    padding: 6px 8px;
+    margin-bottom: 6px;
     border-radius: 3px;
-    cursor: pointer;
-    transition: all 0.15s;
+    border-left: 3px solid;
 }
 
-.equip-detail-toggle-btn {
-    background: rgba(201, 162, 39, 0.1);
-    border-color: var(--inventory-accent, #c9a227);
-    color: var(--inventory-ink, #2c2416);
-}
-
-.equip-detail-toggle-btn:hover {
-    background: rgba(201, 162, 39, 0.25);
-}
-
-.equip-detail-toggle-btn.stored {
+.equip-quip.approves {
     background: rgba(76, 175, 80, 0.1);
     border-color: #4caf50;
 }
 
-.equip-detail-toggle-btn.stored:hover {
-    background: rgba(76, 175, 80, 0.25);
+.equip-quip.disapproves {
+    background: rgba(244, 67, 54, 0.1);
+    border-color: #f44336;
 }
 
-.equip-detail-delete-btn {
-    background: rgba(196, 30, 58, 0.05);
-    border-color: rgba(196, 30, 58, 0.3);
-    color: #8b4049;
-    flex: 0 0 auto;
-    padding: 10px 16px;
+.equip-quip strong {
+    text-transform: capitalize;
 }
 
-.equip-detail-delete-btn:hover {
-    background: rgba(196, 30, 58, 0.15);
+.equip-item-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.equip-action-btn {
+    flex: 1;
+    padding: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: 1px dashed;
+    border-radius: 4px;
+    cursor: pointer;
+    background: transparent;
+}
+
+.equip-toggle-btn {
+    border-color: var(--inventory-accent, #c9a227);
+    color: var(--inventory-accent, #c9a227);
+}
+
+.equip-remove-btn {
     border-color: #c41e3a;
-    color: #c41e3a;
+    color: #8b4049;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   RESPONSIVE ADJUSTMENTS
-   ═══════════════════════════════════════════════════════════════ */
+/* Add section */
+.equip-add-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 16px 0;
+}
 
-@media (max-width: 400px) {
-    .equip-ticket-item {
-        padding: 8px 10px;
-        gap: 6px;
-    }
-    
-    .equip-item-emoji {
-        font-size: 0.9rem;
-        width: 20px;
-    }
-    
-    .equip-item-bonus {
-        font-size: 0.6rem;
-        padding: 1px 4px;
-    }
-    
-    .equip-detail-panel {
-        margin: 8px 0;
-    }
-    
-    .equip-detail-header {
-        padding: 10px 12px;
-    }
-    
-    .equip-detail-emoji {
-        font-size: 1.3rem;
-    }
-    
-    .equip-detail-name {
-        font-size: 0.85rem;
-    }
-    
-    .equip-detail-desc,
-    .equip-detail-stats,
-    .equip-detail-quips,
-    .equip-detail-actions {
-        padding: 10px 12px;
-    }
-    
-    .equip-ticket-add-btn {
-        padding: 10px;
-        font-size: 0.7rem;
-    }
+.equip-section-btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    border: 2px dashed rgba(90, 74, 58, 0.3);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--inventory-ink, #2c2416);
+    cursor: pointer;
+}
+
+.equip-scan-btn {
+    border-color: var(--inventory-accent, #c9a227);
+    color: var(--inventory-accent, #c9a227);
+}
+
+/* Inline form */
+.equip-inline-form {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(90, 74, 58, 0.2);
+    border-radius: 4px;
+    padding: 12px;
+}
+
+.equip-input {
+    width: 100%;
+    padding: 10px;
+    font-size: 0.85rem;
+    border: 1px solid rgba(90, 74, 58, 0.2);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--inventory-ink, #2c2416);
+    margin-bottom: 10px;
+}
+
+.equip-input:focus {
+    outline: none;
+    border-color: var(--inventory-accent, #c9a227);
+}
+
+.equip-form-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.equip-form-btn {
+    flex: 1;
+    padding: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.equip-cancel-btn {
+    background: transparent;
+    border: 1px solid rgba(90, 74, 58, 0.3);
+    color: var(--inventory-ink-faded, #5a5045);
+}
+
+.equip-submit-btn {
+    background: var(--inventory-accent, #c9a227);
+    border: none;
+    color: #1a1408;
+}
+
+/* Wardrobe section */
+.equip-wardrobe-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px dashed rgba(90, 74, 58, 0.2);
+}
+
+.equip-wardrobe-toggle {
+    width: 100%;
+    text-align: left;
+}
+
+.equip-wardrobe-list {
+    margin-top: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.equip-wardrobe-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    margin-bottom: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+.equip-wardrobe-item.on-ticket {
+    opacity: 0.5;
+}
+
+.equip-wardrobe-emoji {
+    font-size: 1rem;
+}
+
+.equip-wardrobe-name {
+    flex: 1;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--inventory-ink, #2c2416);
+}
+
+.equip-wardrobe-bonus {
+    font-size: 0.65rem;
+    color: var(--inventory-accent, #c9a227);
+}
+
+.equip-wardrobe-status {
+    color: #4caf50;
+    font-weight: bold;
+}
+
+.equip-wardrobe-add,
+.equip-wardrobe-delete {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    border: 1px solid rgba(90, 74, 58, 0.2);
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.equip-wardrobe-add {
+    color: #4caf50;
+}
+
+.equip-wardrobe-delete {
+    color: #8b4049;
+}
+
+.equip-wardrobe-empty {
+    text-align: center;
+    color: var(--inventory-ink-faded, #5a5045);
+    font-style: italic;
+    padding: 10px;
+    font-size: 0.8rem;
 }
