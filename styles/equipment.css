@@ -1,113 +1,104 @@
 /**
- * Equipment CSS - Inline forms (no modals)
+ * Equipment CSS - Clean, compact styling
  */
 
-/* Items list */
-.equip-ticket-empty {
+/* Empty state */
+.equip-empty {
     text-align: center;
     color: var(--inventory-ink-faded, #5a5045);
     font-style: italic;
-    padding: 20px;
+    padding: 16px;
     margin: 0;
+    font-size: 0.8rem;
 }
 
-/* Individual item */
-.equip-ticket-item {
-    margin-bottom: 8px;
+/* ═══════════════════════════════════════════════════════════════
+   ITEM ROW (collapsed)
+   ═══════════════════════════════════════════════════════════════ */
+
+.equip-item {
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(90, 74, 58, 0.15);
     border-radius: 4px;
-    background: rgba(255, 255, 255, 0.3);
-    border: 1px solid rgba(90, 74, 58, 0.1);
+    margin-bottom: 6px;
 }
 
-.equip-ticket-item.stored {
-    opacity: 0.6;
+.equip-item.stored {
+    opacity: 0.5;
 }
 
-.equip-ticket-item.expanded {
+.equip-item.expanded {
     border-color: var(--inventory-accent, #c9a227);
+    background: rgba(255, 255, 255, 0.6);
 }
 
 .equip-item-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     padding: 10px 12px;
     cursor: pointer;
-    width: 100%;
-    box-sizing: border-box;
-    flex-wrap: wrap;
 }
 
-.equip-item-checkbox {
-    font-size: 1rem;
+.equip-checkbox {
     color: var(--inventory-accent, #c9a227);
+    font-size: 0.9rem;
     flex-shrink: 0;
+    cursor: pointer;
 }
 
-.equip-item-emoji {
-    font-size: 1.1rem;
-    flex-shrink: 0;
-}
-
-.equip-item-name {
+.equip-name {
     flex: 1;
-    min-width: 0;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--inventory-ink, #2c2416);
-    word-wrap: break-word;
-}
-
-.equip-item-bonus {
-    font-size: 0.7rem;
-    color: var(--inventory-accent, #c9a227);
-    flex-shrink: 0;
-}
-
-.equip-item-expand {
-    font-size: 0.7rem;
-    color: var(--inventory-ink-faded, #5a5045);
-    flex-shrink: 0;
-    margin-left: auto;
-}
-
-/* Expanded details */
-.equip-item-details {
-    display: flex;
-    flex-direction: column;
-    padding: 12px;
-    border-top: 1px dashed rgba(90, 74, 58, 0.15);
-    margin-top: 4px;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.equip-item-desc {
     font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--inventory-ink, #2c2416);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.equip-expand {
+    color: var(--inventory-ink-faded, #5a5045);
+    font-size: 0.65rem;
+    flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXPANDED DETAILS
+   ═══════════════════════════════════════════════════════════════ */
+
+.equip-details {
+    padding: 0 12px 12px;
+    border-top: 1px dashed rgba(90, 74, 58, 0.15);
+}
+
+.equip-bonuses {
+    font-size: 0.75rem;
+    color: var(--inventory-accent, #c9a227);
+    margin: 10px 0 8px;
+}
+
+.equip-desc {
+    font-size: 0.75rem;
     font-style: italic;
     color: var(--inventory-ink, #2c2416);
-    margin: 0 0 12px 0;
-    padding: 0;
     line-height: 1.5;
-    width: 100%;
-    word-wrap: break-word;
+    margin: 0 0 10px;
 }
 
-.equip-item-quips {
-    margin: 0 0 12px 0;
-    width: 100%;
+.equip-quips {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    margin-bottom: 12px;
 }
 
 .equip-quip {
-    font-size: 0.75rem;
-    padding: 8px 10px;
+    font-size: 0.7rem;
+    padding: 6px 8px;
     border-radius: 3px;
     border-left: 3px solid;
-    width: 100%;
-    box-sizing: border-box;
+    line-height: 1.4;
 }
 
 .equip-quip.approves {
@@ -120,82 +111,117 @@
     border-color: #f44336;
 }
 
-.equip-quip strong {
+.equip-quip-skill {
+    font-weight: 600;
     text-transform: capitalize;
-    display: block;
-    margin-bottom: 2px;
 }
 
-.equip-item-actions {
+.equip-quip.approves .equip-quip-skill {
+    color: #2e7d32;
+}
+
+.equip-quip.disapproves .equip-quip-skill {
+    color: #c62828;
+}
+
+.equip-quip-text {
+    color: var(--inventory-ink, #2c2416);
+}
+
+.equip-actions {
     display: flex;
     gap: 8px;
-    width: 100%;
 }
 
-.equip-action-btn {
+.equip-btn {
     flex: 1;
-    padding: 8px;
+    padding: 8px 12px;
     font-size: 0.7rem;
     font-weight: 600;
     border: 1px dashed;
     border-radius: 4px;
-    cursor: pointer;
     background: transparent;
+    cursor: pointer;
+    transition: background 0.15s;
 }
 
-.equip-toggle-btn {
+.equip-toggle {
     border-color: var(--inventory-accent, #c9a227);
     color: var(--inventory-accent, #c9a227);
 }
 
-.equip-remove-btn {
-    border-color: #c41e3a;
-    color: #8b4049;
+.equip-toggle:hover {
+    background: rgba(201, 162, 39, 0.1);
 }
 
-/* Add section */
-.equip-add-section {
+.equip-remove {
+    border-color: #b44;
+    color: #944;
+}
+
+.equip-remove:hover {
+    background: rgba(180, 68, 68, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CONTROLS (buttons)
+   ═══════════════════════════════════════════════════════════════ */
+
+.equip-controls {
+    margin-top: 12px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin: 16px 0;
+    gap: 6px;
 }
 
-.equip-section-btn {
+.equip-ctrl-btn {
     width: 100%;
-    padding: 12px;
+    padding: 10px 12px;
     font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 1px;
-    border: 2px dashed rgba(90, 74, 58, 0.3);
+    font-weight: 600;
+    border: 1px dashed rgba(90, 74, 58, 0.3);
     border-radius: 4px;
     background: transparent;
     color: var(--inventory-ink, #2c2416);
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.15s;
 }
 
-.equip-scan-btn {
+.equip-ctrl-btn:hover {
+    border-color: var(--inventory-accent, #c9a227);
+    background: rgba(201, 162, 39, 0.05);
+}
+
+.equip-scan {
     border-color: var(--inventory-accent, #c9a227);
     color: var(--inventory-accent, #c9a227);
 }
 
-/* Inline form */
-.equip-inline-form {
+/* ═══════════════════════════════════════════════════════════════
+   ADD FORM
+   ═══════════════════════════════════════════════════════════════ */
+
+.equip-add-form {
     background: rgba(255, 255, 255, 0.5);
     border: 1px solid rgba(90, 74, 58, 0.2);
     border-radius: 4px;
-    padding: 12px;
+    padding: 10px;
 }
 
 .equip-input {
     width: 100%;
-    padding: 10px;
-    font-size: 0.85rem;
+    padding: 8px 10px;
+    font-size: 0.8rem;
     border: 1px solid rgba(90, 74, 58, 0.2);
     border-radius: 4px;
     background: #fff;
     color: var(--inventory-ink, #2c2416);
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+    box-sizing: border-box;
 }
 
 .equip-input:focus {
@@ -203,47 +229,31 @@
     border-color: var(--inventory-accent, #c9a227);
 }
 
-.equip-form-actions {
+.equip-form-btns {
     display: flex;
     gap: 8px;
 }
 
-.equip-form-btn {
-    flex: 1;
-    padding: 10px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.equip-cancel-btn {
-    background: transparent;
-    border: 1px solid rgba(90, 74, 58, 0.3);
+.equip-cancel {
+    border-color: rgba(90, 74, 58, 0.3);
     color: var(--inventory-ink-faded, #5a5045);
 }
 
-.equip-submit-btn {
-    background: var(--inventory-accent, #c9a227);
-    border: none;
-    color: #1a1408;
+.equip-submit {
+    border-color: var(--inventory-accent, #c9a227);
+    color: var(--inventory-accent, #c9a227);
 }
 
-/* Wardrobe section */
-.equip-wardrobe-section {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px dashed rgba(90, 74, 58, 0.2);
-}
+/* ═══════════════════════════════════════════════════════════════
+   WARDROBE
+   ═══════════════════════════════════════════════════════════════ */
 
-.equip-wardrobe-toggle {
-    width: 100%;
-    text-align: left;
-}
-
-.equip-wardrobe-list {
-    margin-top: 10px;
-    max-height: 200px;
+.equip-wardrobe {
+    margin-top: 8px;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 4px;
+    max-height: 180px;
     overflow-y: auto;
 }
 
@@ -251,60 +261,57 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 10px;
+    padding: 6px 8px;
     margin-bottom: 4px;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 3px;
 }
 
 .equip-wardrobe-item.on-ticket {
     opacity: 0.5;
 }
 
-.equip-wardrobe-emoji {
-    font-size: 1rem;
-}
-
 .equip-wardrobe-name {
     flex: 1;
-    font-size: 0.8rem;
-    font-weight: 600;
+    font-size: 0.75rem;
     color: var(--inventory-ink, #2c2416);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-.equip-wardrobe-bonus {
-    font-size: 0.65rem;
-    color: var(--inventory-accent, #c9a227);
-}
-
-.equip-wardrobe-status {
+.equip-wardrobe-check {
     color: #4caf50;
-    font-weight: bold;
+    font-size: 0.7rem;
 }
 
 .equip-wardrobe-add,
-.equip-wardrobe-delete {
-    width: 28px;
-    height: 28px;
-    border-radius: 4px;
-    border: 1px solid rgba(90, 74, 58, 0.2);
+.equip-wardrobe-del {
+    width: 24px;
+    height: 24px;
+    border: none;
+    border-radius: 3px;
     background: transparent;
     cursor: pointer;
-    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    transition: background 0.15s;
 }
 
 .equip-wardrobe-add {
     color: #4caf50;
 }
 
-.equip-wardrobe-delete {
-    color: #8b4049;
+.equip-wardrobe-add:hover {
+    background: rgba(76, 175, 80, 0.15);
 }
 
-.equip-wardrobe-empty {
-    text-align: center;
-    color: var(--inventory-ink-faded, #5a5045);
-    font-style: italic;
-    padding: 10px;
-    font-size: 0.8rem;
+.equip-wardrobe-del {
+    color: #944;
+}
+
+.equip-wardrobe-del:hover {
+    background: rgba(180, 68, 68, 0.1);
 }
