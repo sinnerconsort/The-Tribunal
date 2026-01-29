@@ -183,9 +183,10 @@ export function getSkillLevel(skillId) {
     if (!state) return 1;
     
     const base = state.skillLevels?.[skillId] || getBaseSkillLevel(skillId);
-    const bonus = state.skillBonuses?.[skillId] || 0;
-    
-    return base + bonus;
+const bonus = state.skillBonuses?.[skillId] || 0;
+const equipmentBonus = getEquipmentSkillModifier(skillId);
+
+    return base + bonus + equipmentBonus;
 }
 
 /**
