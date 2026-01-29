@@ -82,6 +82,15 @@ export const DEFAULT_CHAT_STATE = {
     },
     
     // ───────────────────────────────────────────────────────────
+    // EQUIPMENT (Martinaise Cleaners - Clothing & Accessories)
+    // ───────────────────────────────────────────────────────────
+    equipment: {
+        items: [],          // Equipment items with bonuses
+        ticketNumber: null, // Generated on first use
+        lastUpdated: null
+    },
+    
+    // ───────────────────────────────────────────────────────────
     // LEDGER (Cases, Notes, Weather)
     // ───────────────────────────────────────────────────────────
     ledger: {
