@@ -107,6 +107,11 @@ export {
     incrementMessageCount, getMessageCount
 } from './src/core/state.js';
 
+export { 
+    getCurrentLocation, setCurrentLocation, addLocation, updateLocation, 
+    removeLocation, addLocationEvent, removeLocationEvent 
+} from './src/core/state.js';
+
 // Voice functions
 export { generateVoicesForMessage, renderVoices, appendVoicesToChat };
 
@@ -542,6 +547,7 @@ function refreshAllPanels() {
     refreshProfilesFromState();
     refreshStatusFromState();
     refreshCabinet();
+    refreshLocations();
     
     // Refresh contacts list (lazy to avoid breaking if not loaded)
     import('./src/ui/contacts-handlers.js').then(module => {
@@ -729,6 +735,7 @@ async function init() {
     });
 
     initLocationHandlers();
+    console.log('[Tribunal] Location handlers initialized');
 
     startWatch();
     
