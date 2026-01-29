@@ -16,7 +16,7 @@ import {
     removeLocationEvent
 } from '../core/state.js';
 import { saveChatState } from '../core/persistence.js';
-import { eventSource, event_types } from '../../../../../../script.js';
+// eventSource and event_types accessed globally if needed
 
 // ═══════════════════════════════════════════════════════════════
 // STATE HELPERS
@@ -461,12 +461,16 @@ function escapeHtml(str) {
 export function initLocationHandlers() {
     console.log('[Tribunal] Initializing location handlers (Field Notebook)...');
     
-    // Reset UI state on chat change
-    if (eventSource && event_types?.CHAT_CHANGED) {
-        eventSource.on(event_types.CHAT_CHANGED, () => {
-            resetUIState();
-            setTimeout(refreshLocations, 100);
-        });
+    // Reset UI state on chat change (eventSource is global in ST)
+    try {
+        if (typeof eventSource !== 'undefined' && typeof event_types !== 'undefined') {
+            eventSource.on(event_types.CHAT_CHANGED, () => {
+                resetUIState();
+                setTimeout(refreshLocations, 100);
+            });
+        }
+    } catch (e) {
+        console.warn('[Tribunal] Could not register chat change listener:', e);
     }
     
     refreshLocations();
