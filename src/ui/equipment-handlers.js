@@ -10,7 +10,8 @@ import {
     addEquipment, 
     removeEquipment, 
     toggleEquipment,
-    initializeEquipment 
+    initializeEquipment,
+    getChatState
 } from '../core/state.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -56,7 +57,15 @@ export function refreshEquipment() {
     
     if (!container) return;
     
-    // Initialize equipment state if needed
+    // CRITICAL: Check for active chat state first
+    const chatState = getChatState();
+    if (!chatState) {
+        container.innerHTML = '<p class="equip-ticket-empty">No items checked in</p>';
+        if (ticketNumber) ticketNumber.textContent = '----';
+        return;
+    }
+    
+    // Initialize equipment state if needed (only if we have valid chat)
     initializeEquipment();
     
     const equipment = getEquipment();
@@ -99,6 +108,15 @@ export function refreshEquipment() {
 // ═══════════════════════════════════════════════════════════════
 
 function showAddItemDialog() {
+    // Check for active chat first
+    const chatState = getChatState();
+    if (!chatState) {
+        if (typeof toastr !== 'undefined') {
+            toastr.warning('No active chat - start a conversation first', 'Equipment');
+        }
+        return;
+    }
+    
     // Simple prompt-based for now - can upgrade to modal later
     const name = prompt('Item name:');
     if (!name || !name.trim()) return;
