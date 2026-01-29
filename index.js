@@ -24,6 +24,8 @@ import {
     exportDebugState
 } from './src/core/persistence.js';
 
+import { EQUIPMENT_TYPES } from './src/data/equipment.js';
+
 import { registerEvents, onStateRefresh } from './src/core/events.js';
 // FIX: Added getVoiceState and setLastGeneratedVoices for voice persistence
 import { getSettings, saveSettings, setPersona, getVoiceState, setLastGeneratedVoices } from './src/core/state.js';
