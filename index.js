@@ -368,10 +368,7 @@ function onNewAIMessage(messageIndex) {
         triggerVoiceGeneration(message.mes, false);
     }, 500);
 
-    Small delay to ensure message is fully rendered
-    setTimeout(() => {
-        triggerVoiceGeneration(message.mes, false);
-    }, 500);
+
     
     // ═══════════════════════════════════════════════════════════════
     // EQUIPMENT EXTRACTION - Extract clothing/accessories from message
