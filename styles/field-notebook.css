@@ -1,0 +1,442 @@
+/**
+ * Field Notebook - Location Styles
+ * Leather-bound spiral notebook with lined paper
+ * 
+ * Goes in: src/styles/field-notebook.css
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTEBOOK CONTAINER - Leather binding
+   ═══════════════════════════════════════════════════════════════ */
+
+#field-notebook-container {
+    background: linear-gradient(135deg, #3d3228 0%, #2a241c 100%);
+    border-radius: 4px;
+    padding: 6px;
+    margin-top: 16px;
+    box-shadow: 
+        0 2px 8px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTEBOOK INNER - Lined paper
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-inner {
+    background: 
+        repeating-linear-gradient(
+            transparent,
+            transparent 26px,
+            rgba(100, 149, 237, 0.12) 26px,
+            rgba(100, 149, 237, 0.12) 27px
+        ),
+        linear-gradient(to right, #fef9e7 0%, #f5f0dc 100%);
+    border-radius: 2px;
+    position: relative;
+    min-height: 280px;
+    display: flex;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SPIRAL BINDING
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-spiral {
+    width: 24px;
+    flex-shrink: 0;
+    background: linear-gradient(to right, #e8e0d0 0%, #f5f0dc 100%);
+    border-right: 1px solid rgba(0, 0, 0, 0.08);
+    position: relative;
+}
+
+.notebook-spiral::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 20px;
+    bottom: 20px;
+    width: 8px;
+    background-image: radial-gradient(circle, #3d3228 3px, transparent 3px);
+    background-size: 8px 24px;
+    background-position: 0 0;
+}
+
+/* Red margin line */
+.notebook-spiral::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(220, 80, 80, 0.25);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTEBOOK CONTENT
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-content {
+    flex: 1;
+    padding: 16px 16px 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-section {
+    position: relative;
+}
+
+.notebook-label {
+    font-family: 'Segoe Print', 'Comic Sans MS', cursive, sans-serif;
+    font-size: 0.7rem;
+    color: #888;
+    margin-bottom: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CURRENT LOCATION
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-location {
+    font-family: 'Segoe Print', 'Comic Sans MS', cursive, sans-serif;
+    font-size: 1rem;
+    color: #2c5282;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.notebook-location::before {
+    content: '📍';
+    font-size: 0.9rem;
+}
+
+.notebook-district {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.notebook-edit-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: all 0.15s;
+    margin-left: auto;
+}
+
+.notebook-edit-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #2c5282;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTES (events)
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-note {
+    font-family: 'Segoe Print', 'Comic Sans MS', cursive, sans-serif;
+    font-size: 0.8rem;
+    color: #333;
+    padding: 4px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.08);
+}
+
+.notebook-note::before {
+    content: '•';
+    color: #2c5282;
+    flex-shrink: 0;
+}
+
+.notebook-note-text {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.notebook-note-delete {
+    background: transparent;
+    border: none;
+    color: #c88;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0 4px;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+}
+
+.notebook-note-delete:hover {
+    opacity: 1;
+    color: #a44;
+}
+
+.notebook-empty {
+    font-family: 'Segoe Print', 'Comic Sans MS', cursive, sans-serif;
+    font-size: 0.8rem;
+    color: #999;
+    font-style: italic;
+    padding: 4px 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PLACES (locations list)
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-places {
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.notebook-place {
+    font-family: 'Segoe Print', 'Comic Sans MS', cursive, sans-serif;
+    font-size: 0.8rem;
+    color: #555;
+    padding: 6px 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.15s;
+}
+
+.notebook-place:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.notebook-place.current {
+    color: #2c5282;
+    font-weight: 600;
+    background: rgba(44, 82, 130, 0.08);
+}
+
+.notebook-place.unvisited {
+    color: #999;
+}
+
+.notebook-place-icon {
+    font-size: 0.7rem;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.notebook-place-name {
+    flex: 1;
+}
+
+.notebook-place-here {
+    font-size: 0.65rem;
+    color: #2c5282;
+    opacity: 0.7;
+}
+
+.notebook-place-count {
+    font-size: 0.65rem;
+    color: #888;
+}
+
+.notebook-place-delete {
+    background: transparent;
+    border: none;
+    color: #c88;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0 4px;
+    opacity: 0;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+}
+
+.notebook-place:hover .notebook-place-delete {
+    opacity: 0.5;
+}
+
+.notebook-place-delete:hover {
+    opacity: 1 !important;
+    color: #a44;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ADD LINKS
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-add-link {
+    font-family: 'Segoe Print', 'Comic Sans MS', cursive, sans-serif;
+    font-size: 0.75rem;
+    color: #888;
+    background: transparent;
+    border: none;
+    padding: 6px 0;
+    cursor: pointer;
+    text-align: left;
+    transition: color 0.15s;
+}
+
+.notebook-add-link:hover:not(:disabled) {
+    color: #2c5282;
+}
+
+.notebook-add-link:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INLINE FORMS
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-form {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px dashed rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 6px;
+}
+
+.notebook-form-inline {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.notebook-form-inline .notebook-input {
+    flex: 1;
+    min-width: 150px;
+}
+
+.notebook-form-inline .notebook-form-actions {
+    margin-top: 0;
+}
+
+.notebook-input {
+    width: 100%;
+    padding: 8px 10px;
+    font-family: 'Segoe Print', 'Comic Sans MS', cursive, sans-serif;
+    font-size: 0.8rem;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+    background: #fff;
+    color: #333;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+}
+
+.notebook-input:focus {
+    outline: none;
+    border-color: #2c5282;
+}
+
+.notebook-input::placeholder {
+    color: #aaa;
+    font-style: italic;
+}
+
+.notebook-input-small {
+    font-size: 0.75rem;
+    padding: 6px 8px;
+}
+
+select.notebook-input {
+    cursor: pointer;
+}
+
+.notebook-form-divider {
+    font-family: 'Segoe Print', 'Comic Sans MS', cursive, sans-serif;
+    font-size: 0.7rem;
+    color: #999;
+    text-align: center;
+    margin: 6px 0;
+}
+
+.notebook-form-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+.notebook-checkbox {
+    font-family: 'Segoe Print', 'Comic Sans MS', cursive, sans-serif;
+    font-size: 0.75rem;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.notebook-checkbox input {
+    accent-color: #2c5282;
+}
+
+.notebook-form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.notebook-btn {
+    font-family: 'Segoe Print', 'Comic Sans MS', cursive, sans-serif;
+    font-size: 0.7rem;
+    padding: 6px 12px;
+    border: 1px dashed;
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.notebook-btn-cancel {
+    border-color: rgba(0, 0, 0, 0.2);
+    color: #888;
+}
+
+.notebook-btn-cancel:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.notebook-btn-save {
+    border-color: #2c5282;
+    color: #2c5282;
+}
+
+.notebook-btn-save:hover {
+    background: rgba(44, 82, 130, 0.1);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DECORATIVE - Coffee stain
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-stain {
+    position: absolute;
+    bottom: 15px;
+    right: 20px;
+    width: 40px;
+    height: 35px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, 
+        transparent 38%, 
+        rgba(101, 67, 33, 0.06) 45%, 
+        rgba(101, 67, 33, 0.1) 52%, 
+        transparent 60%
+    );
+    transform: rotate(15deg);
+    pointer-events: none;
+}
