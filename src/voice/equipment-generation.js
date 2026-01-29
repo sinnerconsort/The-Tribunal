@@ -1,11 +1,12 @@
 /**
- * The Tribunal - Equipment Generation
- * AI-powered extraction and rich generation for clothing/accessories
+ * The Tribunal - Equipment Generation (FIXED)
+ * AI-powered extraction for clothing/accessories
  * 
- * Detects equipment mentioned in chat, then generates:
- * - Appropriate skill bonuses based on item vibe
- * - Flavor description from a skill voice's perspective
- * - 2-3 voice quips (approving/disapproving reactions)
+ * FIXES:
+ * - Expanded pre-filter to catch more terms (appearance, materials, etc.)
+ * - Prompt handles BOTH static persona descriptions AND dynamic events
+ * - Better parsing for compound formats like "jacket+shirt+boots"
+ * - Improved debug logging for mobile troubleshooting
  */
 
 import { callAPI } from './api-helpers.js';
@@ -34,17 +35,95 @@ const EQUIPMENT_TYPES = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
+// PRE-FILTER KEYWORDS (EXPANDED)
+// Now catches persona descriptions, materials, and more
+// ═══════════════════════════════════════════════════════════════
+
+const CLOTHING_KEYWORDS = new RegExp([
+    // Actions
+    'wear', 'wearing', 'wore', 'wears',
+    'put on', 'puts on', 'putting on',
+    'takes off', 'taking off', 'took off',
+    'removes?', 'removing', 'removed',
+    'dressed', 'dressing', 'undress',
+    'donning', 'donned', 'clad', 'sporting',
+    
+    // Persona/description markers (THE BIG FIX)
+    'appearance', 'attire', 'outfit', 'garb', 'look',
+    'clothing', 'clothes', 'wardrobe', 'getup',
+    
+    // Upper body
+    'jacket', 'coat', 'blazer', 'hoodie', 'sweater', 'cardigan',
+    'shirt', 't-shirt', 'tshirt', 'tee', 'blouse', 'top', 'tank',
+    'vest', 'waistcoat', 'polo', 'tunic',
+    
+    // Lower body  
+    'pants', 'trousers', 'jeans', 'slacks', 'chinos',
+    'shorts', 'skirt', 'dress', 'gown', 'robe',
+    
+    // Footwear
+    'shoes', 'boots', 'sneakers', 'trainers', 'heels',
+    'sandals', 'loafers', 'flats', 'footwear',
+    'socks', 'stockings',
+    
+    // Accessories
+    'hat', 'cap', 'beanie', 'fedora', 'hood', 'headband',
+    'glasses', 'sunglasses', 'shades', 'spectacles', 'goggles',
+    'gloves', 'mittens',
+    'scarf', 'tie', 'necktie', 'bowtie', 'cravat',
+    'belt', 'suspenders',
+    'watch', 'wristwatch',
+    'ring', 'necklace', 'chain', 'pendant', 'bracelet', 'earring',
+    'badge', 'pin', 'brooch', 'medal',
+    'bag', 'purse', 'handbag', 'backpack', 'briefcase', 'satchel',
+    'wallet', 'pockets?',
+    'mask', 'bandana', 'balaclava',
+    
+    // Undergarments
+    'underwear', 'boxers', 'briefs', 'panties', 'bra',
+    
+    // Materials (CRITICAL for persona cards like "leather jacket+mesh shirt")
+    'leather', 'denim', 'cotton', 'silk', 'wool', 'linen',
+    'mesh', 'lace', 'velvet', 'suede', 'canvas',
+    'polyester', 'nylon', 'fleece', 'flannel',
+    
+    // Descriptors that precede clothing
+    'black', 'white', 'red', 'blue', 'green', 'brown',
+    'worn', 'tattered', 'ripped', 'torn', 'faded', 'stained',
+    'old', 'new', 'fancy', 'casual', 'formal', 'vintage'
+].join('|'), 'i');
+
+// ═══════════════════════════════════════════════════════════════
 // EXTRACTION + GENERATION PROMPT
+// Now handles BOTH static descriptions AND dynamic events
 // ═══════════════════════════════════════════════════════════════
 
 function buildEquipmentPrompt(messageText, existingEquipment = []) {
     const existingNames = existingEquipment.map(e => `- ${e.name}`).join('\n') || 'None';
     
-    return `Analyze this roleplay message for any clothing, accessories, or wearable items that the character finds, receives, puts on, or that are notably described.
+    return `Analyze this text for clothing, accessories, and wearable items.
 
-<message>
+This text may be ANY of these formats - handle them ALL:
+
+1. PERSONA DESCRIPTION with appearance fields
+   Example: Appearance: ["leather jacket+mesh shirt+boots"]
+   → Extract: Leather Jacket, Mesh Shirt, Boots (3 items)
+
+2. COMPOUND FORMAT with + or & separators
+   Example: "open leather jacket+mesh shirt+leather pants"
+   → Split into separate items
+
+3. ROLEPLAY MESSAGE describing what someone wears/finds/acquires
+   Example: "He adjusted his worn fedora and lit a cigarette"
+   → Extract: Worn Fedora
+
+4. CHARACTER DESCRIPTION listing someone's look
+   Example: "wearing a tattered coat and scuffed boots"
+   → Extract: Tattered Coat, Scuffed Boots
+
+<text_to_analyze>
 ${messageText}
-</message>
+</text_to_analyze>
 
 <already_tracked>
 ${existingNames}
@@ -54,50 +133,46 @@ ${existingNames}
 ${SKILL_REFERENCE}
 </skills>
 
-For each NEW item found (not already tracked), generate rich data. Respond with ONLY valid JSON:
+EXTRACTION RULES:
+- For compound "item+item+item" format: SPLIT into separate items
+- Remove brackets [] and quotes "" around items
+- Include descriptors (leather, worn, black, mesh, etc.)
+- Capitalize properly: "leather jacket" → "Leather Jacket"
+- SKIP items already in "already_tracked" above
+- Be specific with names
+
+For each NEW item, respond with ONLY valid JSON:
 
 {
   "equipment": [
     {
-      "name": "Item name (e.g., 'Tattered Leather Duster')",
-      "type": "One of: hat, glasses, jacket, coat, shirt, pants, shoes, boots, gloves, jewelry, ring, necklace, watch, tie, scarf, bag, badge, accessory, other",
+      "name": "Item Name With Descriptors",
+      "type": "hat|glasses|jacket|coat|shirt|pants|shoes|boots|gloves|jewelry|ring|necklace|watch|tie|scarf|bag|badge|accessory|other",
       "bonuses": {
         "skill_id": modifier
       },
-      "description": "2-3 sentence flavor description written from the perspective of the skill that most resonates with this item. Include the skill name in brackets at the start, e.g., '[SHIVERS] The coat remembers...'",
+      "description": "[SKILL_NAME] 2-3 sentence flavor description from that skill's perspective.",
       "voiceQuips": [
-        {
-          "skill": "skill_id",
-          "text": "One-liner reaction (1 sentence max)",
-          "approves": true or false
-        }
+        {"skill": "skill_id", "text": "One-liner reaction", "approves": true},
+        {"skill": "other_skill", "text": "Disapproving comment", "approves": false}
       ]
     }
   ],
   "removed": [
-    {
-      "name": "Name of item explicitly removed, discarded, or destroyed (must match existing)"
-    }
+    {"name": "Item explicitly removed/discarded (must match existing)"}
   ]
 }
 
-RULES:
-- Only extract SPECIFIC named/described items, not vague mentions
-- Bonuses should be 1-3 skills, values between -2 and +2
-- Match bonuses to the item's nature:
-  * Intimidating/tough items → physical_instrument, authority, half_light
-  * Stylish/flashy items → savoir_faire, drama, composure
-  * Worn/rugged items → endurance, shivers, pain_threshold
-  * Tech/gadgets → interfacing, visual_calculus, hand_eye_coordination
-  * Weird/mystical items → inland_empire, shivers, conceptualization
-  * Social/charming items → suggestion, empathy, esprit_de_corps
-- Description should be evocative, in the voice of a Disco Elysium skill
-- Generate 2-3 voice quips from different skills
-- At least one quip should disapprove (find something wrong with the item)
-- If no equipment found, return empty arrays
-- "removed" is for items explicitly taken off, thrown away, or destroyed
+BONUS GUIDELINES (1-3 skills, values -2 to +2):
+- Intimidating/tough → physical_instrument, authority, half_light
+- Stylish/flashy → savoir_faire, drama, composure
+- Worn/rugged → endurance, shivers, pain_threshold
+- Tech/gadgets → interfacing, visual_calculus, hand_eye_coordination
+- Weird/mystical → inland_empire, shivers, conceptualization
 
-Respond with ONLY the JSON, no explanation.`;
+If NO equipment found: {"equipment": [], "removed": []}
+
+JSON only, no explanation.`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -105,8 +180,8 @@ Respond with ONLY the JSON, no explanation.`;
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Extract and generate equipment data from a message
- * @param {string} messageText - The chat message to analyze
+ * Extract and generate equipment data from a message or persona
+ * @param {string} messageText - The text to analyze
  * @param {object} options - Options
  * @returns {Promise<object>} Generated equipment data
  */
@@ -124,34 +199,48 @@ export async function generateEquipmentFromMessage(messageText, options = {}) {
     };
     
     // Skip very short messages
-    if (!messageText || messageText.length < 30) {
+    if (!messageText || messageText.length < 20) {
+        console.log('[Equipment Gen] ⏭️ Text too short:', messageText?.length || 0, 'chars');
         return results;
     }
     
-    // Quick pre-filter: does the message even mention clothing-related words?
-    const clothingKeywords = /\b(wear|wearing|wore|put on|takes off|removes?|jacket|coat|shirt|pants|shoes|boots|hat|glasses|gloves|ring|necklace|watch|tie|scarf|badge|uniform|outfit|dressed|clothing|clothes|pockets?|belt|bag|briefcase)\b/i;
-    
-    if (!clothingKeywords.test(messageText)) {
-        return results; // No clothing mentions, skip API call
+    // Pre-filter check with expanded keywords
+    if (!CLOTHING_KEYWORDS.test(messageText)) {
+        console.log('[Equipment Gen] ⏭️ Pre-filter rejected');
+        console.log('[Equipment Gen] Preview:', messageText.substring(0, 200));
+        return results;
     }
+    
+    console.log('[Equipment Gen] ✓ Pre-filter passed');
+    console.log('[Equipment Gen] 📄 Analyzing', messageText.length, 'chars...');
+    console.log('[Equipment Gen] Preview:', messageText.substring(0, 300));
     
     try {
         const prompt = buildEquipmentPrompt(messageText, existingEquipment);
         
-        const systemPrompt = `You are an expert at analyzing roleplay scenes for clothing and accessories mentioned. You generate rich, evocative item data in the style of Disco Elysium - where every item tells a story and the skills in your head have opinions about everything. Output only valid JSON.`;
+        const systemPrompt = `You are an expert at extracting clothing and accessories from text. You handle:
+- Persona cards with Appearance fields (split "jacket+shirt+boots" into separate items)
+- Roleplay messages describing what characters wear
+- Character descriptions
+
+Generate rich Disco Elysium-style item data. Output only valid JSON.`;
+        
+        console.log('[Equipment Gen] 📡 Calling API...');
         
         const response = await callAPI(systemPrompt, prompt, {
             maxTokens: 2500,
-            temperature: 0.7, // Slightly creative for descriptions/quips
+            temperature: 0.7,
             timeout
         });
         
         if (!response) {
             results.error = 'No response from API';
+            console.log('[Equipment Gen] ❌ No API response');
             return results;
         }
         
         results.raw = response;
+        console.log('[Equipment Gen] 📥 Response:', response.length, 'chars');
         
         // Parse response
         const parsed = parseEquipmentResponse(response);
@@ -159,14 +248,18 @@ export async function generateEquipmentFromMessage(messageText, options = {}) {
             results.equipment = parsed.equipment || [];
             results.removed = parsed.removed || [];
             
-            // Validate and clean up equipment data
+            // Validate and clean
             results.equipment = results.equipment.map(validateEquipmentItem).filter(Boolean);
+            
+            console.log('[Equipment Gen] ✅ Found', results.equipment.length, 'items:');
+            results.equipment.forEach(item => console.log('   •', item.name, `(${item.type})`));
         } else {
             results.error = 'Failed to parse equipment response';
+            console.log('[Equipment Gen] ❌ Parse failed');
         }
         
     } catch (error) {
-        console.error('[Equipment Gen] Generation error:', error);
+        console.error('[Equipment Gen] Error:', error);
         results.error = error.message;
     }
     
@@ -177,30 +270,17 @@ export async function generateEquipmentFromMessage(messageText, options = {}) {
 // RESPONSE PARSING
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Parse the AI's JSON response
- */
 function parseEquipmentResponse(response) {
     if (!response) return null;
     
     let cleaned = response.trim();
     
-    // Log raw response for debugging
-    console.log('[Equipment Gen] Raw response:', cleaned.substring(0, 500));
+    console.log('[Equipment Gen] Raw response preview:', cleaned.substring(0, 200));
     
-    // Check for "no equipment" type responses
-    const noEquipmentPatterns = [
-        /no (clothing|equipment|items|accessories)/i,
-        /nothing to extract/i,
-        /empty arrays/i,
-        /"equipment"\s*:\s*\[\s*\]/
-    ];
-    
-    for (const pattern of noEquipmentPatterns) {
-        if (pattern.test(cleaned)) {
-            console.log('[Equipment Gen] No equipment detected in response');
-            return { equipment: [], removed: [] };
-        }
+    // Check for "no equipment" responses
+    if (/"equipment"\s*:\s*\[\s*\]/.test(cleaned) || /no (clothing|equipment|items)/i.test(cleaned)) {
+        console.log('[Equipment Gen] Response indicates no equipment');
+        return { equipment: [], removed: [] };
     }
     
     // Remove markdown code blocks
@@ -209,14 +289,13 @@ function parseEquipmentResponse(response) {
     cleaned = cleaned.replace(/```json?\s*/gi, '');
     cleaned = cleaned.replace(/```/g, '');
     
-    // Find JSON object - handle nested braces properly
+    // Find JSON object with brace matching
     const jsonStart = cleaned.indexOf('{');
     if (jsonStart === -1) {
         console.warn('[Equipment Gen] No JSON object found');
-        return { equipment: [], removed: [] }; // Return empty, not null
+        return { equipment: [], removed: [] };
     }
     
-    // Find matching closing brace
     let braceCount = 0;
     let jsonEnd = -1;
     for (let i = jsonStart; i < cleaned.length; i++) {
@@ -237,27 +316,32 @@ function parseEquipmentResponse(response) {
     
     try {
         const parsed = JSON.parse(cleaned);
-        
-        // Ensure arrays exist
         if (!Array.isArray(parsed.equipment)) parsed.equipment = [];
         if (!Array.isArray(parsed.removed)) parsed.removed = [];
-        
-        console.log('[Equipment Gen] Parsed successfully:', parsed.equipment.length, 'items');
+        console.log('[Equipment Gen] ✓ Parsed JSON:', parsed.equipment.length, 'items');
         return parsed;
     } catch (e) {
         console.error('[Equipment Gen] JSON parse error:', e.message);
-        console.error('[Equipment Gen] Attempted to parse:', cleaned.substring(0, 300));
-        return { equipment: [], removed: [] }; // Return empty, not null (avoids error toast)
+        
+        // Try to repair
+        try {
+            let repaired = cleaned
+                .replace(/,\s*}/g, '}')
+                .replace(/,\s*]/g, ']');
+            const parsed = JSON.parse(repaired);
+            if (!Array.isArray(parsed.equipment)) parsed.equipment = [];
+            if (!Array.isArray(parsed.removed)) parsed.removed = [];
+            console.log('[Equipment Gen] ✓ Repaired JSON');
+            return parsed;
+        } catch (e2) {
+            return { equipment: [], removed: [] };
+        }
     }
 }
 
-/**
- * Validate and clean up an equipment item
- */
 function validateEquipmentItem(item) {
     if (!item || !item.name) return null;
     
-    // Ensure required fields
     const validated = {
         name: item.name.trim(),
         type: normalizeType(item.type),
@@ -267,13 +351,11 @@ function validateEquipmentItem(item) {
         source: 'ai-extracted'
     };
     
-    // Validate bonuses (must be valid skill IDs, values -2 to +2)
+    // Validate bonuses
     if (item.bonuses && typeof item.bonuses === 'object') {
         for (const [skill, value] of Object.entries(item.bonuses)) {
             const normalizedSkill = skill.toLowerCase().replace(/\s+/g, '_');
             const numValue = parseInt(value, 10);
-            
-            // Check if it's a valid skill
             if (isValidSkill(normalizedSkill) && !isNaN(numValue)) {
                 validated.bonuses[normalizedSkill] = Math.max(-2, Math.min(2, numValue));
             }
@@ -289,49 +371,42 @@ function validateEquipmentItem(item) {
                 text: q.text.trim(),
                 approves: Boolean(q.approves)
             }))
-            .slice(0, 3); // Max 3 quips
+            .slice(0, 3);
     }
     
     return validated;
 }
 
-/**
- * Normalize equipment type to valid type
- */
 function normalizeType(type) {
     if (!type) return 'other';
-    
     const lower = type.toLowerCase().trim();
     
-    // Direct match
     if (EQUIPMENT_TYPES.includes(lower)) return lower;
     
     // Fuzzy matching
-    if (lower.includes('hat') || lower.includes('cap') || lower.includes('helmet')) return 'hat';
-    if (lower.includes('glass') || lower.includes('eyewear') || lower.includes('spectacle')) return 'glasses';
-    if (lower.includes('jacket') || lower.includes('blazer')) return 'jacket';
-    if (lower.includes('coat') || lower.includes('duster') || lower.includes('overcoat')) return 'coat';
-    if (lower.includes('shirt') || lower.includes('blouse') || lower.includes('top')) return 'shirt';
+    if (lower.includes('hat') || lower.includes('cap') || lower.includes('beanie')) return 'hat';
+    if (lower.includes('glass') || lower.includes('shade') || lower.includes('spectacle')) return 'glasses';
+    if (lower.includes('jacket') || lower.includes('blazer') || lower.includes('hoodie')) return 'jacket';
+    if (lower.includes('coat') || lower.includes('duster') || lower.includes('trench')) return 'coat';
+    if (lower.includes('shirt') || lower.includes('blouse') || lower.includes('top') || lower.includes('tee')) return 'shirt';
     if (lower.includes('pant') || lower.includes('trouser') || lower.includes('jean')) return 'pants';
-    if (lower.includes('shoe') || lower.includes('sneaker') || lower.includes('loafer')) return 'shoes';
     if (lower.includes('boot')) return 'boots';
+    if (lower.includes('shoe') || lower.includes('sneaker') || lower.includes('loafer')) return 'shoes';
     if (lower.includes('glove')) return 'gloves';
-    if (lower.includes('ring')) return 'ring';
+    if (lower.includes('ring') && !lower.includes('earring')) return 'ring';
     if (lower.includes('necklace') || lower.includes('chain') || lower.includes('pendant')) return 'necklace';
     if (lower.includes('watch')) return 'watch';
-    if (lower.includes('tie') || lower.includes('necktie') || lower.includes('bowtie')) return 'tie';
+    if (lower.includes('tie')) return 'tie';
     if (lower.includes('scarf')) return 'scarf';
+    if (lower.includes('belt')) return 'belt';
     if (lower.includes('bag') || lower.includes('briefcase') || lower.includes('satchel')) return 'bag';
     if (lower.includes('badge') || lower.includes('pin')) return 'badge';
-    if (lower.includes('belt')) return 'belt';
-    if (lower.includes('jewel') || lower.includes('bracelet')) return 'jewelry';
+    if (lower.includes('mask')) return 'mask';
+    if (lower.includes('vest')) return 'vest';
     
     return 'other';
 }
 
-/**
- * Check if a skill ID is valid
- */
 function isValidSkill(skillId) {
     const validSkills = [
         'logic', 'encyclopedia', 'rhetoric', 'drama', 'conceptualization', 'visual_calculus',
@@ -346,13 +421,6 @@ function isValidSkill(skillId) {
 // SINGLE ITEM GENERATION (for manual adds)
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Generate rich data for a manually added item
- * @param {string} itemName - Name of the item
- * @param {string} itemType - Type of item
- * @param {string} context - Optional context about how it was acquired
- * @returns {Promise<object>} Generated item data
- */
 export async function generateItemDetails(itemName, itemType = 'other', context = '') {
     const prompt = `Generate rich Disco Elysium-style data for this item:
 
@@ -366,61 +434,35 @@ ${SKILL_REFERENCE}
 
 Respond with ONLY valid JSON:
 {
-  "bonuses": {
-    "skill_id": modifier (-2 to +2, 1-3 skills total)
-  },
-  "description": "2-3 sentence evocative description from the perspective of the most relevant skill. Start with [SKILL_NAME].",
-  "voiceQuips": [
-    {
-      "skill": "skill_id",
-      "text": "One-liner reaction",
-      "approves": true or false
-    }
-  ]
-}
-
-Make it feel authentic to Disco Elysium - poetic, strange, and full of personality.`;
+  "bonuses": {"skill_id": modifier},
+  "description": "[SKILL_NAME] 2-3 evocative sentences from that skill's perspective.",
+  "voiceQuips": [{"skill": "skill_id", "text": "One-liner", "approves": true}]
+}`;
 
     try {
-        const systemPrompt = `You are channeling the internal voices of a Disco Elysium character. Every item has meaning, every object tells a story, and the skills in your head all have opinions.`;
-        
-        const response = await callAPI(systemPrompt, prompt, {
-            maxTokens: 800,
-            temperature: 0.8
-        });
+        const response = await callAPI(
+            'You channel Disco Elysium skill voices. Every item tells a story.',
+            prompt,
+            { maxTokens: 800, temperature: 0.8 }
+        );
         
         if (!response) return null;
         
-        const parsed = parseEquipmentResponse(`{"equipment":[${response.includes('"bonuses"') ? response : '{}'}]}`);
+        const cleaned = response.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
+        const data = JSON.parse(cleaned);
         
-        // Try direct parse if wrapper failed
-        let data = null;
-        try {
-            const cleaned = response.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '').trim();
-            data = JSON.parse(cleaned);
-        } catch (e) {
-            // Fall back to equipment array parse
-            if (parsed?.equipment?.[0]) {
-                data = parsed.equipment[0];
-            }
-        }
-        
-        if (data) {
-            return {
-                name: itemName,
-                type: normalizeType(itemType),
-                bonuses: data.bonuses || {},
-                description: data.description || '',
-                voiceQuips: data.voiceQuips || [],
-                source: 'ai-generated'
-            };
-        }
-        
+        return {
+            name: itemName,
+            type: normalizeType(itemType),
+            bonuses: data.bonuses || {},
+            description: data.description || '',
+            voiceQuips: data.voiceQuips || [],
+            source: 'ai-generated'
+        };
     } catch (error) {
         console.error('[Equipment Gen] Item details error:', error);
+        return null;
     }
-    
-    return null;
 }
 
 // ═══════════════════════════════════════════════════════════════
