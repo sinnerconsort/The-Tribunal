@@ -193,32 +193,33 @@ async function scanForEquipment() {
         }
     }
     
-    // Gather text to scan
+    // Gather text to scan - focus on USER/PLAYER, not AI character
     const textParts = [];
     
-    // 1. Persona context
+    // 1. Tribunal's persona context (player character)
     const persona = getPersona();
     if (persona?.context) {
-        textParts.push(`[PERSONA]\n${persona.context}`);
+        textParts.push(`[PLAYER CHARACTER]\n${persona.context}`);
     }
     
-    // 2. Character description from ST context
+    // 2. SillyTavern user persona (if available)
     const ctx = getContext();
-    if (ctx?.characters) {
-        const char = ctx.characters[ctx.characterId];
-        if (char?.description) {
-            textParts.push(`[CHARACTER]\n${char.description}`);
-        }
-        if (char?.first_mes) {
-            textParts.push(`[GREETING]\n${char.first_mes}`);
+    if (ctx?.name1) {
+        // Try to get ST user persona
+        const userPersona = ctx.persona?.description || ctx.default_persona?.description;
+        if (userPersona) {
+            textParts.push(`[USER PERSONA]\n${userPersona}`);
         }
     }
     
-    // 3. Recent chat messages (last 10)
+    // 3. Recent chat messages - look for player actions/descriptions
+    // (where player might describe what they're wearing)
     if (ctx?.chat) {
         const recentMessages = ctx.chat.slice(-10);
         for (const msg of recentMessages) {
             if (msg.mes) {
+                // Include user messages (they might describe their outfit)
+                // and AI messages (might describe player's appearance)
                 textParts.push(msg.mes);
             }
         }
@@ -231,8 +232,14 @@ async function scanForEquipment() {
         return;
     }
     
-    // Combine and scan
-    const combinedText = textParts.join('\n\n');
+    // Combine and scan (limit to ~8000 chars to avoid overwhelming AI)
+    let combinedText = textParts.join('\n\n');
+    if (combinedText.length > 8000) {
+        console.log('[Tribunal] Truncating scan text from', combinedText.length, 'to 8000 chars');
+        combinedText = combinedText.substring(0, 8000);
+    }
+    
+    console.log('[Tribunal] Scanning', combinedText.length, 'chars for equipment');
     
     if (typeof toastr !== 'undefined') {
         toastr.info('Scanning for equipment...', 'Equipment', { timeOut: 2000 });
