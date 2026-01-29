@@ -78,7 +78,7 @@ const SETTINGS_IDS = {
     // Actions
     lockPositions: 'cfg-lock-positions',
     saveButton: 'cfg-save-settings',
-    resetPositions: 'cfg-reset-positions'
+    resetPositions: 'cfg-reset-positions',
 
     // World State (Section III.6)
     parseWorldTags: 'cfg-parse-world-tags',
