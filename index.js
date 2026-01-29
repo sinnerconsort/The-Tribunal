@@ -66,7 +66,8 @@ let debugWeather = () => console.log('[Tribunal] Weather not loaded');
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Voice Generation
 // ═══════════════════════════════════════════════════════════════
-import { extractFromMessage, processExtractionResults } from './src/data/ai-extractor.js';
+let extractFromMessage = async () => ({ error: 'not loaded' });
+let processExtractionResults = async () => ({});
 import { generateVoicesForMessage } from './src/voice/generation.js';
 import { renderVoices, appendVoicesToChat, clearVoices } from './src/voice/render-voices.js';
 
@@ -756,6 +757,16 @@ async function init() {
     initSettingsTab();
     initCabinetHandlers();
     initNewspaperStrip();  // Initialize newspaper strip in map tab
+
+    // Lazy load extractor
+try {
+    const extractor = await import('./src/data/ai-extractor.js');
+    extractFromMessage = extractor.extractFromMessage;
+    processExtractionResults = extractor.processExtractionResults;
+    console.log('[Tribunal] AI Extractor loaded');
+} catch (e) {
+    console.warn('[Tribunal] AI Extractor not loaded:', e.message);
+}
     
     // Initialize weather effects system (lazy loaded)
     try {
