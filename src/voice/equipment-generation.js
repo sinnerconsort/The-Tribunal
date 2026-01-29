@@ -1,7 +1,7 @@
 /**
  * The Tribunal - Equipment Generation
  * 
- * INDEPENDENT API CALLS - Does NOT use api-helpers.js
+ * Uses api-helpers.js with CUSTOM TOKEN LIMIT
  * Equipment needs 3000+ tokens, voices only need 600
  * 
  * WARDROBE HISTORY - Items are cached forever
@@ -9,7 +9,7 @@
  * - Re-equip same item: Instant from cache, no API
  */
 
-import { getContext } from '../../../../../extensions.js';
+import { callAPIWithTokens } from './api-helpers.js';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -59,83 +59,22 @@ export function normalizeWardrobeKey(name) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DIRECT API CALL (bypasses api-helpers.js token limit)
+// API CALL (uses api-helpers with custom token limit)
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Make a direct API call for equipment generation
- * Uses ST's connection but with our own token limit
+ * Make API call for equipment generation
+ * Uses The Tribunal's configured profile with higher token limit
  */
 async function callEquipmentAPI(systemPrompt, userPrompt) {
-    console.log('[Equipment API] Making direct call with', EQUIPMENT_MAX_TOKENS, 'max tokens');
+    console.log('[Equipment API] Calling with', EQUIPMENT_MAX_TOKENS, 'max tokens');
     
     try {
-        // Method 1: Try ST's generateQuietPrompt (cleanest integration)
-        if (typeof window.SillyTavern?.getContext === 'function') {
-            const ctx = window.SillyTavern.getContext();
-            if (typeof ctx.generateQuietPrompt === 'function') {
-                console.log('[Equipment API] Using generateQuietPrompt');
-                const result = await ctx.generateQuietPrompt(userPrompt, false, false, '', '', EQUIPMENT_MAX_TOKENS);
-                return result;
-            }
-        }
-        
-        // Method 2: Try generateRaw if available
-        if (typeof window.generateRaw === 'function') {
-            console.log('[Equipment API] Using generateRaw');
-            const result = await window.generateRaw(userPrompt, null, false, false, systemPrompt, EQUIPMENT_MAX_TOKENS);
-            return result;
-        }
-        
-        // Method 3: Direct fetch to ST's API proxy
-        console.log('[Equipment API] Using direct fetch');
-        const response = await fetch('/api/backends/chat-completions/generate', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt }
-                ],
-                max_tokens: EQUIPMENT_MAX_TOKENS,
-                temperature: 0.7,
-            })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`API returned ${response.status}`);
-        }
-        
-        const data = await response.json();
-        
-        // Handle different response formats
-        if (data.choices?.[0]?.message?.content) {
-            return data.choices[0].message.content;
-        }
-        if (data.content) {
-            return data.content;
-        }
-        if (typeof data === 'string') {
-            return data;
-        }
-        
-        console.warn('[Equipment API] Unexpected response format:', data);
-        return null;
-        
+        const result = await callAPIWithTokens(systemPrompt, userPrompt, EQUIPMENT_MAX_TOKENS);
+        return result;
     } catch (error) {
         console.error('[Equipment API] Call failed:', error);
-        
-        // Method 4: Fallback - try the extension's own API helper but warn about tokens
-        try {
-            console.log('[Equipment API] Falling back to api-helpers (token limit may apply)');
-            const { callAPI } = await import('./api-helpers.js');
-            return await callAPI(systemPrompt, userPrompt, { maxTokens: EQUIPMENT_MAX_TOKENS });
-        } catch (e) {
-            console.error('[Equipment API] All methods failed');
-            return null;
-        }
+        return null;
     }
 }
 
