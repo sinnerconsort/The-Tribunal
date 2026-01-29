@@ -2,7 +2,7 @@
  * The Tribunal - API Helpers
  * Connection management, response extraction, and API calls
  * 
- * REBUILD v0.1.4 - Improved response extraction and debugging
+ * REBUILD v0.1.5 - Added callAPIWithTokens for equipment generation
  */
 
 import { getSettings, saveSettings } from '../core/persistence.js';
@@ -231,10 +231,25 @@ export function extractResponseContent(response) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Main API call function - tries multiple methods
- * Now with retry logic for first-call race condition
+ * Main API call function - uses settings for maxTokens
+ * (Voices use this - 600 tokens default)
  */
 export async function callAPI(systemPrompt, userPrompt) {
+    const settings = getSettings();
+    const maxTokens = settings?.api?.maxTokens || 600;
+    return await callAPIWithTokens(systemPrompt, userPrompt, maxTokens);
+}
+
+/**
+ * API call with CUSTOM token limit
+ * Use this for equipment generation (needs 3000+)
+ * 
+ * @param {string} systemPrompt - System message
+ * @param {string} userPrompt - User message
+ * @param {number} maxTokens - Maximum tokens for response
+ * @returns {Promise<string>} Response text
+ */
+export async function callAPIWithTokens(systemPrompt, userPrompt, maxTokens = 600) {
     const settings = getSettings();
     
     // Defensive: ensure settings exists
@@ -259,6 +274,7 @@ export async function callAPI(systemPrompt, userPrompt) {
     console.log('[Tribunal] API call config:', {
         connectionProfile,
         useSTConnection,
+        maxTokens,  // Log the token limit being used
         hasConnectionManager: !!ctx?.ConnectionManagerRequestService,
         systemPromptLength: systemPrompt?.length || 0,
         userPromptLength: userPrompt?.length || 0
@@ -267,7 +283,7 @@ export async function callAPI(systemPrompt, userPrompt) {
     // Method 1: Use ST Connection Manager if configured AND available
     if (useSTConnection && ctx?.ConnectionManagerRequestService) {
         try {
-            return await callAPIViaConnectionManager(ctx, systemPrompt, userPrompt);
+            return await callAPIViaConnectionManagerWithTokens(ctx, systemPrompt, userPrompt, maxTokens);
         } catch (err) {
             console.error('[Tribunal] ConnectionManager failed:', err);
             // Fall through to direct fetch only if we have direct API settings
@@ -281,14 +297,14 @@ export async function callAPI(systemPrompt, userPrompt) {
     }
     
     // Method 2: Direct fetch with extension's own API settings
-    return await callAPIDirectFetch(systemPrompt, userPrompt);
+    return await callAPIDirectFetchWithTokens(systemPrompt, userPrompt, maxTokens);
 }
 
 /**
  * Call API via SillyTavern's ConnectionManagerRequestService
- * IMPROVED: Better error handling and response logging
+ * With custom token limit
  */
-async function callAPIViaConnectionManager(ctx, systemPrompt, userPrompt) {
+async function callAPIViaConnectionManagerWithTokens(ctx, systemPrompt, userPrompt, maxTokens) {
     const settings = getSettings();
     const apiSettings = settings.api || {};
     
@@ -299,7 +315,7 @@ async function callAPIViaConnectionManager(ctx, systemPrompt, userPrompt) {
         throw new Error('No connection profile found. Check that Connection Manager extension is enabled.');
     }
     
-    console.log('[Tribunal] Calling via ConnectionManager, profile:', profileName, '→ id:', profileId);
+    console.log('[Tribunal] Calling via ConnectionManager, profile:', profileName, '→ id:', profileId, 'maxTokens:', maxTokens);
     
     let response;
     try {
@@ -309,7 +325,7 @@ async function callAPIViaConnectionManager(ctx, systemPrompt, userPrompt) {
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
             ],
-            apiSettings.maxTokens || 600,
+            maxTokens,  // Use the passed maxTokens instead of settings
             {
                 extractData: true,
                 includePreset: false,
@@ -351,13 +367,13 @@ async function callAPIViaConnectionManager(ctx, systemPrompt, userPrompt) {
 }
 
 /**
- * Direct fetch to external API
+ * Direct fetch to external API with custom token limit
  */
-async function callAPIDirectFetch(systemPrompt, userPrompt) {
+async function callAPIDirectFetchWithTokens(systemPrompt, userPrompt, maxTokens) {
     const settings = getSettings();
     const apiSettings = settings.api || {};
     
-    let { apiEndpoint, apiKey, model, maxTokens, temperature } = apiSettings;
+    let { apiEndpoint, apiKey, model, temperature } = apiSettings;
 
     if (!apiEndpoint || !apiKey) {
         throw new Error('API not configured. Set API endpoint and key in settings, or select a ST connection profile.');
@@ -371,7 +387,7 @@ async function callAPIDirectFetch(systemPrompt, userPrompt) {
         ? apiEndpoint 
         : apiEndpoint + '/chat/completions';
 
-    console.log('[Tribunal] Direct fetch to:', fullUrl, 'Model:', model);
+    console.log('[Tribunal] Direct fetch to:', fullUrl, 'Model:', model, 'maxTokens:', maxTokens);
 
     let response;
     try {
@@ -387,7 +403,7 @@ async function callAPIDirectFetch(systemPrompt, userPrompt) {
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt }
                 ],
-                max_tokens: maxTokens || 600,
+                max_tokens: maxTokens,  // Use the passed maxTokens
                 temperature: temperature || 0.8
             })
         });
