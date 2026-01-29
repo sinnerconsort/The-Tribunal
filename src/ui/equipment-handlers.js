@@ -1,6 +1,6 @@
 /**
  * The Tribunal - Equipment Handlers
- * Uses INLINE forms (like Cases/Contacts) - no modals!
+ * Clean inline UI - no modals, no duplicate buttons
  */
 
 import { getContext } from '../../../../../extensions.js';
@@ -85,7 +85,6 @@ async function addItemToTicket(itemNameOrData, options = {}) {
     const state = getEquipmentState();
     const { equipped = true } = options;
     
-    // If passed full item data
     if (typeof itemNameOrData === 'object' && itemNameOrData.name) {
         const item = itemNameOrData;
         const key = normalizeWardrobeKey(item.name);
@@ -102,14 +101,13 @@ async function addItemToTicket(itemNameOrData, options = {}) {
         return activeItem;
     }
     
-    // String name - check wardrobe or generate
     const itemName = itemNameOrData;
     const key = normalizeWardrobeKey(itemName);
     if (state.items.some(i => normalizeWardrobeKey(i.name) === key)) return null;
     
     let itemData = getFromWardrobe(itemName);
     if (itemData) {
-        toast(`✓ From wardrobe: ${itemName}`, 'success');
+        toast(`From wardrobe: ${itemName}`, 'success');
     } else {
         toast(`Generating ${itemName}...`, 'info');
         itemData = await generateSingleItem(itemName);
@@ -144,7 +142,7 @@ function toggleItemEquipped(itemId) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PERSONA & SCAN
+// PERSONA SCAN
 // ═══════════════════════════════════════════════════════════════
 
 function findUserPersona() {
@@ -175,30 +173,25 @@ async function scanForEquipment() {
             const item = await addItemToTicket(name);
             if (item) generated++;
         }
+        refreshDisplay();
     }
     
-    refreshDisplay();
-    toast(`Added ${cached + generated} items (${cached} cached, ${generated} new)`, 'success');
+    toast(`Added ${cached + generated} items`, 'success');
 }
 
 // ═══════════════════════════════════════════════════════════════
 // HELPERS
 // ═══════════════════════════════════════════════════════════════
 
-const EMOJI = {
-    jacket: '🧥', coat: '🧥', shirt: '👔', top: '👕', pants: '👖',
-    shoes: '👞', boots: '🥾', hat: '🎩', glasses: '👓', gloves: '🧤',
-    ring: '💍', necklace: '📿', watch: '⌚', bag: '👜', mask: '🎭',
-    badge: '🪪', other: '📦'
-};
-
-function getEmoji(type) { return EMOJI[type?.toLowerCase()] || '📦'; }
-
 function formatBonuses(bonuses) {
     if (!bonuses || Object.keys(bonuses).length === 0) return '';
     return Object.entries(bonuses)
         .map(([s, m]) => `${m > 0 ? '+' : ''}${m} ${s.replace(/_/g, ' ')}`)
         .join(', ');
+}
+
+function formatSkillName(skill) {
+    return skill.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 function toast(msg, type = 'info') {
@@ -230,72 +223,72 @@ function refreshDisplay() {
     
     container.innerHTML = '';
     
-    // Items on ticket
+    // Items
     if (state.items.length === 0) {
-        container.innerHTML = '<p class="equip-ticket-empty">No items checked in</p>';
+        container.innerHTML = '<p class="equip-empty">No items checked in</p>';
     } else {
         for (const item of state.items) {
-            container.appendChild(renderTicketItem(item));
+            container.appendChild(renderItem(item));
         }
     }
     
-    // Inline add form
-    container.appendChild(renderAddForm());
-    
-    // Inline wardrobe section
-    container.appendChild(renderWardrobeSection());
+    // Buttons & forms (only add if not already in HTML template)
+    if (!document.getElementById('ie-equip-scan-btn')) {
+        container.appendChild(renderControls());
+    }
 }
 
-function renderTicketItem(item) {
+function renderItem(item) {
     const isExpanded = uiState.expandedItemId === item.id;
     const div = document.createElement('div');
-    div.className = `equip-ticket-item ${item.equipped ? 'equipped' : 'stored'} ${isExpanded ? 'expanded' : ''}`;
+    div.className = `equip-item ${item.equipped ? 'equipped' : 'stored'} ${isExpanded ? 'expanded' : ''}`;
     div.dataset.itemId = item.id;
     
-    const bonusText = formatBonuses(item.bonuses);
+    // Collapsed: just checkbox + name
+    // Expanded: full details
     
-    div.innerHTML = `
-        <div class="equip-item-row">
-            <span class="equip-item-checkbox">${item.equipped ? '☑' : '☐'}</span>
-            <span class="equip-item-emoji">${getEmoji(item.type)}</span>
-            <span class="equip-item-name">${item.name}</span>
-            ${bonusText ? `<span class="equip-item-bonus">(${bonusText})</span>` : ''}
-            <span class="equip-item-expand">${isExpanded ? '▼' : '▶'}</span>
-        </div>
-        ${isExpanded ? `
-            <div class="equip-item-details">
-                ${item.description ? `<p class="equip-item-desc">${item.description}</p>` : ''}
-                ${item.voiceQuips?.length ? `
-                    <div class="equip-item-quips">
-                        ${item.voiceQuips.map(q => `
-                            <div class="equip-quip ${q.approves ? 'approves' : 'disapproves'}">
-                                <strong>${q.skill.replace(/_/g, ' ')}</strong>: "${q.text}"
-                            </div>
-                        `).join('')}
-                    </div>
-                ` : ''}
-                <div class="equip-item-actions">
-                    <button class="equip-action-btn equip-toggle-btn">${item.equipped ? '📦 Store' : '✓ Equip'}</button>
-                    <button class="equip-action-btn equip-remove-btn">✕ Remove</button>
+    if (!isExpanded) {
+        div.innerHTML = `
+            <div class="equip-item-row">
+                <i class="fa-solid ${item.equipped ? 'fa-square-check' : 'fa-square'} equip-checkbox"></i>
+                <span class="equip-name">${item.name}</span>
+                <i class="fa-solid fa-chevron-right equip-expand"></i>
+            </div>
+        `;
+    } else {
+        const bonusText = formatBonuses(item.bonuses);
+        const quipsHtml = (item.voiceQuips || []).map(q => `
+            <div class="equip-quip ${q.approves ? 'approves' : 'disapproves'}">
+                <span class="equip-quip-skill">${formatSkillName(q.skill)}:</span>
+                <span class="equip-quip-text">"${q.text}"</span>
+            </div>
+        `).join('');
+        
+        div.innerHTML = `
+            <div class="equip-item-row">
+                <i class="fa-solid ${item.equipped ? 'fa-square-check' : 'fa-square'} equip-checkbox"></i>
+                <span class="equip-name">${item.name}</span>
+                <i class="fa-solid fa-chevron-down equip-expand"></i>
+            </div>
+            <div class="equip-details">
+                ${bonusText ? `<div class="equip-bonuses">(${bonusText})</div>` : ''}
+                ${item.description ? `<p class="equip-desc">${item.description}</p>` : ''}
+                ${quipsHtml ? `<div class="equip-quips">${quipsHtml}</div>` : ''}
+                <div class="equip-actions">
+                    <button class="equip-btn equip-toggle">${item.equipped ? 'Store' : 'Equip'}</button>
+                    <button class="equip-btn equip-remove">Remove</button>
                 </div>
             </div>
-        ` : ''}
-    `;
-    
-    // Click row to expand/collapse
-    div.querySelector('.equip-item-row').addEventListener('click', () => {
-        uiState.expandedItemId = isExpanded ? null : item.id;
-        refreshDisplay();
-    });
-    
-    // Action buttons
-    if (isExpanded) {
-        div.querySelector('.equip-toggle-btn').addEventListener('click', (e) => {
+        `;
+        
+        // Action buttons
+        div.querySelector('.equip-toggle').addEventListener('click', (e) => {
             e.stopPropagation();
             toggleItemEquipped(item.id);
             refreshDisplay();
         });
-        div.querySelector('.equip-remove-btn').addEventListener('click', (e) => {
+        
+        div.querySelector('.equip-remove').addEventListener('click', (e) => {
             e.stopPropagation();
             removeItemFromTicket(item.id);
             toast(`Removed: ${item.name}`, 'info');
@@ -304,37 +297,57 @@ function renderTicketItem(item) {
         });
     }
     
+    // Click to expand/collapse
+    div.querySelector('.equip-item-row').addEventListener('click', () => {
+        uiState.expandedItemId = isExpanded ? null : item.id;
+        refreshDisplay();
+    });
+    
+    // Checkbox toggle
+    div.querySelector('.equip-checkbox').addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleItemEquipped(item.id);
+        refreshDisplay();
+    });
+    
     return div;
 }
 
-function renderAddForm() {
+function renderControls() {
     const div = document.createElement('div');
-    div.className = 'equip-add-section';
+    div.className = 'equip-controls';
     
     if (!uiState.addFormOpen) {
         div.innerHTML = `
-            <button class="equip-section-btn equip-scan-btn">🔍 Scan Persona</button>
-            <button class="equip-section-btn equip-add-btn">+ Add Item</button>
+            <button class="equip-ctrl-btn equip-scan"><i class="fa-solid fa-magnifying-glass"></i> Scan Persona</button>
+            <button class="equip-ctrl-btn equip-add"><i class="fa-solid fa-plus"></i> Add Item</button>
+            <button class="equip-ctrl-btn equip-wardrobe-btn"><i class="fa-solid fa-shirt"></i> Wardrobe (${getAllWardrobeItems().length})</button>
         `;
-        div.querySelector('.equip-scan-btn').addEventListener('click', scanForEquipment);
-        div.querySelector('.equip-add-btn').addEventListener('click', () => {
+        
+        div.querySelector('.equip-scan').addEventListener('click', scanForEquipment);
+        div.querySelector('.equip-add').addEventListener('click', () => {
             uiState.addFormOpen = true;
+            refreshDisplay();
+        });
+        div.querySelector('.equip-wardrobe-btn').addEventListener('click', () => {
+            uiState.wardrobeOpen = !uiState.wardrobeOpen;
             refreshDisplay();
         });
     } else {
         div.innerHTML = `
-            <div class="equip-inline-form">
+            <div class="equip-add-form">
                 <input type="text" class="equip-input" id="equip-add-input" placeholder="Item name..." />
-                <div class="equip-form-actions">
-                    <button class="equip-form-btn equip-cancel-btn">✕</button>
-                    <button class="equip-form-btn equip-submit-btn">ADD</button>
+                <div class="equip-form-btns">
+                    <button class="equip-btn equip-cancel">Cancel</button>
+                    <button class="equip-btn equip-submit">Add</button>
                 </div>
             </div>
         `;
+        
         const input = div.querySelector('#equip-add-input');
         setTimeout(() => input?.focus(), 50);
         
-        div.querySelector('.equip-cancel-btn').addEventListener('click', () => {
+        div.querySelector('.equip-cancel').addEventListener('click', () => {
             uiState.addFormOpen = false;
             refreshDisplay();
         });
@@ -344,87 +357,68 @@ function renderAddForm() {
             if (!name) return;
             uiState.addFormOpen = false;
             refreshDisplay();
-            const item = await addItemToTicket(name);
-            if (item) toast(`Added: ${item.name}`, 'success');
+            await addItemToTicket(name);
             refreshDisplay();
         };
         
-        div.querySelector('.equip-submit-btn').addEventListener('click', submit);
+        div.querySelector('.equip-submit').addEventListener('click', submit);
         input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+    }
+    
+    // Wardrobe list
+    if (uiState.wardrobeOpen) {
+        div.appendChild(renderWardrobe());
     }
     
     return div;
 }
 
-function renderWardrobeSection() {
-    const div = document.createElement('div');
-    div.className = 'equip-wardrobe-section';
-    
+function renderWardrobe() {
     const items = getAllWardrobeItems();
     const activeKeys = getEquipmentState().items.map(i => normalizeWardrobeKey(i.name));
     
-    div.innerHTML = `
-        <button class="equip-section-btn equip-wardrobe-toggle">
-            👕 Wardrobe (${items.length}) ${uiState.wardrobeOpen ? '▼' : '▶'}
-        </button>
-    `;
+    const list = document.createElement('div');
+    list.className = 'equip-wardrobe';
     
-    div.querySelector('.equip-wardrobe-toggle').addEventListener('click', () => {
-        uiState.wardrobeOpen = !uiState.wardrobeOpen;
-        refreshDisplay();
-    });
-    
-    if (uiState.wardrobeOpen && items.length > 0) {
-        const list = document.createElement('div');
-        list.className = 'equip-wardrobe-list';
-        
-        for (const item of items.sort((a, b) => a.name.localeCompare(b.name))) {
-            const isOnTicket = activeKeys.includes(item.wardrobeKey);
-            const row = document.createElement('div');
-            row.className = `equip-wardrobe-item ${isOnTicket ? 'on-ticket' : ''}`;
-            row.innerHTML = `
-                <span class="equip-wardrobe-emoji">${getEmoji(item.type)}</span>
-                <span class="equip-wardrobe-name">${item.name}</span>
-                <span class="equip-wardrobe-bonus">${formatBonuses(item.bonuses) || ''}</span>
-                ${isOnTicket 
-                    ? '<span class="equip-wardrobe-status">✓</span>'
-                    : '<button class="equip-wardrobe-add">+</button>'
-                }
-                <button class="equip-wardrobe-delete">🗑️</button>
-            `;
-            
-            if (!isOnTicket) {
-                row.querySelector('.equip-wardrobe-add').addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    await addItemToTicket(item);
-                    toast(`Added: ${item.name}`, 'success');
-                    refreshDisplay();
-                });
-            }
-            
-            row.querySelector('.equip-wardrobe-delete').addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (confirm(`Delete "${item.name}" from wardrobe?`)) {
-                    // Remove from ticket if present
-                    const state = getEquipmentState();
-                    const ticketItem = state.items.find(i => normalizeWardrobeKey(i.name) === item.wardrobeKey);
-                    if (ticketItem) removeItemFromTicket(ticketItem.id);
-                    
-                    deleteFromWardrobe(item.wardrobeKey);
-                    toast(`Deleted: ${item.name}`, 'info');
-                    refreshDisplay();
-                }
-            });
-            
-            list.appendChild(row);
-        }
-        
-        div.appendChild(list);
-    } else if (uiState.wardrobeOpen && items.length === 0) {
-        div.innerHTML += '<p class="equip-wardrobe-empty">Wardrobe empty</p>';
+    if (items.length === 0) {
+        list.innerHTML = '<p class="equip-empty">Wardrobe empty</p>';
+        return list;
     }
     
-    return div;
+    for (const item of items.sort((a, b) => a.name.localeCompare(b.name))) {
+        const isOnTicket = activeKeys.includes(item.wardrobeKey);
+        const row = document.createElement('div');
+        row.className = `equip-wardrobe-item ${isOnTicket ? 'on-ticket' : ''}`;
+        row.innerHTML = `
+            <span class="equip-wardrobe-name">${item.name}</span>
+            ${isOnTicket 
+                ? '<i class="fa-solid fa-check equip-wardrobe-check"></i>'
+                : '<button class="equip-wardrobe-add"><i class="fa-solid fa-plus"></i></button>'
+            }
+            <button class="equip-wardrobe-del"><i class="fa-solid fa-trash"></i></button>
+        `;
+        
+        if (!isOnTicket) {
+            row.querySelector('.equip-wardrobe-add').addEventListener('click', async () => {
+                await addItemToTicket(item);
+                refreshDisplay();
+            });
+        }
+        
+        row.querySelector('.equip-wardrobe-del').addEventListener('click', () => {
+            if (confirm(`Delete "${item.name}"?`)) {
+                const state = getEquipmentState();
+                const ticketItem = state.items.find(i => normalizeWardrobeKey(i.name) === item.wardrobeKey);
+                if (ticketItem) removeItemFromTicket(ticketItem.id);
+                deleteFromWardrobe(item.wardrobeKey);
+                refreshDisplay();
+            }
+        });
+        
+        list.appendChild(row);
+    }
+    
+    return list;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -434,13 +428,17 @@ function renderWardrobeSection() {
 export function initEquipmentHandlers() {
     console.log('[Equipment] Initializing...');
     
+    // Remove any existing buttons from HTML template to avoid duplicates
+    document.getElementById('ie-equip-scan-btn')?.remove();
+    document.getElementById('ie-equip-add-btn')?.remove();
+    document.getElementById('ie-equip-wardrobe-btn')?.remove();
+    
     const container = document.getElementById('ie-equip-items-list');
     if (!container) {
         console.warn('[Equipment] Container not found');
         return;
     }
     
-    // Chat change listener
     if (eventSource && event_types?.CHAT_CHANGED) {
         eventSource.on(event_types.CHAT_CHANGED, () => {
             uiState = { addFormOpen: false, wardrobeOpen: false, expandedItemId: null };
