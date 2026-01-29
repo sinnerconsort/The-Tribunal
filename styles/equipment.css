@@ -361,6 +361,10 @@
     transform: scale(0.98);
 }
 
+.equip-scan-btn {
+    /* Match your add button style */
+    margin-right: 0.5rem;
+}
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVE ADJUSTMENTS
    ═══════════════════════════════════════════════════════════════ */
