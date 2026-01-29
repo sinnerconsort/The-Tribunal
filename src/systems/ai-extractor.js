@@ -1,9 +1,9 @@
 /**
  * The Tribunal - AI Extractor
- * Uses AI to extract cases/quests and contacts/NPCs from chat messages
+ * Uses AI to extract cases/quests, contacts/NPCs, and locations from chat messages
  * 
  * This is more accurate than regex patterns because the AI understands context.
- * Makes a single API call to extract both types of data efficiently.
+ * Makes a single API call to extract all types of data efficiently.
  */
 
 import { getSettings, getChatState, saveChatState } from '../core/state.js';
@@ -16,12 +16,13 @@ import { callAPI } from '../voice/api-helpers.js';
 /**
  * Build the extraction prompt for analyzing a message
  */
-function buildExtractionPrompt(messageText, existingCases = [], existingContacts = []) {
+function buildExtractionPrompt(messageText, existingCases = [], existingContacts = [], existingLocations = []) {
     // Format existing data for context
     const existingCaseTitles = existingCases.map(c => `- "${c.title}" (${c.status})`).join('\n') || 'None';
     const existingContactNames = existingContacts.map(c => `- ${c.name}`).join('\n') || 'None';
+    const existingLocationNames = existingLocations.map(l => `- ${l.name}${l.district ? ` (${l.district})` : ''}`).join('\n') || 'None';
     
-    return `Analyze this roleplay message and extract any quests/tasks and NPCs/contacts mentioned.
+    return `Analyze this roleplay message and extract any quests/tasks, NPCs/contacts, and locations mentioned.
 
 <message>
 ${messageText}
@@ -34,6 +35,10 @@ ${existingCaseTitles}
 <existing_contacts>
 ${existingContactNames}
 </existing_contacts>
+
+<existing_locations>
+${existingLocationNames}
+</existing_locations>
 
 Extract the following and respond with ONLY valid JSON (no markdown, no explanation):
 
@@ -77,14 +82,32 @@ Extract the following and respond with ONLY valid JSON (no markdown, no explanat
         "newInfo": "Any new information learned about them"
       }
     ]
+  },
+  "locations": {
+    "new": [
+      {
+        "name": "Location name",
+        "district": "District or region it's in (if mentioned)",
+        "description": "Brief description of the place"
+      }
+    ],
+    "visited": [
+      {
+        "name": "Name of location visited (must match existing)",
+        "event": "What happened there in this message"
+      }
+    ],
+    "current": "Name of location where the scene is currently taking place (if clearly established, or null)"
   }
 }
 
 Rules:
 - Only extract CLEAR quests/tasks, not vague suggestions
 - Only extract NAMED characters, not generic "a guard" or "someone"
+- Only extract SPECIFIC named locations, not generic "a room" or "the street"
 - For completed quests, the title must closely match an existing quest
-- If nothing to extract, use empty arrays []
+- For "current" location, only set if the message clearly establishes where the scene is happening
+- If nothing to extract, use empty arrays [] or null for current
 - Respond with ONLY the JSON object, nothing else`;
 }
 
@@ -93,7 +116,7 @@ Rules:
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Extract cases and contacts from a message using AI
+ * Extract cases, contacts, and locations from a message using AI
  * @param {string} messageText - The message to analyze
  * @param {object} options - Extraction options
  * @returns {Promise<object>} Extracted data
@@ -102,12 +125,14 @@ export async function extractFromMessage(messageText, options = {}) {
     const {
         existingCases = [],
         existingContacts = [],
+        existingLocations = [],
         timeout = 30000
     } = options;
     
     const results = {
         quests: { new: [], completed: [], updated: [] },
         contacts: { new: [], updated: [] },
+        locations: { new: [], visited: [], current: null },
         error: null,
         raw: null
     };
@@ -117,13 +142,13 @@ export async function extractFromMessage(messageText, options = {}) {
     }
     
     try {
-        const prompt = buildExtractionPrompt(messageText, existingCases, existingContacts);
+        const prompt = buildExtractionPrompt(messageText, existingCases, existingContacts, existingLocations);
         
         // Use a focused system prompt for extraction
-        const systemPrompt = `You are a precise data extraction assistant. Extract quest/task information and NPC/character information from roleplay messages. Output only valid JSON with no additional text or markdown formatting.`;
+        const systemPrompt = `You are a precise data extraction assistant. Extract quest/task information, NPC/character information, and location information from roleplay messages. Output only valid JSON with no additional text or markdown formatting.`;
         
         const response = await callAPI(systemPrompt, prompt, {
-            maxTokens: 800,
+            maxTokens: 1000,
             temperature: 0.3, // Low temperature for consistent structured output
             timeout
         });
@@ -140,6 +165,7 @@ export async function extractFromMessage(messageText, options = {}) {
         if (parsed) {
             results.quests = parsed.quests || results.quests;
             results.contacts = parsed.contacts || results.contacts;
+            results.locations = parsed.locations || results.locations;
         } else {
             results.error = 'Failed to parse extraction response';
         }
@@ -182,6 +208,7 @@ function parseExtractionResponse(response) {
         // Validate structure
         if (!parsed.quests) parsed.quests = { new: [], completed: [], updated: [] };
         if (!parsed.contacts) parsed.contacts = { new: [], updated: [] };
+        if (!parsed.locations) parsed.locations = { new: [], visited: [], current: null };
         
         // Ensure arrays
         if (!Array.isArray(parsed.quests.new)) parsed.quests.new = [];
@@ -189,6 +216,8 @@ function parseExtractionResponse(response) {
         if (!Array.isArray(parsed.quests.updated)) parsed.quests.updated = [];
         if (!Array.isArray(parsed.contacts.new)) parsed.contacts.new = [];
         if (!Array.isArray(parsed.contacts.updated)) parsed.contacts.updated = [];
+        if (!Array.isArray(parsed.locations.new)) parsed.locations.new = [];
+        if (!Array.isArray(parsed.locations.visited)) parsed.locations.visited = [];
         
         return parsed;
         
@@ -239,7 +268,8 @@ export async function processExtractionResults(results, options = {}) {
     const { 
         notifyCallback = null,
         casesModule = null,
-        contactsModule = null
+        contactsModule = null,
+        locationsModule = null
     } = options;
     
     const processed = {
@@ -247,7 +277,10 @@ export async function processExtractionResults(results, options = {}) {
         casesCompleted: [],
         casesUpdated: [],
         contactsCreated: [],
-        contactsUpdated: []
+        contactsUpdated: [],
+        locationsCreated: [],
+        locationsVisited: [],
+        currentLocationSet: null
     };
     
     if (results.error) {
@@ -402,12 +435,120 @@ export async function processExtractionResults(results, options = {}) {
         }
     }
     
+    // ─────────────────────────────────────────────────────────────
+    // Process new locations
+    // ─────────────────────────────────────────────────────────────
+    if (locationsModule && results.locations.new.length > 0) {
+        if (!state.ledger) state.ledger = {};
+        if (!state.ledger.locations) state.ledger.locations = [];
+        
+        for (const location of results.locations.new) {
+            if (!location.name) continue;
+            
+            // Check for duplicates
+            const existingNames = state.ledger.locations.map(l => l.name.toLowerCase());
+            if (existingNames.includes(location.name.toLowerCase())) {
+                continue;
+            }
+            
+            const newLocation = {
+                id: `loc_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                name: location.name,
+                district: location.district || null,
+                description: location.description || null,
+                visited: false,
+                events: [],
+                discovered: new Date().toISOString(),
+                aiGenerated: true
+            };
+            
+            state.ledger.locations.push(newLocation);
+            processed.locationsCreated.push(newLocation);
+            
+            if (notifyCallback) {
+                notifyCallback(`New location: ${location.name}`, 'location');
+            }
+        }
+    }
+    
+    // ─────────────────────────────────────────────────────────────
+    // Process visited locations (add events)
+    // ─────────────────────────────────────────────────────────────
+    if (locationsModule && results.locations.visited.length > 0 && state.ledger?.locations) {
+        for (const visited of results.locations.visited) {
+            if (!visited.name || !visited.event) continue;
+            
+            // Find matching location
+            const matchingLocation = state.ledger.locations.find(l =>
+                similarity(l.name.toLowerCase(), visited.name.toLowerCase()) > 0.7
+            );
+            
+            if (matchingLocation) {
+                // Mark as visited
+                matchingLocation.visited = true;
+                
+                // Add event
+                if (!matchingLocation.events) matchingLocation.events = [];
+                matchingLocation.events.push({
+                    text: visited.event,
+                    timestamp: new Date().toISOString()
+                });
+                
+                processed.locationsVisited.push(matchingLocation);
+            }
+        }
+    }
+    
+    // ─────────────────────────────────────────────────────────────
+    // Set current location
+    // ─────────────────────────────────────────────────────────────
+    if (locationsModule && results.locations.current && state.ledger?.locations) {
+        const currentName = results.locations.current;
+        
+        // Find matching location
+        let matchingLocation = state.ledger.locations.find(l =>
+            similarity(l.name.toLowerCase(), currentName.toLowerCase()) > 0.7
+        );
+        
+        // If not found, create it
+        if (!matchingLocation) {
+            matchingLocation = {
+                id: `loc_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                name: currentName,
+                district: null,
+                description: null,
+                visited: true,
+                events: [],
+                discovered: new Date().toISOString(),
+                aiGenerated: true
+            };
+            state.ledger.locations.push(matchingLocation);
+            processed.locationsCreated.push(matchingLocation);
+            
+            if (notifyCallback) {
+                notifyCallback(`New location: ${currentName}`, 'location');
+            }
+        }
+        
+        // Set as current
+        matchingLocation.visited = true;
+        state.ledger.currentLocation = { ...matchingLocation };
+        processed.currentLocationSet = matchingLocation;
+        
+        if (notifyCallback) {
+            notifyCallback(`Now at: ${matchingLocation.name}`, 'location-current');
+        }
+    }
+    
     // Save if anything changed
     if (processed.casesCreated.length > 0 || 
         processed.casesCompleted.length > 0 || 
         processed.casesUpdated.length > 0 ||
         processed.contactsCreated.length > 0 ||
-        processed.contactsUpdated.length > 0) {
+        processed.contactsUpdated.length > 0 ||
+        processed.locationsCreated.length > 0 ||
+        processed.locationsVisited.length > 0 ||
+        processed.currentLocationSet) {
         saveChatState();
     }
     
