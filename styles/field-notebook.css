@@ -3,6 +3,8 @@
  * Leather-bound spiral notebook with lined paper
  * 
  * Goes in: src/styles/field-notebook.css
+ * 
+ * STEP 1: Added .notebook-investigate-btn styles (lines 116-130)
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -109,6 +111,27 @@
 }
 
 .notebook-edit-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--paper-ink, #2c2416);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INVESTIGATE BUTTON (NEW - Step 1)
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-investigate-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: all 0.15s;
+    /* No margin-left: auto - edit button handles alignment */
+}
+
+.notebook-investigate-btn:hover {
     background: rgba(0, 0, 0, 0.05);
     color: var(--paper-ink, #2c2416);
 }
