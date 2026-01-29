@@ -6,11 +6,12 @@
  */
 
 import { 
-    getLedger, 
+    getLedger,
+    getCurrentLocation,
+    setCurrentLocation,
     addLocation, 
     updateLocation,
     removeLocation,
-    setCurrentLocation,
     addLocationEvent,
     removeLocationEvent
 } from '../core/state.js';
@@ -19,14 +20,6 @@ import { saveChatState } from '../core/persistence.js';
 // ═══════════════════════════════════════════════════════════════
 // STATE HELPERS
 // ═══════════════════════════════════════════════════════════════
-
-/**
- * Get current location from state
- */
-function getCurrentLocation() {
-    const ledger = getLedger();
-    return ledger?.currentLocation || null;
-}
 
 /**
  * Get all discovered locations
@@ -513,13 +506,13 @@ export function initLocationHandlers() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// EXPORTS FOR STATE.JS
+// DEBUG HELPERS
 // ═══════════════════════════════════════════════════════════════
 
-// These functions need to be added to state.js:
-// - setCurrentLocation(location)
-// - addLocation(location)  
-// - updateLocation(id, updates)
-// - removeLocation(id)
-// - addLocationEvent(locationId, event)
-// - removeLocationEvent(locationId, eventIndex)
+export function debugLocations() {
+    return {
+        current: getCurrentLocation(),
+        locations: getLocations(),
+        events: getCurrentLocationEvents()
+    };
+}
