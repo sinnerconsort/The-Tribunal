@@ -1,11 +1,9 @@
 /**
- * The Tribunal - Equipment Handlers (FIXED)
+ * The Tribunal - Equipment Handlers (DIAGNOSTIC VERSION)
  * Martinaise Cleaners ticket system
  * 
- * FIXES:
- * - Better persona retrieval (checks multiple locations)
- * - Improved debug logging for mobile troubleshooting
- * - More robust scan function
+ * This version includes detailed persona location logging
+ * to help debug why user persona isn't being found
  */
 
 import { 
@@ -26,102 +24,272 @@ import { eventSource, event_types } from '../../../../../../script.js';
 let generateEquipmentFromMessage = null;
 
 // ═══════════════════════════════════════════════════════════════
-// PERSONA RETRIEVAL (IMPROVED)
-// Checks multiple locations for user persona description
+// PERSONA DIAGNOSTIC - Checks ALL possible locations
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Get ST user persona description from all possible locations
- * @returns {string|null} Persona description or null
+ * Comprehensive persona finder with detailed logging
+ * Returns the best persona found and logs everything
  */
-function getSTPersonaDescription() {
-    let found = null;
-    let source = null;
+function findUserPersona() {
+    console.log('[Tribunal] ╔════════════════════════════════════════════╗');
+    console.log('[Tribunal] ║       PERSONA LOCATION DIAGNOSTIC          ║');
+    console.log('[Tribunal] ╚════════════════════════════════════════════╝');
     
-    // Method 1: window.power_user (most common)
-    if (window.power_user?.persona_description) {
-        found = window.power_user.persona_description;
-        source = 'window.power_user.persona_description';
-    }
+    const found = [];
     
-    // Method 2: SillyTavern context
-    if (!found) {
-        try {
-            const ctx = getContext();
-            if (ctx?.power_user?.persona_description) {
-                found = ctx.power_user.persona_description;
-                source = 'context.power_user.persona_description';
+    // ─────────────────────────────────────────────────────────────
+    // Location 1: window.power_user.persona_description
+    // ─────────────────────────────────────────────────────────────
+    console.log('[Tribunal] 📍 Check 1: window.power_user.persona_description');
+    try {
+        if (window.power_user?.persona_description) {
+            const desc = window.power_user.persona_description;
+            console.log('[Tribunal]    ✓ FOUND! Length:', desc.length);
+            console.log('[Tribunal]    Preview:', desc.substring(0, 150));
+            found.push({ source: 'power_user.persona_description', value: desc, priority: 1 });
+        } else {
+            console.log('[Tribunal]    ❌ Empty or missing');
+            if (window.power_user) {
+                console.log('[Tribunal]    power_user exists but persona_description is:', window.power_user.persona_description);
+            } else {
+                console.log('[Tribunal]    window.power_user does not exist');
             }
-        } catch (e) {
-            // Ignore
         }
+    } catch (e) {
+        console.log('[Tribunal]    ❌ Error:', e.message);
     }
     
-    // Method 3: Global SillyTavern object
-    if (!found) {
-        try {
-            if (window.SillyTavern?.getContext) {
-                const stCtx = window.SillyTavern.getContext();
-                if (stCtx?.power_user?.persona_description) {
-                    found = stCtx.power_user.persona_description;
-                    source = 'SillyTavern.getContext().power_user';
+    // ─────────────────────────────────────────────────────────────
+    // Location 2: window.power_user.personas (saved personas object)
+    // THIS IS LIKELY WHERE YOUR PERSONA LIVES!
+    // ─────────────────────────────────────────────────────────────
+    console.log('[Tribunal] 📍 Check 2: window.power_user.personas');
+    try {
+        if (window.power_user?.personas && typeof window.power_user.personas === 'object') {
+            const keys = Object.keys(window.power_user.personas);
+            console.log('[Tribunal]    ✓ Found personas object with', keys.length, 'entries');
+            console.log('[Tribunal]    Keys:', keys.join(', '));
+            
+            // Check which one is currently selected
+            const selectedName = window.power_user.persona_name || window.power_user.default_persona;
+            console.log('[Tribunal]    🎯 SELECTED persona_name:', selectedName || 'NONE');
+            
+            // If we have a selected persona, prioritize it
+            if (selectedName && window.power_user.personas[selectedName]) {
+                const selectedDesc = window.power_user.personas[selectedName];
+                console.log('[Tribunal]    ✓ SELECTED PERSONA FOUND!');
+                console.log('[Tribunal]    Description:', selectedDesc.substring(0, 200));
+                found.push({ source: `personas["${selectedName}"] (SELECTED)`, value: selectedDesc, priority: 0 }); // Highest priority!
+            }
+            
+            // Also log other personas for reference
+            for (const [name, desc] of Object.entries(window.power_user.personas)) {
+                if (name === selectedName) continue; // Already added
+                if (desc && typeof desc === 'string' && desc.length > 10) {
+                    console.log('[Tribunal]    → Other: "' + name + '":', desc.substring(0, 60) + '...');
+                    found.push({ source: `personas["${name}"]`, value: desc, priority: 3 });
                 }
             }
-        } catch (e) {
-            // Ignore
+        } else {
+            console.log('[Tribunal]    ❌ No personas object');
         }
+    } catch (e) {
+        console.log('[Tribunal]    ❌ Error:', e.message);
     }
     
-    // Method 4: Check for persona in user object
-    if (!found) {
-        try {
-            if (window.user?.persona) {
-                found = window.user.persona;
-                source = 'window.user.persona';
+    // ─────────────────────────────────────────────────────────────
+    // Location 2b: Check user_avatar to find matching persona
+    // ─────────────────────────────────────────────────────────────
+    console.log('[Tribunal] 📍 Check 2b: user_avatar matching');
+    try {
+        const userAvatar = window.user_avatar || getContext()?.user_avatar;
+        console.log('[Tribunal]    user_avatar:', userAvatar);
+        
+        if (userAvatar && window.power_user?.personas) {
+            // Sometimes the persona key is the avatar filename
+            if (window.power_user.personas[userAvatar]) {
+                const desc = window.power_user.personas[userAvatar];
+                console.log('[Tribunal]    ✓ Found persona by avatar key!');
+                console.log('[Tribunal]    Description:', desc.substring(0, 150));
+                found.push({ source: `personas[user_avatar="${userAvatar}"]`, value: desc, priority: 0 });
             }
-        } catch (e) {
-            // Ignore
         }
+    } catch (e) {
+        console.log('[Tribunal]    ❌ Error:', e.message);
     }
     
-    // Method 5: Check name1_description (some ST versions use this)
-    if (!found) {
-        try {
-            if (window.name1_description) {
-                found = window.name1_description;
-                source = 'window.name1_description';
+    // ─────────────────────────────────────────────────────────────
+    // Location 3: DOM element #persona_description
+    // ─────────────────────────────────────────────────────────────
+    console.log('[Tribunal] 📍 Check 3: DOM #persona_description');
+    try {
+        const el = document.getElementById('persona_description');
+        if (el && el.value) {
+            console.log('[Tribunal]    ✓ FOUND in DOM! Length:', el.value.length);
+            console.log('[Tribunal]    Preview:', el.value.substring(0, 150));
+            found.push({ source: 'DOM #persona_description', value: el.value, priority: 1 });
+        } else if (el) {
+            console.log('[Tribunal]    ⚠️ Element exists but value is empty');
+        } else {
+            console.log('[Tribunal]    ❌ Element not found');
+        }
+    } catch (e) {
+        console.log('[Tribunal]    ❌ Error:', e.message);
+    }
+    
+    // ─────────────────────────────────────────────────────────────
+    // Location 4: jQuery (if available)
+    // ─────────────────────────────────────────────────────────────
+    console.log('[Tribunal] 📍 Check 4: jQuery');
+    try {
+        if (window.$ || window.jQuery) {
+            const $ = window.$ || window.jQuery;
+            const val = $('#persona_description').val();
+            if (val) {
+                console.log('[Tribunal]    ✓ FOUND via jQuery! Length:', val.length);
+                console.log('[Tribunal]    Preview:', val.substring(0, 150));
+                // Don't double-add if DOM already found it
+                if (!found.some(f => f.value === val)) {
+                    found.push({ source: 'jQuery #persona_description', value: val, priority: 1 });
+                }
+            } else {
+                console.log('[Tribunal]    ❌ jQuery found element but no value');
             }
-        } catch (e) {
-            // Ignore
+        } else {
+            console.log('[Tribunal]    ⚠️ jQuery not available');
         }
+    } catch (e) {
+        console.log('[Tribunal]    ❌ Error:', e.message);
     }
     
-    if (found) {
-        console.log('[Tribunal] Found persona via:', source);
-        console.log('[Tribunal] Persona preview:', found.substring(0, 200));
-    } else {
-        console.log('[Tribunal] No persona found in any location');
+    // ─────────────────────────────────────────────────────────────
+    // Location 5: SillyTavern.getContext()
+    // ─────────────────────────────────────────────────────────────
+    console.log('[Tribunal] 📍 Check 5: SillyTavern.getContext()');
+    try {
+        if (window.SillyTavern?.getContext) {
+            const stCtx = window.SillyTavern.getContext();
+            if (stCtx.power_user?.persona_description) {
+                console.log('[Tribunal]    ✓ FOUND! Length:', stCtx.power_user.persona_description.length);
+                console.log('[Tribunal]    Preview:', stCtx.power_user.persona_description.substring(0, 150));
+                found.push({ source: 'ST.getContext().power_user', value: stCtx.power_user.persona_description, priority: 1 });
+            } else {
+                console.log('[Tribunal]    ❌ No persona in ST context');
+            }
+        } else {
+            console.log('[Tribunal]    ⚠️ SillyTavern.getContext not available');
+        }
+    } catch (e) {
+        console.log('[Tribunal]    ❌ Error:', e.message);
     }
     
-    return found;
-}
-
-/**
- * Get user persona name
- */
-function getSTPersonaName() {
-    // Try various locations
-    if (window.power_user?.persona_name) return window.power_user.persona_name;
-    if (window.name1) return window.name1;
-    
+    // ─────────────────────────────────────────────────────────────
+    // Location 6: getContext() from extensions.js (RPG Companion style)
+    // ─────────────────────────────────────────────────────────────
+    console.log('[Tribunal] 📍 Check 6: getContext() import (RPG Companion style)');
     try {
         const ctx = getContext();
-        if (ctx?.name1) return ctx.name1;
+        console.log('[Tribunal]    name1 (user):', ctx.name1);
+        console.log('[Tribunal]    name2 (AI):', ctx.name2);
+        console.log('[Tribunal]    user_avatar:', ctx.user_avatar);
+        
+        // Check if there's a persona object
+        if (ctx.persona) {
+            console.log('[Tribunal]    ✓ ctx.persona exists:', typeof ctx.persona);
+            if (typeof ctx.persona === 'string') {
+                found.push({ source: 'getContext().persona', value: ctx.persona, priority: 0 });
+            }
+        }
+        
+        // Check for persona_description in context
+        if (ctx.persona_description) {
+            console.log('[Tribunal]    ✓ ctx.persona_description found!');
+            console.log('[Tribunal]    Preview:', ctx.persona_description.substring(0, 150));
+            found.push({ source: 'getContext().persona_description', value: ctx.persona_description, priority: 0 });
+        }
+        
+        // Check extensionSettings for persona data
+        if (ctx.extensionSettings?.persona) {
+            console.log('[Tribunal]    ✓ extensionSettings.persona found');
+        }
+        
+        // IMPORTANT: Check if user_avatar matches a persona key
+        if (ctx.user_avatar && window.power_user?.personas?.[ctx.user_avatar]) {
+            const desc = window.power_user.personas[ctx.user_avatar];
+            console.log('[Tribunal]    ✓ Found persona via ctx.user_avatar key!');
+            console.log('[Tribunal]    Preview:', desc.substring(0, 150));
+            if (!found.some(f => f.value === desc)) {
+                found.push({ source: `personas[ctx.user_avatar]`, value: desc, priority: 0 });
+            }
+        }
+        
+        // List all context keys for debugging
+        const ctxKeys = Object.keys(ctx).filter(k => 
+            k.toLowerCase().includes('persona') || 
+            k.toLowerCase().includes('user') ||
+            k.toLowerCase().includes('avatar') ||
+            k.toLowerCase().includes('name')
+        );
+        console.log('[Tribunal]    Relevant context keys:', ctxKeys.join(', '));
+        
     } catch (e) {
-        // Ignore
+        console.log('[Tribunal]    ❌ Error:', e.message);
     }
     
-    return 'User';
+    // ─────────────────────────────────────────────────────────────
+    // Location 7: window.user_avatar / persona management
+    // ─────────────────────────────────────────────────────────────
+    console.log('[Tribunal] 📍 Check 7: User avatar / persona management');
+    try {
+        if (window.user_avatar) {
+            console.log('[Tribunal]    user_avatar:', window.user_avatar);
+        }
+        if (window.getUserAvatar) {
+            console.log('[Tribunal]    getUserAvatar function exists');
+        }
+        if (window.setUserAvatar) {
+            console.log('[Tribunal]    setUserAvatar function exists');
+        }
+    } catch (e) {
+        console.log('[Tribunal]    ❌ Error:', e.message);
+    }
+    
+    // ─────────────────────────────────────────────────────────────
+    // SUMMARY
+    // ─────────────────────────────────────────────────────────────
+    console.log('[Tribunal] ╔════════════════════════════════════════════╗');
+    console.log('[Tribunal] ║              DIAGNOSTIC SUMMARY            ║');
+    console.log('[Tribunal] ╚════════════════════════════════════════════╝');
+    console.log('[Tribunal] Found', found.length, 'persona sources');
+    
+    if (found.length === 0) {
+        console.log('[Tribunal] ❌ NO PERSONA FOUND ANYWHERE!');
+        console.log('[Tribunal] ');
+        console.log('[Tribunal] 👉 Make sure you have:');
+        console.log('[Tribunal]    1. Created a persona in ST Settings > User Settings');
+        console.log('[Tribunal]    2. SELECTED/ACTIVATED that persona');
+        console.log('[Tribunal]    3. Added a description with your appearance');
+        return null;
+    }
+    
+    // Sort by priority and return best match
+    found.sort((a, b) => a.priority - b.priority);
+    
+    // Look for one that contains punk/leather/mesh (user's actual persona)
+    const userPersona = found.find(f => {
+        const lower = f.value.toLowerCase();
+        return lower.includes('leather') || lower.includes('mesh') || lower.includes('punk') || lower.includes('jacket');
+    });
+    
+    if (userPersona) {
+        console.log('[Tribunal] 🎯 Best match (contains your keywords):', userPersona.source);
+        return userPersona.value;
+    }
+    
+    // Otherwise return first found
+    console.log('[Tribunal] 📝 Using first found:', found[0].source);
+    return found[0].value;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -162,16 +330,12 @@ function formatBonuses(bonuses) {
 // RENDER
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Refresh the equipment display
- */
 export function refreshEquipment() {
     const container = document.getElementById('ie-equip-items-list');
     const ticketNumber = document.getElementById('ie-ticket-number');
     
     if (!container) return;
     
-    // Check for active chat state
     const chatState = getChatState();
     if (!chatState) {
         container.innerHTML = '<p class="equip-ticket-empty">No items checked in</p>';
@@ -179,17 +343,13 @@ export function refreshEquipment() {
         return;
     }
     
-    // Initialize equipment state if needed
     initializeEquipment();
-    
     const equipment = getEquipment();
     
-    // Update ticket number
     if (ticketNumber && equipment.ticketNumber) {
         ticketNumber.textContent = equipment.ticketNumber;
     }
     
-    // Clear and rebuild
     container.innerHTML = '';
     
     if (!equipment.items || equipment.items.length === 0) {
@@ -197,7 +357,6 @@ export function refreshEquipment() {
         return;
     }
     
-    // Render each item
     equipment.items.forEach(item => {
         const itemEl = document.createElement('div');
         itemEl.className = `equip-ticket-item ${item.equipped ? 'equipped' : 'stored'}`;
@@ -237,7 +396,6 @@ function showAddItemDialog() {
     
     const bonusInput = prompt('Skill bonus? (e.g., "logic +1" or leave blank):');
     
-    // Parse bonus
     const bonuses = {};
     if (bonusInput && bonusInput.trim()) {
         const match = bonusInput.match(/(\w+)\s*([+-]?\d+)/);
@@ -267,16 +425,15 @@ function showAddItemDialog() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SCAN FUNCTIONALITY (IMPROVED)
+// SCAN FUNCTIONALITY (WITH DIAGNOSTIC)
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Scan persona + recent messages for equipment
- */
 async function scanForEquipment() {
-    console.log('[Tribunal] ═══════════════════════════════════════');
-    console.log('[Tribunal] Starting Equipment Scan...');
-    console.log('[Tribunal] ═══════════════════════════════════════');
+    console.log('[Tribunal] ');
+    console.log('[Tribunal] ████████████████████████████████████████████');
+    console.log('[Tribunal] ██       EQUIPMENT SCAN STARTING          ██');
+    console.log('[Tribunal] ████████████████████████████████████████████');
+    console.log('[Tribunal] ');
     
     // Check for active chat
     const chatState = getChatState();
@@ -304,93 +461,76 @@ async function scanForEquipment() {
         }
     }
     
-    // Gather text to scan from multiple sources
+    // ═══════════════════════════════════════════════════════════
+    // RUN PERSONA DIAGNOSTIC
+    // ═══════════════════════════════════════════════════════════
+    const userPersonaText = findUserPersona();
+    
+    // Gather text to scan
     const textParts = [];
     const ctx = getContext();
     
-    console.log('[Tribunal] Gathering text sources...');
-    
     // ─────────────────────────────────────────────────────────────
-    // Source 1: Tribunal's persona context (if set)
+    // Source 1: User Persona (from diagnostic) - HIGHEST PRIORITY
     // ─────────────────────────────────────────────────────────────
-    const persona = getPersona();
-    if (persona?.context) {
-        console.log('[Tribunal] ✓ Source 1: Tribunal persona context');
-        console.log('[Tribunal]   Preview:', persona.context.substring(0, 100));
-        textParts.push(`[TRIBUNAL PERSONA]\n${persona.context}`);
-    } else {
-        console.log('[Tribunal] ⏭️ Source 1: No Tribunal persona');
+    if (userPersonaText) {
+        console.log('[Tribunal] ✓ Adding USER PERSONA to scan');
+        textParts.push(`[USER PERSONA]\n${userPersonaText}`);
     }
     
     // ─────────────────────────────────────────────────────────────
-    // Source 2: SillyTavern user persona
+    // Source 2: Tribunal's internal persona (if different)
     // ─────────────────────────────────────────────────────────────
-    const stPersona = getSTPersonaDescription();
-    if (stPersona) {
-        console.log('[Tribunal] ✓ Source 2: ST persona description');
-        console.log('[Tribunal]   Length:', stPersona.length, 'chars');
-        textParts.push(`[USER PERSONA - ${getSTPersonaName()}]\n${stPersona}`);
-    } else {
-        console.log('[Tribunal] ⏭️ Source 2: No ST persona');
+    const tribunalPersona = getPersona();
+    if (tribunalPersona?.context && tribunalPersona.context !== userPersonaText) {
+        console.log('[Tribunal] ✓ Adding Tribunal persona context');
+        textParts.push(`[TRIBUNAL PERSONA]\n${tribunalPersona.context}`);
     }
     
     // ─────────────────────────────────────────────────────────────
-    // Source 3: AI Character description (sometimes describes player)
+    // Source 3: Recent chat (ONLY if no persona found)
     // ─────────────────────────────────────────────────────────────
-    if (ctx?.characters && ctx?.characterId !== undefined) {
-        const char = ctx.characters[ctx.characterId];
-        if (char?.description) {
-            console.log('[Tribunal] ✓ Source 3: AI character description');
-            textParts.push(`[CHARACTER: ${char.name || 'Unknown'}]\n${char.description}`);
-        }
-        if (char?.first_mes) {
-            console.log('[Tribunal] ✓ Source 3b: AI first message');
-            textParts.push(`[GREETING]\n${char.first_mes}`);
-        }
-    }
-    
-    // ─────────────────────────────────────────────────────────────
-    // Source 4: Recent chat messages
-    // ─────────────────────────────────────────────────────────────
-    if (ctx?.chat && ctx.chat.length > 0) {
+    if (textParts.length === 0 && ctx?.chat && ctx.chat.length > 0) {
+        console.log('[Tribunal] ⚠️ No persona found, falling back to chat scan');
         const recentMessages = ctx.chat.slice(-10);
         let chatText = '';
         for (const msg of recentMessages) {
-            if (msg.mes) {
-                chatText += msg.mes + '\n';
-            }
+            if (msg.mes) chatText += msg.mes + '\n';
         }
         if (chatText.trim()) {
-            console.log('[Tribunal] ✓ Source 4: Recent chat (', recentMessages.length, 'messages)');
             textParts.push(`[RECENT CHAT]\n${chatText}`);
         }
-    } else {
-        console.log('[Tribunal] ⏭️ Source 4: No chat messages');
     }
     
     // ─────────────────────────────────────────────────────────────
-    // Check if we have anything to scan
+    // NOTE: We're NOT including AI character description anymore
+    // That was causing the journalist clothes to appear
     // ─────────────────────────────────────────────────────────────
-    console.log('[Tribunal] Total sources found:', textParts.length);
+    
+    console.log('[Tribunal] ');
+    console.log('[Tribunal] Total scan sources:', textParts.length);
     
     if (textParts.length === 0) {
-        console.log('[Tribunal] ❌ No text sources found!');
+        console.log('[Tribunal] ❌ Nothing to scan!');
         if (typeof toastr !== 'undefined') {
-            toastr.warning('No persona or chat to scan.\nSet your character description in ST settings!', 'Equipment', { timeOut: 5000 });
+            toastr.warning('No persona found. Check ST Settings > User Settings', 'Equipment', { timeOut: 5000 });
         }
         return;
     }
     
-    // Combine and limit size
+    // Combine text
     let combinedText = textParts.join('\n\n');
     if (combinedText.length > 8000) {
-        console.log('[Tribunal] Truncating from', combinedText.length, 'to 8000 chars');
         combinedText = combinedText.substring(0, 8000);
     }
     
-    console.log('[Tribunal] ═══════════════════════════════════════');
-    console.log('[Tribunal] Scanning', combinedText.length, 'chars for equipment');
-    console.log('[Tribunal] ═══════════════════════════════════════');
+    console.log('[Tribunal] ');
+    console.log('[Tribunal] ════════════════════════════════════════════');
+    console.log('[Tribunal] SENDING TO AI:');
+    console.log('[Tribunal] ════════════════════════════════════════════');
+    console.log('[Tribunal] ', combinedText.substring(0, 500));
+    console.log('[Tribunal] ... (', combinedText.length, 'total chars)');
+    console.log('[Tribunal] ════════════════════════════════════════════');
     
     if (typeof toastr !== 'undefined') {
         toastr.info('Scanning for equipment...', 'Equipment', { timeOut: 2000 });
@@ -401,10 +541,21 @@ async function scanForEquipment() {
             existingEquipment: getEquipmentItems()
         });
         
-        console.log('[Tribunal] Scan results:', results);
+        console.log('[Tribunal] ');
+        console.log('[Tribunal] ════════════════════════════════════════════');
+        console.log('[Tribunal] SCAN RESULTS:');
+        console.log('[Tribunal] ════════════════════════════════════════════');
+        console.log('[Tribunal] Error:', results.error || 'none');
+        console.log('[Tribunal] Equipment found:', results.equipment?.length || 0);
+        
+        if (results.equipment?.length > 0) {
+            results.equipment.forEach((item, i) => {
+                console.log(`[Tribunal]   ${i + 1}. ${item.name} (${item.type})`);
+            });
+        }
         
         if (results.error) {
-            console.warn('[Tribunal] Scan error:', results.error);
+            console.warn('[Tribunal] ❌ Scan error:', results.error);
             if (typeof toastr !== 'undefined') {
                 toastr.warning(`Scan issue: ${results.error}`, 'Equipment');
             }
@@ -414,13 +565,16 @@ async function scanForEquipment() {
         if (results.equipment?.length > 0) {
             let addedCount = 0;
             for (const item of results.equipment) {
+                console.log('[Tribunal] Adding item:', item.name);
                 const added = addEquipment({
                     ...item,
                     equipped: true
                 });
                 if (added) {
                     addedCount++;
-                    console.log('[Tribunal] ✓ Added:', added.name);
+                    console.log('[Tribunal] ✓ Successfully added:', added.name);
+                } else {
+                    console.log('[Tribunal] ⚠️ addEquipment returned null/false for:', item.name);
                 }
             }
             
@@ -431,7 +585,7 @@ async function scanForEquipment() {
             }
             console.log('[Tribunal] ✅ Scan complete:', addedCount, 'items added');
         } else {
-            console.log('[Tribunal] Scan complete: No new equipment found');
+            console.log('[Tribunal] No new equipment found');
             if (typeof toastr !== 'undefined') {
                 toastr.info('No equipment found', 'Equipment');
             }
@@ -452,7 +606,6 @@ async function scanForEquipment() {
 function handleEquipmentClick(e) {
     const target = e.target;
     
-    // Remove button
     if (target.classList.contains('equip-item-remove')) {
         const itemId = target.dataset.itemId;
         if (itemId) {
@@ -467,7 +620,6 @@ function handleEquipmentClick(e) {
         return;
     }
     
-    // Toggle equipped (click on item row or checkbox)
     const itemEl = target.closest('.equip-ticket-item');
     if (itemEl && !target.classList.contains('equip-item-remove')) {
         const itemId = itemEl.dataset.itemId;
@@ -482,20 +634,14 @@ function handleEquipmentClick(e) {
 // INIT
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Initialize equipment handlers
- */
 export function initEquipmentHandlers() {
-    console.log('[Tribunal] Initializing equipment handlers...');
+    console.log('[Tribunal] Initializing equipment handlers (diagnostic version)...');
     
-    // Add button
     const addBtn = document.getElementById('ie-equip-add-btn');
     if (addBtn) {
         addBtn.addEventListener('click', showAddItemDialog);
-        console.log('[Tribunal] ✓ Add button handler');
     }
     
-    // Scan button
     let scanBtn = document.getElementById('ie-equip-scan-btn');
     if (!scanBtn && addBtn) {
         scanBtn = document.createElement('button');
@@ -507,30 +653,21 @@ export function initEquipmentHandlers() {
     }
     if (scanBtn) {
         scanBtn.addEventListener('click', scanForEquipment);
-        console.log('[Tribunal] ✓ Scan button handler');
     }
     
-    // Event delegation for items list
     const container = document.getElementById('ie-equip-items-list');
     if (container) {
         container.addEventListener('click', handleEquipmentClick);
-        console.log('[Tribunal] ✓ Items list click handler');
     }
     
-    // Listen for chat changes
     if (eventSource && event_types?.CHAT_CHANGED) {
         eventSource.on(event_types.CHAT_CHANGED, () => {
-            console.log('[Tribunal] Chat changed - refreshing equipment');
             setTimeout(refreshEquipment, 100);
         });
-        console.log('[Tribunal] ✓ CHAT_CHANGED listener');
     }
     
-    // Initial render
     refreshEquipment();
-    
     console.log('[Tribunal] Equipment handlers initialized');
 }
 
-// Export scan function for external use
-export { scanForEquipment };
+export { scanForEquipment, findUserPersona };
