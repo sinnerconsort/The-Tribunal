@@ -1,30 +1,25 @@
 /**
  * The Tribunal - Location Handlers
- * Field Notebook style with INLINE forms (no modals!)
+ * Field Notebook style - MINIMAL VERSION
  * 
- * @version 2.0.0 - Field Notebook
+ * @version 2.0.1 - Safe minimal
  */
 
-import { 
-    getLedger,
-    getCurrentLocation,
-    setCurrentLocation,
-    addLocation, 
-    updateLocation,
-    removeLocation,
-    addLocationEvent,
-    removeLocationEvent
-} from '../core/state.js';
+import { getLedger } from '../core/state.js';
 import { saveChatState } from '../core/persistence.js';
-// eventSource and event_types accessed globally if needed
 
 // ═══════════════════════════════════════════════════════════════
-// STATE HELPERS
+// STATE ACCESS - Using getLedger() directly
 // ═══════════════════════════════════════════════════════════════
 
 function getLocations() {
     const ledger = getLedger();
     return ledger?.locations || [];
+}
+
+function getCurrentLocation() {
+    const ledger = getLedger();
+    return ledger?.currentLocation || null;
 }
 
 function getCurrentLocationEvents() {
@@ -37,7 +32,62 @@ function getCurrentLocationEvents() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// UI STATE - tracks which forms are open
+// STATE MUTATIONS - Direct ledger manipulation
+// ═══════════════════════════════════════════════════════════════
+
+function setCurrentLocation(loc) {
+    const ledger = getLedger();
+    if (ledger) {
+        ledger.currentLocation = loc;
+    }
+}
+
+function addLocation(loc) {
+    const ledger = getLedger();
+    if (ledger) {
+        if (!ledger.locations) ledger.locations = [];
+        ledger.locations.push(loc);
+    }
+}
+
+function updateLocation(locId, updates) {
+    const ledger = getLedger();
+    if (ledger?.locations) {
+        const loc = ledger.locations.find(l => l.id === locId);
+        if (loc) Object.assign(loc, updates);
+    }
+}
+
+function removeLocation(locId) {
+    const ledger = getLedger();
+    if (ledger?.locations) {
+        ledger.locations = ledger.locations.filter(l => l.id !== locId);
+    }
+}
+
+function addLocationEvent(locId, event) {
+    const ledger = getLedger();
+    if (ledger?.locations) {
+        const loc = ledger.locations.find(l => l.id === locId);
+        if (loc) {
+            if (!loc.events) loc.events = [];
+            loc.events.push(event);
+        }
+    }
+}
+
+function removeLocationEvent(locId, index) {
+    const ledger = getLedger();
+    if (ledger?.locations) {
+        const loc = ledger.locations.find(l => l.id === locId);
+        if (loc?.events) {
+            loc.events.splice(index, 1);
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UI STATE
 // ═══════════════════════════════════════════════════════════════
 
 let uiState = {
@@ -51,13 +101,23 @@ function resetUIState() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MAIN RENDER - Field Notebook
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════
+
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN RENDER
 // ═══════════════════════════════════════════════════════════════
 
 export function refreshLocations() {
     const container = document.getElementById('field-notebook-container');
     if (!container) {
-        // Fallback: try old IDs for backwards compat
         renderLegacy();
         return;
     }
@@ -72,15 +132,12 @@ export function refreshLocations() {
             <div class="notebook-content">
     `;
     
-    // ─────────────────────────────────────────────────────────
     // CURRENT LOCATION
-    // ─────────────────────────────────────────────────────────
-    
     if (!uiState.editingLocation) {
         html += `
             <div class="notebook-section">
                 <div class="notebook-label">currently at:</div>
-                <div class="notebook-location" id="notebook-current-loc">
+                <div class="notebook-location">
                     ${escapeHtml(current?.name || 'Unknown Location')}
                     ${current?.district ? `<span class="notebook-district">(${escapeHtml(current.district)})</span>` : ''}
                     <button class="notebook-edit-btn" id="notebook-edit-location" title="Change location">✎</button>
@@ -88,7 +145,6 @@ export function refreshLocations() {
             </div>
         `;
     } else {
-        // Inline edit form
         const options = locations.map(loc => 
             `<option value="${loc.id}" ${current?.id === loc.id ? 'selected' : ''}>${escapeHtml(loc.name)}</option>`
         ).join('');
@@ -113,25 +169,18 @@ export function refreshLocations() {
         `;
     }
     
-    // ─────────────────────────────────────────────────────────
-    // NOTES FROM HERE (events)
-    // ─────────────────────────────────────────────────────────
-    
-    html += `
-        <div class="notebook-section">
-            <div class="notebook-label">notes from here:</div>
-    `;
+    // NOTES
+    html += `<div class="notebook-section"><div class="notebook-label">notes from here:</div>`;
     
     if (events.length === 0) {
         html += `<div class="notebook-empty">nothing yet...</div>`;
     } else {
-        const recentEvents = events.slice(-5).reverse();
-        recentEvents.forEach((event, idx) => {
+        events.slice(-5).reverse().forEach((event, idx) => {
             const realIndex = events.length - 1 - idx;
             html += `
                 <div class="notebook-note" data-index="${realIndex}">
                     <span class="notebook-note-text">${escapeHtml(event.text)}</span>
-                    <button class="notebook-note-delete" data-index="${realIndex}" title="remove">×</button>
+                    <button class="notebook-note-delete" data-index="${realIndex}">×</button>
                 </div>
             `;
         });
@@ -153,14 +202,8 @@ export function refreshLocations() {
     
     html += `</div>`;
     
-    // ─────────────────────────────────────────────────────────
-    // PLACES I'VE BEEN (locations list)
-    // ─────────────────────────────────────────────────────────
-    
-    html += `
-        <div class="notebook-section notebook-places">
-            <div class="notebook-label">places I've been:</div>
-    `;
+    // PLACES
+    html += `<div class="notebook-section notebook-places"><div class="notebook-label">places I've been:</div>`;
     
     if (locations.length === 0) {
         html += `<div class="notebook-empty">nowhere yet...</div>`;
@@ -168,14 +211,13 @@ export function refreshLocations() {
         locations.forEach(loc => {
             const isCurrent = current?.id === loc.id;
             const eventCount = loc.events?.length || 0;
-            
             html += `
                 <div class="notebook-place ${isCurrent ? 'current' : ''} ${loc.visited ? 'visited' : 'unvisited'}" data-id="${loc.id}">
                     <span class="notebook-place-icon">${isCurrent ? '📍' : (loc.visited ? '✓' : '○')}</span>
                     <span class="notebook-place-name">${escapeHtml(loc.name)}</span>
                     ${isCurrent ? '<span class="notebook-place-here">← here</span>' : ''}
                     ${eventCount > 0 ? `<span class="notebook-place-count">(${eventCount})</span>` : ''}
-                    <button class="notebook-place-delete" data-id="${loc.id}" title="remove">×</button>
+                    <button class="notebook-place-delete" data-id="${loc.id}">×</button>
                 </div>
             `;
         });
@@ -189,14 +231,8 @@ export function refreshLocations() {
                 <input type="text" class="notebook-input" id="notebook-place-name" placeholder="place name...">
                 <input type="text" class="notebook-input notebook-input-small" id="notebook-place-district" placeholder="district (optional)">
                 <div class="notebook-form-row">
-                    <label class="notebook-checkbox">
-                        <input type="checkbox" id="notebook-place-visited" checked>
-                        <span>visited</span>
-                    </label>
-                    <label class="notebook-checkbox">
-                        <input type="checkbox" id="notebook-place-set-current">
-                        <span>go there</span>
-                    </label>
+                    <label class="notebook-checkbox"><input type="checkbox" id="notebook-place-visited" checked><span>visited</span></label>
+                    <label class="notebook-checkbox"><input type="checkbox" id="notebook-place-set-current"><span>go there</span></label>
                 </div>
                 <div class="notebook-form-actions">
                     <button class="notebook-btn notebook-btn-cancel" id="notebook-place-cancel">cancel</button>
@@ -206,68 +242,53 @@ export function refreshLocations() {
         `;
     }
     
-    html += `</div>`;
-    
-    // Close notebook
-    html += `
-            </div>
-            <div class="notebook-stain"></div>
-        </div>
-    `;
+    html += `</div></div><div class="notebook-stain"></div></div>`;
     
     container.innerHTML = html;
-    
-    // ─────────────────────────────────────────────────────────
-    // EVENT LISTENERS
-    // ─────────────────────────────────────────────────────────
-    
-    // Edit location button
+    attachEventListeners(container, current, locations);
+}
+
+function attachEventListeners(container, current, locations) {
+    // Edit location
     container.querySelector('#notebook-edit-location')?.addEventListener('click', () => {
         uiState.editingLocation = true;
         refreshLocations();
     });
     
     // Location form
-    if (uiState.editingLocation) {
-        container.querySelector('#notebook-loc-cancel')?.addEventListener('click', () => {
-            uiState.editingLocation = false;
-            refreshLocations();
-        });
+    container.querySelector('#notebook-loc-cancel')?.addEventListener('click', () => {
+        uiState.editingLocation = false;
+        refreshLocations();
+    });
+    
+    container.querySelector('#notebook-loc-save')?.addEventListener('click', () => {
+        const selectEl = container.querySelector('#notebook-loc-select');
+        const nameEl = container.querySelector('#notebook-loc-name');
+        const districtEl = container.querySelector('#notebook-loc-district');
         
-        container.querySelector('#notebook-loc-save')?.addEventListener('click', () => {
-            const selectEl = container.querySelector('#notebook-loc-select');
-            const nameEl = container.querySelector('#notebook-loc-name');
-            const districtEl = container.querySelector('#notebook-loc-district');
-            
-            const selectedId = selectEl?.value;
-            const newName = nameEl?.value.trim();
-            
-            if (selectedId) {
-                const loc = locations.find(l => l.id === selectedId);
-                if (loc) {
-                    setCurrentLocation(loc);
-                    if (!loc.visited) updateLocation(loc.id, { visited: true });
-                }
-            } else if (newName) {
-                const newLoc = {
-                    id: `loc_${Date.now()}`,
-                    name: newName,
-                    district: districtEl?.value.trim() || null,
-                    visited: true,
-                    events: [],
-                    discovered: new Date().toISOString()
-                };
-                addLocation(newLoc);
-                setCurrentLocation(newLoc);
+        if (selectEl?.value) {
+            const loc = locations.find(l => l.id === selectEl.value);
+            if (loc) {
+                setCurrentLocation(loc);
+                if (!loc.visited) updateLocation(loc.id, { visited: true });
             }
-            
-            uiState.editingLocation = false;
-            saveChatState();
-            refreshLocations();
-        });
+        } else if (nameEl?.value.trim()) {
+            const newLoc = {
+                id: `loc_${Date.now()}`,
+                name: nameEl.value.trim(),
+                district: districtEl?.value.trim() || null,
+                visited: true,
+                events: [],
+                discovered: new Date().toISOString()
+            };
+            addLocation(newLoc);
+            setCurrentLocation(newLoc);
+        }
         
-        setTimeout(() => container.querySelector('#notebook-loc-select')?.focus(), 50);
-    }
+        uiState.editingLocation = false;
+        saveChatState();
+        refreshLocations();
+    });
     
     // Add note
     container.querySelector('#notebook-add-note')?.addEventListener('click', () => {
@@ -276,35 +297,23 @@ export function refreshLocations() {
         refreshLocations();
     });
     
-    if (uiState.addingNote) {
-        const noteInput = container.querySelector('#notebook-note-input');
-        
-        container.querySelector('#notebook-note-cancel')?.addEventListener('click', () => {
-            uiState.addingNote = false;
-            refreshLocations();
-        });
-        
-        const saveNote = () => {
-            const text = noteInput?.value.trim();
-            if (!text || !current) return;
-            
-            addLocationEvent(current.id, {
-                text: text,
-                timestamp: new Date().toISOString()
-            });
-            
+    container.querySelector('#notebook-note-cancel')?.addEventListener('click', () => {
+        uiState.addingNote = false;
+        refreshLocations();
+    });
+    
+    container.querySelector('#notebook-note-save')?.addEventListener('click', () => {
+        const input = container.querySelector('#notebook-note-input');
+        const text = input?.value.trim();
+        if (text && current) {
+            addLocationEvent(current.id, { text, timestamp: new Date().toISOString() });
             uiState.addingNote = false;
             saveChatState();
             refreshLocations();
-        };
-        
-        container.querySelector('#notebook-note-save')?.addEventListener('click', saveNote);
-        noteInput?.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveNote(); });
-        
-        setTimeout(() => noteInput?.focus(), 50);
-    }
+        }
+    });
     
-    // Delete note
+    // Delete notes
     container.querySelectorAll('.notebook-note-delete').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -317,16 +326,14 @@ export function refreshLocations() {
         });
     });
     
-    // Click place to go there
+    // Click place
     container.querySelectorAll('.notebook-place').forEach(el => {
         el.addEventListener('click', (e) => {
             if (e.target.closest('.notebook-place-delete')) return;
-            
-            const locId = el.dataset.id;
-            const loc = locations.find(l => l.id === locId);
+            const loc = locations.find(l => l.id === el.dataset.id);
             if (loc) {
                 setCurrentLocation(loc);
-                if (!loc.visited) updateLocation(locId, { visited: true });
+                if (!loc.visited) updateLocation(loc.id, { visited: true });
                 saveChatState();
                 refreshLocations();
             }
@@ -337,8 +344,8 @@ export function refreshLocations() {
     container.querySelectorAll('.notebook-place-delete').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const locId = btn.dataset.id;
             if (confirm('Remove this place?')) {
+                const locId = btn.dataset.id;
                 removeLocation(locId);
                 if (current?.id === locId) setCurrentLocation(null);
                 saveChatState();
@@ -353,139 +360,57 @@ export function refreshLocations() {
         refreshLocations();
     });
     
-    if (uiState.addingPlace) {
-        const placeNameInput = container.querySelector('#notebook-place-name');
+    container.querySelector('#notebook-place-cancel')?.addEventListener('click', () => {
+        uiState.addingPlace = false;
+        refreshLocations();
+    });
+    
+    container.querySelector('#notebook-place-save')?.addEventListener('click', () => {
+        const name = container.querySelector('#notebook-place-name')?.value.trim();
+        if (!name) return;
         
-        container.querySelector('#notebook-place-cancel')?.addEventListener('click', () => {
-            uiState.addingPlace = false;
-            refreshLocations();
-        });
+        const newLoc = {
+            id: `loc_${Date.now()}`,
+            name,
+            district: container.querySelector('#notebook-place-district')?.value.trim() || null,
+            visited: container.querySelector('#notebook-place-visited')?.checked ?? true,
+            events: [],
+            discovered: new Date().toISOString()
+        };
         
-        container.querySelector('#notebook-place-save')?.addEventListener('click', () => {
-            const name = placeNameInput?.value.trim();
-            if (!name) return;
-            
-            const newLoc = {
-                id: `loc_${Date.now()}`,
-                name: name,
-                district: container.querySelector('#notebook-place-district')?.value.trim() || null,
-                visited: container.querySelector('#notebook-place-visited')?.checked ?? true,
-                events: [],
-                discovered: new Date().toISOString()
-            };
-            
-            addLocation(newLoc);
-            
-            if (container.querySelector('#notebook-place-set-current')?.checked) {
-                setCurrentLocation(newLoc);
-            }
-            
-            uiState.addingPlace = false;
-            saveChatState();
-            refreshLocations();
-        });
+        addLocation(newLoc);
+        if (container.querySelector('#notebook-place-set-current')?.checked) {
+            setCurrentLocation(newLoc);
+        }
         
-        setTimeout(() => placeNameInput?.focus(), 50);
-    }
+        uiState.addingPlace = false;
+        saveChatState();
+        refreshLocations();
+    });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// LEGACY RENDER - for old HTML structure
-// ═══════════════════════════════════════════════════════════════
-
+// Legacy render for old HTML
 function renderLegacy() {
     const nameEl = document.getElementById('current-location-name');
     const current = getCurrentLocation();
-    
-    if (nameEl) {
-        nameEl.textContent = current?.name || 'Unknown Location';
-    }
-    
-    // Events
-    const listEl = document.getElementById('events-list');
-    const emptyEl = document.getElementById('events-empty');
-    
-    if (listEl) {
-        const events = getCurrentLocationEvents();
-        
-        if (events.length === 0) {
-            listEl.innerHTML = '';
-            if (emptyEl) emptyEl.style.display = 'block';
-        } else {
-            if (emptyEl) emptyEl.style.display = 'none';
-            const recentEvents = events.slice(-5).reverse();
-            listEl.innerHTML = recentEvents.map((event, index) => `
-                <li data-event-index="${events.length - 1 - index}">
-                    ${escapeHtml(event.text)}
-                </li>
-            `).join('');
-        }
-    }
-    
-    // Locations
-    const locListEl = document.getElementById('locations-list');
-    const locEmptyEl = document.getElementById('locations-empty');
-    
-    if (locListEl) {
-        const locations = getLocations();
-        
-        if (locations.length === 0) {
-            locListEl.innerHTML = '';
-            if (locEmptyEl) locEmptyEl.style.display = 'block';
-        } else {
-            if (locEmptyEl) locEmptyEl.style.display = 'none';
-            locListEl.innerHTML = locations.map(loc => `
-                <div class="location-card ${current?.id === loc.id ? 'current' : ''}" data-location-id="${loc.id}">
-                    ${escapeHtml(loc.name)}
-                </div>
-            `).join('');
-        }
-    }
+    if (nameEl) nameEl.textContent = current?.name || 'Unknown Location';
 }
 
 // ═══════════════════════════════════════════════════════════════
-// UTILITIES
-// ═══════════════════════════════════════════════════════════════
-
-function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// INITIALIZATION
+// INIT
 // ═══════════════════════════════════════════════════════════════
 
 export function initLocationHandlers() {
-    console.log('[Tribunal] Initializing location handlers (Field Notebook)...');
-    
-    // Reset UI state on chat change (eventSource is global in ST)
-    try {
-        if (typeof eventSource !== 'undefined' && typeof event_types !== 'undefined') {
-            eventSource.on(event_types.CHAT_CHANGED, () => {
-                resetUIState();
-                setTimeout(refreshLocations, 100);
-            });
-        }
-    } catch (e) {
-        console.warn('[Tribunal] Could not register chat change listener:', e);
-    }
-    
+    console.log('[Tribunal] Location handlers init...');
     refreshLocations();
     console.log('[Tribunal] Location handlers ✅');
 }
 
-// ═══════════════════════════════════════════════════════════════
-// DEBUG
-// ═══════════════════════════════════════════════════════════════
+export function onChatChanged() {
+    resetUIState();
+    refreshLocations();
+}
 
 export function debugLocations() {
-    return {
-        current: getCurrentLocation(),
-        locations: getLocations(),
-        events: getCurrentLocationEvents(),
-        uiState
-    };
+    return { current: getCurrentLocation(), locations: getLocations(), uiState };
 }
