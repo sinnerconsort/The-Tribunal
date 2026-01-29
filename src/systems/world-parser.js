@@ -3,7 +3,7 @@
  * Parses <!--- WORLD{...} ---> tags from messages
  * Updates location, weather, and time without API calls
  * 
- * @version 1.0.0
+ * @version 1.1.0 - Fixed time parsing for watch.js integration
  * 
  * WORLD Tag Format:
  * <!--- WORLD{"weather":"Heavy Rain","temp":72,"location":"Outside Venue, Roseville","time":"11:30 PM"} --->
@@ -81,6 +81,94 @@ function parseLocationString(locationStr) {
         name: locationStr.trim(),
         district: null
     };
+}
+
+/**
+ * Parse time string to hours and minutes
+ * Handles: "11:30 PM", "3:45 AM", "14:30", "2:00pm"
+ * @param {string} timeStr - Time string
+ * @returns {Object|null} { hours: 0-23, minutes: 0-59 } or null
+ */
+function parseTimeString(timeStr) {
+    if (!timeStr || typeof timeStr !== 'string') return null;
+    
+    // Try 12-hour format: "11:30 PM", "3:45 am", "2:00PM"
+    const ampmMatch = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)/i);
+    if (ampmMatch) {
+        let hours = parseInt(ampmMatch[1], 10);
+        const minutes = parseInt(ampmMatch[2], 10);
+        const isPM = ampmMatch[3].toUpperCase() === 'PM';
+        
+        // Convert to 24-hour
+        if (isPM && hours !== 12) hours += 12;
+        if (!isPM && hours === 12) hours = 0;
+        
+        return { hours, minutes };
+    }
+    
+    // Try 24-hour format: "14:30", "08:00"
+    const militaryMatch = timeStr.match(/(\d{1,2}):(\d{2})/);
+    if (militaryMatch) {
+        return {
+            hours: parseInt(militaryMatch[1], 10),
+            minutes: parseInt(militaryMatch[2], 10)
+        };
+    }
+    
+    return null;
+}
+
+/**
+ * Map weather strings to watch-compatible values
+ * watch.js uses: clear, clear-day, clear-night, cloudy, rain, rainy, 
+ *                storm, stormy, snow, snowy, fog, foggy, wind, windy, mist
+ */
+function normalizeWeatherForWatch(weatherStr) {
+    if (!weatherStr) return null;
+    
+    const lower = weatherStr.toLowerCase().trim();
+    
+    // Direct mappings
+    const WEATHER_MAP = {
+        'clear': 'clear-day',
+        'sunny': 'clear-day',
+        'cloudy': 'cloudy',
+        'overcast': 'cloudy',
+        'rain': 'rainy',
+        'rainy': 'rainy',
+        'raining': 'rainy',
+        'light rain': 'rainy',
+        'heavy rain': 'stormy',
+        'storm': 'stormy',
+        'stormy': 'stormy',
+        'thunderstorm': 'stormy',
+        'snow': 'snowy',
+        'snowy': 'snowy',
+        'snowing': 'snowy',
+        'fog': 'foggy',
+        'foggy': 'foggy',
+        'mist': 'foggy',
+        'misty': 'foggy',
+        'wind': 'windy',
+        'windy': 'windy'
+    };
+    
+    // Check direct match
+    if (WEATHER_MAP[lower]) {
+        return WEATHER_MAP[lower];
+    }
+    
+    // Check partial matches
+    if (lower.includes('rain')) return 'rainy';
+    if (lower.includes('storm') || lower.includes('thunder')) return 'stormy';
+    if (lower.includes('snow')) return 'snowy';
+    if (lower.includes('fog') || lower.includes('mist')) return 'foggy';
+    if (lower.includes('wind')) return 'windy';
+    if (lower.includes('cloud') || lower.includes('overcast')) return 'cloudy';
+    if (lower.includes('clear') || lower.includes('sunny')) return 'clear-day';
+    
+    // Return as-is if no mapping found
+    return lower;
 }
 
 /**
@@ -177,29 +265,21 @@ export function applyWorldState(worldData, options = {}) {
         const weatherStr = worldData.weather;
         const temp = worldData.temp || worldData.temperature;
         
-        // Update ledger weather
+        // Update ledger weather (for persistence)
         setWeather(weatherStr);
         
         // Update watch display
-        if (typeof setRPWeather === 'function') {
-            // Convert weather string to watch format
-            const weatherLower = weatherStr.toLowerCase();
-            let watchWeather = 'clear';
-            
-            if (weatherLower.includes('rain') || weatherLower.includes('storm')) {
-                watchWeather = 'rain';
-            } else if (weatherLower.includes('snow')) {
-                watchWeather = 'snow';
-            } else if (weatherLower.includes('cloud') || weatherLower.includes('overcast')) {
-                watchWeather = 'cloudy';
-            } else if (weatherLower.includes('fog') || weatherLower.includes('mist')) {
-                watchWeather = 'fog';
+        const watchWeather = normalizeWeatherForWatch(weatherStr);
+        if (watchWeather) {
+            try {
+                setRPWeather(watchWeather);
+                console.log('[WorldParser] Set watch weather to:', watchWeather);
+            } catch (e) {
+                console.warn('[WorldParser] Could not set watch weather:', e.message);
             }
-            
-            setRPWeather(watchWeather);
         }
         
-        result.weather = { condition: weatherStr, temp };
+        result.weather = { condition: weatherStr, normalized: watchWeather, temp };
         result.updated = true;
     }
     
@@ -209,15 +289,21 @@ export function applyWorldState(worldData, options = {}) {
     if (updateTime && worldData.time) {
         const timeStr = worldData.time;
         
-        // Update ledger time
+        // Update ledger time (for persistence)
         setTime(timeStr);
         
-        // Update watch display
-        if (typeof setRPTime === 'function') {
-            setRPTime(timeStr);
+        // Parse and update watch display
+        const parsed = parseTimeString(timeStr);
+        if (parsed) {
+            try {
+                setRPTime(parsed.hours, parsed.minutes);
+                console.log('[WorldParser] Set watch time to:', parsed.hours, ':', parsed.minutes);
+            } catch (e) {
+                console.warn('[WorldParser] Could not set watch time:', e.message);
+            }
         }
         
-        result.time = timeStr;
+        result.time = { display: timeStr, parsed };
         result.updated = true;
     }
     
@@ -295,7 +381,9 @@ export function debugWorldParser() {
     return {
         currentLocation: getCurrentLocation(),
         ledger: getLedger(),
-        testParse: (text) => parseWorldTag(text)
+        testParse: (text) => parseWorldTag(text),
+        testTime: (text) => parseTimeString(text),
+        testWeather: (text) => normalizeWeatherForWatch(text)
     };
 }
 
