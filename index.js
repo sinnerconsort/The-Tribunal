@@ -107,11 +107,6 @@ export {
     incrementMessageCount, getMessageCount
 } from './src/core/state.js';
 
-export { 
-    getCurrentLocation, setCurrentLocation, addLocation, updateLocation, 
-    removeLocation, addLocationEvent, removeLocationEvent 
-} from './src/core/state.js';
-
 // Voice functions
 export { generateVoicesForMessage, renderVoices, appendVoicesToChat };
 
