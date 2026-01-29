@@ -11,10 +11,16 @@ import {
     removeEquipment, 
     toggleEquipment,
     initializeEquipment,
-    getChatState
+    getChatState,
+    getEquipmentItems,
+    getPersona
 } from '../core/state.js';
 
+import { getContext } from '../../../../../extensions.js';
 import { eventSource, event_types } from '../../../../../../script.js';
+
+// Lazy-loaded generation function
+let generateEquipmentFromMessage = null;
 
 // ═══════════════════════════════════════════════════════════════
 // INLINE HELPERS (avoid external imports)
@@ -157,6 +163,125 @@ function showAddItemDialog() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// SCAN FUNCTIONALITY
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Scan persona + recent messages for equipment
+ */
+async function scanForEquipment() {
+    // Check for active chat
+    const chatState = getChatState();
+    if (!chatState) {
+        if (typeof toastr !== 'undefined') {
+            toastr.warning('No active chat', 'Equipment');
+        }
+        return;
+    }
+    
+    // Lazy-load generation module if needed
+    if (!generateEquipmentFromMessage) {
+        try {
+            const module = await import('../voice/equipment-generation.js');
+            generateEquipmentFromMessage = module.generateEquipmentFromMessage;
+        } catch (e) {
+            console.error('[Tribunal] Failed to load equipment generation:', e);
+            if (typeof toastr !== 'undefined') {
+                toastr.error('Equipment generation not available', 'Equipment');
+            }
+            return;
+        }
+    }
+    
+    // Gather text to scan
+    const textParts = [];
+    
+    // 1. Persona context
+    const persona = getPersona();
+    if (persona?.context) {
+        textParts.push(`[PERSONA]\n${persona.context}`);
+    }
+    
+    // 2. Character description from ST context
+    const ctx = getContext();
+    if (ctx?.characters) {
+        const char = ctx.characters[ctx.characterId];
+        if (char?.description) {
+            textParts.push(`[CHARACTER]\n${char.description}`);
+        }
+        if (char?.first_mes) {
+            textParts.push(`[GREETING]\n${char.first_mes}`);
+        }
+    }
+    
+    // 3. Recent chat messages (last 10)
+    if (ctx?.chat) {
+        const recentMessages = ctx.chat.slice(-10);
+        for (const msg of recentMessages) {
+            if (msg.mes) {
+                textParts.push(msg.mes);
+            }
+        }
+    }
+    
+    if (textParts.length === 0) {
+        if (typeof toastr !== 'undefined') {
+            toastr.info('Nothing to scan', 'Equipment');
+        }
+        return;
+    }
+    
+    // Combine and scan
+    const combinedText = textParts.join('\n\n');
+    
+    if (typeof toastr !== 'undefined') {
+        toastr.info('Scanning for equipment...', 'Equipment', { timeOut: 2000 });
+    }
+    
+    try {
+        const results = await generateEquipmentFromMessage(combinedText, {
+            existingEquipment: getEquipmentItems()
+        });
+        
+        if (results.error) {
+            console.warn('[Tribunal] Scan error:', results.error);
+            if (typeof toastr !== 'undefined') {
+                toastr.warning(`Scan issue: ${results.error}`, 'Equipment');
+            }
+            return;
+        }
+        
+        if (results.equipment?.length > 0) {
+            let addedCount = 0;
+            for (const item of results.equipment) {
+                const added = addEquipment({
+                    ...item,
+                    equipped: true
+                });
+                if (added) addedCount++;
+            }
+            
+            refreshEquipment();
+            
+            if (typeof toastr !== 'undefined') {
+                toastr.success(`Found ${addedCount} item(s)`, 'Equipment');
+            }
+            console.log(`[Tribunal] Scan found ${addedCount} equipment items`);
+        } else {
+            if (typeof toastr !== 'undefined') {
+                toastr.info('No equipment found', 'Equipment');
+            }
+        }
+        
+    } catch (e) {
+        console.error('[Tribunal] Scan failed:', e);
+        if (typeof toastr !== 'undefined') {
+            toastr.error('Scan failed', 'Equipment');
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // EVENT HANDLERS
 // ═══════════════════════════════════════════════════════════════
 
@@ -203,6 +328,21 @@ export function initEquipmentHandlers() {
         addBtn.addEventListener('click', showAddItemDialog);
     }
     
+    // Scan button - create dynamically if not in template
+    let scanBtn = document.getElementById('ie-equip-scan-btn');
+    if (!scanBtn && addBtn) {
+        // Create scan button next to add button
+        scanBtn = document.createElement('button');
+        scanBtn.id = 'ie-equip-scan-btn';
+        scanBtn.className = 'equip-scan-btn';
+        scanBtn.innerHTML = '🔍 SCAN';
+        scanBtn.title = 'Scan persona & chat for equipment';
+        addBtn.parentNode.insertBefore(scanBtn, addBtn);
+    }
+    if (scanBtn) {
+        scanBtn.addEventListener('click', scanForEquipment);
+    }
+    
     // Event delegation for items list
     const container = document.getElementById('ie-equip-items-list');
     if (container) {
@@ -222,3 +362,6 @@ export function initEquipmentHandlers() {
     
     console.log('[Tribunal] Equipment handlers initialized');
 }
+
+// Export scan function for external use
+export { scanForEquipment };
