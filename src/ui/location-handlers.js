@@ -2,7 +2,13 @@
  * The Tribunal - Location Handlers
  * Field Notebook style with INLINE forms (no modals!)
  * 
- * @version 2.1.0 - Clean Field Notebook
+ * @version 2.3.0 - STEP 3: Investigate button now wired to Investigation panel
+ * 
+ * CHANGE LOG:
+ * - Step 1: Added CSS for .notebook-investigate-btn
+ * - Step 2: Added button HTML (disabled when no location)
+ * - Step 3: Wired button to open Investigation panel via window.tribunalOpenInv
+ *           (Uses global helper to avoid circular import issues)
  */
 
 import { 
@@ -61,6 +67,23 @@ function escapeHtml(str) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// INVESTIGATION HELPER
+// Uses window global to avoid circular import issues
+// ═══════════════════════════════════════════════════════════════
+
+function openInvestigationPanel() {
+    // Use the global helper that index.js exposes
+    if (typeof window.tribunalOpenInv === 'function') {
+        window.tribunalOpenInv();
+    } else {
+        console.warn('[Tribunal] Investigation panel not available - tribunalOpenInv not found');
+        if (typeof toastr !== 'undefined') {
+            toastr.warning('Investigation not ready yet', 'The Tribunal');
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // MAIN RENDER - Field Notebook
 // ═══════════════════════════════════════════════════════════════
 
@@ -92,6 +115,7 @@ export function refreshLocations() {
                 <div class="notebook-location" id="notebook-current-loc">
                     ${escapeHtml(current?.name || 'Unknown Location')}
                     ${current?.district ? `<span class="notebook-district">(${escapeHtml(current.district)})</span>` : ''}
+                    <button class="notebook-investigate-btn" id="notebook-investigate" title="Investigate here" ${!current ? 'disabled' : ''}>🔍</button>
                     <button class="notebook-edit-btn" id="notebook-edit-location" title="Change location">✎</button>
                 </div>
             </div>
@@ -229,6 +253,12 @@ export function refreshLocations() {
     // ─────────────────────────────────────────────────────────
     // EVENT LISTENERS
     // ─────────────────────────────────────────────────────────
+    
+    // STEP 3: Investigate button - opens Investigation panel
+    container.querySelector('#notebook-investigate')?.addEventListener('click', () => {
+        if (!current) return;
+        openInvestigationPanel();
+    });
     
     // Edit location button
     container.querySelector('#notebook-edit-location')?.addEventListener('click', () => {
