@@ -796,7 +796,7 @@ async function init() {
 
     // Lazy load extractor
 try {
-    const extractor = await import('./src/data/ai-extractor.js');
+    const extractor = await import('./src/systems/ai-extractor.js');
     extractFromMessage = extractor.extractFromMessage;
     processExtractionResults = extractor.processExtractionResults;
     console.log('[Tribunal] AI Extractor loaded');
