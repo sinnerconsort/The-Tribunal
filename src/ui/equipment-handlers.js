@@ -1,8 +1,11 @@
 /**
- * The Tribunal - Equipment Handlers (Minimal)
+ * The Tribunal - Equipment Handlers (FIXED)
  * Martinaise Cleaners ticket system
  * 
- * Kept deliberately simple to avoid import chain issues
+ * FIXES:
+ * - Better persona retrieval (checks multiple locations)
+ * - Improved debug logging for mobile troubleshooting
+ * - More robust scan function
  */
 
 import { 
@@ -23,34 +26,106 @@ import { eventSource, event_types } from '../../../../../../script.js';
 let generateEquipmentFromMessage = null;
 
 // ═══════════════════════════════════════════════════════════════
-// INLINE HELPERS (avoid external imports)
+// PERSONA RETRIEVAL (IMPROVED)
+// Checks multiple locations for user persona description
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Get ST user persona description
- * ST stores this in power_user.persona_description
+ * Get ST user persona description from all possible locations
+ * @returns {string|null} Persona description or null
  */
 function getSTPersonaDescription() {
-    // Try window.power_user first (most reliable)
+    let found = null;
+    let source = null;
+    
+    // Method 1: window.power_user (most common)
     if (window.power_user?.persona_description) {
-        return window.power_user.persona_description;
+        found = window.power_user.persona_description;
+        source = 'window.power_user.persona_description';
     }
     
-    // Fallback: try importing from script.js at runtime
-    try {
-        const script = window.SillyTavern?.getContext?.() || {};
-        if (script.power_user?.persona_description) {
-            return script.power_user.persona_description;
+    // Method 2: SillyTavern context
+    if (!found) {
+        try {
+            const ctx = getContext();
+            if (ctx?.power_user?.persona_description) {
+                found = ctx.power_user.persona_description;
+                source = 'context.power_user.persona_description';
+            }
+        } catch (e) {
+            // Ignore
         }
+    }
+    
+    // Method 3: Global SillyTavern object
+    if (!found) {
+        try {
+            if (window.SillyTavern?.getContext) {
+                const stCtx = window.SillyTavern.getContext();
+                if (stCtx?.power_user?.persona_description) {
+                    found = stCtx.power_user.persona_description;
+                    source = 'SillyTavern.getContext().power_user';
+                }
+            }
+        } catch (e) {
+            // Ignore
+        }
+    }
+    
+    // Method 4: Check for persona in user object
+    if (!found) {
+        try {
+            if (window.user?.persona) {
+                found = window.user.persona;
+                source = 'window.user.persona';
+            }
+        } catch (e) {
+            // Ignore
+        }
+    }
+    
+    // Method 5: Check name1_description (some ST versions use this)
+    if (!found) {
+        try {
+            if (window.name1_description) {
+                found = window.name1_description;
+                source = 'window.name1_description';
+            }
+        } catch (e) {
+            // Ignore
+        }
+    }
+    
+    if (found) {
+        console.log('[Tribunal] Found persona via:', source);
+        console.log('[Tribunal] Persona preview:', found.substring(0, 200));
+    } else {
+        console.log('[Tribunal] No persona found in any location');
+    }
+    
+    return found;
+}
+
+/**
+ * Get user persona name
+ */
+function getSTPersonaName() {
+    // Try various locations
+    if (window.power_user?.persona_name) return window.power_user.persona_name;
+    if (window.name1) return window.name1;
+    
+    try {
+        const ctx = getContext();
+        if (ctx?.name1) return ctx.name1;
     } catch (e) {
         // Ignore
     }
     
-    return null;
+    return 'User';
 }
 
 // ═══════════════════════════════════════════════════════════════
-// INLINE HELPERS (avoid external imports)
+// INLINE HELPERS
 // ═══════════════════════════════════════════════════════════════
 
 const EQUIPMENT_EMOJI = {
@@ -62,9 +137,13 @@ const EQUIPMENT_EMOJI = {
     glasses: '👓', eyewear: '🕶️',
     jewelry: '💍', ring: '💍', necklace: '📿',
     watch: '⌚',
-    bag: '👜', briefcase: '💼',
+    bag: '👜', briefcase: '💼', backpack: '🎒',
     weapon: '🔫',
     badge: '🪪',
+    mask: '🎭',
+    vest: '🦺',
+    scarf: '🧣',
+    belt: '🪢',
     other: '📦'
 };
 
@@ -92,7 +171,7 @@ export function refreshEquipment() {
     
     if (!container) return;
     
-    // CRITICAL: Check for active chat state first
+    // Check for active chat state
     const chatState = getChatState();
     if (!chatState) {
         container.innerHTML = '<p class="equip-ticket-empty">No items checked in</p>';
@@ -100,7 +179,7 @@ export function refreshEquipment() {
         return;
     }
     
-    // Initialize equipment state if needed (only if we have valid chat)
+    // Initialize equipment state if needed
     initializeEquipment();
     
     const equipment = getEquipment();
@@ -143,7 +222,6 @@ export function refreshEquipment() {
 // ═══════════════════════════════════════════════════════════════
 
 function showAddItemDialog() {
-    // Check for active chat first
     const chatState = getChatState();
     if (!chatState) {
         if (typeof toastr !== 'undefined') {
@@ -152,7 +230,6 @@ function showAddItemDialog() {
         return;
     }
     
-    // Simple prompt-based for now - can upgrade to modal later
     const name = prompt('Item name:');
     if (!name || !name.trim()) return;
     
@@ -190,29 +267,36 @@ function showAddItemDialog() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SCAN FUNCTIONALITY
+// SCAN FUNCTIONALITY (IMPROVED)
 // ═══════════════════════════════════════════════════════════════
 
 /**
  * Scan persona + recent messages for equipment
  */
 async function scanForEquipment() {
+    console.log('[Tribunal] ═══════════════════════════════════════');
+    console.log('[Tribunal] Starting Equipment Scan...');
+    console.log('[Tribunal] ═══════════════════════════════════════');
+    
     // Check for active chat
     const chatState = getChatState();
     if (!chatState) {
+        console.log('[Tribunal] ❌ No active chat state');
         if (typeof toastr !== 'undefined') {
             toastr.warning('No active chat', 'Equipment');
         }
         return;
     }
     
-    // Lazy-load generation module if needed
+    // Lazy-load generation module
     if (!generateEquipmentFromMessage) {
         try {
+            console.log('[Tribunal] Loading equipment-generation module...');
             const module = await import('../voice/equipment-generation.js');
             generateEquipmentFromMessage = module.generateEquipmentFromMessage;
+            console.log('[Tribunal] ✓ Module loaded');
         } catch (e) {
-            console.error('[Tribunal] Failed to load equipment generation:', e);
+            console.error('[Tribunal] ❌ Failed to load equipment generation:', e);
             if (typeof toastr !== 'undefined') {
                 toastr.error('Equipment generation not available', 'Equipment');
             }
@@ -220,39 +304,55 @@ async function scanForEquipment() {
         }
     }
     
-    // Gather text to scan - multiple sources
+    // Gather text to scan from multiple sources
     const textParts = [];
     const ctx = getContext();
     
-    // 1. Tribunal's persona context (player character)
+    console.log('[Tribunal] Gathering text sources...');
+    
+    // ─────────────────────────────────────────────────────────────
+    // Source 1: Tribunal's persona context (if set)
+    // ─────────────────────────────────────────────────────────────
     const persona = getPersona();
     if (persona?.context) {
-        console.log('[Tribunal] Scan: Found Tribunal persona context');
-        textParts.push(`[PLAYER CHARACTER]\n${persona.context}`);
+        console.log('[Tribunal] ✓ Source 1: Tribunal persona context');
+        console.log('[Tribunal]   Preview:', persona.context.substring(0, 100));
+        textParts.push(`[TRIBUNAL PERSONA]\n${persona.context}`);
+    } else {
+        console.log('[Tribunal] ⏭️ Source 1: No Tribunal persona');
     }
     
-    // 2. SillyTavern user persona (power_user.persona_description)
+    // ─────────────────────────────────────────────────────────────
+    // Source 2: SillyTavern user persona
+    // ─────────────────────────────────────────────────────────────
     const stPersona = getSTPersonaDescription();
     if (stPersona) {
-        console.log('[Tribunal] Scan: Found ST persona description');
-        textParts.push(`[USER PERSONA]\n${stPersona}`);
+        console.log('[Tribunal] ✓ Source 2: ST persona description');
+        console.log('[Tribunal]   Length:', stPersona.length, 'chars');
+        textParts.push(`[USER PERSONA - ${getSTPersonaName()}]\n${stPersona}`);
+    } else {
+        console.log('[Tribunal] ⏭️ Source 2: No ST persona');
     }
     
-    // 3. If no user persona found, check AI character (they often describe player appearance)
-    if (textParts.length === 0 && ctx?.characters) {
+    // ─────────────────────────────────────────────────────────────
+    // Source 3: AI Character description (sometimes describes player)
+    // ─────────────────────────────────────────────────────────────
+    if (ctx?.characters && ctx?.characterId !== undefined) {
         const char = ctx.characters[ctx.characterId];
         if (char?.description) {
-            console.log('[Tribunal] Scan: Falling back to AI character description');
-            textParts.push(`[CHARACTER DESCRIPTION]\n${char.description}`);
+            console.log('[Tribunal] ✓ Source 3: AI character description');
+            textParts.push(`[CHARACTER: ${char.name || 'Unknown'}]\n${char.description}`);
         }
         if (char?.first_mes) {
-            console.log('[Tribunal] Scan: Including AI first message');
+            console.log('[Tribunal] ✓ Source 3b: AI first message');
             textParts.push(`[GREETING]\n${char.first_mes}`);
         }
     }
     
-    // 4. Recent chat messages - look for player actions/descriptions
-    if (ctx?.chat) {
+    // ─────────────────────────────────────────────────────────────
+    // Source 4: Recent chat messages
+    // ─────────────────────────────────────────────────────────────
+    if (ctx?.chat && ctx.chat.length > 0) {
         const recentMessages = ctx.chat.slice(-10);
         let chatText = '';
         for (const msg of recentMessages) {
@@ -261,29 +361,36 @@ async function scanForEquipment() {
             }
         }
         if (chatText.trim()) {
-            console.log('[Tribunal] Scan: Found', recentMessages.length, 'recent messages');
+            console.log('[Tribunal] ✓ Source 4: Recent chat (', recentMessages.length, 'messages)');
             textParts.push(`[RECENT CHAT]\n${chatText}`);
         }
+    } else {
+        console.log('[Tribunal] ⏭️ Source 4: No chat messages');
     }
     
-    // Log what we're scanning
-    console.log('[Tribunal] Scan sources found:', textParts.length);
+    // ─────────────────────────────────────────────────────────────
+    // Check if we have anything to scan
+    // ─────────────────────────────────────────────────────────────
+    console.log('[Tribunal] Total sources found:', textParts.length);
     
     if (textParts.length === 0) {
+        console.log('[Tribunal] ❌ No text sources found!');
         if (typeof toastr !== 'undefined') {
-            toastr.warning('No persona or chat to scan. Set your character description!', 'Equipment', { timeOut: 5000 });
+            toastr.warning('No persona or chat to scan.\nSet your character description in ST settings!', 'Equipment', { timeOut: 5000 });
         }
         return;
     }
     
-    // Combine and scan (limit to ~8000 chars to avoid overwhelming AI)
+    // Combine and limit size
     let combinedText = textParts.join('\n\n');
     if (combinedText.length > 8000) {
-        console.log('[Tribunal] Truncating scan text from', combinedText.length, 'to 8000 chars');
+        console.log('[Tribunal] Truncating from', combinedText.length, 'to 8000 chars');
         combinedText = combinedText.substring(0, 8000);
     }
     
+    console.log('[Tribunal] ═══════════════════════════════════════');
     console.log('[Tribunal] Scanning', combinedText.length, 'chars for equipment');
+    console.log('[Tribunal] ═══════════════════════════════════════');
     
     if (typeof toastr !== 'undefined') {
         toastr.info('Scanning for equipment...', 'Equipment', { timeOut: 2000 });
@@ -293,6 +400,8 @@ async function scanForEquipment() {
         const results = await generateEquipmentFromMessage(combinedText, {
             existingEquipment: getEquipmentItems()
         });
+        
+        console.log('[Tribunal] Scan results:', results);
         
         if (results.error) {
             console.warn('[Tribunal] Scan error:', results.error);
@@ -309,7 +418,10 @@ async function scanForEquipment() {
                     ...item,
                     equipped: true
                 });
-                if (added) addedCount++;
+                if (added) {
+                    addedCount++;
+                    console.log('[Tribunal] ✓ Added:', added.name);
+                }
             }
             
             refreshEquipment();
@@ -317,8 +429,9 @@ async function scanForEquipment() {
             if (typeof toastr !== 'undefined') {
                 toastr.success(`Found ${addedCount} item(s)`, 'Equipment');
             }
-            console.log(`[Tribunal] Scan found ${addedCount} equipment items`);
+            console.log('[Tribunal] ✅ Scan complete:', addedCount, 'items added');
         } else {
+            console.log('[Tribunal] Scan complete: No new equipment found');
             if (typeof toastr !== 'undefined') {
                 toastr.info('No equipment found', 'Equipment');
             }
@@ -327,7 +440,7 @@ async function scanForEquipment() {
     } catch (e) {
         console.error('[Tribunal] Scan failed:', e);
         if (typeof toastr !== 'undefined') {
-            toastr.error('Scan failed', 'Equipment');
+            toastr.error('Scan failed: ' + e.message, 'Equipment');
         }
     }
 }
@@ -359,7 +472,7 @@ function handleEquipmentClick(e) {
     if (itemEl && !target.classList.contains('equip-item-remove')) {
         const itemId = itemEl.dataset.itemId;
         if (itemId) {
-            const newState = toggleEquipment(itemId);
+            toggleEquipment(itemId);
             refreshEquipment();
         }
     }
@@ -373,16 +486,18 @@ function handleEquipmentClick(e) {
  * Initialize equipment handlers
  */
 export function initEquipmentHandlers() {
+    console.log('[Tribunal] Initializing equipment handlers...');
+    
     // Add button
     const addBtn = document.getElementById('ie-equip-add-btn');
     if (addBtn) {
         addBtn.addEventListener('click', showAddItemDialog);
+        console.log('[Tribunal] ✓ Add button handler');
     }
     
-    // Scan button - create dynamically if not in template
+    // Scan button
     let scanBtn = document.getElementById('ie-equip-scan-btn');
     if (!scanBtn && addBtn) {
-        // Create scan button next to add button
         scanBtn = document.createElement('button');
         scanBtn.id = 'ie-equip-scan-btn';
         scanBtn.className = 'equip-scan-btn';
@@ -392,20 +507,23 @@ export function initEquipmentHandlers() {
     }
     if (scanBtn) {
         scanBtn.addEventListener('click', scanForEquipment);
+        console.log('[Tribunal] ✓ Scan button handler');
     }
     
     // Event delegation for items list
     const container = document.getElementById('ie-equip-items-list');
     if (container) {
         container.addEventListener('click', handleEquipmentClick);
+        console.log('[Tribunal] ✓ Items list click handler');
     }
     
-    // Listen for chat changes to refresh UI
+    // Listen for chat changes
     if (eventSource && event_types?.CHAT_CHANGED) {
         eventSource.on(event_types.CHAT_CHANGED, () => {
-            setTimeout(refreshEquipment, 100); // Small delay for state to load
+            console.log('[Tribunal] Chat changed - refreshing equipment');
+            setTimeout(refreshEquipment, 100);
         });
-        console.log('[Tribunal] Equipment listening for CHAT_CHANGED');
+        console.log('[Tribunal] ✓ CHAT_CHANGED listener');
     }
     
     // Initial render
