@@ -71,6 +71,7 @@ let debugWeather = () => console.log('[Tribunal] Weather not loaded');
 // ═══════════════════════════════════════════════════════════════
 let extractFromMessage = async () => ({ error: 'not loaded' });
 let processExtractionResults = async () => ({});
+let generateEquipmentFromMessage = async () => ({ equipment: [], removed: [] });
 import { generateVoicesForMessage } from './src/voice/generation.js';
 import { renderVoices, appendVoicesToChat, clearVoices } from './src/voice/render-voices.js';
 
@@ -825,6 +826,13 @@ import('./src/ui/equipment-handlers.js').then(module => {
     console.log('[Tribunal] Location handlers initialized');
 
     startWatch();
+
+    import('./src/voice/equipment-generation.js').then(module => {
+    generateEquipmentFromMessage = module.generateEquipmentFromMessage;
+    console.log('[Tribunal] Equipment generation loaded');
+}).catch(err => {
+    console.warn('[Tribunal] Equipment generation not loaded:', err.message);
+});
     
     // Initialize radio
     import('./src/ui/radio.js').then(module => {
