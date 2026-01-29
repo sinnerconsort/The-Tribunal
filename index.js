@@ -28,8 +28,7 @@ import { EQUIPMENT_TYPES } from './src/data/equipment.js';
 
 import { registerEvents, onStateRefresh } from './src/core/events.js';
 // FIX: Added getVoiceState and setLastGeneratedVoices for voice persistence
-import { getSettings, saveSettings, setPersona, getVoiceState, setLastGeneratedVoices } from './src/core/state.js';
-
+import { getSettings, saveSettings, setPersona, getVoiceState, setLastGeneratedVoices, getEquipmentItems, addEquipment } from './src/core/state.js';
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - UI Components
 // ═══════════════════════════════════════════════════════════════
@@ -110,7 +109,7 @@ export {
     getRelationships, getRelationship, addRelationship, updateFavor, setVoiceOpinion, getDominantVoice,
     getVoiceState, setLastGeneratedVoices, awakenVoice, setActiveInvestigation, addDiscoveredClue,
     getPersona, setPersona,
-    incrementMessageCount, getMessageCount
+    incrementMessageCount, getMessageCount, getEquipmentItems, addEquipment
 } from './src/core/state.js';
 
 // Voice functions
@@ -368,6 +367,42 @@ function onNewAIMessage(messageIndex) {
     setTimeout(() => {
         triggerVoiceGeneration(message.mes, false);
     }, 500);
+
+    Small delay to ensure message is fully rendered
+    setTimeout(() => {
+        triggerVoiceGeneration(message.mes, false);
+    }, 500);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // EQUIPMENT EXTRACTION - Extract clothing/accessories from message
+    // ═══════════════════════════════════════════════════════════════
+    
+    setTimeout(async () => {
+        try {
+            const equipResults = await generateEquipmentFromMessage(message.mes, {
+                existingEquipment: getEquipmentItems()
+            });
+            
+            if (equipResults.equipment?.length > 0) {
+                for (const item of equipResults.equipment) {
+                    addEquipment({
+                        ...item,
+                        equipped: true
+                    });
+                }
+                console.log(`[Tribunal] Extracted ${equipResults.equipment.length} equipment items`);
+                
+                // Show toastr for each item
+                if (typeof toastr !== 'undefined') {
+                    for (const item of equipResults.equipment) {
+                        toastr.success(`Found: ${item.name}`, 'Equipment', { timeOut: 3000 });
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[Tribunal] Equipment extraction failed:', e.message);
+        }
+    }, 1000);  // Slight delay after voice gen
     
     // ═══════════════════════════════════════════════════════════════
     // AI EXTRACTION - Extract quests, contacts, locations from message
