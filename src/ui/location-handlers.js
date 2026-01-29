@@ -1,8 +1,8 @@
 /**
  * The Tribunal - Location Handlers
- * Handles current location, events, and discovered locations in MAP tab
+ * Field Notebook style with INLINE forms (no modals!)
  * 
- * @version 1.0.1 - Mobile modal fixes
+ * @version 2.0.0 - Field Notebook
  */
 
 import { 
@@ -16,22 +16,17 @@ import {
     removeLocationEvent
 } from '../core/state.js';
 import { saveChatState } from '../core/persistence.js';
+import { eventSource, event_types } from '../../../../../../script.js';
 
 // ═══════════════════════════════════════════════════════════════
 // STATE HELPERS
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Get all discovered locations
- */
 function getLocations() {
     const ledger = getLedger();
     return ledger?.locations || [];
 }
 
-/**
- * Get events for current location
- */
 function getCurrentLocationEvents() {
     const current = getCurrentLocation();
     if (!current) return [];
@@ -42,425 +37,409 @@ function getCurrentLocationEvents() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// UI RENDERING
+// UI STATE - tracks which forms are open
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Render current location display
- */
-function renderCurrentLocation() {
+let uiState = {
+    editingLocation: false,
+    addingNote: false,
+    addingPlace: false
+};
+
+function resetUIState() {
+    uiState = { editingLocation: false, addingNote: false, addingPlace: false };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN RENDER - Field Notebook
+// ═══════════════════════════════════════════════════════════════
+
+export function refreshLocations() {
+    const container = document.getElementById('field-notebook-container');
+    if (!container) {
+        // Fallback: try old IDs for backwards compat
+        renderLegacy();
+        return;
+    }
+    
+    const current = getCurrentLocation();
+    const events = getCurrentLocationEvents();
+    const locations = getLocations();
+    
+    let html = `
+        <div class="notebook-inner">
+            <div class="notebook-spiral"></div>
+            <div class="notebook-content">
+    `;
+    
+    // ─────────────────────────────────────────────────────────
+    // CURRENT LOCATION
+    // ─────────────────────────────────────────────────────────
+    
+    if (!uiState.editingLocation) {
+        html += `
+            <div class="notebook-section">
+                <div class="notebook-label">currently at:</div>
+                <div class="notebook-location" id="notebook-current-loc">
+                    ${escapeHtml(current?.name || 'Unknown Location')}
+                    ${current?.district ? `<span class="notebook-district">(${escapeHtml(current.district)})</span>` : ''}
+                    <button class="notebook-edit-btn" id="notebook-edit-location" title="Change location">✎</button>
+                </div>
+            </div>
+        `;
+    } else {
+        // Inline edit form
+        const options = locations.map(loc => 
+            `<option value="${loc.id}" ${current?.id === loc.id ? 'selected' : ''}>${escapeHtml(loc.name)}</option>`
+        ).join('');
+        
+        html += `
+            <div class="notebook-section">
+                <div class="notebook-label">change location:</div>
+                <div class="notebook-form">
+                    <select class="notebook-input" id="notebook-loc-select">
+                        <option value="">-- pick a place --</option>
+                        ${options}
+                    </select>
+                    <div class="notebook-form-divider">or write new:</div>
+                    <input type="text" class="notebook-input" id="notebook-loc-name" placeholder="place name...">
+                    <input type="text" class="notebook-input notebook-input-small" id="notebook-loc-district" placeholder="district (optional)">
+                    <div class="notebook-form-actions">
+                        <button class="notebook-btn notebook-btn-cancel" id="notebook-loc-cancel">cancel</button>
+                        <button class="notebook-btn notebook-btn-save" id="notebook-loc-save">set location</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // ─────────────────────────────────────────────────────────
+    // NOTES FROM HERE (events)
+    // ─────────────────────────────────────────────────────────
+    
+    html += `
+        <div class="notebook-section">
+            <div class="notebook-label">notes from here:</div>
+    `;
+    
+    if (events.length === 0) {
+        html += `<div class="notebook-empty">nothing yet...</div>`;
+    } else {
+        const recentEvents = events.slice(-5).reverse();
+        recentEvents.forEach((event, idx) => {
+            const realIndex = events.length - 1 - idx;
+            html += `
+                <div class="notebook-note" data-index="${realIndex}">
+                    <span class="notebook-note-text">${escapeHtml(event.text)}</span>
+                    <button class="notebook-note-delete" data-index="${realIndex}" title="remove">×</button>
+                </div>
+            `;
+        });
+    }
+    
+    if (!uiState.addingNote) {
+        html += `<button class="notebook-add-link" id="notebook-add-note" ${!current ? 'disabled' : ''}>+ add note...</button>`;
+    } else {
+        html += `
+            <div class="notebook-form notebook-form-inline">
+                <input type="text" class="notebook-input" id="notebook-note-input" placeholder="what happened here...">
+                <div class="notebook-form-actions">
+                    <button class="notebook-btn notebook-btn-cancel" id="notebook-note-cancel">×</button>
+                    <button class="notebook-btn notebook-btn-save" id="notebook-note-save">add</button>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += `</div>`;
+    
+    // ─────────────────────────────────────────────────────────
+    // PLACES I'VE BEEN (locations list)
+    // ─────────────────────────────────────────────────────────
+    
+    html += `
+        <div class="notebook-section notebook-places">
+            <div class="notebook-label">places I've been:</div>
+    `;
+    
+    if (locations.length === 0) {
+        html += `<div class="notebook-empty">nowhere yet...</div>`;
+    } else {
+        locations.forEach(loc => {
+            const isCurrent = current?.id === loc.id;
+            const eventCount = loc.events?.length || 0;
+            
+            html += `
+                <div class="notebook-place ${isCurrent ? 'current' : ''} ${loc.visited ? 'visited' : 'unvisited'}" data-id="${loc.id}">
+                    <span class="notebook-place-icon">${isCurrent ? '📍' : (loc.visited ? '✓' : '○')}</span>
+                    <span class="notebook-place-name">${escapeHtml(loc.name)}</span>
+                    ${isCurrent ? '<span class="notebook-place-here">← here</span>' : ''}
+                    ${eventCount > 0 ? `<span class="notebook-place-count">(${eventCount})</span>` : ''}
+                    <button class="notebook-place-delete" data-id="${loc.id}" title="remove">×</button>
+                </div>
+            `;
+        });
+    }
+    
+    if (!uiState.addingPlace) {
+        html += `<button class="notebook-add-link" id="notebook-add-place">+ new place...</button>`;
+    } else {
+        html += `
+            <div class="notebook-form">
+                <input type="text" class="notebook-input" id="notebook-place-name" placeholder="place name...">
+                <input type="text" class="notebook-input notebook-input-small" id="notebook-place-district" placeholder="district (optional)">
+                <div class="notebook-form-row">
+                    <label class="notebook-checkbox">
+                        <input type="checkbox" id="notebook-place-visited" checked>
+                        <span>visited</span>
+                    </label>
+                    <label class="notebook-checkbox">
+                        <input type="checkbox" id="notebook-place-set-current">
+                        <span>go there</span>
+                    </label>
+                </div>
+                <div class="notebook-form-actions">
+                    <button class="notebook-btn notebook-btn-cancel" id="notebook-place-cancel">cancel</button>
+                    <button class="notebook-btn notebook-btn-save" id="notebook-place-save">add place</button>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += `</div>`;
+    
+    // Close notebook
+    html += `
+            </div>
+            <div class="notebook-stain"></div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+    
+    // ─────────────────────────────────────────────────────────
+    // EVENT LISTENERS
+    // ─────────────────────────────────────────────────────────
+    
+    // Edit location button
+    container.querySelector('#notebook-edit-location')?.addEventListener('click', () => {
+        uiState.editingLocation = true;
+        refreshLocations();
+    });
+    
+    // Location form
+    if (uiState.editingLocation) {
+        container.querySelector('#notebook-loc-cancel')?.addEventListener('click', () => {
+            uiState.editingLocation = false;
+            refreshLocations();
+        });
+        
+        container.querySelector('#notebook-loc-save')?.addEventListener('click', () => {
+            const selectEl = container.querySelector('#notebook-loc-select');
+            const nameEl = container.querySelector('#notebook-loc-name');
+            const districtEl = container.querySelector('#notebook-loc-district');
+            
+            const selectedId = selectEl?.value;
+            const newName = nameEl?.value.trim();
+            
+            if (selectedId) {
+                const loc = locations.find(l => l.id === selectedId);
+                if (loc) {
+                    setCurrentLocation(loc);
+                    if (!loc.visited) updateLocation(loc.id, { visited: true });
+                }
+            } else if (newName) {
+                const newLoc = {
+                    id: `loc_${Date.now()}`,
+                    name: newName,
+                    district: districtEl?.value.trim() || null,
+                    visited: true,
+                    events: [],
+                    discovered: new Date().toISOString()
+                };
+                addLocation(newLoc);
+                setCurrentLocation(newLoc);
+            }
+            
+            uiState.editingLocation = false;
+            saveChatState();
+            refreshLocations();
+        });
+        
+        setTimeout(() => container.querySelector('#notebook-loc-select')?.focus(), 50);
+    }
+    
+    // Add note
+    container.querySelector('#notebook-add-note')?.addEventListener('click', () => {
+        if (!current) return;
+        uiState.addingNote = true;
+        refreshLocations();
+    });
+    
+    if (uiState.addingNote) {
+        const noteInput = container.querySelector('#notebook-note-input');
+        
+        container.querySelector('#notebook-note-cancel')?.addEventListener('click', () => {
+            uiState.addingNote = false;
+            refreshLocations();
+        });
+        
+        const saveNote = () => {
+            const text = noteInput?.value.trim();
+            if (!text || !current) return;
+            
+            addLocationEvent(current.id, {
+                text: text,
+                timestamp: new Date().toISOString()
+            });
+            
+            uiState.addingNote = false;
+            saveChatState();
+            refreshLocations();
+        };
+        
+        container.querySelector('#notebook-note-save')?.addEventListener('click', saveNote);
+        noteInput?.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveNote(); });
+        
+        setTimeout(() => noteInput?.focus(), 50);
+    }
+    
+    // Delete note
+    container.querySelectorAll('.notebook-note-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const index = parseInt(btn.dataset.index, 10);
+            if (current && !isNaN(index)) {
+                removeLocationEvent(current.id, index);
+                saveChatState();
+                refreshLocations();
+            }
+        });
+    });
+    
+    // Click place to go there
+    container.querySelectorAll('.notebook-place').forEach(el => {
+        el.addEventListener('click', (e) => {
+            if (e.target.closest('.notebook-place-delete')) return;
+            
+            const locId = el.dataset.id;
+            const loc = locations.find(l => l.id === locId);
+            if (loc) {
+                setCurrentLocation(loc);
+                if (!loc.visited) updateLocation(locId, { visited: true });
+                saveChatState();
+                refreshLocations();
+            }
+        });
+    });
+    
+    // Delete place
+    container.querySelectorAll('.notebook-place-delete').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const locId = btn.dataset.id;
+            if (confirm('Remove this place?')) {
+                removeLocation(locId);
+                if (current?.id === locId) setCurrentLocation(null);
+                saveChatState();
+                refreshLocations();
+            }
+        });
+    });
+    
+    // Add place
+    container.querySelector('#notebook-add-place')?.addEventListener('click', () => {
+        uiState.addingPlace = true;
+        refreshLocations();
+    });
+    
+    if (uiState.addingPlace) {
+        const placeNameInput = container.querySelector('#notebook-place-name');
+        
+        container.querySelector('#notebook-place-cancel')?.addEventListener('click', () => {
+            uiState.addingPlace = false;
+            refreshLocations();
+        });
+        
+        container.querySelector('#notebook-place-save')?.addEventListener('click', () => {
+            const name = placeNameInput?.value.trim();
+            if (!name) return;
+            
+            const newLoc = {
+                id: `loc_${Date.now()}`,
+                name: name,
+                district: container.querySelector('#notebook-place-district')?.value.trim() || null,
+                visited: container.querySelector('#notebook-place-visited')?.checked ?? true,
+                events: [],
+                discovered: new Date().toISOString()
+            };
+            
+            addLocation(newLoc);
+            
+            if (container.querySelector('#notebook-place-set-current')?.checked) {
+                setCurrentLocation(newLoc);
+            }
+            
+            uiState.addingPlace = false;
+            saveChatState();
+            refreshLocations();
+        });
+        
+        setTimeout(() => placeNameInput?.focus(), 50);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LEGACY RENDER - for old HTML structure
+// ═══════════════════════════════════════════════════════════════
+
+function renderLegacy() {
     const nameEl = document.getElementById('current-location-name');
     const current = getCurrentLocation();
     
     if (nameEl) {
         nameEl.textContent = current?.name || 'Unknown Location';
     }
-}
-
-/**
- * Render events list for current location
- */
-function renderEvents() {
+    
+    // Events
     const listEl = document.getElementById('events-list');
     const emptyEl = document.getElementById('events-empty');
     
-    if (!listEl) return;
-    
-    const events = getCurrentLocationEvents();
-    
-    if (events.length === 0) {
-        listEl.innerHTML = '';
-        if (emptyEl) emptyEl.style.display = 'block';
-        return;
-    }
-    
-    if (emptyEl) emptyEl.style.display = 'none';
-    
-    // Show most recent events first (max 5)
-    const recentEvents = events.slice(-5).reverse();
-    
-    listEl.innerHTML = recentEvents.map((event, index) => `
-        <li data-event-index="${events.length - 1 - index}">
-            ${escapeHtml(event.text)}
-            <button class="event-delete" data-index="${events.length - 1 - index}" title="Remove event">
-                <i class="fa-solid fa-times"></i>
-            </button>
-        </li>
-    `).join('');
-}
-
-/**
- * Render discovered locations list
- */
-function renderLocations() {
-    const listEl = document.getElementById('locations-list');
-    const emptyEl = document.getElementById('locations-empty');
-    const countEl = document.getElementById('locations-count');
-    
-    if (!listEl) return;
-    
-    const locations = getLocations();
-    const current = getCurrentLocation();
-    
-    // Update count
-    if (countEl) {
-        countEl.textContent = locations.length > 0 ? `(${locations.length})` : '';
-    }
-    
-    if (locations.length === 0) {
-        listEl.innerHTML = '';
-        if (emptyEl) emptyEl.style.display = 'block';
-        return;
-    }
-    
-    if (emptyEl) emptyEl.style.display = 'none';
-    
-    listEl.innerHTML = locations.map(loc => {
-        const isCurrent = current?.id === loc.id;
-        const eventCount = loc.events?.length || 0;
+    if (listEl) {
+        const events = getCurrentLocationEvents();
         
-        return `
-            <div class="location-card ${isCurrent ? 'current' : ''}" data-location-id="${loc.id}">
-                <div class="location-card-header">
-                    <i class="fa-solid fa-location-dot location-card-icon"></i>
-                    <span class="location-card-name">${escapeHtml(loc.name)}</span>
-                    ${loc.district ? `<span class="location-card-district">${escapeHtml(loc.district)}</span>` : ''}
-                </div>
-                ${loc.description ? `<div class="location-card-desc">${escapeHtml(loc.description)}</div>` : ''}
-                <div class="location-card-meta">
-                    <span class="location-visited ${loc.visited ? 'visited' : ''}">
-                        <i class="fa-solid ${loc.visited ? 'fa-check' : 'fa-circle-dot'}"></i>
-                        ${loc.visited ? 'Visited' : 'Unvisited'}
-                    </span>
-                    ${eventCount > 0 ? `<span class="location-events-count"><i class="fa-solid fa-list"></i> ${eventCount} event${eventCount !== 1 ? 's' : ''}</span>` : ''}
-                </div>
-            </div>
-        `;
-    }).join('');
-}
-
-/**
- * Refresh all location UI
- */
-export function refreshLocations() {
-    renderCurrentLocation();
-    renderEvents();
-    renderLocations();
-}
-
-// ═══════════════════════════════════════════════════════════════
-// MODALS / PROMPTS - Mobile friendly (scroll into view)
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Show prompt to change current location
- */
-function promptChangeLocation() {
-    const locations = getLocations();
-    const current = getCurrentLocation();
-    
-    // Build options list
-    let options = locations.map(loc => 
-        `<option value="${loc.id}" ${current?.id === loc.id ? 'selected' : ''}>${loc.name}</option>`
-    ).join('');
-    
-    const html = `
-        <div class="tribunal-modal-overlay" id="location-modal">
-            <div class="tribunal-modal location-modal">
-                <div class="tribunal-modal-header">
-                    <span>Set Current Location</span>
-                    <button class="tribunal-modal-close">&times;</button>
-                </div>
-                <div class="tribunal-modal-body">
-                    <div class="form-group">
-                        <label>Select Location</label>
-                        <select id="location-select" class="tribunal-input">
-                            <option value="">-- Choose existing --</option>
-                            ${options}
-                        </select>
-                    </div>
-                    <div class="form-divider">— or —</div>
-                    <div class="form-group">
-                        <label>New Location Name</label>
-                        <input type="text" id="location-new-name" class="tribunal-input" placeholder="e.g. Whirling-in-Rags">
-                    </div>
-                    <div class="form-group">
-                        <label>District (optional)</label>
-                        <input type="text" id="location-new-district" class="tribunal-input" placeholder="e.g. Martinaise">
-                    </div>
-                </div>
-                <div class="tribunal-modal-footer">
-                    <button class="tribunal-btn tribunal-btn-secondary" id="location-cancel">Cancel</button>
-                    <button class="tribunal-btn tribunal-btn-primary" id="location-save">Set Location</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', html);
-    
-    const modal = document.getElementById('location-modal');
-    const modalContent = modal.querySelector('.tribunal-modal');
-    const closeBtn = modal.querySelector('.tribunal-modal-close');
-    const cancelBtn = document.getElementById('location-cancel');
-    const saveBtn = document.getElementById('location-save');
-    const selectEl = document.getElementById('location-select');
-    const newNameEl = document.getElementById('location-new-name');
-    const newDistrictEl = document.getElementById('location-new-district');
-    
-    // Scroll modal into view on mobile
-    setTimeout(() => modalContent?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 50);
-    
-    const close = () => modal.remove();
-    
-    closeBtn.addEventListener('click', close);
-    cancelBtn.addEventListener('click', close);
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) close();
-    });
-    
-    saveBtn.addEventListener('click', () => {
-        const selectedId = selectEl.value;
-        const newName = newNameEl.value.trim();
-        
-        if (selectedId) {
-            // Set existing location as current
-            const loc = locations.find(l => l.id === selectedId);
-            if (loc) {
-                setCurrentLocation(loc);
-                saveChatState();
-                refreshLocations();
-            }
-        } else if (newName) {
-            // Create new location and set as current
-            const newLoc = {
-                id: `loc_${Date.now()}`,
-                name: newName,
-                district: newDistrictEl.value.trim() || null,
-                visited: true,
-                events: [],
-                discovered: new Date().toISOString()
-            };
-            
-            addLocation(newLoc);
-            setCurrentLocation(newLoc);
-            saveChatState();
-            refreshLocations();
+        if (events.length === 0) {
+            listEl.innerHTML = '';
+            if (emptyEl) emptyEl.style.display = 'block';
+        } else {
+            if (emptyEl) emptyEl.style.display = 'none';
+            const recentEvents = events.slice(-5).reverse();
+            listEl.innerHTML = recentEvents.map((event, index) => `
+                <li data-event-index="${events.length - 1 - index}">
+                    ${escapeHtml(event.text)}
+                </li>
+            `).join('');
         }
-        
-        close();
-    });
-}
-
-/**
- * Show prompt to add an event to current location
- */
-function promptAddEvent() {
-    const current = getCurrentLocation();
-    if (!current) {
-        if (typeof toastr !== 'undefined') {
-            toastr.warning('Set a location first!', 'Location');
-        }
-        return;
     }
     
-    const html = `
-        <div class="tribunal-modal-overlay" id="event-modal">
-            <div class="tribunal-modal event-modal">
-                <div class="tribunal-modal-header">
-                    <span>Add Event</span>
-                    <button class="tribunal-modal-close">&times;</button>
-                </div>
-                <div class="tribunal-modal-body">
-                    <div class="form-group">
-                        <label>What happened at ${escapeHtml(current.name)}?</label>
-                        <input type="text" id="event-text" class="tribunal-input" placeholder="e.g. Found a clue behind the bar">
-                    </div>
-                </div>
-                <div class="tribunal-modal-footer">
-                    <button class="tribunal-btn tribunal-btn-secondary" id="event-cancel">Cancel</button>
-                    <button class="tribunal-btn tribunal-btn-primary" id="event-save">Add Event</button>
-                </div>
-            </div>
-        </div>
-    `;
+    // Locations
+    const locListEl = document.getElementById('locations-list');
+    const locEmptyEl = document.getElementById('locations-empty');
     
-    document.body.insertAdjacentHTML('beforeend', html);
-    
-    const modal = document.getElementById('event-modal');
-    const modalContent = modal.querySelector('.tribunal-modal');
-    const closeBtn = modal.querySelector('.tribunal-modal-close');
-    const cancelBtn = document.getElementById('event-cancel');
-    const saveBtn = document.getElementById('event-save');
-    const textEl = document.getElementById('event-text');
-    
-    const close = () => modal.remove();
-    
-    closeBtn.addEventListener('click', close);
-    cancelBtn.addEventListener('click', close);
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) close();
-    });
-    
-    // Focus input and scroll into view
-    setTimeout(() => {
-        textEl?.focus();
-        modalContent?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 50);
-    
-    // Enter key to save
-    textEl.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') saveBtn.click();
-    });
-    
-    saveBtn.addEventListener('click', () => {
-        const text = textEl.value.trim();
-        if (!text) return;
+    if (locListEl) {
+        const locations = getLocations();
         
-        addLocationEvent(current.id, {
-            text: text,
-            timestamp: new Date().toISOString()
-        });
-        
-        saveChatState();
-        refreshLocations();
-        close();
-    });
-}
-
-/**
- * Show prompt to add a new location
- */
-function promptAddLocation() {
-    const html = `
-        <div class="tribunal-modal-overlay" id="new-location-modal">
-            <div class="tribunal-modal new-location-modal">
-                <div class="tribunal-modal-header">
-                    <span>Discover New Location</span>
-                    <button class="tribunal-modal-close">&times;</button>
+        if (locations.length === 0) {
+            locListEl.innerHTML = '';
+            if (locEmptyEl) locEmptyEl.style.display = 'block';
+        } else {
+            if (locEmptyEl) locEmptyEl.style.display = 'none';
+            locListEl.innerHTML = locations.map(loc => `
+                <div class="location-card ${current?.id === loc.id ? 'current' : ''}" data-location-id="${loc.id}">
+                    ${escapeHtml(loc.name)}
                 </div>
-                <div class="tribunal-modal-body">
-                    <div class="form-group">
-                        <label>Location Name *</label>
-                        <input type="text" id="new-loc-name" class="tribunal-input" placeholder="e.g. Whirling-in-Rags">
-                    </div>
-                    <div class="form-group">
-                        <label>District</label>
-                        <input type="text" id="new-loc-district" class="tribunal-input" placeholder="e.g. Martinaise">
-                    </div>
-                    <div class="form-group">
-                        <label>Description</label>
-                        <textarea id="new-loc-desc" class="tribunal-input" rows="2" placeholder="Brief description..."></textarea>
-                    </div>
-                    <div class="form-group form-checkbox">
-                        <input type="checkbox" id="new-loc-visited" checked>
-                        <label for="new-loc-visited">Mark as visited</label>
-                    </div>
-                    <div class="form-group form-checkbox">
-                        <input type="checkbox" id="new-loc-set-current">
-                        <label for="new-loc-set-current">Set as current location</label>
-                    </div>
-                </div>
-                <div class="tribunal-modal-footer">
-                    <button class="tribunal-btn tribunal-btn-secondary" id="new-loc-cancel">Cancel</button>
-                    <button class="tribunal-btn tribunal-btn-primary" id="new-loc-save">Add Location</button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', html);
-    
-    const modal = document.getElementById('new-location-modal');
-    const modalContent = modal.querySelector('.tribunal-modal');
-    const closeBtn = modal.querySelector('.tribunal-modal-close');
-    const cancelBtn = document.getElementById('new-loc-cancel');
-    const saveBtn = document.getElementById('new-loc-save');
-    
-    const close = () => modal.remove();
-    
-    closeBtn.addEventListener('click', close);
-    cancelBtn.addEventListener('click', close);
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) close();
-    });
-    
-    // Focus input and scroll into view
-    setTimeout(() => {
-        document.getElementById('new-loc-name')?.focus();
-        modalContent?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 50);
-    
-    saveBtn.addEventListener('click', () => {
-        const name = document.getElementById('new-loc-name').value.trim();
-        if (!name) return;
-        
-        const newLoc = {
-            id: `loc_${Date.now()}`,
-            name: name,
-            district: document.getElementById('new-loc-district').value.trim() || null,
-            description: document.getElementById('new-loc-desc').value.trim() || null,
-            visited: document.getElementById('new-loc-visited').checked,
-            events: [],
-            discovered: new Date().toISOString()
-        };
-        
-        addLocation(newLoc);
-        
-        if (document.getElementById('new-loc-set-current').checked) {
-            setCurrentLocation(newLoc);
+            `).join('');
         }
-        
-        saveChatState();
-        refreshLocations();
-        close();
-    });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// EVENT HANDLERS
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Handle clicking on a location card (set as current)
- */
-function handleLocationClick(e) {
-    const card = e.target.closest('.location-card');
-    if (!card) return;
-    
-    const locId = card.dataset.locationId;
-    const locations = getLocations();
-    const loc = locations.find(l => l.id === locId);
-    
-    if (loc) {
-        setCurrentLocation(loc);
-        
-        // Also mark as visited if not already
-        if (!loc.visited) {
-            updateLocation(locId, { visited: true });
-        }
-        
-        saveChatState();
-        refreshLocations();
-    }
-}
-
-/**
- * Handle deleting an event
- */
-function handleEventDelete(e) {
-    const deleteBtn = e.target.closest('.event-delete');
-    if (!deleteBtn) return;
-    
-    e.stopPropagation();
-    
-    const index = parseInt(deleteBtn.dataset.index, 10);
-    const current = getCurrentLocation();
-    
-    if (current && !isNaN(index)) {
-        removeLocationEvent(current.id, index);
-        saveChatState();
-        refreshLocations();
     }
 }
 
@@ -480,50 +459,29 @@ function escapeHtml(str) {
 // ═══════════════════════════════════════════════════════════════
 
 export function initLocationHandlers() {
-    // Edit location button
-    const editBtn = document.getElementById('location-edit-btn');
-    if (editBtn) {
-        editBtn.addEventListener('click', promptChangeLocation);
+    console.log('[Tribunal] Initializing location handlers (Field Notebook)...');
+    
+    // Reset UI state on chat change
+    if (eventSource && event_types?.CHAT_CHANGED) {
+        eventSource.on(event_types.CHAT_CHANGED, () => {
+            resetUIState();
+            setTimeout(refreshLocations, 100);
+        });
     }
     
-    // Add event button
-    const addEventBtn = document.getElementById('add-event-btn');
-    if (addEventBtn) {
-        addEventBtn.addEventListener('click', promptAddEvent);
-    }
-    
-    // Add location button
-    const addLocBtn = document.getElementById('locations-add-btn');
-    if (addLocBtn) {
-        addLocBtn.addEventListener('click', promptAddLocation);
-    }
-    
-    // Location card clicks (delegated)
-    const locList = document.getElementById('locations-list');
-    if (locList) {
-        locList.addEventListener('click', handleLocationClick);
-    }
-    
-    // Event delete clicks (delegated)
-    const eventsList = document.getElementById('events-list');
-    if (eventsList) {
-        eventsList.addEventListener('click', handleEventDelete);
-    }
-    
-    // Initial render
     refreshLocations();
-    
-    console.log('[Tribunal] Location handlers initialized');
+    console.log('[Tribunal] Location handlers ✅');
 }
 
 // ═══════════════════════════════════════════════════════════════
-// DEBUG HELPERS
+// DEBUG
 // ═══════════════════════════════════════════════════════════════
 
 export function debugLocations() {
     return {
         current: getCurrentLocation(),
         locations: getLocations(),
-        events: getCurrentLocationEvents()
+        events: getCurrentLocationEvents(),
+        uiState
     };
 }
