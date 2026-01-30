@@ -939,11 +939,23 @@ console.log('[Tribunal] Inventory template handlers initialized');
             console.log('[Tribunal] Ledger voices initialized');
         }, 1000);
 
-        // After inventory template is loaded
-import('./src/voice/inventory-generation.js').then(genModule => {
-    import('./src/ui/inventory-template.js').then(templateModule => {
-        templateModule.setInventoryModules(genModule, window.TribunalInventoryHandlers);
+        // Initialize inventory system (handlers first, then link generation)
+import('./src/ui/inventory-handlers.js').then(handlersModule => {
+    handlersModule.initInventoryHandlers();
+    console.log('[Tribunal] Inventory handlers initialized');
+    
+    // Expose for debugging and template access
+    window.TribunalInventoryHandlers = handlersModule;
+    
+    // Now link generation module to template
+    import('./src/voice/inventory-generation.js').then(genModule => {
+        import('./src/ui/inventory-template.js').then(templateModule => {
+            templateModule.setInventoryModules(genModule, handlersModule);
+            console.log('[Tribunal] Inventory modules linked');
+        });
     });
+}).catch(err => {
+    console.warn('[Tribunal] Inventory handlers not loaded:', err.message);
 });
         
         // Expose debug helpers
