@@ -43,6 +43,7 @@ import { initSettingsTab } from './src/ui/settings-handlers.js';
 import { initCabinetHandlers, refreshCabinet } from './src/ui/cabinet-handler.js';
 import { initNewspaperStrip, updateNewspaperStrip } from './src/ui/newspaper-strip.js';
 import { initLocationHandlers, refreshLocations } from './src/ui/location-handlers.js';
+import { initAwareness } from './systems/ledger-awareness.js';
 
 
 
@@ -815,14 +816,15 @@ async function init() {
     initInvestigation();
 
     setupFABVisibilityWatchers();
-
+    
     bindEvents();
     initProfiles();
     initStatus();
     initSettingsTab();
     initCabinetHandlers();
-    initNewspaperStrip();  // Initialize newspaper strip in map tab
-
+    initNewspaperStrip();
+    initAwareness();
+    
     // Lazy load extractor
 try {
     const extractor = await import('./src/systems/ai-extractor.js');
