@@ -361,91 +361,107 @@ function toast(msg, type = 'info') {
 async function scanForInventory() {
     const badge = document.getElementById('ie-inv-scan-btn');
     
+    // Check if generation module is linked
     if (!inventoryGeneration) {
-        toast('Inventory generation not loaded', 'error');
+        toast('Gen module not linked!', 'error');
+        console.error('[Inventory] inventoryGeneration is:', inventoryGeneration);
         return;
     }
     
     // Add scanning animation
     badge?.classList.add('scanning');
-    toast('Scanning...', 'info');
     
     try {
-        // DEBUG: Try to get context
-        const context = window.SillyTavern?.getContext?.();
-        if (!context) {
-            toast('DEBUG: No ST context found', 'warning');
-            // Try alternate path
-            const altContext = typeof SillyTavern !== 'undefined' ? SillyTavern.getContext() : null;
-            if (!altContext) {
-                toast('DEBUG: Alt context also failed', 'error');
-            }
+        // Try multiple paths to get context
+        let context = null;
+        let chat = [];
+        
+        // Path 1: window.SillyTavern.getContext()
+        if (window.SillyTavern?.getContext) {
+            context = window.SillyTavern.getContext();
+            chat = context?.chat || [];
         }
         
-        const chat = context?.chat || [];
-        toast(`DEBUG: Found ${chat.length} messages`, 'info');
-        
-        // Get last 3 AI messages
-        const aiMessages = chat.filter(m => !m.is_user).slice(-3);
-        toast(`DEBUG: ${aiMessages.length} AI messages`, 'info');
-        
-        if (aiMessages.length > 0) {
-            // Show first 100 chars of last message
-            const lastMsg = aiMessages[aiMessages.length - 1]?.mes || '';
-            toast(`DEBUG: "${lastMsg.substring(0, 80)}..."`, 'info');
+        // Path 2: Direct getContext import (ST style)
+        if (chat.length === 0 && typeof getContext === 'function') {
+            context = getContext();
+            chat = context?.chat || [];
         }
         
-        // Combine message text
-        const messageText = aiMessages.map(m => m.mes).join('\n\n');
+        // Path 3: Check window.chat directly
+        if (chat.length === 0 && window.chat) {
+            chat = window.chat;
+        }
         
-        // Test extraction directly
-        const gained = inventoryGeneration.quickExtractItemNames(messageText);
-        toast(`DEBUG: Extracted ${gained.length} items: ${gained.join(', ') || 'none'}`, gained.length > 0 ? 'success' : 'warning');
+        toast(`Found ${chat.length} msgs`, 'info');
         
-        // Also check persona
-        const persona = findUserPersona();
-        const personaItems = persona ? inventoryGeneration.quickExtractItemNames(persona) : [];
-        toast(`DEBUG: Persona items: ${personaItems.length}`, 'info');
-        
-        // Combine and dedupe
-        const allItems = [...new Set([...gained, ...personaItems])];
-        
-        if (allItems.length === 0) {
-            toast('No items found', 'info');
+        if (chat.length === 0) {
+            toast('No chat found - check context', 'warning');
             return;
         }
         
-        let added = 0;
+        // Get last 5 AI messages (more coverage)
+        const aiMessages = chat.filter(m => !m.is_user).slice(-5);
         
-        // Add gained items
-        for (const name of allItems) {
-            // Check stash first, then generate
+        if (aiMessages.length === 0) {
+            toast('No AI messages found', 'warning');
+            return;
+        }
+        
+        // Combine all message text
+        const allText = aiMessages.map(m => m.mes || '').join('\n\n');
+        
+        // Show snippet of what we're scanning
+        const snippet = allText.replace(/\n/g, ' ').substring(0, 60);
+        toast(`Scanning: "${snippet}..."`, 'info');
+        
+        // Direct regex test for cigarette
+        const hasCig = /cigarette/i.test(allText);
+        const hasLighter = /lighter/i.test(allText);
+        toast(`Contains: cig=${hasCig} lighter=${hasLighter}`, 'info');
+        
+        // Now try extraction
+        const items = inventoryGeneration.quickExtractItemNames(allText);
+        toast(`Extracted: ${items.length} - ${items.join(', ') || 'none'}`, items.length > 0 ? 'success' : 'warning');
+        
+        if (items.length === 0) {
+            // Try persona as fallback
+            const persona = findUserPersona();
+            if (persona) {
+                const personaItems = inventoryGeneration.quickExtractItemNames(persona);
+                toast(`Persona: ${personaItems.length} items`, 'info');
+            }
+            return;
+        }
+        
+        // Add the items
+        let added = 0;
+        for (const name of items) {
+            toast(`Adding: ${name}`, 'info');
+            
             const existing = inventoryHandlers?.getFromStash?.(name);
             if (existing) {
-                const result = await inventoryHandlers?.addInventoryItem?.(existing);
+                const result = inventoryHandlers?.addInventoryItem?.(existing);
                 if (result) added++;
             } else {
-                toast(`Generating: ${name}...`, 'info');
+                // Generate new item
                 const itemData = await inventoryGeneration.generateSingleItem(name);
                 if (itemData) {
                     inventoryHandlers?.saveToStash?.(itemData);
-                    const result = await inventoryHandlers?.addInventoryItem?.(itemData);
+                    const result = inventoryHandlers?.addInventoryItem?.(itemData);
                     if (result) added++;
+                } else {
+                    toast(`Failed to generate: ${name}`, 'error');
                 }
             }
         }
         
         inventoryHandlers?.refreshDisplay?.();
-        
-        if (added > 0) {
-            toast(`Added ${added} items!`, 'success');
-        } else {
-            toast('No new items added', 'info');
-        }
+        toast(`Done! Added ${added}`, 'success');
         
     } catch (error) {
         console.error('[Inventory] Scan error:', error);
-        toast('Scan error: ' + error.message, 'error');
+        toast(`Error: ${error.message}`, 'error');
     } finally {
         badge?.classList.remove('scanning');
     }
