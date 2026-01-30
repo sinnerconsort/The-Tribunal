@@ -481,6 +481,25 @@
     letter-spacing: 0.5px;
 }
 
+.inv-effect-clears {
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    font-size: 9px;
+    color: #64b5f6;
+    margin-bottom: 4px;
+    padding: 2px 4px;
+    background: rgba(100, 181, 246, 0.1);
+    border-radius: 2px;
+}
+
+.inv-effect-clears {
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    font-size: 9px;
+    color: #4ade80;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    WALLET SECTION - Badge Scan + Add Button
    ═══════════════════════════════════════════════════════════════ */
