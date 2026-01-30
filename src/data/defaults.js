@@ -76,9 +76,11 @@ export const DEFAULT_CHAT_STATE = {
     // INVENTORY
     // ───────────────────────────────────────────────────────────
     inventory: {
-        carried: [],    // Items in hand/pockets
+        carried: [],    // Items in hand/pockets (active inventory)
         worn: [],       // Equipped clothing/accessories
         stored: [],     // Stashed items (hotel room, car, etc.)
+        stash: {},      // Item data cache (generated descriptions, quips)
+        addictions: {}, // Addiction tracking { type: { level, lastFix } }
         money: 0,
         moneyUnit: 'Réal'
     },
