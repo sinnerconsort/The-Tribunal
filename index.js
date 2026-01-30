@@ -44,7 +44,7 @@ import { initCabinetHandlers, refreshCabinet } from './src/ui/cabinet-handler.js
 import { initNewspaperStrip, updateNewspaperStrip } from './src/ui/newspaper-strip.js';
 import { initLocationHandlers, refreshLocations } from './src/ui/location-handlers.js';
 import { initAwareness } from './src/systems/ledger-awareness.js';
-
+import { initCommentary } from './src/systems/ledger-commentary.js';
 
 
 // ═══════════════════════════════════════════════════════════════
@@ -816,7 +816,7 @@ async function init() {
     initInvestigation();
 
     setupFABVisibilityWatchers();
-    
+
     bindEvents();
     initProfiles();
     initStatus();
@@ -824,7 +824,7 @@ async function init() {
     initCabinetHandlers();
     initNewspaperStrip();
     initAwareness();
-    
+    initCommentary();
     // Lazy load extractor
 try {
     const extractor = await import('./src/systems/ai-extractor.js');
