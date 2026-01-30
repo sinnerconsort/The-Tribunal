@@ -938,6 +938,13 @@ console.log('[Tribunal] Inventory template handlers initialized');
             module.initLedgerVoices();
             console.log('[Tribunal] Ledger voices initialized');
         }, 1000);
+
+        // After inventory template is loaded
+import('./src/voice/inventory-generation.js').then(genModule => {
+    import('./src/ui/inventory-template.js').then(templateModule => {
+        templateModule.setInventoryModules(genModule, window.TribunalInventoryHandlers);
+    });
+});
         
         // Expose debug helpers
         window.TribunalLedger = {
