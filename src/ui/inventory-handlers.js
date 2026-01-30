@@ -5,19 +5,81 @@
  * Mirrors equipment-handlers.js patterns
  */
 
-import { eventSource, event_types } from '../../../../../../script.js';
-import { 
-    INVENTORY_TYPES, 
-    inferInventoryType, 
-    isConsumable, 
-    isAddictive, 
-    getAddictionData 
-} from '../data/inventory.js';
-import { 
-    normalizeStashKey, 
-    generateSingleItem,
-    processMessageForInventory 
-} from '../voice/inventory-generation.js';
+// ═══════════════════════════════════════════════════════════════
+// LAZY IMPORTS - loaded when needed
+// ═══════════════════════════════════════════════════════════════
+
+let eventSource = null;
+let event_types = {};
+let eventsLoaded = false;
+
+async function loadEvents() {
+    if (eventsLoaded) return;
+    try {
+        const script = await import('../../../../../script.js');
+        eventSource = script.eventSource;
+        event_types = script.event_types;
+        eventsLoaded = true;
+    } catch (e) {
+        console.warn('[Inventory] Events not available:', e.message);
+    }
+}
+
+// Inventory data - inline defaults, will be overwritten if inventory.js loads
+let INVENTORY_TYPES = {
+    cigarette: { icon: '🚬', category: 'consumable' },
+    alcohol: { icon: '🍺', category: 'consumable' },
+    drug: { icon: '💊', category: 'consumable' },
+    lighter: { icon: '🔥', category: 'tool' },
+    weapon: { icon: '🔪', category: 'weapon' },
+    money: { icon: '💰', category: 'valuable' },
+    document: { icon: '📄', category: 'document' },
+    other: { icon: '📦', category: 'misc' }
+};
+
+function inferInventoryType(name) {
+    if (!name) return 'other';
+    const lower = name.toLowerCase();
+    if (/cigarette|cig|smoke|astra/.test(lower)) return 'cigarette';
+    if (/beer|wine|whiskey|vodka|alcohol|booze/.test(lower)) return 'alcohol';
+    if (/pill|drug|speed|pyrholidon/.test(lower)) return 'drug';
+    if (/lighter|zippo|match/.test(lower)) return 'lighter';
+    if (/gun|pistol|knife|weapon/.test(lower)) return 'weapon';
+    if (/money|coin|cash|réal/.test(lower)) return 'money';
+    if (/note|letter|document|photo/.test(lower)) return 'document';
+    return 'other';
+}
+
+function isConsumable(type) {
+    return ['cigarette', 'alcohol', 'drug', 'food', 'medicine'].includes(type);
+}
+
+function isAddictive(type) {
+    return ['cigarette', 'alcohol', 'drug'].includes(type);
+}
+
+function getAddictionData(type) {
+    const data = {
+        cigarette: { name: 'Nicotine', withdrawalTime: 30 * 60 * 1000 },
+        alcohol: { name: 'Alcohol', withdrawalTime: 60 * 60 * 1000 },
+        drug: { name: 'Stimulants', withdrawalTime: 45 * 60 * 1000 }
+    };
+    return data[type] || null;
+}
+
+// Generation helpers - inline defaults
+function normalizeStashKey(name) {
+    return name?.toLowerCase().replace(/\s+/g, '_') || '';
+}
+
+async function generateSingleItem(name) {
+    return { 
+        name, 
+        type: inferInventoryType(name), 
+        category: isConsumable(inferInventoryType(name)) ? 'consumable' : 'misc',
+        quantity: 1
+    };
+}
 
 // ═══════════════════════════════════════════════════════════════
 // STATE MANAGEMENT
@@ -495,8 +557,11 @@ export function setAutoExtract(enabled) {
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
 
-export function initInventoryHandlers() {
+export async function initInventoryHandlers() {
     console.log('[Inventory] Initializing handlers...');
+    
+    // Load ST events first
+    await loadEvents();
     
     initDetailPanelHandlers();
     
@@ -504,6 +569,8 @@ export function initInventoryHandlers() {
     if (eventSource && event_types?.MESSAGE_RECEIVED) {
         eventSource.on(event_types.MESSAGE_RECEIVED, onMessageReceived);
         console.log('[Inventory] MESSAGE_RECEIVED hook registered');
+    } else {
+        console.warn('[Inventory] Events not available, auto-extraction disabled');
     }
     
     // Hook CHAT_CHANGED to refresh display
