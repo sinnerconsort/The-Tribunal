@@ -11,7 +11,7 @@
  * @version 1.0.0
  */
 
-import { getContext, saveSettingsDebounced } from '../../../../../extensions.js';
+import { getContext } from '../../../../../extensions.js';
 import { 
     getPendingInjection, 
     hasPendingInjection,
