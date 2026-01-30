@@ -431,6 +431,57 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   EFFECT PREVIEW (stat changes when consumed)
+   ═══════════════════════════════════════════════════════════════ */
+
+.inv-effect-preview {
+    background: rgba(40, 35, 30, 0.9);
+    border: 1px solid rgba(100, 90, 70, 0.4);
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+}
+
+.inv-effect-name {
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ie-accent, #d4a574);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+}
+
+.inv-effect-duration {
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    font-size: 9px;
+    color: #888;
+    margin-bottom: 6px;
+}
+
+.inv-effect-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+}
+
+.stat-boost {
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    font-size: 9px;
+    color: #8bc34a;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-debuff {
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    font-size: 9px;
+    color: #ef5350;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    WALLET SECTION - Badge Scan + Add Button
    ═══════════════════════════════════════════════════════════════ */
 
