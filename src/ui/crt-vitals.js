@@ -70,6 +70,11 @@ export function updateCRTVitals(health, maxHealth, morale, maxMorale, characterN
     const nameEl = document.getElementById('ie-crt-char-name');
     if (nameEl) {
         nameEl.textContent = resolvedName;
+
+        // Dispatch event for ledger awareness
+    window.dispatchEvent(new CustomEvent('tribunal:vitalsChanged', { 
+        detail: { health, maxHealth, morale, maxMorale } 
+    }));
     }
     
     // Calculate percentages
