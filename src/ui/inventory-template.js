@@ -57,15 +57,15 @@ export const INVENTORY_TAB_HTML = `
         </div>
         
         <!-- Wallet Section with Scan Badge + Add Button -->
-        <div class="inv-wallet-section">
+        <div class="inv-wallet-section" id="ie-inv-wallet-section">
             <!-- RCM Badge - Click to Scan -->
-            <button class="inv-rcm-badge" id="ie-inv-scan-btn" title="Scan persona for items">
+            <button class="inv-rcm-badge" id="ie-inv-scan-btn" title="Scan for items">
                 <span class="inv-rcm-badge-text">RCM</span>
                 <span class="inv-rcm-badge-subtext">SCAN</span>
             </button>
             
-            <!-- Leather Wallet -->
-            <div class="inv-wallet">
+            <!-- Leather Wallet (hidden when form open) -->
+            <div class="inv-wallet" id="ie-inv-wallet">
                 <div class="inv-wallet-stitching"></div>
                 <div class="inv-wallet-content">
                     <span class="inv-wallet-label">RÉAL:</span>
@@ -73,15 +73,13 @@ export const INVENTORY_TAB_HTML = `
                 </div>
             </div>
             
-            <!-- Add Item Button -->
+            <!-- Add Item Button (hidden when form open) -->
             <button class="inv-add-btn" id="ie-inv-add-btn" title="Add item manually">
                 <i class="fa-solid fa-plus"></i>
             </button>
-        </div>
-        
-        <!-- Add Form (hidden by default, positioned above wallet) -->
-        <div class="inv-add-form" id="ie-inv-add-form">
-            <div class="inv-add-form-row">
+            
+            <!-- Add Form (replaces wallet when active) -->
+            <div class="inv-add-form" id="ie-inv-add-form">
                 <input type="text" class="inv-add-input" id="ie-inv-add-input" placeholder="Item name..." />
                 <button class="inv-add-submit" id="ie-inv-add-submit">Add</button>
                 <button class="inv-add-cancel" id="ie-inv-add-cancel">✕</button>
@@ -436,17 +434,25 @@ async function scanForInventory() {
 }
 
 /**
- * Show/hide add item form
+ * Show/hide add item form (inline in wallet section)
  */
 function toggleAddForm(show) {
+    const wallet = document.getElementById('ie-inv-wallet');
+    const addBtn = document.getElementById('ie-inv-add-btn');
     const form = document.getElementById('ie-inv-add-form');
     const input = document.getElementById('ie-inv-add-input');
     
     if (show) {
-        form?.classList.add('active');
+        // Hide wallet and + button, show form
+        if (wallet) wallet.style.display = 'none';
+        if (addBtn) addBtn.style.display = 'none';
+        if (form) form.style.display = 'flex';
         setTimeout(() => input?.focus(), 50);
     } else {
-        form?.classList.remove('active');
+        // Show wallet and + button, hide form
+        if (wallet) wallet.style.display = '';
+        if (addBtn) addBtn.style.display = '';
+        if (form) form.style.display = 'none';
         if (input) input.value = '';
     }
 }
