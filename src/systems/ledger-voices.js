@@ -12,7 +12,7 @@
 // Import existing dice system for integration
 // Uncomment when in actual extension:
 // import { rollSkillCheck, formatCheckResult } from './dice.js';
-
+let envelopeClickCooldown = false;
 // ═══════════════════════════════════════════════════════════════
 // LEDGER VOICE DEFINITIONS
 // These are DISTINCT from skill voices - they're about the LEDGER ITSELF
@@ -769,18 +769,23 @@ function handleFortuneDraw(e) {
  * Handle envelope click - opening seals your fate
  */
 function handleEnvelopeClick(e) {
-    // Don't trigger if clicking the draw button
     if (e.target.closest('.draw-fortune-btn')) return;
     
+    // DEBOUNCE: Prevent mobile double-fire
+    if (envelopeClickCooldown) return;
+    envelopeClickCooldown = true;
+    setTimeout(() => { envelopeClickCooldown = false; }, 300);
+    
     const envelope = e.currentTarget;
-    const isOpening = !envelope.classList.contains('envelope-open');
+    const isCurrentlyOpen = envelope.classList.contains('envelope-open');
     
-    // Toggle envelope state
-    envelope.classList.toggle('envelope-open');
-    
-    // If OPENING and there's a pending fortune that hasn't been sealed...
-    if (isOpening && pendingFortune && !pendingFortune.sealed) {
-        sealFate(pendingFortune);
+    if (isCurrentlyOpen) {
+        envelope.classList.remove('envelope-open');
+    } else {
+        envelope.classList.add('envelope-open');
+        if (pendingFortune && !pendingFortune.sealed) {
+            sealFate(pendingFortune, envelope);
+        }
     }
 }
 
@@ -788,7 +793,7 @@ function handleEnvelopeClick(e) {
  * Seal the fate - activates the fortune for injection
  * No take-backs!
  */
-function sealFate(fortune) {
+function sealFate(fortune, envelope) {
     console.log('[Ledger Voices] ⚡ FATE SEALED:', fortune.fortune);
     
     // Mark as sealed
@@ -808,6 +813,7 @@ function sealFate(fortune) {
         // Brief dramatic effect
         setTimeout(() => {
             envelope.classList.remove('fate-sealed');
+            envelope.classList.add('envelope-open'); // FORCE stay open
         }, 1500);
     }
     
