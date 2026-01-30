@@ -150,25 +150,30 @@ export function quickExtractItemNames(text) {
         }
     }
     
-    // Pattern 3: Common consumables in prose
+    // Pattern 3: Common consumables in prose (LOOSE matching)
     const consumablePatterns = [
-        /(\d+x?\s*)?(?:pack(?:s)?\s+of\s+)?cigarette(?:s)?/gi,
-        /(\d+x?\s*)?(?:bottle(?:s)?\s+of\s+)?(?:beer|wine|whiskey|vodka|alcohol|booze)/gi,
-        /(\d+x?\s*)?(?:can(?:s)?\s+of\s+)?(?:beer|soda|cola)/gi,
-        /(\d+x?\s*)?pill(?:s)?/gi,
-        /(\d+x?\s*)?(?:bag(?:s)?\s+of\s+)?(?:speed|amphetamine|pyrholidon)/gi,
-        /lighter(?:s)?/gi,
-        /match(?:es)?/gi,
-        /key(?:s)?/gi,
-        /wallet/gi,
-        /phone/gi,
-        /flashlight/gi,
-        /knife|gun|pistol|weapon/gi,
-        /note(?:s)?|letter(?:s)?|document(?:s)?/gi,
-        /coin(?:s)?|money|cash|réal/gi,
-        /photo(?:s)?|photograph(?:s)?/gi,
-        /book(?:s)?/gi,
-        /food|sandwich|snack/gi
+        // Cigarettes - including brand names
+        /(?:pack(?:s)?\s+of\s+)?(?:cigarette(?:s)?|cig(?:s)?|smoke(?:s)?|astra(?:s)?|tief\s*cigarette(?:s)?)/gi,
+        // Alcohol
+        /(?:bottle(?:s)?\s+of\s+)?(?:beer|wine|whiskey|whisky|vodka|alcohol|booze|liquor|rum|gin|brandy)/gi,
+        /(?:can(?:s)?\s+of\s+)?(?:beer|soda|cola)/gi,
+        // Drugs
+        /(?:pill(?:s)?|tablet(?:s)?|capsule(?:s)?)/gi,
+        /(?:bag(?:s)?\s+of\s+)?(?:speed|amphetamine(?:s)?|pyrholidon|drug(?:s)?|powder)/gi,
+        // Tools/misc
+        /lighter(?:s)?|zippo/gi,
+        /match(?:es)?|matchbook/gi,
+        /(?:key(?:s)?|keyring|keycard)/gi,
+        /wallet|billfold/gi,
+        /(?:cell\s*)?phone|mobile/gi,
+        /flashlight|torch/gi,
+        /(?:pocket\s*)?knife|switchblade|gun|pistol|revolver|weapon/gi,
+        /note(?:s)?|letter(?:s)?|document(?:s)?|paper(?:s)?/gi,
+        /(?:coin(?:s)?|money|cash|réal|bill(?:s)?)/gi,
+        /photo(?:s)?|photograph(?:s)?|picture(?:s)?/gi,
+        /book(?:s)?|notebook|journal/gi,
+        /food|sandwich|snack|candy|gum/gi,
+        /badge|id\s*card|credentials/gi,
     ];
     
     for (const pattern of consumablePatterns) {
