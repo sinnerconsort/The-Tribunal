@@ -3,7 +3,7 @@
  * Notebook paper with cases (including contacts section) and grid paper map
  * SECRET COMPARTMENT - Hidden third tab with dark leather interior
  * 
- * @version 1.1.0 - Added initLedgerSubtabs() handler
+ * @version 1.2.0 - Envelope handling moved to ledger-voices.js
  */
 
 export const LEDGER_TAB_HTML = `
@@ -302,7 +302,7 @@ export function updateFortune(text, source = 'The Damaged Ledger') {
 }
 
 /**
- * Toggle envelope open/closed
+ * Toggle envelope open/closed (legacy - use ledger-voices.js instead)
  */
 export function toggleEnvelope() {
     const envelope = document.getElementById('dora-envelope');
@@ -349,10 +349,10 @@ export function getCurrentTimePeriod() {
 /**
  * Initialize all ledger handlers
  * Call after ledger HTML is injected into DOM
+ * NOTE: Envelope handling is done by ledger-voices.js (fate sealing)
  */
 export function initLedgerHandlers() {
     initLedgerSubtabs();
-
     console.log('[Ledger] All handlers initialized');
 }
 
@@ -377,6 +377,5 @@ if (typeof window !== 'undefined') {
     window.TribunalDebug.updateCrackStage = updateCrackStage;
     window.TribunalDebug.updateFortune = updateFortune;
     window.TribunalDebug.toggleEnvelope = toggleEnvelope;
-    window.TribunalDebug.initEnvelope = initEnvelopeHandler;
     window.TribunalDebug.initLedger = initLedgerHandlers;
 }
