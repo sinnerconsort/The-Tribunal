@@ -352,7 +352,7 @@ export function getCurrentTimePeriod() {
  */
 export function initLedgerHandlers() {
     initLedgerSubtabs();
-    initEnvelopeHandler();
+
     console.log('[Ledger] All handlers initialized');
 }
 
