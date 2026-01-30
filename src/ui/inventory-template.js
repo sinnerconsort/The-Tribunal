@@ -2,7 +2,7 @@
  * The Tribunal - Inventory Tab Template
  * Evidence light table, equipment ticket, and radio
  * 
- * @version 2.0.0 - Updated radio with weather-synced stations
+ * @version 2.1.0 - Added badge scan and manual add buttons
  */
 
 export const INVENTORY_TAB_HTML = `
@@ -56,12 +56,13 @@ export const INVENTORY_TAB_HTML = `
             </div>
         </div>
         
-        <!-- Wallet Section -->
+        <!-- Wallet Section with Scan Badge + Add Button -->
         <div class="inv-wallet-section">
-            <!-- Binder Clip -->
-            <div class="inv-wallet-clip">
-                <div class="inv-wallet-clip-arm"></div>
-            </div>
+            <!-- RCM Badge - Click to Scan -->
+            <button class="inv-rcm-badge" id="ie-inv-scan-btn" title="Scan persona for items">
+                <span class="inv-rcm-badge-text">RCM</span>
+                <span class="inv-rcm-badge-subtext">SCAN</span>
+            </button>
             
             <!-- Leather Wallet -->
             <div class="inv-wallet">
@@ -72,9 +73,18 @@ export const INVENTORY_TAB_HTML = `
                 </div>
             </div>
             
-            <!-- RCM Badge -->
-            <div class="inv-rcm-badge">
-                <span class="inv-rcm-badge-text">RCM</span>
+            <!-- Add Item Button -->
+            <button class="inv-add-btn" id="ie-inv-add-btn" title="Add item manually">
+                <i class="fa-solid fa-plus"></i>
+            </button>
+        </div>
+        
+        <!-- Add Form (hidden by default, positioned above wallet) -->
+        <div class="inv-add-form" id="ie-inv-add-form">
+            <div class="inv-add-form-row">
+                <input type="text" class="inv-add-input" id="ie-inv-add-input" placeholder="Item name..." />
+                <button class="inv-add-submit" id="ie-inv-add-submit">Add</button>
+                <button class="inv-add-cancel" id="ie-inv-add-cancel">✕</button>
             </div>
         </div>
     </div>
@@ -166,11 +176,7 @@ export const INVENTORY_TAB_HTML = `
                             <span class="radio-knob-label">POWER</span>
                         </div>
                         <div class="radio-knob-group">
-                            <div class="radio-knob"><div class="radio-knob-indicator"></div></div>
-                            <span class="radio-knob-label">VOL</span>
-                        </div>
-                        <div class="radio-knob-group">
-                            <div class="radio-knob"><div class="radio-knob-indicator" style="transform: rotate(45deg);"></div></div>
+                            <div class="radio-knob radio-tuner" id="ie-radio-tuner"><div class="radio-knob-indicator" style="transform: rotate(0deg);"></div></div>
                             <span class="radio-knob-label">TUNE</span>
                         </div>
                     </div>
@@ -321,16 +327,220 @@ export function initInventorySubtabs() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// WALLET SECTION HANDLERS
+// ═══════════════════════════════════════════════════════════════
+
+// Module references (set by initWalletHandlers)
+let inventoryGeneration = null;
+let inventoryHandlers = null;
+
+/**
+ * Find user persona text (same pattern as equipment)
+ */
+function findUserPersona() {
+    if (window.power_user?.personas) {
+        const name = window.power_user.persona_name || window.power_user.default_persona;
+        if (name && window.power_user.personas[name]) return window.power_user.personas[name];
+    }
+    if (window.power_user?.persona_description) return window.power_user.persona_description;
+    return document.getElementById('persona_description')?.value || null;
+}
+
+/**
+ * Toast helper
+ */
+function toast(msg, type = 'info') {
+    if (typeof toastr !== 'undefined') {
+        toastr[type](msg, 'Inventory');
+    } else {
+        console.log(`[Inventory] ${type}: ${msg}`);
+    }
+}
+
+/**
+ * Scan persona for inventory items
+ */
+async function scanForInventory() {
+    const badge = document.getElementById('ie-inv-scan-btn');
+    const persona = findUserPersona();
+    
+    if (!persona) {
+        toast('No persona found!', 'warning');
+        return;
+    }
+    
+    if (!inventoryGeneration) {
+        toast('Inventory generation not loaded', 'error');
+        return;
+    }
+    
+    // Add scanning animation
+    badge?.classList.add('scanning');
+    toast('Scanning persona...', 'info');
+    
+    try {
+        const names = inventoryGeneration.quickExtractItemNames(persona);
+        
+        if (names.length === 0) {
+            toast('No items found in persona', 'info');
+            return;
+        }
+        
+        toast(`Found ${names.length} items...`, 'info');
+        
+        let added = 0;
+        for (const name of names) {
+            // Check stash first, then generate
+            const existing = inventoryHandlers?.getFromStash?.(name);
+            if (existing) {
+                await inventoryHandlers?.addInventoryItem?.(existing);
+                added++;
+            } else {
+                const itemData = await inventoryGeneration.generateSingleItem(name);
+                if (itemData) {
+                    inventoryHandlers?.saveToStash?.(itemData);
+                    await inventoryHandlers?.addInventoryItem?.(itemData);
+                    added++;
+                }
+            }
+            inventoryHandlers?.refreshDisplay?.();
+        }
+        
+        toast(`Added ${added} items!`, 'success');
+        
+    } catch (error) {
+        console.error('[Inventory] Scan error:', error);
+        toast('Scan failed: ' + error.message, 'error');
+    } finally {
+        badge?.classList.remove('scanning');
+    }
+}
+
+/**
+ * Show/hide add item form
+ */
+function toggleAddForm(show) {
+    const form = document.getElementById('ie-inv-add-form');
+    const input = document.getElementById('ie-inv-add-input');
+    
+    if (show) {
+        form?.classList.add('active');
+        setTimeout(() => input?.focus(), 50);
+    } else {
+        form?.classList.remove('active');
+        if (input) input.value = '';
+    }
+}
+
+/**
+ * Handle manual item add
+ */
+async function handleAddItem() {
+    const input = document.getElementById('ie-inv-add-input');
+    const name = input?.value.trim();
+    
+    if (!name) return;
+    
+    if (!inventoryGeneration) {
+        toast('Inventory generation not loaded', 'error');
+        return;
+    }
+    
+    toggleAddForm(false);
+    toast(`Adding ${name}...`, 'info');
+    
+    try {
+        // Check stash first
+        const existing = inventoryHandlers?.getFromStash?.(name);
+        if (existing) {
+            await inventoryHandlers?.addInventoryItem?.(existing);
+            toast(`Added from stash: ${name}`, 'success');
+        } else {
+            const itemData = await inventoryGeneration.generateSingleItem(name);
+            if (itemData) {
+                inventoryHandlers?.saveToStash?.(itemData);
+                await inventoryHandlers?.addInventoryItem?.(itemData);
+                toast(`Generated: ${name}`, 'success');
+            } else {
+                toast(`Failed to generate: ${name}`, 'error');
+            }
+        }
+        inventoryHandlers?.refreshDisplay?.();
+    } catch (error) {
+        console.error('[Inventory] Add error:', error);
+        toast('Add failed: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Initialize wallet section handlers
+ */
+function initWalletHandlers() {
+    // Scan button (RCM badge)
+    const scanBtn = document.getElementById('ie-inv-scan-btn');
+    scanBtn?.addEventListener('click', scanForInventory);
+    
+    // Add button (+)
+    const addBtn = document.getElementById('ie-inv-add-btn');
+    addBtn?.addEventListener('click', () => toggleAddForm(true));
+    
+    // Add form submit
+    const submitBtn = document.getElementById('ie-inv-add-submit');
+    submitBtn?.addEventListener('click', handleAddItem);
+    
+    // Add form cancel
+    const cancelBtn = document.getElementById('ie-inv-add-cancel');
+    cancelBtn?.addEventListener('click', () => toggleAddForm(false));
+    
+    // Enter key in input
+    const input = document.getElementById('ie-inv-add-input');
+    input?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleAddItem();
+        if (e.key === 'Escape') toggleAddForm(false);
+    });
+    
+    // Click outside to close form
+    document.addEventListener('click', (e) => {
+        const form = document.getElementById('ie-inv-add-form');
+        const addBtn = document.getElementById('ie-inv-add-btn');
+        if (form?.classList.contains('active') && 
+            !form.contains(e.target) && 
+            !addBtn?.contains(e.target)) {
+            toggleAddForm(false);
+        }
+    });
+    
+    console.log('[Inventory] Wallet handlers initialized');
+}
+
+// ═══════════════════════════════════════════════════════════════
 // COMBINED INIT - Call this once after inventory DOM exists
 // ═══════════════════════════════════════════════════════════════
 
 /**
  * Initialize all inventory template handlers
- * Call after inventory HTML is injected into DOM
+ * @param {object} options - Optional module references
+ * @param {object} options.generation - inventory-generation.js module
+ * @param {object} options.handlers - inventory-handlers.js module  
  */
-export function initInventoryTemplateHandlers() {
+export function initInventoryTemplateHandlers(options = {}) {
+    // Store module references for wallet handlers
+    inventoryGeneration = options.generation || null;
+    inventoryHandlers = options.handlers || null;
+    
     initInventorySubtabs();
+    initWalletHandlers();
+    
     console.log('[Inventory] Template handlers initialized');
+}
+
+/**
+ * Set module references after lazy loading
+ */
+export function setInventoryModules(generation, handlers) {
+    inventoryGeneration = generation;
+    inventoryHandlers = handlers;
+    console.log('[Inventory] Modules linked');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -340,4 +550,7 @@ export function initInventoryTemplateHandlers() {
 if (typeof window !== 'undefined') {
     window.TribunalDebug = window.TribunalDebug || {};
     window.TribunalDebug.initInventorySubtabs = initInventorySubtabs;
+    window.TribunalDebug.initWalletHandlers = initWalletHandlers;
+    window.TribunalDebug.scanForInventory = scanForInventory;
+    window.TribunalDebug.toggleAddForm = toggleAddForm;
 }
