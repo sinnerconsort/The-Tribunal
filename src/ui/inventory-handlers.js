@@ -282,14 +282,22 @@ export function removeInventoryItemByName(name) {
  */
 export function consumeItem(itemId) {
     const state = getInventoryState();
+    if (!state.items) state.items = [];
     const item = state.items.find(i => i.id === itemId);
     
-    if (!item) return null;
-    if (!item.category === 'consumable') return null;
+    if (!item) return { consumed: false, error: 'Item not found' };
+    if (item.category !== 'consumable') return { consumed: false, error: 'Not consumable' };
     
-    // Handle addiction
-    if (item.addictive && item.addictionType) {
-        const addictionType = item.addictionType;
+    // Apply status effect via effects system
+    let effectResult = null;
+    if (window.TribunalEffects?.applyConsumptionEffect) {
+        effectResult = window.TribunalEffects.applyConsumptionEffect(item.type, { item });
+    }
+    
+    // Handle addiction tracking
+    if (item.addictive || isAddictive(item.type)) {
+        const addictionType = item.addictionType || item.type;
+        if (!state.addictions) state.addictions = {};
         if (!state.addictions[addictionType]) {
             state.addictions[addictionType] = { level: 0, lastFix: 0, withdrawing: false };
         }
@@ -303,15 +311,25 @@ export function consumeItem(itemId) {
     if (item.quantity > 1) {
         item.quantity--;
         saveState();
-        return { consumed: true, remaining: item.quantity, item };
+        return { 
+            consumed: true, 
+            remaining: item.quantity, 
+            item,
+            effect: effectResult
+        };
     }
     
     // Remove last one
     const idx = state.items.findIndex(i => i.id === itemId);
-    state.items.splice(idx, 1);
+    if (idx >= 0) state.items.splice(idx, 1);
     saveState();
     
-    return { consumed: true, remaining: 0, item };
+    return { 
+        consumed: true, 
+        remaining: 0, 
+        item,
+        effect: effectResult
+    };
 }
 
 /**
@@ -513,13 +531,50 @@ function initDetailPanelHandlers() {
         
         const result = consumeItem(selectedItemId);
         if (result?.consumed) {
-            toast(`Used: ${result.item.name}`, 'success');
+            // Show effect toast with Electrochemistry quote
+            if (result.effect?.electrochemistryQuote) {
+                // Fancy DE-style toast
+                toastWithVoice(
+                    result.effect.electrochemistryQuote,
+                    'electrochemistry',
+                    result.effect.effect?.name || 'Effect applied'
+                );
+            } else {
+                toast(`Used: ${result.item.name}`, 'success');
+            }
+            
+            // Show status applied
+            if (result.effect?.statusId) {
+                setTimeout(() => {
+                    toast(`${result.effect.effect?.name || result.effect.statusId}`, 'info');
+                }, 500);
+            }
+            
             if (result.remaining === 0) {
                 selectedItemId = null;
             }
             refreshDisplay();
         }
     });
+}
+
+/**
+ * Show toast with skill voice flavor
+ */
+function toastWithVoice(quote, skillId, title) {
+    // Try to use existing toast system with voice styling
+    if (typeof toastr !== 'undefined') {
+        const msg = `<div class="inv-voice-toast">
+            <span class="inv-voice-skill">${formatSkillName(skillId)}:</span>
+            <span class="inv-voice-quote">"${quote}"</span>
+        </div>`;
+        toastr.info(msg, title, { 
+            timeOut: 4000,
+            escapeHtml: false 
+        });
+    } else {
+        console.log(`[${skillId}] "${quote}"`);
+    }
 }
 
 function toast(msg, type = 'info') {
