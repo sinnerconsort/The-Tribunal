@@ -602,30 +602,14 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   ADD ITEM FORM (appears above wallet when + clicked)
+   ADD ITEM FORM (inline in wallet section, hidden by default)
    ───────────────────────────────────────────────────────────────── */
 
 .inv-add-form {
-    position: absolute;
-    bottom: calc(100% + 4px);
-    left: 12px;
-    right: 12px;
-    background: rgba(30, 28, 26, 0.98);
-    border: 1px solid var(--evidence-frame);
-    border-radius: 4px;
-    padding: 10px;
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
-    z-index: 100;
-    display: none;
-}
-
-.inv-add-form.active {
-    display: block;
-}
-
-.inv-add-form-row {
-    display: flex;
+    flex: 1;
+    display: none; /* Controlled by JS */
     gap: 8px;
+    align-items: center;
 }
 
 .inv-add-input {
@@ -649,18 +633,24 @@
     color: #666;
 }
 
+.inv-add-submit,
+.inv-add-cancel {
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
 .inv-add-submit {
     background: var(--ie-accent, #d4a574);
     color: #1a1510;
     border: none;
-    border-radius: 3px;
-    padding: 8px 12px;
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
 }
 
 .inv-add-submit:hover {
@@ -671,12 +661,6 @@
     background: transparent;
     color: #888;
     border: 1px solid #4a4540;
-    border-radius: 3px;
-    padding: 8px 10px;
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    font-size: 11px;
-    cursor: pointer;
-    transition: all 0.2s;
 }
 
 .inv-add-cancel:hover {
