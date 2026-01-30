@@ -317,6 +317,33 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   VOICE TOASTS (Electrochemistry, etc.)
+   ═══════════════════════════════════════════════════════════════ */
+
+.inv-voice-toast {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.inv-voice-skill {
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #8bc34a; /* Electrochemistry green */
+    opacity: 0.9;
+}
+
+.inv-voice-quote {
+    font-style: italic;
+    color: #e0e0e0;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    ITEM DETAIL PANEL (when selected)
    ═══════════════════════════════════════════════════════════════ */
 
