@@ -260,6 +260,8 @@ function sanitizeChatState(state) {
     if (!Array.isArray(state.inventory.carried)) state.inventory.carried = [];
     if (!Array.isArray(state.inventory.worn)) state.inventory.worn = [];
     if (!Array.isArray(state.inventory.stored)) state.inventory.stored = [];
+    if (!state.inventory.stash) state.inventory.stash = {};
+    if (!state.inventory.addictions) state.inventory.addictions = {};
     if (!Array.isArray(state.equipment.items)) state.equipment.items = [];
     if (!Array.isArray(state.ledger.cases)) state.ledger.cases = [];
     if (!Array.isArray(state.ledger.notes)) state.ledger.notes = [];
