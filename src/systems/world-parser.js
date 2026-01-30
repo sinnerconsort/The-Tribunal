@@ -251,6 +251,11 @@ export function applyWorldState(worldData, options = {}) {
             setCurrentLocation(loc);
             result.location = loc;
             result.updated = true;
+
+            // Dispatch event for ledger awareness
+            window.dispatchEvent(new CustomEvent('tribunal:locationChanged', { 
+                detail: loc 
+            }));
             
             if (notify && typeof toastr !== 'undefined') {
                 toastr.info(`📍 ${name}`, 'Location', { timeOut: 2000 });
