@@ -3,6 +3,7 @@
  * Dice Set Sirens, Gum Wrapper, Dora's Letter
  * 
  * ADDITIVE - Import AFTER ledger.css
+ * v1.1.0 - Fixed envelope 3D perspective for proper flap animation
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -318,117 +319,78 @@
 .pencil-stub::before {
     content: '';
     position: absolute;
-    left: -8px;
-    top: 0;
+    left: -6px;
+    top: 1px;
     width: 0;
     height: 0;
-    border-style: solid;
-    border-width: 4px 8px 4px 0;
-    border-color: transparent #e8d8c0 transparent transparent;
+    border-top: 3px solid transparent;
+    border-bottom: 3px solid transparent;
+    border-right: 6px solid #c8a830;
 }
 
-/* Graphite tip */
-.pencil-stub::after {
-    content: '';
-    position: absolute;
-    left: -10px;
-    top: 3px;
-    width: 3px;
-    height: 2px;
-    background: #2a2a2a;
-    border-radius: 0 1px 1px 0;
-}
-
-/* Eraser end */
+/* Pink eraser */
 .pencil-eraser {
     position: absolute;
-    right: -3px;
-    top: -1px;
-    width: 6px;
-    height: 10px;
-    background: linear-gradient(90deg, #c08080 0%, #a06060 100%);
-    border-radius: 0 2px 2px 0;
+    right: 0;
+    top: 0;
+    width: 8px;
+    height: 8px;
+    background: linear-gradient(180deg, #e8a0a0 0%, #d08080 100%);
+    border-radius: 0 1px 1px 0;
 }
 
 /* Metal band */
 .pencil-band {
     position: absolute;
-    right: 3px;
-    top: -1px;
+    right: 8px;
+    top: 0;
     width: 4px;
-    height: 10px;
-    background: linear-gradient(90deg, #a0a0a0 0%, #c0c0c0 50%, #a0a0a0 100%);
+    height: 8px;
+    background: linear-gradient(180deg, #c0c0c0 0%, #888888 50%, #a0a0a0 100%);
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   LOOSE COINS - Scattered in drawer
+   LOOSE COINS - Scattered near bottom
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-coins {
     position: absolute;
-    bottom: 15px;
-    right: 20px;
+    bottom: 20px;
+    right: 25px;
 }
 
 .coin {
-    position: absolute;
-    background: radial-gradient(circle at 35% 35%, #c0a060 0%, #a08040 60%, #806020 100%);
+    width: 14px;
+    height: 14px;
+    background: radial-gradient(circle at 35% 35%,
+        #c9a227 0%, #a08020 40%, #806818 70%, #604810 100%
+    );
     border-radius: 50%;
-    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+    position: absolute;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.4);
 }
 
-.coin:nth-child(1) { 
-    top: 0; 
-    left: 0; 
-    width: 18px; 
-    height: 18px;
-    transform: rotate(-10deg);
-}
-.coin:nth-child(2) { 
-    top: 12px; 
-    left: 20px; 
-    width: 16px; 
-    height: 16px;
-    transform: rotate(25deg); 
-}
-.coin:nth-child(3) { 
-    top: -8px; 
-    left: 35px; 
-    width: 17px; 
-    height: 17px;
-    transform: rotate(5deg);
-}
+.coin:nth-child(1) { top: 0; left: 0; }
+.coin:nth-child(2) { top: 6px; left: 16px; transform: rotate(15deg); }
+.coin:nth-child(3) { top: -4px; left: 28px; transform: rotate(-10deg); }
 
 /* ═══════════════════════════════════════════════════════════════
-   CIGARETTE STUB - Below letter area
+   CIGARETTE STUB - Lower left, stubbed out
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-cigarette {
     position: absolute;
-    bottom: 5px;
-    left: 25px;
-    transform: rotate(12deg);
+    bottom: 35px;
+    left: 20px;
+    transform: rotate(-35deg);
 }
 
 .cigarette-stub {
-    width: 55px;
+    width: 30px;
     height: 7px;
     position: relative;
-    /* Paper/tobacco body - cream colored */
-    background: linear-gradient(180deg, #f0e8d8 0%, #e0d4c0 50%, #d0c4b0 100%);
-    border-radius: 3px;
-    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.25);
-}
-
-/* Filter end - tan/cork colored */
-.cigarette-stub::before {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: 0;
-    width: 16px;
-    height: 100%;
-    background: linear-gradient(180deg, #c4a060 0%, #b08040 50%, #a07030 100%);
+    /* Off-white paper */
+    background: linear-gradient(180deg, #f0ebe0 0%, #e0d8c8 100%);
     border-radius: 0 3px 3px 0;
 }
 
@@ -446,6 +408,7 @@
 
 /* ═══════════════════════════════════════════════════════════════
    DORA'S LETTER - Vertical envelope, opens from top
+   FIXED: Added perspective for 3D flap rotation
    ═══════════════════════════════════════════════════════════════ */
 
 .compartment-letter {
@@ -456,7 +419,7 @@
     margin-top: 10px;
 }
 
-/* Vertical envelope container */
+/* Vertical envelope container - ADDED PERSPECTIVE */
 .dora-envelope {
     width: 200px;
     height: 140px;
@@ -464,6 +427,10 @@
     cursor: pointer;
     transition: transform 0.3s ease;
     transform: rotate(-2deg);
+    
+    /* CRITICAL: 3D perspective for flap rotation */
+    perspective: 800px;
+    transform-style: preserve-3d;
 }
 
 .dora-envelope:hover {
@@ -476,9 +443,12 @@
     height: 100%;
     background: linear-gradient(180deg, #d4c4a0 0%, #c4b490 50%, #b4a480 100%);
     border-radius: 3px;
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     overflow: visible;
+    z-index: 1;
 }
 
 /* Paper texture */
@@ -515,8 +485,11 @@
     background: linear-gradient(180deg, #e4d4b0 0%, #d4c4a0 100%);
     clip-path: polygon(0 0, 50% 100%, 100% 0);
     transform-origin: top center;
+    transform: rotateX(0deg);
     transition: transform 0.5s ease;
     z-index: 3;
+    /* Ensure flap participates in 3D space */
+    backface-visibility: visible;
 }
 
 /* Wax seal on flap */
@@ -551,13 +524,13 @@
     color: rgba(0, 0, 0, 0.25);
 }
 
-/* Letter paper inside */
+/* Letter paper inside - HIDDEN by default */
 .letter-paper {
     position: absolute;
     top: 50px;
     left: 12px;
     right: 12px;
-    bottom: 12px;
+    height: 80px;
     background: linear-gradient(180deg, #faf6ee 0%, #f4f0e4 100%);
     border-radius: 2px;
     padding: 10px 12px;
@@ -565,13 +538,18 @@
     flex-direction: column;
     justify-content: center;
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+    
+    /* HIDDEN STATE */
     transform: translateY(0);
     opacity: 0;
-    transition: all 0.4s ease 0.15s;
-    z-index: 1;
+    transition: opacity 0.4s ease 0.15s, transform 0.4s ease 0.15s;
+    z-index: 0;
 }
 
-/* OPEN STATE - flap rotates up */
+/* ═══════════════════════════════════════════════════════════════
+   ENVELOPE OPEN STATE - Flap rotates up, letter slides out
+   ═══════════════════════════════════════════════════════════════ */
+
 .dora-envelope.envelope-open .envelope-flap {
     transform: rotateX(180deg);
 }
@@ -583,7 +561,8 @@
 
 .dora-envelope.envelope-open .letter-paper {
     opacity: 1;
-    transform: translateY(-30px);
+    transform: translateY(-50px);
+    z-index: 5;
 }
 
 /* Letter text */
@@ -643,13 +622,11 @@
 
 /* ═══════════════════════════════════════════════════════════════
    FORTUNE FATE-SEALING CSS
-   Add to compartment.css
    ═══════════════════════════════════════════════════════════════ */
 
 /* Pending fortune - envelope glows/pulses as hint */
 .dora-envelope.fortune-pending {
     animation: fortune-pulse 2s ease-in-out infinite;
-    position: relative;
 }
 
 .dora-envelope.fortune-pending::after {
@@ -675,10 +652,11 @@
 
 @keyframes fortune-pulse {
     0%, 100% { 
-        box-shadow: 0 0 5px rgba(157, 140, 255, 0.2);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     }
     50% { 
-        box-shadow: 0 0 20px rgba(157, 140, 255, 0.5),
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4),
+                    0 0 20px rgba(157, 140, 255, 0.5),
                     0 0 30px rgba(157, 140, 255, 0.2);
     }
 }
@@ -696,18 +674,15 @@
 @keyframes fate-flash {
     0% { 
         filter: brightness(1) saturate(1);
-        transform: scale(1);
     }
     20% { 
         filter: brightness(2.5) saturate(1.5);
-        transform: scale(1.02);
     }
     40% {
         filter: brightness(1.5) saturate(1.2);
     }
     100% { 
         filter: brightness(1) saturate(1);
-        transform: scale(1);
     }
 }
 
@@ -718,16 +693,13 @@
 
 @keyframes seal-crack {
     0% { 
-        transform: rotate(0deg) scale(1);
         opacity: 1;
     }
     50% { 
-        transform: rotate(-5deg) scale(1.1);
         opacity: 0.8;
     }
     100% { 
-        transform: rotate(0deg) scale(1);
-        opacity: 1;
+        opacity: 0.3;
     }
 }
 
