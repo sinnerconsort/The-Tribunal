@@ -86,10 +86,18 @@ async function generateSingleItem(name) {
 // ═══════════════════════════════════════════════════════════════
 
 let stateModule = null;
-try {
-    stateModule = await import('../core/state.js');
-} catch (e) {
-    console.warn('[Inventory] Using local state');
+let stateLoaded = false;
+
+async function loadStateModule() {
+    if (stateLoaded) return;
+    try {
+        stateModule = await import('../core/state.js');
+        stateLoaded = true;
+        console.log('[Inventory] State module loaded');
+    } catch (e) {
+        console.warn('[Inventory] Using local state:', e.message);
+        stateLoaded = true;
+    }
 }
 
 let localState = {
@@ -100,6 +108,7 @@ let localState = {
 };
 
 function getInventoryState() {
+    // Always ensure items array exists
     if (stateModule?.getChatState) {
         const chatState = stateModule.getChatState();
         if (chatState) {
@@ -111,11 +120,14 @@ function getInventoryState() {
                     addictions: {}
                 };
             }
+            if (!chatState.inventory.items) chatState.inventory.items = [];
             if (!chatState.inventory.stash) chatState.inventory.stash = {};
             if (!chatState.inventory.addictions) chatState.inventory.addictions = {};
             return chatState.inventory;
         }
     }
+    // Ensure localState.items exists
+    if (!localState.items) localState.items = [];
     return localState;
 }
 
@@ -164,6 +176,12 @@ export function getAllStashItems() {
  */
 export function addInventoryItem(itemData, quantity = 1) {
     const state = getInventoryState();
+    
+    // Defensive: ensure items array exists
+    if (!state.items) {
+        state.items = [];
+    }
+    
     const key = normalizeStashKey(itemData.name);
     
     // Check for existing item with same name
@@ -180,6 +198,7 @@ export function addInventoryItem(itemData, quantity = 1) {
     }
     
     // Ensure item is in stash
+    if (!state.stash) state.stash = {};
     if (!state.stash[key]) {
         saveToStash(itemData);
     }
@@ -204,6 +223,7 @@ export function addInventoryItem(itemData, quantity = 1) {
  */
 export function removeInventoryItem(itemId) {
     const state = getInventoryState();
+    if (!state.items) state.items = [];
     const idx = state.items.findIndex(i => i.id === itemId);
     if (idx === -1) return null;
     
@@ -290,7 +310,9 @@ export function getInventoryItems() {
  * Get items by category
  */
 export function getItemsByCategory(category) {
-    return getInventoryState().items.filter(i => i.category === category);
+    const state = getInventoryState();
+    if (!state.items) state.items = [];
+    return state.items.filter(i => i.category === category);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -560,8 +582,9 @@ export function setAutoExtract(enabled) {
 export async function initInventoryHandlers() {
     console.log('[Inventory] Initializing handlers...');
     
-    // Load ST events first
+    // Load dependencies
     await loadEvents();
+    await loadStateModule();
     
     initDetailPanelHandlers();
     
