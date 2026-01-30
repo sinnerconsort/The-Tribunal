@@ -989,6 +989,16 @@ import('./src/core/state.js').then(stateModule => {
 }).catch(err => {
     console.warn('[Tribunal] State module not exposed:', err.message);
 });
+
+        // Reinitialize effect timers when chat changes
+eventSource.on(event_types.CHAT_CHANGED, () => {
+    setTimeout(() => {
+        if (window.TribunalEffects?.initEffectTimers) {
+            window.TribunalEffects.initEffectTimers();
+            console.log('[Tribunal] Effect timers reinitialized for new chat');
+        }
+    }, 300);
+});
         
         // Expose debug helpers
         window.TribunalLedger = {
