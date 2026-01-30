@@ -2,6 +2,8 @@
  * The Tribunal - Ledger Tab Template
  * Notebook paper with cases (including contacts section) and grid paper map
  * SECRET COMPARTMENT - Hidden third tab with dark leather interior
+ * 
+ * @version 1.1.0 - Added initLedgerSubtabs() handler
  */
 
 export const LEDGER_TAB_HTML = `
@@ -193,6 +195,60 @@ export const LEDGER_TAB_HTML = `
 </div>`;
 
 // ═══════════════════════════════════════════════════════════════
+// SUBTAB HANDLER - Initialize this after DOM ready
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Initialize ledger subtab switching
+ * Call this after the ledger DOM is injected
+ */
+export function initLedgerSubtabs() {
+    const subtabs = document.querySelectorAll('.ledger-subtab');
+    const subcontents = document.querySelectorAll('.ledger-subcontent');
+    
+    if (!subtabs.length) {
+        console.warn('[Ledger] No subtabs found');
+        return;
+    }
+    
+    subtabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.dataset.ledgerTab;
+            
+            // Skip if clicking already active tab
+            if (tab.classList.contains('ledger-subtab-active')) return;
+            
+            // Skip if clicking hidden secret tab
+            if (tab.classList.contains('ledger-subtab-secret') && 
+                !tab.classList.contains('revealed') && 
+                !tab.classList.contains('cracking')) {
+                return;
+            }
+            
+            // Update active subtab
+            subtabs.forEach(t => t.classList.remove('ledger-subtab-active'));
+            tab.classList.add('ledger-subtab-active');
+            
+            // Update active content
+            subcontents.forEach(content => {
+                const isTarget = content.dataset.ledgerContent === targetTab;
+                content.classList.toggle('ledger-subcontent-active', isTarget);
+            });
+            
+            // Dispatch event for compartment (ledger-awareness listens for this)
+            if (targetTab === 'compartment') {
+                window.dispatchEvent(new CustomEvent('tribunal:compartmentOpened'));
+                console.log('[Ledger] Compartment opened');
+            }
+            
+            console.log(`[Ledger] Switched to subtab: ${targetTab}`);
+        });
+    });
+    
+    console.log('[Ledger] Subtab handlers initialized');
+}
+
+// ═══════════════════════════════════════════════════════════════
 // COMPARTMENT REVEAL FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 
@@ -303,6 +359,20 @@ export function getCurrentTimePeriod() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// COMBINED INIT - Call this once after ledger DOM exists
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Initialize all ledger handlers
+ * Call after ledger HTML is injected into DOM
+ */
+export function initLedgerHandlers() {
+    initLedgerSubtabs();
+    initEnvelopeHandler();
+    console.log('[Ledger] All handlers initialized');
+}
+
+// ═══════════════════════════════════════════════════════════════
 // DEBUG FUNCTION - Expose globally for testing
 // ═══════════════════════════════════════════════════════════════
 
@@ -324,4 +394,5 @@ if (typeof window !== 'undefined') {
     window.TribunalDebug.updateFortune = updateFortune;
     window.TribunalDebug.toggleEnvelope = toggleEnvelope;
     window.TribunalDebug.initEnvelope = initEnvelopeHandler;
+    window.TribunalDebug.initLedger = initLedgerHandlers;
 }
