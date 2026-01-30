@@ -45,7 +45,7 @@ import { initNewspaperStrip, updateNewspaperStrip } from './src/ui/newspaper-str
 import { initLocationHandlers, refreshLocations } from './src/ui/location-handlers.js';
 import { initAwareness } from './src/systems/ledger-awareness.js';
 import { initCommentary } from './src/systems/ledger-commentary.js';
-
+import { initFortuneInjection } from './src/systems/fortune-injection.js';
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Weather System (lazy loaded - see init())
@@ -825,6 +825,7 @@ async function init() {
     initNewspaperStrip();
     initAwareness();
     initCommentary();
+    initFortuneInjection();
     // Lazy load extractor
 try {
     const extractor = await import('./src/systems/ai-extractor.js');
