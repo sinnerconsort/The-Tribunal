@@ -278,3 +278,66 @@ export const INVENTORY_TAB_HTML = `
         </div>
     </div>
 </div>`;
+
+// ═══════════════════════════════════════════════════════════════
+// SUBTAB HANDLER - Initialize this after DOM ready
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Initialize inventory subtab switching
+ * Call this after the inventory DOM is injected
+ */
+export function initInventorySubtabs() {
+    const subtabs = document.querySelectorAll('.inventory-sub-tab');
+    const subcontents = document.querySelectorAll('.inventory-subcontent');
+    
+    if (!subtabs.length) {
+        console.warn('[Inventory] No subtabs found');
+        return;
+    }
+    
+    subtabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const targetTab = tab.dataset.subtab;
+            
+            // Skip if clicking already active tab
+            if (tab.classList.contains('active')) return;
+            
+            // Update active subtab
+            subtabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            
+            // Update active content
+            subcontents.forEach(content => {
+                const isTarget = content.dataset.subcontent === targetTab;
+                content.classList.toggle('inventory-subcontent-active', isTarget);
+            });
+            
+            console.log(`[Inventory] Switched to subtab: ${targetTab}`);
+        });
+    });
+    
+    console.log('[Inventory] Subtab handlers initialized');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMBINED INIT - Call this once after inventory DOM exists
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Initialize all inventory template handlers
+ * Call after inventory HTML is injected into DOM
+ */
+export function initInventoryTemplateHandlers() {
+    initInventorySubtabs();
+    console.log('[Inventory] Template handlers initialized');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DEBUG - Expose globally for testing
+// ═══════════════════════════════════════════════════════════════
+
+if (typeof window !== 'undefined') {
+    window.TribunalDebug = window.TribunalDebug || {};
+    window.TribunalDebug.initInventorySubtabs = initInventorySubtabs;
+}
