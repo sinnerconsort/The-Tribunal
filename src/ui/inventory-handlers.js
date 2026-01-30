@@ -540,12 +540,19 @@ function getEffectPreview(itemType) {
     const boosts = (status.boosts || []).map(s => `<span class="stat-boost">+1 ${formatSkillName(s)}</span>`);
     const debuffs = (status.debuffs || []).map(s => `<span class="stat-debuff">-1 ${formatSkillName(s)}</span>`);
     
-    const durationMin = Math.round(effectConfig.duration / 60000);
+    // Use message count (duration field is now message count)
+    const messages = effectConfig.duration || effectConfig.messages || 6;
+    
+    // Show what this clears if anything
+    const clearsText = (effectConfig.clears && effectConfig.clears.length > 0) 
+        ? `<div class="inv-effect-clears">Clears: ${effectConfig.clears.map(getWithdrawalName).join(', ')}</div>` 
+        : '';
     
     return `
         <div class="inv-effect-preview">
             <div class="inv-effect-name">${status.name}</div>
-            <div class="inv-effect-duration">${durationMin} min</div>
+            <div class="inv-effect-duration">${messages} messages</div>
+            ${clearsText}
             <div class="inv-effect-stats">
                 ${boosts.join(' ')}
                 ${debuffs.join(' ')}
@@ -598,23 +605,32 @@ function initDetailPanelHandlers() {
         
         const result = consumeItem(selectedItemId);
         if (result?.consumed) {
+            // Show cleared effects toast first
+            const clearedEffects = result.effect?.clearedEffects || [];
+            if (clearedEffects.length > 0) {
+                const clearedNames = clearedEffects.map(getWithdrawalName).join(', ');
+                toast(`${clearedNames} cleared`, 'success');
+            }
+            
             // Show effect toast with Electrochemistry quote
             if (result.effect?.electrochemistryQuote) {
                 // Fancy DE-style toast
-                toastWithVoice(
-                    result.effect.electrochemistryQuote,
-                    'electrochemistry',
-                    result.effect.effect?.name || 'Effect applied'
-                );
+                setTimeout(() => {
+                    toastWithVoice(
+                        result.effect.electrochemistryQuote,
+                        'electrochemistry',
+                        result.effect.effect?.name || 'Effect applied'
+                    );
+                }, clearedEffects.length > 0 ? 500 : 0);
             } else {
                 toast(`Used: ${result.item.name}`, 'success');
             }
             
-            // Show status applied
-            if (result.effect?.statusId) {
+            // Show remaining messages info
+            if (result.effect?.remainingMessages) {
                 setTimeout(() => {
-                    toast(`${result.effect.effect?.name || result.effect.statusId}`, 'info');
-                }, 500);
+                    toast(`${result.effect.effect?.name || result.effect.statusId} (${result.effect.remainingMessages} msgs)`, 'info');
+                }, 600);
             }
             
             if (result.remaining === 0) {
@@ -623,6 +639,18 @@ function initDetailPanelHandlers() {
             refreshDisplay();
         }
     });
+}
+
+/**
+ * Get human-readable name for status effects
+ */
+function getWithdrawalName(statusId) {
+    const names = {
+        'volumetric_shit_compressor': 'Hangover',
+        'waste_land': 'Exhaustion',
+        'finger_on_the_eject_button': 'Wounded'
+    };
+    return names[statusId] || statusId;
 }
 
 /**
