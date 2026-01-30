@@ -312,22 +312,6 @@ export function toggleEnvelope() {
 }
 
 /**
- * Initialize envelope click handler
- * Call this after ledger DOM is ready
- */
-export function initEnvelopeHandler() {
-    const envelope = document.getElementById('dora-envelope');
-    if (envelope) {
-        envelope.addEventListener('click', (e) => {
-            // Don't toggle if clicking the draw button
-            if (e.target.closest('.draw-fortune-btn')) return;
-            toggleEnvelope();
-        });
-        console.log('[The Tribunal] Envelope handler initialized');
-    }
-}
-
-/**
  * Update compartment commentary
  */
 export function updateCommentary(text) {
