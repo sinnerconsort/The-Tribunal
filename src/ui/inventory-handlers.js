@@ -1,66 +1,56 @@
 /**
  * The Tribunal - Inventory Handlers
- * Evidence bags, consumption, and Electrochemistry's grip
+ * State management, item operations, and UI rendering
  * 
- * "Your body knows what it needs. Trust it." — Electrochemistry
+ * Mirrors equipment-handlers.js patterns
  */
 
-// ═══════════════════════════════════════════════════════════════
-// LAZY IMPORTS (to avoid circular dependencies)
-// ═══════════════════════════════════════════════════════════════
-
-let stateModule = null;
-let statusModule = null;
-
-async function ensureImports() {
-    if (!stateModule) {
-        try {
-            stateModule = await import('../core/state.js');
-        } catch (e) {
-            console.warn('[Inventory] State module not available:', e);
-        }
-    }
-    if (!statusModule) {
-        try {
-            statusModule = await import('../data/statuses.js');
-        } catch (e) {
-            console.warn('[Inventory] Status module not available:', e);
-        }
-    }
-}
-
-// ═══════════════════════════════════════════════════════════════
-// LOCAL IMPORTS
-// ═══════════════════════════════════════════════════════════════
-
-import {
-    INVENTORY_TYPES,
-    INVENTORY_CATEGORIES,
-    ADDICTION_TYPES,
-    inferInventoryType,
-    getItemCategory,
-    isConsumable,
-    isAddictive,
-    getAddictionData,
-    getAddictionMessage,
-    getInventoryEmoji,
-    createInventoryItem,
-    DEFAULT_INVENTORY_STATE
+import { eventSource, event_types } from '../../../../../../script.js';
+import { 
+    INVENTORY_TYPES, 
+    inferInventoryType, 
+    isConsumable, 
+    isAddictive, 
+    getAddictionData 
 } from '../data/inventory.js';
+import { 
+    normalizeStashKey, 
+    generateSingleItem,
+    processMessageForInventory 
+} from '../voice/inventory-generation.js';
 
 // ═══════════════════════════════════════════════════════════════
 // STATE MANAGEMENT
 // ═══════════════════════════════════════════════════════════════
 
-let localState = { ...DEFAULT_INVENTORY_STATE };
+let stateModule = null;
+try {
+    stateModule = await import('../core/state.js');
+} catch (e) {
+    console.warn('[Inventory] Using local state');
+}
+
+let localState = {
+    items: [],           // Active inventory items
+    stash: {},           // Cached item data (like wardrobe)
+    currency: 0,         // Réal
+    addictions: {}       // { type: { level, lastFix, withdrawing } }
+};
 
 function getInventoryState() {
     if (stateModule?.getChatState) {
         const chatState = stateModule.getChatState();
         if (chatState) {
             if (!chatState.inventory) {
-                chatState.inventory = { ...DEFAULT_INVENTORY_STATE };
+                chatState.inventory = { 
+                    items: [], 
+                    stash: {}, 
+                    currency: 0,
+                    addictions: {}
+                };
             }
+            if (!chatState.inventory.stash) chatState.inventory.stash = {};
+            if (!chatState.inventory.addictions) chatState.inventory.addictions = {};
             return chatState.inventory;
         }
     }
@@ -68,339 +58,228 @@ function getInventoryState() {
 }
 
 function saveState() {
-    const state = getInventoryState();
-    state.lastUpdated = Date.now();
-    if (stateModule?.saveChatState) {
-        stateModule.saveChatState();
-    }
+    if (stateModule?.saveState) stateModule.saveState();
 }
 
 // ═══════════════════════════════════════════════════════════════
-// UI STATE
+// STASH (Item Data Cache)
 // ═══════════════════════════════════════════════════════════════
 
-let uiState = {
-    selectedItemId: null,
-    isDetailOpen: false
-};
+export function getFromStash(name) {
+    return getInventoryState().stash[normalizeStashKey(name)] || null;
+}
+
+export function saveToStash(item) {
+    const state = getInventoryState();
+    const key = normalizeStashKey(item.name);
+    state.stash[key] = { ...item, stashKey: key, savedAt: Date.now() };
+    saveState();
+}
+
+export function deleteFromStash(key) {
+    const state = getInventoryState();
+    if (state.stash[key]) {
+        delete state.stash[key];
+        saveState();
+        return true;
+    }
+    return false;
+}
+
+export function getAllStashItems() {
+    return Object.values(getInventoryState().stash);
+}
 
 // ═══════════════════════════════════════════════════════════════
-// INVENTORY OPERATIONS
+// ITEM OPERATIONS
 // ═══════════════════════════════════════════════════════════════
 
 /**
  * Add item to inventory
- * @param {object} itemData - Item data (or just { name } for auto-generation)
- * @returns {object|null} Added item or null
+ * @param {object} itemData - Item data from generation or stash
+ * @param {number} quantity - How many to add (default 1)
+ * @returns {object|null} The added item or null if duplicate
  */
-export function addInventoryItem(itemData) {
+export function addInventoryItem(itemData, quantity = 1) {
     const state = getInventoryState();
+    const key = normalizeStashKey(itemData.name);
     
-    // Check for existing item of same name to stack
-    const existingIndex = state.items.findIndex(
-        i => i.name.toLowerCase() === itemData.name.toLowerCase()
-    );
-    
-    if (existingIndex !== -1) {
-        // Stack quantity
-        const quantity = itemData.quantity || 1;
-        state.items[existingIndex].quantity += quantity;
-        saveState();
-        refreshDisplay();
-        return state.items[existingIndex];
+    // Check for existing item with same name
+    const existing = state.items.find(i => normalizeStashKey(i.name) === key);
+    if (existing) {
+        // Stack quantity for consumables
+        if (existing.category === 'consumable') {
+            existing.quantity = (existing.quantity || 1) + quantity;
+            saveState();
+            return existing;
+        }
+        // Non-consumables don't stack
+        return null;
     }
     
-    // Create new item
-    const newItem = createInventoryItem(itemData);
+    // Ensure item is in stash
+    if (!state.stash[key]) {
+        saveToStash(itemData);
+    }
+    
+    // Create active inventory item
+    const newItem = {
+        id: `inv-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+        ...itemData,
+        quantity: quantity,
+        addedAt: Date.now()
+    };
+    
     state.items.push(newItem);
     saveState();
-    refreshDisplay();
+    
+    console.log('[Inventory] Added:', newItem.name, 'x', quantity);
     return newItem;
 }
 
 /**
- * Remove item from inventory (or reduce quantity)
- * @param {string} itemId - Item ID
- * @param {number} quantity - Amount to remove (default: all)
- * @returns {object|null} Removed/modified item
+ * Remove item from inventory by ID
  */
-export function removeInventoryItem(itemId, quantity = null) {
+export function removeInventoryItem(itemId) {
     const state = getInventoryState();
     const idx = state.items.findIndex(i => i.id === itemId);
     if (idx === -1) return null;
     
+    const removed = state.items.splice(idx, 1)[0];
+    saveState();
+    
+    console.log('[Inventory] Removed:', removed.name);
+    return removed;
+}
+
+/**
+ * Remove item from inventory by name (fuzzy match)
+ */
+export function removeInventoryItemByName(name) {
+    const state = getInventoryState();
+    const key = normalizeStashKey(name);
+    
+    const idx = state.items.findIndex(i => normalizeStashKey(i.name) === key);
+    if (idx === -1) return null;
+    
     const item = state.items[idx];
     
-    if (quantity === null || quantity >= item.quantity) {
-        // Remove entirely
-        state.items.splice(idx, 1);
-        if (uiState.selectedItemId === itemId) {
-            closeDetailPanel();
-        }
-    } else {
-        // Reduce quantity
-        item.quantity -= quantity;
+    // For consumables, decrement quantity
+    if (item.category === 'consumable' && item.quantity > 1) {
+        item.quantity--;
+        saveState();
+        console.log('[Inventory] Decremented:', item.name, 'now', item.quantity);
+        return { ...item, removed: false };
     }
     
+    // Remove entirely
+    const removed = state.items.splice(idx, 1)[0];
     saveState();
-    refreshDisplay();
-    return item;
+    console.log('[Inventory] Removed:', removed.name);
+    return { ...removed, removed: true };
 }
 
 /**
- * Get item by ID
- * @param {string} itemId - Item ID
- * @returns {object|null} Item or null
+ * Consume an item (use it)
+ * Handles addiction tracking for addictive items
  */
-export function getInventoryItem(itemId) {
+export function consumeItem(itemId) {
     const state = getInventoryState();
-    return state.items.find(i => i.id === itemId) || null;
+    const item = state.items.find(i => i.id === itemId);
+    
+    if (!item) return null;
+    if (!item.category === 'consumable') return null;
+    
+    // Handle addiction
+    if (item.addictive && item.addictionType) {
+        const addictionType = item.addictionType;
+        if (!state.addictions[addictionType]) {
+            state.addictions[addictionType] = { level: 0, lastFix: 0, withdrawing: false };
+        }
+        state.addictions[addictionType].lastFix = Date.now();
+        state.addictions[addictionType].withdrawing = false;
+        // Increase addiction level slightly
+        state.addictions[addictionType].level = Math.min(10, (state.addictions[addictionType].level || 0) + 0.5);
+    }
+    
+    // Decrement or remove
+    if (item.quantity > 1) {
+        item.quantity--;
+        saveState();
+        return { consumed: true, remaining: item.quantity, item };
+    }
+    
+    // Remove last one
+    const idx = state.items.findIndex(i => i.id === itemId);
+    state.items.splice(idx, 1);
+    saveState();
+    
+    return { consumed: true, remaining: 0, item };
 }
 
 /**
- * Get all items in a category
- * @param {string} category - 'consumable' or 'misc'
- * @returns {array} Items in category
+ * Get all items in inventory
+ */
+export function getInventoryItems() {
+    return getInventoryState().items;
+}
+
+/**
+ * Get items by category
  */
 export function getItemsByCategory(category) {
-    const state = getInventoryState();
-    return state.items.filter(i => i.category === category);
-}
-
-/**
- * Find items by addiction type
- * @param {string} addictionType - 'nicotine', 'alcohol', 'stimulants'
- * @returns {array} Matching items
- */
-export function getItemsByAddictionType(addictionType) {
-    const state = getInventoryState();
-    return state.items.filter(i => i.addictionType === addictionType && i.quantity > 0);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CONSUMPTION SYSTEM
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Consume an item
- * @param {string} itemId - Item ID
- * @param {boolean} isAutoConsume - Whether this is an addiction-triggered auto-consume
- * @returns {object|null} Consumption result
- */
-export async function consumeItem(itemId, isAutoConsume = false) {
-    await ensureImports();
-    
-    const item = getInventoryItem(itemId);
-    if (!item || item.quantity <= 0) return null;
-    if (!isConsumable(item.type)) return null;
-    
-    const typeData = INVENTORY_TYPES[item.type];
-    const result = {
-        item,
-        statusApplied: null,
-        healthRestored: 0,
-        moraleRestored: 0,
-        electrochemistryMessage: null,
-        isAutoConsume
-    };
-    
-    // Reduce quantity
-    item.quantity -= 1;
-    
-    // Apply status effect if applicable
-    if (typeData.statusId && statusModule?.STATUS_EFFECTS) {
-        result.statusApplied = typeData.statusId;
-        
-        // Track active effect for duration/addiction
-        const state = getInventoryState();
-        const duration = item.effect?.duration || typeData.defaultDuration || 3;
-        
-        // Remove existing effect of same type
-        state.activeEffects = state.activeEffects.filter(e => e.statusId !== typeData.statusId);
-        
-        // Add new effect
-        state.activeEffects.push({
-            itemId: item.id,
-            itemName: item.name,
-            statusId: typeData.statusId,
-            remainingDuration: duration,
-            addictionType: item.addictionType,
-            startedAt: Date.now()
-        });
-        
-        // Get satisfaction message
-        if (item.addictionType) {
-            result.electrochemistryMessage = getAddictionMessage(item.addictionType, 'satisfied');
-        }
-    }
-    
-    // Apply health/morale restoration
-    if (typeData.healthRestore && stateModule?.applyHealing) {
-        result.healthRestored = typeData.healthRestore;
-        stateModule.applyHealing(typeData.healthRestore, 'health');
-    }
-    if (typeData.moraleRestore && stateModule?.applyHealing) {
-        result.moraleRestored = typeData.moraleRestore;
-        stateModule.applyHealing(typeData.moraleRestore, 'morale');
-    }
-    
-    // Remove item if depleted
-    if (item.quantity <= 0) {
-        removeInventoryItem(itemId, null);
-        
-        // Despair message if addictive and no more left
-        if (item.addictionType) {
-            const moreOfType = getItemsByAddictionType(item.addictionType);
-            if (moreOfType.length === 0) {
-                result.emptyMessage = getAddictionMessage(item.addictionType, 'empty');
-            }
-        }
-    }
-    
-    saveState();
-    refreshDisplay();
-    
-    // Show toast
-    const toastMsg = isAutoConsume 
-        ? `ELECTROCHEMISTRY: ${item.name} consumed automatically`
-        : `Consumed: ${item.name}`;
-    toast(toastMsg, 'success');
-    
-    return result;
-}
-
-/**
- * Process effect duration tick (call after each message)
- * Handles addiction auto-consume when effects expire
- */
-export async function tickEffectDurations() {
-    await ensureImports();
-    
-    const state = getInventoryState();
-    const expiredEffects = [];
-    
-    // Tick down all active effects
-    for (const effect of state.activeEffects) {
-        effect.remainingDuration -= 1;
-        if (effect.remainingDuration <= 0) {
-            expiredEffects.push(effect);
-        }
-    }
-    
-    // Remove expired effects
-    state.activeEffects = state.activeEffects.filter(e => e.remainingDuration > 0);
-    
-    // Handle addiction auto-consume for expired effects
-    for (const expired of expiredEffects) {
-        if (expired.addictionType && state.addictionSettings.autoConsume) {
-            await handleAddictionAutoConsume(expired.addictionType);
-        }
-    }
-    
-    saveState();
-    refreshDisplay();
-}
-
-/**
- * Handle Electrochemistry's auto-consume when effect expires
- * @param {string} addictionType - Type of addiction
- */
-async function handleAddictionAutoConsume(addictionType) {
-    const items = getItemsByAddictionType(addictionType);
-    
-    if (items.length === 0) {
-        // No items left - show craving message
-        const message = getAddictionMessage(addictionType, 'empty');
-        showElectrochemistryNotification(message, 'craving');
-        return;
-    }
-    
-    // Pick first available item
-    const item = items[0];
-    
-    // Show auto-consume message
-    const message = getAddictionMessage(addictionType, 'autoConsume');
-    showElectrochemistryNotification(message, 'autoConsume');
-    
-    // Consume after brief delay for dramatic effect
-    setTimeout(async () => {
-        await consumeItem(item.id, true);
-    }, 500);
-}
-
-/**
- * Show Electrochemistry notification
- * @param {string} message - Message text
- * @param {string} type - 'autoConsume', 'craving', 'satisfied'
- */
-function showElectrochemistryNotification(message, type) {
-    // Use toastr if available, otherwise log
-    const title = 'ELECTROCHEMISTRY';
-    
-    if (typeof toastr !== 'undefined') {
-        const opts = { timeOut: 5000, positionClass: 'toast-top-center' };
-        if (type === 'craving') {
-            toastr.warning(message, title, opts);
-        } else {
-            toastr.info(message, title, opts);
-        }
-    }
-    
-    console.log(`[Inventory] ${title}: ${message}`);
+    return getInventoryState().items.filter(i => i.category === category);
 }
 
 // ═══════════════════════════════════════════════════════════════
 // CURRENCY
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Update currency amount
- * @param {number} delta - Amount to add (negative to subtract)
- */
-export function updateCurrency(delta) {
-    const state = getInventoryState();
-    state.currency = Math.max(0, (state.currency || 0) + delta);
-    saveState();
-    refreshCurrencyDisplay();
-}
-
-/**
- * Set currency amount
- * @param {number} amount - New amount
- */
-export function setCurrency(amount) {
-    const state = getInventoryState();
-    state.currency = Math.max(0, amount);
-    saveState();
-    refreshCurrencyDisplay();
-}
-
-/**
- * Get current currency
- * @returns {number}
- */
 export function getCurrency() {
     return getInventoryState().currency || 0;
+}
+
+export function addCurrency(amount) {
+    const state = getInventoryState();
+    state.currency = (state.currency || 0) + amount;
+    saveState();
+    updateCurrencyDisplay();
+    return state.currency;
+}
+
+export function spendCurrency(amount) {
+    const state = getInventoryState();
+    if ((state.currency || 0) < amount) return false;
+    state.currency -= amount;
+    saveState();
+    updateCurrencyDisplay();
+    return true;
+}
+
+function updateCurrencyDisplay() {
+    const el = document.getElementById('ie-currency-value');
+    if (el) {
+        el.textContent = getCurrency().toFixed(2);
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
 // UI RENDERING
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Main display refresh
- */
-export function refreshDisplay() {
-    renderConsumablesGrid();
-    renderMiscGrid();
-    refreshCurrencyDisplay();
-    updateActiveEffectsDisplay();
-}
+let selectedItemId = null;
 
 /**
- * Render consumables evidence bags
+ * Refresh the inventory display
  */
-function renderConsumablesGrid() {
+export function refreshDisplay() {
+    renderConsumables();
+    renderMiscItems();
+    updateCurrencyDisplay();
+    updateDetailPanel();
+}
+
+function renderConsumables() {
     const grid = document.getElementById('ie-consumables-grid');
     if (!grid) return;
     
@@ -411,14 +290,13 @@ function renderConsumablesGrid() {
         return;
     }
     
-    grid.innerHTML = items.map(item => renderEvidenceBag(item)).join('');
-    attachBagHandlers(grid);
+    grid.innerHTML = '';
+    for (const item of items) {
+        grid.appendChild(createEvidenceBag(item));
+    }
 }
 
-/**
- * Render miscellaneous evidence bags
- */
-function renderMiscGrid() {
+function renderMiscItems() {
     const grid = document.getElementById('ie-misc-grid');
     if (!grid) return;
     
@@ -429,209 +307,123 @@ function renderMiscGrid() {
         return;
     }
     
-    grid.innerHTML = items.map(item => renderEvidenceBag(item)).join('');
-    attachBagHandlers(grid);
+    grid.innerHTML = '';
+    for (const item of items) {
+        grid.appendChild(createEvidenceBag(item));
+    }
 }
 
 /**
- * Render a single evidence bag
- * @param {object} item - Item data
- * @returns {string} HTML
+ * Create an evidence bag element for an item
  */
-function renderEvidenceBag(item) {
-    const emoji = getInventoryEmoji(item.type);
-    const quantityDisplay = item.quantity > 1 ? `${item.quantity}×` : '';
-    const isSelected = uiState.selectedItemId === item.id;
-    const addictiveClass = item.addictive ? 'addictive' : '';
-    const activeEffect = getActiveEffectForItem(item);
-    const activeClass = activeEffect ? 'active-effect' : '';
+function createEvidenceBag(item) {
+    const typeInfo = INVENTORY_TYPES[item.type] || INVENTORY_TYPES.other;
+    const isSelected = selectedItemId === item.id;
     
-    return `
-        <div class="inv-evidence-bag ${isSelected ? 'selected' : ''} ${addictiveClass} ${activeClass}" 
-             data-item-id="${item.id}">
-            <div class="inv-evidence-bag-top">
-                <div class="inv-evidence-bag-seal"></div>
-            </div>
-            <div class="inv-evidence-bag-content">
-                <span class="inv-evidence-bag-emoji">${emoji}</span>
-                <span class="inv-evidence-bag-name">${quantityDisplay} ${item.name}</span>
-            </div>
-            ${activeEffect ? `<div class="inv-evidence-bag-timer">${activeEffect.remainingDuration}</div>` : ''}
+    const bag = document.createElement('div');
+    bag.className = `inv-evidence-bag ${isSelected ? 'selected' : ''} ${item.addictive ? 'addictive' : ''}`;
+    bag.dataset.itemId = item.id;
+    
+    bag.innerHTML = `
+        <div class="inv-evidence-bag-top"></div>
+        <div class="inv-evidence-bag-content">
+            <span class="inv-evidence-icon">${typeInfo.icon || '📦'}</span>
+            <span class="inv-evidence-name">${item.name}</span>
+            ${item.quantity > 1 ? `<span class="inv-evidence-qty">×${item.quantity}</span>` : ''}
         </div>
+        <div class="inv-evidence-label">${item.type.toUpperCase()}</div>
     `;
+    
+    bag.addEventListener('click', () => selectItem(item.id));
+    
+    return bag;
 }
 
 /**
- * Attach click handlers to evidence bags
- * @param {HTMLElement} container - Grid container
- */
-function attachBagHandlers(container) {
-    container.querySelectorAll('.inv-evidence-bag').forEach(bag => {
-        bag.addEventListener('click', () => {
-            const itemId = bag.dataset.itemId;
-            selectItem(itemId);
-        });
-    });
-}
-
-/**
- * Select an item and show detail panel
- * @param {string} itemId - Item ID
+ * Select an item to show details
  */
 function selectItem(itemId) {
-    const item = getInventoryItem(itemId);
-    if (!item) return;
-    
-    uiState.selectedItemId = itemId;
-    uiState.isDetailOpen = true;
-    
-    // Update selected state in grids
-    document.querySelectorAll('.inv-evidence-bag').forEach(bag => {
-        bag.classList.toggle('selected', bag.dataset.itemId === itemId);
-    });
-    
-    showDetailPanel(item);
+    selectedItemId = selectedItemId === itemId ? null : itemId;
+    refreshDisplay();
 }
 
 /**
- * Show item detail panel
- * @param {object} item - Item data
+ * Update the detail panel
  */
-function showDetailPanel(item) {
+function updateDetailPanel() {
     const panel = document.getElementById('ie-item-detail');
-    const iconEl = document.getElementById('ie-detail-icon');
-    const nameEl = document.getElementById('ie-detail-name');
-    const descEl = document.getElementById('ie-detail-desc');
-    const effectEl = document.getElementById('ie-detail-effect');
     const consumeBtn = document.getElementById('ie-consume-btn');
     
     if (!panel) return;
     
-    // Populate data
-    iconEl.textContent = getInventoryEmoji(item.type);
-    nameEl.textContent = item.quantity > 1 ? `${item.quantity}× ${item.name}` : item.name;
-    descEl.textContent = item.description || 'No description available.';
-    
-    // Effect info
-    let effectHtml = '';
-    const typeData = INVENTORY_TYPES[item.type];
-    
-    if (typeData?.statusId) {
-        effectHtml = `<div class="inv-effect-status">Applies: <strong>${formatStatusName(typeData.statusId)}</strong></div>`;
-    }
-    if (typeData?.healthRestore) {
-        effectHtml += `<div class="inv-effect-health">+${typeData.healthRestore} Health</div>`;
-    }
-    if (typeData?.moraleRestore) {
-        effectHtml += `<div class="inv-effect-morale">+${typeData.moraleRestore} Morale</div>`;
-    }
-    if (item.addictive) {
-        effectHtml += `<div class="inv-effect-warning">⚠️ Addictive</div>`;
+    if (!selectedItemId) {
+        panel.style.display = 'none';
+        return;
     }
     
-    // Voice quips
+    const item = getInventoryState().items.find(i => i.id === selectedItemId);
+    if (!item) {
+        panel.style.display = 'none';
+        selectedItemId = null;
+        return;
+    }
+    
+    const typeInfo = INVENTORY_TYPES[item.type] || INVENTORY_TYPES.other;
+    
+    // Update panel content
+    document.getElementById('ie-detail-icon').textContent = typeInfo.icon || '📦';
+    document.getElementById('ie-detail-name').textContent = item.name;
+    document.getElementById('ie-detail-desc').textContent = item.description || 'No description.';
+    
+    // Effect/quips
+    const effectEl = document.getElementById('ie-detail-effect');
     if (item.voiceQuips && item.voiceQuips.length > 0) {
-        effectHtml += '<div class="inv-quips">';
-        for (const quip of item.voiceQuips) {
-            const approvalClass = quip.approves ? 'approves' : 'disapproves';
-            effectHtml += `
-                <div class="inv-quip ${approvalClass}">
-                    <span class="inv-quip-skill">${formatSkillName(quip.skill)}:</span>
-                    <span class="inv-quip-text">"${quip.text}"</span>
-                </div>
-            `;
-        }
-        effectHtml += '</div>';
+        effectEl.innerHTML = item.voiceQuips.map(q => `
+            <div class="inv-detail-quip ${q.approves ? 'approves' : 'disapproves'}">
+                <span class="inv-quip-skill">${formatSkillName(q.skill)}:</span>
+                <span class="inv-quip-text">"${q.text}"</span>
+            </div>
+        `).join('');
+    } else {
+        effectEl.innerHTML = '';
     }
     
-    effectEl.innerHTML = effectHtml;
-    
-    // Show/hide consume button
-    if (isConsumable(item.type)) {
-        consumeBtn.style.display = 'block';
-        consumeBtn.onclick = () => consumeItem(item.id);
-    } else {
-        consumeBtn.style.display = 'none';
+    // Consume button
+    if (consumeBtn) {
+        consumeBtn.style.display = item.category === 'consumable' ? 'block' : 'none';
     }
     
     panel.style.display = 'block';
 }
 
-/**
- * Close detail panel
- */
-function closeDetailPanel() {
-    uiState.selectedItemId = null;
-    uiState.isDetailOpen = false;
-    
-    const panel = document.getElementById('ie-item-detail');
-    if (panel) panel.style.display = 'none';
-    
-    document.querySelectorAll('.inv-evidence-bag').forEach(bag => {
-        bag.classList.remove('selected');
+function formatSkillName(skill) {
+    return skill.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EVENT HANDLERS
+// ═══════════════════════════════════════════════════════════════
+
+function initDetailPanelHandlers() {
+    // Close button
+    document.getElementById('ie-detail-close')?.addEventListener('click', () => {
+        selectedItemId = null;
+        refreshDisplay();
     });
-}
-
-/**
- * Refresh currency display
- */
-function refreshCurrencyDisplay() {
-    const valueEl = document.getElementById('ie-currency-value');
-    if (valueEl) {
-        const currency = getCurrency();
-        valueEl.textContent = currency.toFixed(2);
-    }
-}
-
-/**
- * Update active effects display (timers on bags)
- */
-function updateActiveEffectsDisplay() {
-    const state = getInventoryState();
     
-    document.querySelectorAll('.inv-evidence-bag').forEach(bag => {
-        const itemId = bag.dataset.itemId;
-        const effect = state.activeEffects.find(e => e.itemId === itemId);
+    // Consume button
+    document.getElementById('ie-consume-btn')?.addEventListener('click', () => {
+        if (!selectedItemId) return;
         
-        const timerEl = bag.querySelector('.inv-evidence-bag-timer');
-        if (effect) {
-            bag.classList.add('active-effect');
-            if (timerEl) {
-                timerEl.textContent = effect.remainingDuration;
+        const result = consumeItem(selectedItemId);
+        if (result?.consumed) {
+            toast(`Used: ${result.item.name}`, 'success');
+            if (result.remaining === 0) {
+                selectedItemId = null;
             }
-        } else {
-            bag.classList.remove('active-effect');
-            if (timerEl) timerEl.remove();
+            refreshDisplay();
         }
     });
-}
-
-/**
- * Get active effect for an item
- * @param {object} item - Item data
- * @returns {object|null} Active effect or null
- */
-function getActiveEffectForItem(item) {
-    const state = getInventoryState();
-    const typeData = INVENTORY_TYPES[item.type];
-    if (!typeData?.statusId) return null;
-    return state.activeEffects.find(e => e.statusId === typeData.statusId) || null;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════════════════════════
-
-function formatStatusName(statusId) {
-    return statusId
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, c => c.toUpperCase());
-}
-
-function formatSkillName(skill) {
-    return skill
-        .replace(/_/g, ' ')
-        .replace(/\b\w/g, c => c.toUpperCase());
 }
 
 function toast(msg, type = 'info') {
@@ -643,21 +435,83 @@ function toast(msg, type = 'info') {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// MESSAGE_RECEIVED AUTO-EXTRACTION
+// ═══════════════════════════════════════════════════════════════
+
+let autoExtractEnabled = true;
+
+/**
+ * Handle incoming AI message for auto-extraction
+ */
+async function onMessageReceived(messageIndex) {
+    if (!autoExtractEnabled) return;
+    
+    try {
+        const context = window.SillyTavern?.getContext?.();
+        if (!context?.chat) return;
+        
+        const message = context.chat[messageIndex];
+        if (!message || message.is_user) return;
+        
+        const { toAdd, toRemove } = await processMessageForInventory(message.mes, {
+            getFromStash,
+            saveToStash
+        });
+        
+        let changes = false;
+        
+        // Add new items
+        for (const itemData of toAdd) {
+            const result = addInventoryItem(itemData);
+            if (result) {
+                changes = true;
+                console.log('[Inventory] Auto-added:', itemData.name);
+            }
+        }
+        
+        // Remove lost items
+        for (const name of toRemove) {
+            const result = removeInventoryItemByName(name);
+            if (result) {
+                changes = true;
+                console.log('[Inventory] Auto-removed:', name);
+            }
+        }
+        
+        if (changes) {
+            refreshDisplay();
+        }
+        
+    } catch (error) {
+        console.error('[Inventory] Auto-extract error:', error);
+    }
+}
+
+export function setAutoExtract(enabled) {
+    autoExtractEnabled = enabled;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Initialize inventory handlers
- */
-export async function initInventoryHandlers() {
+export function initInventoryHandlers() {
     console.log('[Inventory] Initializing handlers...');
     
-    await ensureImports();
+    initDetailPanelHandlers();
     
-    // Close button handler
-    const closeBtn = document.getElementById('ie-detail-close');
-    if (closeBtn) {
-        closeBtn.addEventListener('click', closeDetailPanel);
+    // Hook MESSAGE_RECEIVED for auto-extraction
+    if (eventSource && event_types?.MESSAGE_RECEIVED) {
+        eventSource.on(event_types.MESSAGE_RECEIVED, onMessageReceived);
+        console.log('[Inventory] MESSAGE_RECEIVED hook registered');
+    }
+    
+    // Hook CHAT_CHANGED to refresh display
+    if (eventSource && event_types?.CHAT_CHANGED) {
+        eventSource.on(event_types.CHAT_CHANGED, () => {
+            selectedItemId = null;
+            setTimeout(refreshDisplay, 100);
+        });
     }
     
     // Initial render
@@ -667,10 +521,38 @@ export async function initInventoryHandlers() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// EXPORTS FOR EXTERNAL USE
+// EXPORTS
 // ═══════════════════════════════════════════════════════════════
 
-export {
+export default {
+    // State
     getInventoryState,
-    refreshDisplay as refreshInventoryDisplay
+    getInventoryItems,
+    getItemsByCategory,
+    
+    // Stash
+    getFromStash,
+    saveToStash,
+    deleteFromStash,
+    getAllStashItems,
+    
+    // Item operations
+    addInventoryItem,
+    removeInventoryItem,
+    removeInventoryItemByName,
+    consumeItem,
+    
+    // Currency
+    getCurrency,
+    addCurrency,
+    spendCurrency,
+    
+    // UI
+    refreshDisplay,
+    
+    // Config
+    setAutoExtract,
+    
+    // Init
+    initInventoryHandlers
 };

@@ -358,16 +358,10 @@ function toast(msg, type = 'info') {
 }
 
 /**
- * Scan persona for inventory items
+ * Scan recent messages AND persona for inventory items
  */
 async function scanForInventory() {
     const badge = document.getElementById('ie-inv-scan-btn');
-    const persona = findUserPersona();
-    
-    if (!persona) {
-        toast('No persona found!', 'warning');
-        return;
-    }
     
     if (!inventoryGeneration) {
         toast('Inventory generation not loaded', 'error');
@@ -376,37 +370,62 @@ async function scanForInventory() {
     
     // Add scanning animation
     badge?.classList.add('scanning');
-    toast('Scanning persona...', 'info');
+    toast('Scanning...', 'info');
     
     try {
-        const names = inventoryGeneration.quickExtractItemNames(persona);
+        // Scan recent messages (last 3 AI messages)
+        const { gained, lost } = await inventoryGeneration.scanRecentMessages(3);
         
-        if (names.length === 0) {
-            toast('No items found in persona', 'info');
+        // Also check persona for any listed items
+        const persona = findUserPersona();
+        const personaItems = persona ? inventoryGeneration.quickExtractItemNames(persona) : [];
+        
+        // Combine and dedupe
+        const allItems = [...new Set([...gained, ...personaItems])];
+        
+        if (allItems.length === 0 && lost.length === 0) {
+            toast('No items found', 'info');
             return;
         }
         
-        toast(`Found ${names.length} items...`, 'info');
-        
         let added = 0;
-        for (const name of names) {
+        let removed = 0;
+        
+        // Add gained items
+        for (const name of allItems) {
             // Check stash first, then generate
             const existing = inventoryHandlers?.getFromStash?.(name);
             if (existing) {
-                await inventoryHandlers?.addInventoryItem?.(existing);
-                added++;
+                const result = await inventoryHandlers?.addInventoryItem?.(existing);
+                if (result) added++;
             } else {
                 const itemData = await inventoryGeneration.generateSingleItem(name);
                 if (itemData) {
                     inventoryHandlers?.saveToStash?.(itemData);
-                    await inventoryHandlers?.addInventoryItem?.(itemData);
-                    added++;
+                    const result = await inventoryHandlers?.addInventoryItem?.(itemData);
+                    if (result) added++;
                 }
             }
-            inventoryHandlers?.refreshDisplay?.();
         }
         
-        toast(`Added ${added} items!`, 'success');
+        // Remove lost items
+        for (const name of lost) {
+            const result = inventoryHandlers?.removeInventoryItemByName?.(name);
+            if (result) removed++;
+        }
+        
+        inventoryHandlers?.refreshDisplay?.();
+        
+        // Report results
+        const parts = [];
+        if (added > 0) parts.push(`+${added}`);
+        if (removed > 0) parts.push(`-${removed}`);
+        
+        if (parts.length > 0) {
+            toast(`Items: ${parts.join(', ')}`, 'success');
+        } else {
+            toast('No new items', 'info');
+        }
         
     } catch (error) {
         console.error('[Inventory] Scan error:', error);
