@@ -82,36 +82,133 @@ async function callInventoryAPI(systemPrompt, userPrompt) {
 /**
  * Extract inventory item names from text without AI
  * Used to find what items exist, then check stash/generate
+ * 
+ * @param {string} text - Text to scan (AI message or user message)
+ * @param {object} options - Extraction options
+ * @param {string} options.playerName - Player character name for pattern matching
+ * @param {boolean} options.isUserMessage - True if this is the user's own message
  */
-export function quickExtractItemNames(text) {
+export function quickExtractItemNames(text, options = {}) {
     if (!text) return [];
     
+    const { playerName = '', isUserMessage = false } = options;
     const items = [];
     const seen = new Set();
     
     // ─────────────────────────────────────────────────────────────────
-    // RP ACTION PATTERNS - Items being given/found/picked up
+    // PLAYER NAME PATTERNS (works for both user and AI messages)
+    // "[Name] pulls out a cigarette", "[Name] grabs the lighter"
+    // Used when player writes in third person OR AI describes player
     // ─────────────────────────────────────────────────────────────────
     
-    const receivePatterns = [
-        // "hands you a [item]", "gives you the [item]"
-        /(?:hands?|gives?|offers?|passes?|tosses?)\s+(?:you|him|her|them)\s+(?:a|an|the|some)?\s*([^.,;!?\n]+)/gi,
-        // "you receive/take/grab/pocket a [item]"
-        /(?:you\s+)?(?:receive|take|grab|pocket|pick\s*up|find|discover|notice)\s+(?:a|an|the|some)?\s*([^.,;!?\n]+)/gi,
-        // "puts a [item] in your hand/pocket"
-        /puts?\s+(?:a|an|the|some)?\s*([^.,;!?\n]+?)\s+(?:in|into)\s+(?:your|his|her|their)/gi,
-        // "a [item] on the table/ground/floor"
-        /(?:lies|sitting|resting|placed)\s+(?:on|upon)\s+[^:]+?(?:is\s+)?(?:a|an|the)?\s*([^.,;!?\n]+)/gi,
-    ];
+    if (playerName) {
+        // Escape regex special chars in name
+        const escapedName = playerName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        
+        const namePatterns = [
+            // "[Name] pulls out/grabs/takes/gets a [item]"
+            new RegExp(`${escapedName}\\s+(?:pulls?\\s+out|grabs?|takes?|gets?|produces?|fishes?\\s+out|digs?\\s+out)\\s+(?:a|an|the|his|her|their)?\\s*([^.,;!?\\n]+)`, 'gi'),
+            // "[Name] hands/gives/offers [someone] a [item]"
+            new RegExp(`${escapedName}\\s+(?:hands?|gives?|offers?|passes?|tosses?)\\s+(?:\\w+\\s+)?(?:a|an|the)?\\s*([^.,;!?\\n]+)`, 'gi'),
+            // "[Name] lights/smokes/drinks a [item]"
+            new RegExp(`${escapedName}\\s+(?:lights?|smokes?|drinks?|uses?|consumes?)\\s+(?:a|an|the|his|her)?\\s*([^.,;!?\\n]+)`, 'gi'),
+            // "[Name]'s cigarettes/lighter" (possessive - only known item types)
+            new RegExp(`${escapedName}'s\\s+((?:pack\\s+of\\s+)?(?:cigarettes?|cigs?|smokes|lighter|zippo|matches|wallet|phone|keys?|gun|pistol|knife|badge|bottle|beer|whiskey))`, 'gi'),
+        ];
+        
+        for (const pattern of namePatterns) {
+            const matches = text.matchAll(pattern);
+            for (const match of matches) {
+                const normalized = normalizeItemName(match[1]);
+                if (normalized && normalized.length > 2 && normalized.split(' ').length <= 4) {
+                    const type = inferInventoryType(normalized);
+                    if (type !== 'other' && !seen.has(normalized.toLowerCase())) {
+                        seen.add(normalized.toLowerCase());
+                        items.push(normalized);
+                    }
+                }
+            }
+        }
+    }
     
-    for (const pattern of receivePatterns) {
-        const matches = text.matchAll(pattern);
-        for (const match of matches) {
-            const normalized = normalizeItemName(match[1]);
-            if (normalized && normalized.length > 2 && normalized.split(' ').length <= 5) {
-                // Verify it looks like an inventory item
-                const type = inferInventoryType(normalized);
-                if (type !== 'other' && !seen.has(normalized.toLowerCase())) {
+    // ─────────────────────────────────────────────────────────────────
+    // FIRST PERSON PATTERNS (for users who write "I pull out...")
+    // Only check in user messages
+    // ─────────────────────────────────────────────────────────────────
+    
+    if (isUserMessage) {
+        const firstPersonPatterns = [
+            // "I pull out/grab/take a [item]"
+            /\bI\s+(?:pull\s+out|grab|take|get|fish\s+out|dig\s+out|produce)\s+(?:a|an|the|my|some)?\s*([^.,;!?\n]+)/gi,
+            // "I hand/give/offer [someone] a [item]"
+            /\bI\s+(?:hand|give|offer|pass|toss)\s+(?:\w+\s+)?(?:a|an|the|my)?\s*([^.,;!?\n]+)/gi,
+            // "I light a [cigarette]", "I smoke a [cigarette]"
+            /\bI\s+(?:light|smoke|drink|use|consume)\s+(?:a|an|the|my)?\s*([^.,;!?\n]+)/gi,
+        ];
+        
+        for (const pattern of firstPersonPatterns) {
+            const matches = text.matchAll(pattern);
+            for (const match of matches) {
+                const normalized = normalizeItemName(match[1]);
+                if (normalized && normalized.length > 2 && normalized.split(' ').length <= 5) {
+                    const type = inferInventoryType(normalized);
+                    if (type !== 'other' && !seen.has(normalized.toLowerCase())) {
+                        seen.add(normalized.toLowerCase());
+                        items.push(normalized);
+                    }
+                }
+            }
+        }
+    }
+    
+    // ─────────────────────────────────────────────────────────────────
+    // SECOND PERSON PATTERNS (AI messages directed at player)
+    // "You pull out a cigarette", "hands you a lighter"
+    // ─────────────────────────────────────────────────────────────────
+    
+    if (!isUserMessage) {
+        const receivePatterns = [
+            // "hands YOU a [item]", "gives YOU the [item]"
+            /(?:hands?|gives?|offers?|passes?|tosses?)\s+you\s+(?:a|an|the|some)?\s*([^.,;!?\n]+)/gi,
+            // "YOU pull out/grab/take"
+            /\byou\s+(?:pull\s+out|grab|take|get|fish\s+out|produce)\s+(?:a|an|the|your)?\s*([^.,;!?\n]+)/gi,
+            // "YOU receive/accept" 
+            /\byou\s+(?:receive|accept|pocket|pick\s*up)\s+(?:a|an|the|it)?\s*([^.,;!?\n]+)/gi,
+            // "puts a [item] in YOUR hand/pocket"
+            /puts?\s+(?:a|an|the|some)?\s*([^.,;!?\n]+?)\s+(?:in|into)\s+your/gi,
+            // "slips [item] into YOUR pocket/hand"
+            /slips?\s+(?:a|an|the|some)?\s*([^.,;!?\n]+?)\s+into\s+your/gi,
+        ];
+        
+        for (const pattern of receivePatterns) {
+            const matches = text.matchAll(pattern);
+            for (const match of matches) {
+                const normalized = normalizeItemName(match[1]);
+                if (normalized && normalized.length > 2 && normalized.split(' ').length <= 5) {
+                    const type = inferInventoryType(normalized);
+                    if (type !== 'other' && !seen.has(normalized.toLowerCase())) {
+                        seen.add(normalized.toLowerCase());
+                        items.push(normalized);
+                    }
+                }
+            }
+        }
+        
+        // Pattern: "your cigarettes", "your lighter" (possession in AI text)
+        const playerPossessionPatterns = [
+            /\byour\s+(?:pack\s+of\s+)?(?:cigarette(?:s)?|cig(?:s)?|smokes)/gi,
+            /\byour\s+(?:bottle\s+of\s+)?(?:beer|wine|whiskey|vodka|booze)/gi,
+            /\byour\s+(?:lighter|zippo|matches)/gi,
+            /\byour\s+(?:wallet|phone|keys?|knife|gun|pistol)/gi,
+            /\byour\s+(?:badge|id\s*card|credentials)/gi,
+        ];
+        
+        for (const pattern of playerPossessionPatterns) {
+            const matches = text.matchAll(pattern);
+            for (const match of matches) {
+                const itemPart = match[0].replace(/^your\s+/i, '');
+                const normalized = normalizeItemName(itemPart);
+                if (normalized && normalized.length > 2 && !seen.has(normalized.toLowerCase())) {
                     seen.add(normalized.toLowerCase());
                     items.push(normalized);
                 }
@@ -120,11 +217,10 @@ export function quickExtractItemNames(text) {
     }
     
     // ─────────────────────────────────────────────────────────────────
-    // LOSS PATTERNS - Items being used up/lost/taken (for removal)
-    // We'll return these separately
+    // PERSONA FORMAT (structured lists in persona description)
     // ─────────────────────────────────────────────────────────────────
     
-    // Pattern 1: Inventory: ["item, item, item"]
+    // Pattern: Inventory: ["item, item, item"]
     const inventoryMatch = text.match(/Inventory\s*:?\s*\[?"?([^\]"]+)"?\]?/i);
     if (inventoryMatch) {
         const rawItems = inventoryMatch[1].split(/[+&,;|\/]/).map(s => s.trim()).filter(s => s.length > 1);
@@ -137,8 +233,8 @@ export function quickExtractItemNames(text) {
         }
     }
     
-    // Pattern 2: Items: [...] or Carrying: [...]
-    const itemsMatch = text.match(/(?:Items|Carrying|Possessions|Belongings)\s*:?\s*\[?"?([^\]"]+)"?\]?/i);
+    // Pattern: Items: [...] or Carrying: [...]
+    const itemsMatch = text.match(/(?:Items|Carrying|Possessions|Belongings|On Person)\s*:?\s*\[?"?([^\]"]+)"?\]?/i);
     if (itemsMatch) {
         const rawItems = itemsMatch[1].split(/[+&,;|\/]/).map(s => s.trim()).filter(s => s.length > 1);
         for (const item of rawItems) {
@@ -150,58 +246,7 @@ export function quickExtractItemNames(text) {
         }
     }
     
-    // Pattern 3: Common consumables in prose (LOOSE matching)
-    const consumablePatterns = [
-        // Cigarettes - including brand names
-        /(?:pack(?:s)?\s+of\s+)?(?:cigarette(?:s)?|cig(?:s)?|smoke(?:s)?|astra(?:s)?|tief\s*cigarette(?:s)?)/gi,
-        // Alcohol
-        /(?:bottle(?:s)?\s+of\s+)?(?:beer|wine|whiskey|whisky|vodka|alcohol|booze|liquor|rum|gin|brandy)/gi,
-        /(?:can(?:s)?\s+of\s+)?(?:beer|soda|cola)/gi,
-        // Drugs
-        /(?:pill(?:s)?|tablet(?:s)?|capsule(?:s)?)/gi,
-        /(?:bag(?:s)?\s+of\s+)?(?:speed|amphetamine(?:s)?|pyrholidon|drug(?:s)?|powder)/gi,
-        // Tools/misc
-        /lighter(?:s)?|zippo/gi,
-        /match(?:es)?|matchbook/gi,
-        /(?:key(?:s)?|keyring|keycard)/gi,
-        /wallet|billfold/gi,
-        /(?:cell\s*)?phone|mobile/gi,
-        /flashlight|torch/gi,
-        /(?:pocket\s*)?knife|switchblade|gun|pistol|revolver|weapon/gi,
-        /note(?:s)?|letter(?:s)?|document(?:s)?|paper(?:s)?/gi,
-        /(?:coin(?:s)?|money|cash|réal|bill(?:s)?)/gi,
-        /photo(?:s)?|photograph(?:s)?|picture(?:s)?/gi,
-        /book(?:s)?|notebook|journal/gi,
-        /food|sandwich|snack|candy|gum/gi,
-        /badge|id\s*card|credentials/gi,
-    ];
-    
-    for (const pattern of consumablePatterns) {
-        const matches = text.matchAll(pattern);
-        for (const match of matches) {
-            const normalized = normalizeItemName(match[0]);
-            if (normalized && normalized.length > 2 && !seen.has(normalized.toLowerCase())) {
-                seen.add(normalized.toLowerCase());
-                items.push(normalized);
-            }
-        }
-    }
-    
-    // Pattern 4: "pulls out a/an [item]" or "grabs a/an [item]" in prose
-    const actionMatches = text.matchAll(/(?:pulls?\s+out|grabs?|picks?\s+up|takes?|holds?)\s+(?:a|an|the|some|his|her|their)?\s*([^.,;!?\n]+)/gi);
-    for (const match of actionMatches) {
-        const normalized = normalizeItemName(match[1]);
-        if (normalized && normalized.length > 2 && normalized.split(' ').length <= 5 && !seen.has(normalized.toLowerCase())) {
-            // Check if it looks like an inventory item
-            const type = inferInventoryType(normalized);
-            if (type !== 'other') {
-                seen.add(normalized.toLowerCase());
-                items.push(normalized);
-            }
-        }
-    }
-    
-    console.log('[Inventory] Quick extracted items:', items);
+    console.log('[Inventory] Extracted:', items, isUserMessage ? '(user)' : '(AI)', playerName ? `[${playerName}]` : '');
     return items;
 }
 
