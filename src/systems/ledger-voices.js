@@ -6,7 +6,7 @@
  * THE LEDGER OF OBLIVION - Prophetic, inevitable, fate-speaking  
  * THE LEDGER OF FAILURE AND HATRED - Mocking, 4th-wall, nihilistic-caring
  * 
- * Integrates with existing dice.js for skill checks
+ * v1.1.0 - Option B: Open envelope to seal your fate (no take-backs!)
  */
 
 // Import existing dice system for integration
@@ -459,6 +459,9 @@ let fortuneHistory = {
     fortunes: [] // Array of { fortune, voice, timestamp, markedTrue }
 };
 
+// PENDING FORTUNE - drawn but not yet opened/sealed
+let pendingFortune = null;
+
 /**
  * Record a dice roll for stats
  */
@@ -477,7 +480,7 @@ export function recordDiceRoll(rollResult) {
 }
 
 /**
- * Record a fortune draw
+ * Record a fortune draw (called when fate is SEALED, not when drawn)
  */
 export function recordFortune(fortuneResult) {
     fortuneHistory.totalDrawn++;
@@ -681,22 +684,37 @@ function displayDiceResult(result) {
     `;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// FORTUNE SYSTEM - "Open to Seal Your Fate"
+// You drew it. Now you have to OPEN it. No take-backs.
+// ═══════════════════════════════════════════════════════════════
+
 /**
- * Initialize fortune button handler
+ * Initialize fortune button AND envelope handler
  */
 export function initFortuneButton() {
     const btn = document.getElementById('fortune-draw-btn');
+    const envelope = document.getElementById('dora-envelope');
+    
     if (!btn) {
         console.warn('[Ledger Voices] Fortune button not found');
         return;
     }
     
+    // Draw button - creates fortune but CLOSES envelope
     btn.addEventListener('click', handleFortuneDraw);
-    console.log('[Ledger Voices] Fortune button initialized');
+    
+    // Envelope click - OPENING seals your fate
+    if (envelope) {
+        envelope.addEventListener('click', handleEnvelopeClick);
+    }
+    
+    console.log('[Ledger Voices] Fortune system initialized (Open to seal fate)');
 }
 
 /**
- * Handle fortune draw
+ * Handle fortune draw - creates fortune but doesn't activate it
+ * You must OPEN the envelope to seal your fate
  */
 function handleFortuneDraw(e) {
     e.stopPropagation(); // Don't toggle envelope
@@ -705,11 +723,17 @@ function handleFortuneDraw(e) {
     if (btn.classList.contains('drawing')) return;
     btn.classList.add('drawing');
     
-    // Draw fortune
+    // Draw fortune (but don't activate yet!)
     const result = drawFortune();
-    recordFortune(result);
     
-    // Update display
+    // Store as pending - not yet sealed
+    pendingFortune = {
+        ...result,
+        drawnAt: Date.now(),
+        sealed: false
+    };
+    
+    // Update display (hidden behind closed envelope)
     const textEl = document.getElementById('compartment-fortune-text');
     const sigEl = document.querySelector('.letter-signature');
     
@@ -723,18 +747,106 @@ function handleFortuneDraw(e) {
         sigEl.textContent = `— ${result.voiceName}`;
     }
     
-    // Open envelope if closed
+    // CLOSE the envelope - must open to read/activate
     const envelope = document.getElementById('dora-envelope');
-    if (envelope && !envelope.classList.contains('envelope-open')) {
-        envelope.classList.add('envelope-open');
+    if (envelope) {
+        envelope.classList.remove('envelope-open');
+        envelope.classList.add('fortune-pending'); // Visual hint
     }
     
     // Remove drawing lock
     setTimeout(() => btn.classList.remove('drawing'), 500);
     
-    // Dispatch event
-    window.dispatchEvent(new CustomEvent('tribunal:fortuneDrawn', { detail: result }));
+    // Dispatch pending event (not the full fortuneDrawn yet)
+    window.dispatchEvent(new CustomEvent('tribunal:fortunePending', { 
+        detail: { hasPending: true } 
+    }));
+    
+    console.log('[Ledger Voices] Fortune drawn - open envelope to seal fate');
 }
+
+/**
+ * Handle envelope click - opening seals your fate
+ */
+function handleEnvelopeClick(e) {
+    // Don't trigger if clicking the draw button
+    if (e.target.closest('.draw-fortune-btn')) return;
+    
+    const envelope = e.currentTarget;
+    const isOpening = !envelope.classList.contains('envelope-open');
+    
+    // Toggle envelope state
+    envelope.classList.toggle('envelope-open');
+    
+    // If OPENING and there's a pending fortune that hasn't been sealed...
+    if (isOpening && pendingFortune && !pendingFortune.sealed) {
+        sealFate(pendingFortune);
+    }
+}
+
+/**
+ * Seal the fate - activates the fortune for injection
+ * No take-backs!
+ */
+function sealFate(fortune) {
+    console.log('[Ledger Voices] ⚡ FATE SEALED:', fortune.fortune);
+    
+    // Mark as sealed
+    fortune.sealed = true;
+    const sealedFortune = { ...fortune };
+    pendingFortune = null;
+    
+    // NOW record it for injection
+    recordFortune(sealedFortune);
+    
+    // Remove pending visual hint
+    const envelope = document.getElementById('dora-envelope');
+    if (envelope) {
+        envelope.classList.remove('fortune-pending');
+        envelope.classList.add('fate-sealed');
+        
+        // Brief dramatic effect
+        setTimeout(() => {
+            envelope.classList.remove('fate-sealed');
+        }, 1500);
+    }
+    
+    // Dispatch the real event - fortune is now active
+    window.dispatchEvent(new CustomEvent('tribunal:fortuneDrawn', { 
+        detail: sealedFortune 
+    }));
+    
+    // Dramatic toast
+    if (typeof toastr !== 'undefined') {
+        toastr.warning(
+            `"${fortune.fortune.substring(0, 60)}${fortune.fortune.length > 60 ? '...' : ''}"`,
+            '⚡ Fate Sealed',
+            { 
+                timeOut: 4000, 
+                positionClass: 'toast-bottom-left',
+                escapeHtml: false
+            }
+        );
+    }
+}
+
+/**
+ * Check if there's a pending (unsealed) fortune
+ */
+export function hasPendingFortune() {
+    return pendingFortune !== null && !pendingFortune.sealed;
+}
+
+/**
+ * Get pending fortune (for display/debug)
+ */
+export function getPendingFortuneInfo() {
+    return pendingFortune;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ═══════════════════════════════════════════════════════════════
 
 /**
  * Initialize all ledger voice systems
@@ -759,6 +871,8 @@ if (typeof window !== 'undefined') {
         
         // Fortune system
         drawFortune,
+        hasPendingFortune,
+        getPendingFortuneInfo,
         
         // Stats
         getDiceStats,
@@ -788,6 +902,8 @@ export default {
     recordFortune,
     getDiceStats,
     getFortuneStats,
+    hasPendingFortune,
+    getPendingFortuneInfo,
     
     // Luck system
     getCurrentLuckModifier,
