@@ -198,108 +198,182 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   EVIDENCE BAGS
+   EVIDENCE BAGS - Disco Elysium Style
+   Worn manila folders with evidence tape
    ═══════════════════════════════════════════════════════════════ */
 
 .inv-evidence-bag {
     width: 100px;
-    background: var(--evidence-bag);
-    border: 1px solid rgba(200, 200, 200, 0.6);
-    border-radius: 2px;
-    padding: 8px;
+    min-height: 110px;
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
     
-    /* Plastic bag texture */
-    background-image: 
-        linear-gradient(135deg, 
-            rgba(255, 255, 255, 0.3) 0%, 
-            transparent 50%,
-            rgba(0, 0, 0, 0.02) 100%
-        );
+    /* Worn manila folder base */
+    background: linear-gradient(165deg, 
+        #c4a882 0%, 
+        #b8996e 30%,
+        #a88a5c 70%,
+        #9a7c4e 100%
+    );
+    border: none;
+    border-radius: 2px;
+    padding: 0;
+    
+    /* Paper texture */
+    box-shadow: 
+        inset 0 0 20px rgba(0, 0, 0, 0.15),
+        0 2px 6px rgba(0, 0, 0, 0.4),
+        0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-.inv-evidence-bag:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    border-color: var(--ie-accent, #d4a574);
-}
-
-.inv-evidence-bag.selected {
-    border-color: var(--ie-accent, #d4a574);
-    box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.3);
-}
-
-/* Bag seal strip */
 .inv-evidence-bag::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 6px;
-    background: linear-gradient(90deg, 
-        #c41e3a 0%, 
-        #c41e3a 20%,
-        transparent 20%,
-        transparent 100%
-    );
-    border-radius: 2px 2px 0 0;
+    inset: 0;
+    background: 
+        /* Noise texture */
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.08;
+    pointer-events: none;
+    border-radius: 2px;
 }
 
-/* Evidence tag */
-.inv-evidence-tag {
+.inv-evidence-bag:hover {
+    transform: translateY(-3px) rotate(-1deg);
+    box-shadow: 
+        inset 0 0 20px rgba(0, 0, 0, 0.15),
+        0 6px 16px rgba(0, 0, 0, 0.5),
+        0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.inv-evidence-bag.selected {
+    transform: translateY(-2px);
+    box-shadow: 
+        inset 0 0 20px rgba(0, 0, 0, 0.15),
+        0 0 0 2px var(--ie-accent, #d4a574),
+        0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Evidence tape at top */
+.inv-evidence-bag::after {
+    content: '';
     position: absolute;
-    top: 8px;
-    right: 4px;
-    background: #fff8dc;
-    border: 1px solid #ccc;
-    padding: 2px 4px;
-    font-size: 7px;
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    color: #666;
-    transform: rotate(3deg);
+    top: -2px;
+    left: 10%;
+    right: 10%;
+    height: 14px;
+    background: linear-gradient(180deg,
+        rgba(200, 60, 60, 0.9) 0%,
+        rgba(180, 50, 50, 0.85) 50%,
+        rgba(160, 40, 40, 0.9) 100%
+    );
+    border-radius: 0 0 2px 2px;
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.3),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.2);
+    /* Tape texture */
+    background-image: repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 2px,
+        rgba(255, 255, 255, 0.1) 2px,
+        rgba(255, 255, 255, 0.1) 4px
+    );
 }
 
-/* Item icon inside bag */
+/* Item icon area */
 .inv-evidence-icon {
     width: 100%;
-    height: 50px;
+    height: 55px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    margin-top: 4px;
-    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+    font-size: 28px;
+    margin-top: 16px;
+    position: relative;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
 }
 
-/* Item name */
+/* Item name - handwritten style */
 .inv-evidence-name {
     font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    font-size: 9px;
-    font-weight: 600;
-    color: #333;
+    font-size: 10px;
+    font-weight: 700;
+    color: #3a2a1a;
     text-align: center;
-    margin-top: 6px;
+    padding: 4px 6px;
+    margin: 0 4px;
     line-height: 1.2;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    /* Underline effect */
+    border-bottom: 1px solid rgba(58, 42, 26, 0.3);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
-/* Quantity badge */
+/* Type label - stamped look */
+.inv-evidence-type {
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(120, 40, 40, 0.7);
+    text-align: center;
+    padding: 4px 6px 8px;
+    /* Rubber stamp effect */
+    text-shadow: 
+        0 0 1px rgba(120, 40, 40, 0.5),
+        1px 0 0 rgba(120, 40, 40, 0.1);
+}
+
+/* Quantity badge - evidence number style */
 .inv-evidence-qty {
     position: absolute;
-    bottom: 4px;
+    top: 2px;
     right: 4px;
-    background: #1a4a6e;
-    color: white;
+    background: rgba(30, 30, 30, 0.85);
+    color: #e8dcc0;
     font-size: 8px;
     font-weight: 700;
     padding: 2px 5px;
-    border-radius: 8px;
+    border-radius: 2px;
     font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(100, 100, 100, 0.3);
+    z-index: 5;
+}
+
+/* Evidence tag - case number */
+.inv-evidence-tag {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    background: #f5f0e0;
+    border: 1px solid #b8a888;
+    padding: 1px 4px;
+    font-size: 6px;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    color: #5a4a3a;
+    transform: rotate(-2deg);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Addictive items - warning tape */
+.inv-evidence-bag.addictive::after {
+    background: repeating-linear-gradient(
+        -45deg,
+        rgba(200, 60, 60, 0.9) 0px,
+        rgba(200, 60, 60, 0.9) 4px,
+        rgba(40, 40, 40, 0.9) 4px,
+        rgba(40, 40, 40, 0.9) 8px
+    ) !important;
+}
+
+.inv-evidence-bag.addictive .inv-evidence-type {
+    color: rgba(180, 50, 50, 0.9);
 }
 
 /* ═══════════════════════════════════════════════════════════════
