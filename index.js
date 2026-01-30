@@ -46,6 +46,8 @@ import { initLocationHandlers, refreshLocations } from './src/ui/location-handle
 import { initAwareness } from './src/systems/ledger-awareness.js';
 import { initCommentary } from './src/systems/ledger-commentary.js';
 import { initFortuneInjection } from './src/systems/fortune-injection.js';
+import { initFidgetPatterns } from './src/systems/fidget-patterns.js';
+import { initFidgetCommentary } from './src/systems/fidget-commentary.js';
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Weather System (lazy loaded - see init())
@@ -826,6 +828,8 @@ async function init() {
     initAwareness();
     initCommentary();
     initFortuneInjection();
+    initFidgetPatterns();
+    initFidgetCommentary();
     // Lazy load extractor
 try {
     const extractor = await import('./src/systems/ai-extractor.js');
