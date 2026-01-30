@@ -2,7 +2,12 @@
  * The Tribunal - Inventory Effects
  * Bridges item consumption to status effects from statuses.js
  * 
- * Flow: consumeItem() → apply status → start timer → expire → remove status
+ * Flow: consumeItem() → apply status → track messages → expire → withdrawal
+ * 
+ * Uses MESSAGE COUNT instead of real-time:
+ * - Progress only when actively chatting
+ * - Doesn't punish stepping away
+ * - More like DE's action-based time
  */
 
 import { STATUS_EFFECTS } from '../data/statuses.js';
@@ -12,72 +17,116 @@ import { STATUS_EFFECTS } from '../data/statuses.js';
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Maps inventory item types to status effects and durations
- * Duration in milliseconds (60000 = 1 minute)
+ * Maps inventory item types to status effects
+ * Duration in MESSAGE COUNT (not time!)
  */
 export const CONSUMPTION_EFFECTS = {
     cigarette: {
         statusId: 'nicotine_rush',
-        duration: 5 * 60 * 1000,  // 5 minutes
-        stackable: false,         // Refreshes timer, doesn't stack
+        duration: 4,              // 4 messages
+        stackable: false,
         particleEffect: 'smoke',
-        electrochemistryQuote: "Oh yes. The sweet kiss of nicotine. Your old friend."
+        electrochemistryQuote: "Oh yes. The sweet kiss of nicotine. Your old friend.",
+        clears: []                // Doesn't clear anything
     },
     alcohol: {
         statusId: 'revacholian_courage',
-        duration: 10 * 60 * 1000, // 10 minutes
-        stackable: true,          // Can intensify (track stacks)
+        duration: 8,              // 8 messages
+        stackable: true,
         maxStacks: 3,
         particleEffect: 'drunk',
-        electrochemistryQuote: "The warmth spreads through you. This is what living feels like."
+        electrochemistryQuote: "The warmth spreads through you. This is what living feels like.",
+        clears: ['volumetric_shit_compressor']  // Clears hangover
+    },
+    beer: {
+        statusId: 'revacholian_courage',
+        duration: 6,              // Weaker than hard liquor
+        stackable: true,
+        maxStacks: 3,
+        particleEffect: 'drunk',
+        electrochemistryQuote: "The warmth spreads through you. This is what living feels like.",
+        clears: ['volumetric_shit_compressor']
     },
     drug: {
         statusId: 'pyrholidon',
-        duration: 8 * 60 * 1000,  // 8 minutes
+        duration: 6,
         stackable: false,
         particleEffect: 'stimulant',
-        electrochemistryQuote: "NEURONS FIRING. Time dilates. You are *awake*."
+        electrochemistryQuote: "NEURONS FIRING. Time dilates. You are *awake*.",
+        clears: ['waste_land']    // Clears exhaustion
     },
     stimulant: {
         statusId: 'pyrholidon',
-        duration: 8 * 60 * 1000,
+        duration: 6,
         stackable: false,
         particleEffect: 'stimulant',
-        electrochemistryQuote: "The world sharpens. Every detail crystalline."
+        electrochemistryQuote: "The world sharpens. Every detail crystalline.",
+        clears: ['waste_land']
     },
     pyrholidon: {
         statusId: 'pyrholidon',
-        duration: 10 * 60 * 1000,
+        duration: 8,              // Stronger, longer
         stackable: false,
         particleEffect: 'pale',
-        electrochemistryQuote: "Reality... bends. The Pale whispers at the edges."
-    },
-    food: {
-        statusId: null,           // No status, just healing
-        healHealth: 1,
-        healMorale: 1,
-        particleEffect: null,
-        electrochemistryQuote: null
+        electrochemistryQuote: "Reality... bends. The Pale whispers at the edges.",
+        clears: ['waste_land'],
+        sideEffect: 'the_pale',   // Risk of Pale at high use
+        sideEffectChance: 0.15    // 15% chance
     },
     coffee: {
         statusId: 'nicotine_rush', // Similar focus effect
-        duration: 3 * 60 * 1000,
+        duration: 3,               // Short boost
         stackable: false,
         particleEffect: null,
-        electrochemistryQuote: "Caffeine. The socially acceptable stimulant."
+        electrochemistryQuote: "Caffeine. The socially acceptable stimulant.",
+        clears: ['waste_land']     // Coffee clears exhaustion!
+    },
+    food: {
+        statusId: null,
+        healHealth: 1,
+        healMorale: 1,
+        particleEffect: null,
+        electrochemistryQuote: null,
+        clears: []
+    },
+    medicine: {
+        statusId: null,
+        healHealth: 2,
+        particleEffect: null,
+        electrochemistryQuote: "Chemistry doing its job. The body responds.",
+        clears: ['finger_on_the_eject_button']  // Clears wounded
+    }
+};
+
+/**
+ * Withdrawal mappings - what happens when effect expires
+ */
+export const WITHDRAWAL_EFFECTS = {
+    revacholian_courage: {
+        withdrawalId: 'volumetric_shit_compressor',
+        duration: 10,             // 10 messages of hangover
+        quote: "The bill comes due. Your body remembers every drink."
+    },
+    pyrholidon: {
+        withdrawalId: 'waste_land',
+        duration: 8,              // 8 messages of exhaustion
+        quote: "The high fades. Reality crashes back, heavier than before."
+    },
+    nicotine_rush: {
+        // Only triggers at high addiction
+        withdrawalId: null,
+        addictionThreshold: 3,
+        quote: "Your fingers twitch. The craving gnaws."
     }
 };
 
 // ═══════════════════════════════════════════════════════════════
-// ACTIVE EFFECTS TRACKING
+// ACTIVE EFFECTS TRACKING (Message-count based)
 // ═══════════════════════════════════════════════════════════════
-
-// In-memory active effect timers (cleared on page reload)
-// Persistent state is in chat_metadata.tribunal.vitals.activeEffects
-const activeTimers = new Map();
 
 /**
  * Get active effects from chat state
+ * Each effect now has: { statusId, remainingMessages, stacks, source }
  * @returns {Array} Active effect objects
  */
 export function getActiveEffects() {
@@ -113,6 +162,43 @@ function saveActiveEffects(effects) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// MESSAGE TICK - Call this on each new message!
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Process a message tick - decrements all active effects
+ * Call this from MESSAGE_RECEIVED event handler
+ * @returns {object} { expired: [], remaining: [] }
+ */
+export function onMessageTick() {
+    const activeEffects = getActiveEffects();
+    const expired = [];
+    const remaining = [];
+    
+    for (const effect of activeEffects) {
+        effect.remainingMessages--;
+        
+        if (effect.remainingMessages <= 0) {
+            expired.push(effect);
+            console.log(`[Effects] ${effect.statusId} expired after message tick`);
+        } else {
+            remaining.push(effect);
+        }
+    }
+    
+    // Save remaining effects
+    saveActiveEffects(remaining);
+    
+    // Process expirations (withdrawals, etc.)
+    for (const effect of expired) {
+        emitEffectRemoved(effect.statusId);
+        checkWithdrawal(effect.statusId);
+    }
+    
+    return { expired, remaining };
+}
+
+// ═══════════════════════════════════════════════════════════════
 // APPLY / REMOVE EFFECTS
 // ═══════════════════════════════════════════════════════════════
 
@@ -142,53 +228,66 @@ export function applyConsumptionEffect(itemType, options = {}) {
     }
     
     const activeEffects = getActiveEffects();
-    const existingIdx = activeEffects.findIndex(e => e.statusId === effectConfig.statusId);
     
-    const now = Date.now();
-    const expiresAt = now + effectConfig.duration;
+    // Clear any effects this item clears (from config)
+    let clearedEffects = [];
+    if (effectConfig.clears && effectConfig.clears.length > 0) {
+        for (const clearId of effectConfig.clears) {
+            const idx = activeEffects.findIndex(e => e.statusId === clearId);
+            if (idx >= 0) {
+                clearedEffects.push(clearId);
+                activeEffects.splice(idx, 1);
+                console.log(`[Effects] Cleared: ${clearId}`);
+            }
+        }
+    }
+    
+    const existingIdx = activeEffects.findIndex(e => e.statusId === effectConfig.statusId);
+    const duration = effectConfig.duration || effectConfig.messages || 6; // Default 6 messages
     
     if (existingIdx >= 0) {
         // Effect already active
         if (effectConfig.stackable && activeEffects[existingIdx].stacks < (effectConfig.maxStacks || 3)) {
-            // Stack it
+            // Stack it - add stacks AND refresh duration
             activeEffects[existingIdx].stacks++;
-            activeEffects[existingIdx].expiresAt = expiresAt;
-            activeEffects[existingIdx].appliedAt = now;
+            activeEffects[existingIdx].remainingMessages = duration;
+            console.log(`[Effects] Stacked ${effectConfig.statusId} to ${activeEffects[existingIdx].stacks}`);
         } else {
-            // Refresh timer
-            activeEffects[existingIdx].expiresAt = expiresAt;
-            activeEffects[existingIdx].appliedAt = now;
+            // Refresh duration
+            activeEffects[existingIdx].remainingMessages = duration;
+            console.log(`[Effects] Refreshed ${effectConfig.statusId} to ${duration} messages`);
         }
     } else {
         // New effect
         activeEffects.push({
             statusId: effectConfig.statusId,
-            appliedAt: now,
-            expiresAt: expiresAt,
+            remainingMessages: duration,
             stacks: 1,
             source: itemType
         });
+        console.log(`[Effects] Applied ${effectConfig.statusId} for ${duration} messages`);
     }
     
     saveActiveEffects(activeEffects);
-    
-    // Start expiration timer
-    startExpirationTimer(effectConfig.statusId, effectConfig.duration);
     
     // Trigger particle effect if configured
     if (effectConfig.particleEffect) {
         triggerParticleEffect(effectConfig.particleEffect);
     }
     
-    // Emit event for UI updates
+    // Emit events
     emitEffectApplied(effectConfig.statusId, statusData);
+    for (const cleared of clearedEffects) {
+        emitEffectRemoved(cleared);
+    }
     
     return {
         success: true,
         statusId: effectConfig.statusId,
         effect: statusData,
-        duration: effectConfig.duration,
+        remainingMessages: duration,
         electrochemistryQuote: effectConfig.electrochemistryQuote,
+        clearedEffects: clearedEffects,
         message: `${statusData.name} applied`
     };
 }
@@ -197,7 +296,22 @@ export function applyConsumptionEffect(itemType, options = {}) {
  * Handle healing items (food, medicine)
  */
 function handleHealingItem(effectConfig, options) {
-    // TODO: Hook into vitals system
+    // Clear any effects this item clears
+    if (effectConfig.clears && effectConfig.clears.length > 0) {
+        const activeEffects = getActiveEffects();
+        let clearedAny = false;
+        for (const clearId of effectConfig.clears) {
+            const idx = activeEffects.findIndex(e => e.statusId === clearId);
+            if (idx >= 0) {
+                activeEffects.splice(idx, 1);
+                clearedAny = true;
+                console.log(`[Effects] Healing cleared: ${clearId}`);
+            }
+        }
+        if (clearedAny) saveActiveEffects(activeEffects);
+    }
+    
+    // TODO: Hook into vitals system for actual healing
     const healed = [];
     
     if (effectConfig.healHealth) {
@@ -216,7 +330,7 @@ function handleHealingItem(effectConfig, options) {
 }
 
 /**
- * Remove a status effect
+ * Remove a status effect manually
  * @param {string} statusId - Status to remove
  */
 export function removeEffect(statusId) {
@@ -225,47 +339,90 @@ export function removeEffect(statusId) {
     
     if (filtered.length !== activeEffects.length) {
         saveActiveEffects(filtered);
-        
-        // Clear timer
-        if (activeTimers.has(statusId)) {
-            clearTimeout(activeTimers.get(statusId));
-            activeTimers.delete(statusId);
-        }
-        
-        // Emit event
         emitEffectRemoved(statusId);
-        
         console.log(`[Effects] Removed: ${statusId}`);
     }
 }
 
 /**
- * Start timer to auto-remove effect when it expires
+ * Check if withdrawal should apply when effect ends
+ * Uses WITHDRAWAL_EFFECTS config
  */
-function startExpirationTimer(statusId, duration) {
-    // Clear existing timer
-    if (activeTimers.has(statusId)) {
-        clearTimeout(activeTimers.get(statusId));
+function checkWithdrawal(expiredStatusId) {
+    const config = WITHDRAWAL_EFFECTS[expiredStatusId];
+    if (!config) return;
+    
+    // Check if this has an addiction threshold
+    if (config.addictionCheck && !config.withdrawalId) {
+        const addictions = getAddictions();
+        const threshold = config.addictionThreshold || 3;
+        // Check relevant addiction type
+        if (addictions?.cigarette?.level >= threshold || addictions?.nicotine?.level >= threshold) {
+            console.log(`[Effects] ${config.quote}`);
+            // Could apply a craving status here in the future
+        }
+        return;
     }
     
-    const timer = setTimeout(() => {
-        console.log(`[Effects] ${statusId} expired`);
-        removeEffect(statusId);
-        
-        // Check for withdrawal effects
-        checkWithdrawal(statusId);
-    }, duration);
-    
-    activeTimers.set(statusId, timer);
+    // Apply withdrawal effect
+    if (config.withdrawalId) {
+        applyWithdrawalEffect(config.withdrawalId, {
+            messages: config.duration || config.messages || 8,
+            quote: config.quote
+        });
+    }
 }
 
 /**
- * Check if withdrawal should apply when effect ends
+ * Apply a withdrawal/comedown effect (message-based)
  */
-function checkWithdrawal(expiredStatusId) {
-    // TODO: Implement addiction/withdrawal mechanics
-    // If player has high addiction level and effect expires,
-    // could apply negative status like 'volumetric_shit_compressor'
+function applyWithdrawalEffect(statusId, options = {}) {
+    const status = STATUS_EFFECTS[statusId];
+    
+    if (!status) {
+        console.warn('[Effects] Withdrawal status not found:', statusId);
+        return;
+    }
+    
+    const activeEffects = getActiveEffects();
+    const duration = options.messages || 8;
+    
+    // Don't stack withdrawal - just apply/refresh
+    const existingIdx = activeEffects.findIndex(e => e.statusId === statusId);
+    if (existingIdx >= 0) {
+        activeEffects[existingIdx].remainingMessages = duration;
+    } else {
+        activeEffects.push({
+            statusId: statusId,
+            remainingMessages: duration,
+            stacks: 1,
+            source: 'withdrawal'
+        });
+    }
+    
+    saveActiveEffects(activeEffects);
+    emitEffectApplied(statusId, status);
+    
+    // Toast the withdrawal
+    if (typeof toastr !== 'undefined' && options.quote) {
+        toastr.warning(options.quote, status.name, { timeOut: 4000 });
+    }
+    
+    console.log(`[Effects] Withdrawal applied: ${statusId} for ${duration} messages`);
+}
+
+/**
+ * Get addiction levels from inventory state
+ */
+function getAddictions() {
+    try {
+        const { getChatState } = window.TribunalState || {};
+        if (!getChatState) return {};
+        const state = getChatState();
+        return state?.inventory?.addictions || {};
+    } catch (e) {
+        return {};
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -358,35 +515,36 @@ function emitEffectRemoved(statusId) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Initialize effect timers from saved state
+ * Initialize effects system - just logs active effects
+ * (No timers needed - we use message ticks now!)
  * Call this on extension load / chat change
  */
 export function initEffectTimers() {
     const activeEffects = getActiveEffects();
-    const now = Date.now();
     
-    for (const effect of activeEffects) {
-        const remaining = effect.expiresAt - now;
-        
-        if (remaining <= 0) {
-            // Already expired - remove it
-            removeEffect(effect.statusId);
-        } else {
-            // Start timer for remaining time
-            startExpirationTimer(effect.statusId, remaining);
-            console.log(`[Effects] Restored timer for ${effect.statusId}: ${Math.round(remaining/1000)}s remaining`);
-        }
+    if (activeEffects.length > 0) {
+        console.log(`[Effects] Active effects:`, activeEffects.map(e => 
+            `${e.statusId} (${e.remainingMessages} msgs left)`
+        ).join(', '));
+    } else {
+        console.log('[Effects] No active effects');
     }
 }
 
 /**
- * Clear all timers (for cleanup)
+ * Get effect preview text for UI
  */
-export function clearAllTimers() {
-    for (const [statusId, timer] of activeTimers) {
-        clearTimeout(timer);
-    }
-    activeTimers.clear();
+export function getEffectPreviewText(statusId) {
+    const effects = getActiveEffects();
+    const effect = effects.find(e => e.statusId === statusId);
+    if (!effect) return null;
+    
+    const status = STATUS_EFFECTS[statusId];
+    return {
+        name: status?.name || statusId,
+        remaining: effect.remainingMessages,
+        stacks: effect.stacks || 1
+    };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -395,12 +553,14 @@ export function clearAllTimers() {
 
 export default {
     CONSUMPTION_EFFECTS,
+    WITHDRAWAL_EFFECTS,
     applyConsumptionEffect,
     removeEffect,
     getActiveEffects,
     getActiveSkillModifiers,
     getSkillModifier,
     getActiveStatusIds,
+    onMessageTick,
     initEffectTimers,
-    clearAllTimers
+    getEffectPreviewText
 };
