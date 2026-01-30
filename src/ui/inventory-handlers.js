@@ -114,16 +114,31 @@ function getInventoryState() {
         if (chatState) {
             if (!chatState.inventory) {
                 chatState.inventory = { 
-                    items: [], 
-                    stash: {}, 
-                    currency: 0,
+                    carried: [],    // Active items
+                    worn: [],       // Equipped  
+                    stored: [],     // Stashed
+                    stash: {},      // Item data cache
+                    money: 0,
+                    moneyUnit: 'Réal',
                     addictions: {}
                 };
             }
-            if (!chatState.inventory.items) chatState.inventory.items = [];
+            // Ensure all fields exist (migration)
+            if (!chatState.inventory.carried) chatState.inventory.carried = [];
             if (!chatState.inventory.stash) chatState.inventory.stash = {};
             if (!chatState.inventory.addictions) chatState.inventory.addictions = {};
-            return chatState.inventory;
+            
+            // Map 'carried' to 'items' interface for handlers
+            return {
+                get items() { return chatState.inventory.carried; },
+                set items(v) { chatState.inventory.carried = v; },
+                get stash() { return chatState.inventory.stash; },
+                set stash(v) { chatState.inventory.stash = v; },
+                get currency() { return chatState.inventory.money; },
+                set currency(v) { chatState.inventory.money = v; },
+                get addictions() { return chatState.inventory.addictions; },
+                set addictions(v) { chatState.inventory.addictions = v; }
+            };
         }
     }
     // Ensure localState.items exists
