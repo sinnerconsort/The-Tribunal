@@ -1,372 +1,579 @@
 /**
  * The Tribunal - Inventory Generation
- * AI-powered item descriptions and voice commentary
  * 
- * "Everything in these pockets tells a story." — Perception
+ * Uses api-helpers.js with CUSTOM TOKEN LIMIT
+ * Mirrors equipment-generation.js patterns exactly
+ * 
+ * STASH HISTORY - Items are cached forever
+ * - First generation: API call, save to stash
+ * - Re-add same item: Instant from cache, no API
  */
 
-import {
-    INVENTORY_TYPES,
-    inferInventoryType,
-    getItemSkillAffinities,
-    isConsumable,
-    isAddictive,
-    createInventoryItem
+import { callAPIWithTokens } from './api-helpers.js';
+import { 
+    INVENTORY_TYPES, 
+    inferInventoryType, 
+    isConsumable, 
+    isAddictive, 
+    getAddictionData,
+    createInventoryItem 
 } from '../data/inventory.js';
 
 // ═══════════════════════════════════════════════════════════════
-// SKILL DATA (minimal subset for generation)
+// CONSTANTS
 // ═══════════════════════════════════════════════════════════════
 
-const SKILL_INFO = {
-    logic: { name: 'Logic', personality: 'analytical, precise, skeptical' },
-    encyclopedia: { name: 'Encyclopedia', personality: 'knowledgeable, tangential, eager to share facts' },
-    rhetoric: { name: 'Rhetoric', personality: 'persuasive, argumentative, sees angles' },
-    drama: { name: 'Drama', personality: 'theatrical, paranoid about lies, performative' },
-    conceptualization: { name: 'Conceptualization', personality: 'artistic, abstract, sees deeper meaning' },
-    visual_calculus: { name: 'Visual Calculus', personality: 'reconstructive, spatial, analytical' },
-    volition: { name: 'Volition', personality: 'encouraging, warns of temptation, protective' },
-    inland_empire: { name: 'Inland Empire', personality: 'mystical, cryptic, sees hidden truths' },
-    empathy: { name: 'Empathy', personality: 'compassionate, reads emotional history' },
-    authority: { name: 'Authority', personality: 'commanding, judges power dynamics' },
-    suggestion: { name: 'Suggestion', personality: 'manipulative, sees how things could be used' },
-    esprit_de_corps: { name: 'Esprit de Corps', personality: 'cop solidarity, senses police history' },
-    endurance: { name: 'Endurance', personality: 'stoic, practical about survival' },
-    pain_threshold: { name: 'Pain Threshold', personality: 'masochistic, appreciates suffering' },
-    physical_instrument: { name: 'Physical Instrument', personality: 'brutish, respects strength' },
-    electrochemistry: { name: 'Electrochemistry', personality: 'hedonistic, craves pleasure, addiction-focused' },
-    half_light: { name: 'Half Light', personality: 'paranoid, fight-or-flight, sees threats' },
-    shivers: { name: 'Shivers', personality: 'mystical connection to the city, poetic' },
-    hand_eye_coordination: { name: 'Hand/Eye Coordination', personality: 'precise, appreciates fine motor control' },
-    perception: { name: 'Perception', personality: 'notices details, sensory-focused' },
-    reaction_speed: { name: 'Reaction Speed', personality: 'quick, impatient, action-oriented' },
-    savoir_faire: { name: 'Savoir Faire', personality: 'cool, stylish, appreciates flair' },
-    interfacing: { name: 'Interfacing', personality: 'mechanical intuition, loves gadgets' },
-    composure: { name: 'Composure', personality: 'appearance-conscious, judges presentation' }
-};
+const INVENTORY_MAX_TOKENS = 2000;  // Less than equipment since simpler items
 
-// ═══════════════════════════════════════════════════════════════
-// PROMPT BUILDING
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Build prompt for single item generation
- * @param {string} itemName - Name of the item
- * @param {string} type - Item type
- * @param {number} quantity - Quantity (for context)
- * @returns {string} System prompt
- */
-function buildItemPrompt(itemName, type, quantity = 1) {
-    const typeData = INVENTORY_TYPES[type] || INVENTORY_TYPES.other;
-    const affinities = getItemSkillAffinities(type);
-    const consumable = isConsumable(type);
-    const addictive = isAddictive(type);
-    
-    // Get skill info for affinities
-    const affinityInfo = affinities
-        .filter(s => SKILL_INFO[s])
-        .map(s => `${SKILL_INFO[s].name} (${SKILL_INFO[s].personality})`)
-        .join(', ');
-    
-    let prompt = `You are generating an inventory item for a Disco Elysium-inspired game.
-
-ITEM: "${itemName}" (${typeData.label})
-${quantity > 1 ? `QUANTITY: ${quantity}` : ''}
-${consumable ? 'TYPE: Consumable' : 'TYPE: Miscellaneous'}
-${addictive ? 'WARNING: This is an addictive substance.' : ''}
-
-Generate a JSON response with:
-1. A short, evocative description (2-3 sentences, Disco Elysium style - world-weary, poetic, slightly absurd)
-2. Two voice quips from skills that would have opinions about this item
-
-Skill affinities for this item type: ${affinityInfo}
-
-RESPONSE FORMAT (JSON only, no markdown):
-{
-  "description": "The item description here.",
-  "voiceQuips": [
-    { "skill": "skill_id", "text": "The quip text", "approves": true/false },
-    { "skill": "skill_id", "text": "The quip text", "approves": true/false }
-  ]
-}
-
-RULES:
-- Description should be 2-3 sentences, evocative but concise
-- Voice quips should be SHORT (under 15 words)
-- One quip should approve/like the item, one should disapprove/warn about it
-- Use skill_id format (e.g., "inland_empire", "electrochemistry")
-- ${addictive ? 'ELECTROCHEMISTRY MUST be one of the voices and must APPROVE' : ''}
-- Keep the tone darkly humorous, melancholic, philosophical
+const SKILL_REFERENCE = `
+INTELLECT: logic, encyclopedia, rhetoric, drama, conceptualization, visual_calculus
+PSYCHE: volition, inland_empire, empathy, authority, esprit_de_corps, suggestion
+PHYSIQUE: endurance, pain_threshold, physical_instrument, electrochemistry, shivers, half_light
+MOTORICS: hand_eye_coordination, perception, reaction_speed, savoir_faire, interfacing, composure
 `;
 
-    return prompt;
-}
+const VALID_SKILLS = [
+    'logic', 'encyclopedia', 'rhetoric', 'drama', 'conceptualization', 'visual_calculus',
+    'volition', 'inland_empire', 'empathy', 'authority', 'esprit_de_corps', 'suggestion',
+    'endurance', 'pain_threshold', 'physical_instrument', 'electrochemistry', 'shivers', 'half_light',
+    'hand_eye_coordination', 'perception', 'reaction_speed', 'savoir_faire', 'interfacing', 'composure'
+];
 
-/**
- * Build prompt for batch item extraction
- * @param {string} text - Text to extract items from
- * @returns {string} System prompt
- */
-function buildExtractionPrompt(text) {
-    return `Extract inventory items from the following scene text. Look for objects that could be picked up, pocketed, or otherwise acquired.
+// ═══════════════════════════════════════════════════════════════
+// STASH KEY NORMALIZATION (mirrors wardrobe key)
+// "Pack of Astras" → "pack-of-astras"
+// ═══════════════════════════════════════════════════════════════
 
-TEXT:
-${text}
-
-For each item found, provide:
-- name: Short descriptive name
-- quantity: Number (default 1)
-- type: One of: cigarettes, alcohol, stimulants, medicine, food, evidence, key, document, book, tool, weapon, photo, trinket, container, other
-
-RESPONSE FORMAT (JSON array, no markdown):
-[
-  { "name": "Item Name", "quantity": 1, "type": "type_key" }
-]
-
-RULES:
-- Only include items that could realistically be picked up
-- Be specific about names (e.g., "Crumpled Pack of Astras" not just "Cigarettes")
-- Include quantity when mentioned (e.g., "10x Cigarettes")
-- Don't include large furniture, people, or abstract concepts
-- Maximum 10 items
-`;
+export function normalizeStashKey(name) {
+    if (!name) return '';
+    return name
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9\s-]/g, '')  // Remove special chars
+        .replace(/\s+/g, '-')           // Spaces to dashes
+        .replace(/-+/g, '-')            // Collapse multiple dashes
+        .replace(/^-|-$/g, '');         // Trim dashes
 }
 
 // ═══════════════════════════════════════════════════════════════
-// GENERATION FUNCTIONS
+// API CALL (uses api-helpers with custom token limit)
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Generate full item data with description and quips
- * @param {string} itemName - Item name
- * @param {number} quantity - Quantity
- * @param {string} typeOverride - Optional type override
- * @returns {Promise<object|null>} Generated item or null
+ * Make API call for inventory generation
+ * Uses The Tribunal's configured profile with moderate token limit
  */
-export async function generateItemData(itemName, quantity = 1, typeOverride = null) {
-    const type = typeOverride || inferInventoryType(itemName);
+async function callInventoryAPI(systemPrompt, userPrompt) {
+    console.log('[Inventory API] Calling with', INVENTORY_MAX_TOKENS, 'max tokens');
     
     try {
-        // Try to use the API helper if available
-        let apiHelper;
-        try {
-            apiHelper = await import('./api-helpers.js');
-        } catch (e) {
-            console.warn('[Inventory Gen] API helpers not available');
-            return createFallbackItem(itemName, quantity, type);
-        }
-        
-        const prompt = buildItemPrompt(itemName, type, quantity);
-        const response = await apiHelper.generateWithPrompt(prompt);
-        
-        if (!response) {
-            return createFallbackItem(itemName, quantity, type);
-        }
-        
-        // Parse JSON response
-        let parsed;
-        try {
-            // Clean up potential markdown wrapping
-            const cleaned = response
-                .replace(/```json\n?/g, '')
-                .replace(/```\n?/g, '')
-                .trim();
-            parsed = JSON.parse(cleaned);
-        } catch (e) {
-            console.warn('[Inventory Gen] Failed to parse response:', e);
-            return createFallbackItem(itemName, quantity, type);
-        }
-        
-        // Create item with generated data
-        return createInventoryItem({
-            name: itemName,
-            type,
-            quantity,
-            description: parsed.description || '',
-            voiceQuips: parsed.voiceQuips || [],
-            source: 'ai-generated'
-        });
-        
-    } catch (e) {
-        console.error('[Inventory Gen] Generation failed:', e);
-        return createFallbackItem(itemName, quantity, type);
-    }
-}
-
-/**
- * Extract items from scene text
- * @param {string} text - Scene text
- * @returns {Promise<array>} Array of extracted item data
- */
-export async function extractItemsFromText(text) {
-    try {
-        let apiHelper;
-        try {
-            apiHelper = await import('./api-helpers.js');
-        } catch (e) {
-            console.warn('[Inventory Gen] API helpers not available');
-            return quickExtractItems(text);
-        }
-        
-        const prompt = buildExtractionPrompt(text);
-        const response = await apiHelper.generateWithPrompt(prompt);
-        
-        if (!response) {
-            return quickExtractItems(text);
-        }
-        
-        // Parse JSON response
-        let parsed;
-        try {
-            const cleaned = response
-                .replace(/```json\n?/g, '')
-                .replace(/```\n?/g, '')
-                .trim();
-            parsed = JSON.parse(cleaned);
-        } catch (e) {
-            console.warn('[Inventory Gen] Failed to parse extraction:', e);
-            return quickExtractItems(text);
-        }
-        
-        return Array.isArray(parsed) ? parsed : [];
-        
-    } catch (e) {
-        console.error('[Inventory Gen] Extraction failed:', e);
-        return quickExtractItems(text);
+        const result = await callAPIWithTokens(systemPrompt, userPrompt, INVENTORY_MAX_TOKENS);
+        return result;
+    } catch (error) {
+        console.error('[Inventory API] Call failed:', error);
+        return null;
     }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FALLBACK / QUICK EXTRACTION
+// QUICK EXTRACTION (no AI - for finding item names)
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Create fallback item without AI generation
- * @param {string} name - Item name
- * @param {number} quantity - Quantity
- * @param {string} type - Item type
- * @returns {object} Item data
+ * Extract inventory item names from text without AI
+ * Used to find what items exist, then check stash/generate
  */
-function createFallbackItem(name, quantity, type) {
-    const typeData = INVENTORY_TYPES[type] || INVENTORY_TYPES.other;
+export function quickExtractItemNames(text) {
+    if (!text) return [];
     
-    // Generate basic description
-    const descriptions = {
-        cigarettes: 'A familiar weight in your pocket. The smell of smoke clings to them.',
-        alcohol: 'The promise of oblivion, bottled and portable.',
-        stimulants: 'Chemical clarity in pill form. Your neurons await.',
-        medicine: 'Basic supplies for basic survival. Nothing more.',
-        food: 'Sustenance. Your body requires it, even if your soul doesn\'t.',
-        evidence: 'Something that might mean something. Or nothing at all.',
-        key: 'A small metal promise. Somewhere, a lock waits.',
-        document: 'Words on paper. Someone thought they mattered.',
-        book: 'Knowledge, compressed. Wisdom, maybe.',
-        tool: 'Function over form. It does what it\'s meant to do.',
-        weapon: 'The potential for violence, made manifest.',
-        photo: 'A frozen moment. Someone\'s memory, now yours.',
-        trinket: 'An object with no purpose except to exist.',
-        container: 'A thing that holds other things.',
-        other: 'An object. Its purpose unclear, its meaning uncertain.'
-    };
-    
-    return createInventoryItem({
-        name,
-        type,
-        quantity,
-        description: descriptions[type] || descriptions.other,
-        voiceQuips: generateFallbackQuips(type),
-        source: 'fallback'
-    });
-}
-
-/**
- * Generate basic fallback quips
- * @param {string} type - Item type
- * @returns {array} Voice quips
- */
-function generateFallbackQuips(type) {
-    const quipSets = {
-        cigarettes: [
-            { skill: 'electrochemistry', text: 'Yes. YES. Light it. Light it now.', approves: true },
-            { skill: 'endurance', text: 'Your lungs have opinions about this.', approves: false }
-        ],
-        alcohol: [
-            { skill: 'electrochemistry', text: 'The answer to everything. Drink.', approves: true },
-            { skill: 'volition', text: 'You know where this leads.', approves: false }
-        ],
-        stimulants: [
-            { skill: 'electrochemistry', text: 'Chemical enhancement. Beautiful.', approves: true },
-            { skill: 'logic', text: 'This will have consequences.', approves: false }
-        ],
-        medicine: [
-            { skill: 'endurance', text: 'Keep the machine running.', approves: true },
-            { skill: 'pain_threshold', text: 'Pain builds character.', approves: false }
-        ],
-        food: [
-            { skill: 'electrochemistry', text: 'Fuel for more adventures.', approves: true },
-            { skill: 'composure', text: 'Eating on the job. Unprofessional.', approves: false }
-        ],
-        evidence: [
-            { skill: 'logic', text: 'This could be important.', approves: true },
-            { skill: 'inland_empire', text: 'It knows you touched it.', approves: false }
-        ],
-        weapon: [
-            { skill: 'half_light', text: 'Good. Now you\'re ready.', approves: true },
-            { skill: 'empathy', text: 'Violence solves nothing.', approves: false }
-        ]
-    };
-    
-    return quipSets[type] || [
-        { skill: 'perception', text: 'You have this now.', approves: true },
-        { skill: 'logic', text: 'Is this necessary?', approves: false }
-    ];
-}
-
-/**
- * Quick keyword-based item extraction (no AI)
- * @param {string} text - Text to scan
- * @returns {array} Extracted items
- */
-export function quickExtractItems(text) {
     const items = [];
-    const textLower = text.toLowerCase();
+    const seen = new Set();
     
-    // Keyword patterns with quantity detection
-    const patterns = [
-        { pattern: /(\d+)\s*(?:x\s*)?(cigarette|cig|smoke)/gi, type: 'cigarettes', nameGen: (m) => `${m[1]}x Cigarettes` },
-        { pattern: /pack\s+of\s+(\w+)/gi, type: 'cigarettes', nameGen: (m) => `Pack of ${m[1]}` },
-        { pattern: /bottle\s+of\s+(\w+)/gi, type: 'alcohol', nameGen: (m) => `Bottle of ${m[1]}` },
-        { pattern: /(beer|wine|vodka|whiskey|liquor)/gi, type: 'alcohol', nameGen: (m) => capitalize(m[1]) },
-        { pattern: /(pill|capsule|tablet)s?/gi, type: 'stimulants', nameGen: () => 'Pills' },
-        { pattern: /(bandage|medkit|medicine|aspirin)/gi, type: 'medicine', nameGen: (m) => capitalize(m[1]) },
-        { pattern: /(sandwich|coffee|food|snack|candy)/gi, type: 'food', nameGen: (m) => capitalize(m[1]) },
-        { pattern: /(key|keycard)/gi, type: 'key', nameGen: (m) => capitalize(m[1]) },
-        { pattern: /(gun|pistol|knife|revolver)/gi, type: 'weapon', nameGen: (m) => capitalize(m[1]) },
-        { pattern: /(note|letter|document|paper)/gi, type: 'document', nameGen: (m) => capitalize(m[1]) },
-        { pattern: /(photo|photograph|picture)/gi, type: 'photo', nameGen: (m) => capitalize(m[1]) },
-        { pattern: /(lighter|flashlight|tool)/gi, type: 'tool', nameGen: (m) => capitalize(m[1]) }
-    ];
-    
-    for (const { pattern, type, nameGen } of patterns) {
-        const matches = [...textLower.matchAll(new RegExp(pattern))];
-        for (const match of matches.slice(0, 2)) { // Max 2 per type
-            const name = nameGen(match);
-            if (!items.some(i => i.name.toLowerCase() === name.toLowerCase())) {
-                items.push({
-                    name,
-                    quantity: parseInt(match[1]) || 1,
-                    type
-                });
+    // Pattern 1: Inventory: ["item, item, item"]
+    const inventoryMatch = text.match(/Inventory\s*:?\s*\[?"?([^\]"]+)"?\]?/i);
+    if (inventoryMatch) {
+        const rawItems = inventoryMatch[1].split(/[+&,;|\/]/).map(s => s.trim()).filter(s => s.length > 1);
+        for (const item of rawItems) {
+            const normalized = normalizeItemName(item);
+            if (normalized && !seen.has(normalized.toLowerCase())) {
+                seen.add(normalized.toLowerCase());
+                items.push(normalized);
             }
         }
     }
     
-    return items.slice(0, 10);
+    // Pattern 2: Items: [...] or Carrying: [...]
+    const itemsMatch = text.match(/(?:Items|Carrying|Possessions|Belongings)\s*:?\s*\[?"?([^\]"]+)"?\]?/i);
+    if (itemsMatch) {
+        const rawItems = itemsMatch[1].split(/[+&,;|\/]/).map(s => s.trim()).filter(s => s.length > 1);
+        for (const item of rawItems) {
+            const normalized = normalizeItemName(item);
+            if (normalized && !seen.has(normalized.toLowerCase())) {
+                seen.add(normalized.toLowerCase());
+                items.push(normalized);
+            }
+        }
+    }
+    
+    // Pattern 3: Common consumables in prose
+    const consumablePatterns = [
+        /(\d+x?\s*)?(?:pack(?:s)?\s+of\s+)?cigarette(?:s)?/gi,
+        /(\d+x?\s*)?(?:bottle(?:s)?\s+of\s+)?(?:beer|wine|whiskey|vodka|alcohol|booze)/gi,
+        /(\d+x?\s*)?(?:can(?:s)?\s+of\s+)?(?:beer|soda|cola)/gi,
+        /(\d+x?\s*)?pill(?:s)?/gi,
+        /(\d+x?\s*)?(?:bag(?:s)?\s+of\s+)?(?:speed|amphetamine|pyrholidon)/gi,
+        /lighter(?:s)?/gi,
+        /match(?:es)?/gi,
+        /key(?:s)?/gi,
+        /wallet/gi,
+        /phone/gi,
+        /flashlight/gi,
+        /knife|gun|pistol|weapon/gi,
+        /note(?:s)?|letter(?:s)?|document(?:s)?/gi,
+        /coin(?:s)?|money|cash|réal/gi,
+        /photo(?:s)?|photograph(?:s)?/gi,
+        /book(?:s)?/gi,
+        /food|sandwich|snack/gi
+    ];
+    
+    for (const pattern of consumablePatterns) {
+        const matches = text.matchAll(pattern);
+        for (const match of matches) {
+            const normalized = normalizeItemName(match[0]);
+            if (normalized && normalized.length > 2 && !seen.has(normalized.toLowerCase())) {
+                seen.add(normalized.toLowerCase());
+                items.push(normalized);
+            }
+        }
+    }
+    
+    // Pattern 4: "pulls out a/an [item]" or "grabs a/an [item]" in prose
+    const actionMatches = text.matchAll(/(?:pulls?\s+out|grabs?|picks?\s+up|takes?|holds?)\s+(?:a|an|the|some|his|her|their)?\s*([^.,;!?\n]+)/gi);
+    for (const match of actionMatches) {
+        const normalized = normalizeItemName(match[1]);
+        if (normalized && normalized.length > 2 && normalized.split(' ').length <= 5 && !seen.has(normalized.toLowerCase())) {
+            // Check if it looks like an inventory item
+            const type = inferInventoryType(normalized);
+            if (type !== 'other') {
+                seen.add(normalized.toLowerCase());
+                items.push(normalized);
+            }
+        }
+    }
+    
+    console.log('[Inventory] Quick extracted items:', items);
+    return items;
 }
 
 /**
- * Capitalize first letter
+ * Extract items with quantities from text
+ * Returns array of { name, quantity }
  */
-function capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
+export function quickExtractItemsWithQuantity(text) {
+    if (!text) return [];
+    
+    const items = [];
+    const seen = new Set();
+    
+    // Pattern: "Nx item" or "N item(s)" or "N x item"
+    const quantityPatterns = [
+        /(\d+)\s*x?\s*(cigarette(?:s)?|pack(?:s)?\s+of\s+cigarette(?:s)?)/gi,
+        /(\d+)\s*x?\s*(pill(?:s)?)/gi,
+        /(\d+)\s*x?\s*(bottle(?:s)?(?:\s+of\s+\w+)?)/gi,
+        /(\d+)\s*x?\s*(coin(?:s)?|réal)/gi,
+        /(\d+)\s*x?\s*(\w+(?:\s+\w+)?)/gi  // Generic "N item"
+    ];
+    
+    for (const pattern of quantityPatterns) {
+        const matches = text.matchAll(pattern);
+        for (const match of matches) {
+            const qty = parseInt(match[1], 10) || 1;
+            const name = normalizeItemName(match[2]);
+            if (name && !seen.has(name.toLowerCase())) {
+                seen.add(name.toLowerCase());
+                items.push({ name, quantity: qty });
+            }
+        }
+    }
+    
+    // Also get items without explicit quantities (assume 1)
+    const simpleItems = quickExtractItemNames(text);
+    for (const name of simpleItems) {
+        if (!seen.has(name.toLowerCase())) {
+            seen.add(name.toLowerCase());
+            items.push({ name, quantity: 1 });
+        }
+    }
+    
+    return items;
 }
+
+function normalizeItemName(raw) {
+    if (!raw) return null;
+    
+    let cleaned = raw
+        .trim()
+        .replace(/^["'\[\(]+|["'\]\)\.]+$/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    
+    if (cleaned.length < 2) return null;
+    
+    // Remove leading quantity indicators
+    cleaned = cleaned.replace(/^\d+x?\s*/i, '');
+    
+    // Capitalize each word
+    return cleaned
+        .split(' ')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .join(' ');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SINGLE ITEM GENERATION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Generate rich data for a single inventory item
+ * Called only when item is NOT in stash
+ */
+export async function generateSingleItem(itemName, context = '') {
+    console.log('[Inventory] Generating data for:', itemName);
+    
+    const inferredType = inferInventoryType(itemName);
+    const typeInfo = INVENTORY_TYPES[inferredType];
+    const addictive = isAddictive(inferredType);
+    
+    const systemPrompt = `You are channeling the internal skill voices of a Disco Elysium character. Every item tells a story. The skills in your head all have opinions about what you carry.
+
+${addictive ? 'This is an ADDICTIVE substance. Electrochemistry should be EXCITED about it. Volition should DISAPPROVE.' : ''}
+
+Output ONLY valid JSON, no markdown, no explanation.`;
+
+    const userPrompt = `Generate rich Disco Elysium-style data for this inventory item:
+
+ITEM: ${itemName}
+TYPE: ${inferredType} (${typeInfo?.label || 'Unknown'})
+CONTEXT: ${context || 'Found in the character\'s possession'}
+${addictive ? `ADDICTIVE: Yes - this item feeds an addiction` : ''}
+
+<skills>
+${SKILL_REFERENCE}
+</skills>
+
+Respond with ONLY this JSON structure:
+{
+  "name": "${itemName}",
+  "type": "${inferredType}",
+  "description": "2-3 sentence evocative description. Make it poetic and strange, in the style of Disco Elysium item descriptions.",
+  "voiceQuips": [
+    {"skill": "skill_id", "text": "One-liner about this item", "approves": true},
+    {"skill": "other_skill", "text": "Different perspective one-liner", "approves": false}
+  ]
+}
+
+QUIP GUIDELINES:
+${addictive ? `
+- electrochemistry MUST approve enthusiastically
+- volition or logic SHOULD disapprove
+` : `
+- Pick skills that would have opinions on this item
+- One approving, one disapproving (or both can approve/disapprove based on item)
+`}
+- Keep quips short and punchy (under 15 words)
+- Channel the voice's personality
+
+Generate 2 voice quips from different skills.`;
+
+    try {
+        const response = await callInventoryAPI(systemPrompt, userPrompt);
+        
+        if (!response) {
+            console.warn('[Inventory] No API response for:', itemName);
+            return createFallbackItem(itemName);
+        }
+        
+        const parsed = parseItemResponse(response, itemName, inferredType);
+        if (parsed) {
+            console.log('[Inventory] ✓ Generated:', parsed.name);
+            return parsed;
+        }
+        
+        console.warn('[Inventory] Parse failed, using fallback for:', itemName);
+        return createFallbackItem(itemName);
+        
+    } catch (error) {
+        console.error('[Inventory] Generation error:', error);
+        return createFallbackItem(itemName);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BATCH GENERATION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Generate data for multiple items in one API call
+ * More efficient than individual calls
+ */
+export async function generateMultipleItems(itemNames, context = '') {
+    if (!itemNames || itemNames.length === 0) return [];
+    if (itemNames.length === 1) return [await generateSingleItem(itemNames[0], context)].filter(Boolean);
+    
+    console.log('[Inventory] Batch generating', itemNames.length, 'items');
+    
+    const itemList = itemNames.map(name => {
+        const type = inferInventoryType(name);
+        return `- ${name} (type: ${type})`;
+    }).join('\n');
+    
+    const systemPrompt = `You are channeling the internal skill voices of a Disco Elysium character. Generate data for multiple inventory items. Output ONLY valid JSON array, no markdown.`;
+    
+    const userPrompt = `Generate Disco Elysium-style data for these inventory items:
+
+${itemList}
+
+CONTEXT: ${context || 'Items in the character\'s possession'}
+
+<skills>
+${SKILL_REFERENCE}
+</skills>
+
+Respond with ONLY a JSON array:
+[
+  {
+    "name": "Item Name",
+    "type": "item_type",
+    "description": "2-3 sentence evocative description.",
+    "voiceQuips": [
+      {"skill": "skill_id", "text": "One-liner", "approves": true},
+      {"skill": "other_skill", "text": "One-liner", "approves": false}
+    ]
+  }
+]
+
+Generate 2 voice quips per item. Keep quips short (under 15 words).`;
+
+    try {
+        const response = await callInventoryAPI(systemPrompt, userPrompt);
+        
+        if (!response) {
+            console.warn('[Inventory] No batch response');
+            return await generateItemsIndividually(itemNames, context);
+        }
+        
+        const parsed = parseBatchResponse(response, itemNames);
+        if (parsed && parsed.length > 0) {
+            console.log('[Inventory] ✓ Batch generated', parsed.length, 'items');
+            return parsed;
+        }
+        
+        // Fallback to individual generation
+        return await generateItemsIndividually(itemNames, context);
+        
+    } catch (error) {
+        console.error('[Inventory] Batch error:', error);
+        return await generateItemsIndividually(itemNames, context);
+    }
+}
+
+async function generateItemsIndividually(itemNames, context) {
+    const results = [];
+    for (const name of itemNames) {
+        const item = await generateSingleItem(name, context);
+        if (item) results.push(item);
+    }
+    return results;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RESPONSE PARSING
+// ═══════════════════════════════════════════════════════════════
+
+function parseItemResponse(response, expectedName, expectedType) {
+    if (!response) return null;
+    
+    let cleaned = response.trim();
+    
+    // Remove markdown
+    cleaned = cleaned.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '');
+    
+    // Find JSON object
+    const jsonStart = cleaned.indexOf('{');
+    const jsonEnd = cleaned.lastIndexOf('}');
+    
+    if (jsonStart === -1 || jsonEnd === -1) {
+        return null;
+    }
+    
+    cleaned = cleaned.slice(jsonStart, jsonEnd + 1);
+    
+    try {
+        const data = JSON.parse(cleaned);
+        return validateItem(data, expectedName, expectedType);
+    } catch (e) {
+        // Try to repair
+        try {
+            const repaired = cleaned.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
+            const data = JSON.parse(repaired);
+            return validateItem(data, expectedName, expectedType);
+        } catch (e2) {
+            return null;
+        }
+    }
+}
+
+function parseBatchResponse(response, expectedNames) {
+    if (!response) return [];
+    
+    let cleaned = response.trim();
+    cleaned = cleaned.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '');
+    
+    // Find JSON array
+    const arrayStart = cleaned.indexOf('[');
+    const arrayEnd = cleaned.lastIndexOf(']');
+    
+    if (arrayStart === -1 || arrayEnd === -1) {
+        // Maybe it returned an object with items array
+        const objStart = cleaned.indexOf('{');
+        if (objStart !== -1) {
+            try {
+                const obj = JSON.parse(cleaned.slice(objStart));
+                if (Array.isArray(obj.items)) {
+                    return obj.items.map((item, i) => validateItem(item, expectedNames[i])).filter(Boolean);
+                }
+            } catch (e) {
+                // Continue to fallback
+            }
+        }
+        return [];
+    }
+    
+    cleaned = cleaned.slice(arrayStart, arrayEnd + 1);
+    
+    try {
+        const data = JSON.parse(cleaned);
+        if (!Array.isArray(data)) return [];
+        return data.map((item, i) => validateItem(item, expectedNames[i] || item.name)).filter(Boolean);
+    } catch (e) {
+        try {
+            const repaired = cleaned.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
+            const data = JSON.parse(repaired);
+            if (!Array.isArray(data)) return [];
+            return data.map((item, i) => validateItem(item, expectedNames[i] || item.name)).filter(Boolean);
+        } catch (e2) {
+            return [];
+        }
+    }
+}
+
+function validateItem(item, expectedName, expectedType = null) {
+    if (!item) return null;
+    
+    const name = item.name || expectedName || 'Unknown Item';
+    const type = expectedType || item.type || inferInventoryType(name);
+    
+    const validated = {
+        name: name,
+        type: type,
+        category: isConsumable(type) ? 'consumable' : 'misc',
+        addictive: isAddictive(type),
+        addictionType: getAddictionData(type)?.type || null,
+        description: item.description || '',
+        voiceQuips: [],
+        source: 'ai-generated',
+        generatedAt: Date.now()
+    };
+    
+    // Validate voice quips
+    if (Array.isArray(item.voiceQuips)) {
+        validated.voiceQuips = item.voiceQuips
+            .filter(q => q && q.skill && q.text)
+            .map(q => ({
+                skill: q.skill.toLowerCase().replace(/\s+/g, '_'),
+                text: q.text.trim(),
+                approves: Boolean(q.approves)
+            }))
+            .slice(0, 3);
+    }
+    
+    return validated;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FALLBACK ITEM (when AI fails)
+// ═══════════════════════════════════════════════════════════════
+
+function createFallbackItem(name) {
+    const type = inferInventoryType(name);
+    const typeInfo = INVENTORY_TYPES[type];
+    
+    return {
+        name: name,
+        type: type,
+        category: isConsumable(type) ? 'consumable' : 'misc',
+        addictive: isAddictive(type),
+        addictionType: getAddictionData(type)?.type || null,
+        description: `A ${name.toLowerCase()}. It's yours now.`,
+        voiceQuips: generateFallbackQuips(type),
+        source: 'fallback',
+        generatedAt: Date.now()
+    };
+}
+
+function generateFallbackQuips(type) {
+    const quips = {
+        cigarettes: [
+            { skill: 'electrochemistry', text: 'Light one up. You know you want to.', approves: true },
+            { skill: 'volition', text: 'You\'re better than this dependency.', approves: false }
+        ],
+        alcohol: [
+            { skill: 'electrochemistry', text: 'The good stuff. Pour one out for yourself.', approves: true },
+            { skill: 'logic', text: 'Your liver would like a word.', approves: false }
+        ],
+        stimulants: [
+            { skill: 'electrochemistry', text: 'Oh YES. This is the ticket.', approves: true },
+            { skill: 'endurance', text: 'Your heart is already racing.', approves: false }
+        ],
+        medicine: [
+            { skill: 'logic', text: 'Follow the dosage instructions.', approves: true },
+            { skill: 'electrochemistry', text: 'Boring. No recreational potential.', approves: false }
+        ],
+        food: [
+            { skill: 'endurance', text: 'Calories. Your body needs them.', approves: true },
+            { skill: 'composure', text: 'Eat with some dignity, at least.', approves: false }
+        ],
+        key: [
+            { skill: 'logic', text: 'Keep this safe. It opens something.', approves: true },
+            { skill: 'inland_empire', text: 'What secrets does it guard?', approves: true }
+        ],
+        document: [
+            { skill: 'encyclopedia', text: 'Read it carefully. Knowledge is power.', approves: true },
+            { skill: 'rhetoric', text: 'Words on paper. Someone wanted these preserved.', approves: true }
+        ],
+        weapon: [
+            { skill: 'half_light', text: 'You might need this. Keep it ready.', approves: true },
+            { skill: 'empathy', text: 'Violence leaves marks on everyone.', approves: false }
+        ],
+        tool: [
+            { skill: 'interfacing', text: 'A useful implement. Keep it handy.', approves: true },
+            { skill: 'conceptualization', text: 'Function over form. Practical.', approves: true }
+        ]
+    };
+    
+    return quips[type] || [
+        { skill: 'perception', text: 'An object. Yours now.', approves: true }
+    ];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXPORTS
+// ═══════════════════════════════════════════════════════════════
+
+export default {
+    normalizeStashKey,
+    quickExtractItemNames,
+    quickExtractItemsWithQuantity,
+    generateSingleItem,
+    generateMultipleItems
+};
