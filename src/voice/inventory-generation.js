@@ -89,6 +89,41 @@ export function quickExtractItemNames(text) {
     const items = [];
     const seen = new Set();
     
+    // ─────────────────────────────────────────────────────────────────
+    // RP ACTION PATTERNS - Items being given/found/picked up
+    // ─────────────────────────────────────────────────────────────────
+    
+    const receivePatterns = [
+        // "hands you a [item]", "gives you the [item]"
+        /(?:hands?|gives?|offers?|passes?|tosses?)\s+(?:you|him|her|them)\s+(?:a|an|the|some)?\s*([^.,;!?\n]+)/gi,
+        // "you receive/take/grab/pocket a [item]"
+        /(?:you\s+)?(?:receive|take|grab|pocket|pick\s*up|find|discover|notice)\s+(?:a|an|the|some)?\s*([^.,;!?\n]+)/gi,
+        // "puts a [item] in your hand/pocket"
+        /puts?\s+(?:a|an|the|some)?\s*([^.,;!?\n]+?)\s+(?:in|into)\s+(?:your|his|her|their)/gi,
+        // "a [item] on the table/ground/floor"
+        /(?:lies|sitting|resting|placed)\s+(?:on|upon)\s+[^:]+?(?:is\s+)?(?:a|an|the)?\s*([^.,;!?\n]+)/gi,
+    ];
+    
+    for (const pattern of receivePatterns) {
+        const matches = text.matchAll(pattern);
+        for (const match of matches) {
+            const normalized = normalizeItemName(match[1]);
+            if (normalized && normalized.length > 2 && normalized.split(' ').length <= 5) {
+                // Verify it looks like an inventory item
+                const type = inferInventoryType(normalized);
+                if (type !== 'other' && !seen.has(normalized.toLowerCase())) {
+                    seen.add(normalized.toLowerCase());
+                    items.push(normalized);
+                }
+            }
+        }
+    }
+    
+    // ─────────────────────────────────────────────────────────────────
+    // LOSS PATTERNS - Items being used up/lost/taken (for removal)
+    // We'll return these separately
+    // ─────────────────────────────────────────────────────────────────
+    
     // Pattern 1: Inventory: ["item, item, item"]
     const inventoryMatch = text.match(/Inventory\s*:?\s*\[?"?([^\]"]+)"?\]?/i);
     if (inventoryMatch) {
@@ -567,6 +602,170 @@ function generateFallbackQuips(type) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// LOSS EXTRACTION - Items being consumed/lost/taken
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Extract items that were lost/consumed/taken from text
+ * Used to auto-remove items from inventory
+ */
+export function extractLostItems(text) {
+    if (!text) return [];
+    
+    const items = [];
+    const seen = new Set();
+    
+    const lossPatterns = [
+        // "you smoke/drink/consume/use the [item]"
+        /(?:you\s+)?(?:smoke|drink|consume|use|inject|swallow|eat|finish)\s+(?:the|your|a|an)?\s*([^.,;!?\n]+)/gi,
+        // "takes the [item] from you"
+        /takes?\s+(?:the|your|a|an)?\s*([^.,;!?\n]+?)\s+(?:from|away)/gi,
+        // "the [item] is gone/empty/finished"
+        /(?:the|your)\s+([^.,;!?\n]+?)\s+(?:is|are)\s+(?:gone|empty|finished|depleted|used\s*up)/gi,
+        // "you drop/lose/discard the [item]"
+        /(?:you\s+)?(?:drop|lose|discard|throw\s+away|toss)\s+(?:the|your|a|an)?\s*([^.,;!?\n]+)/gi,
+        // "last cigarette/pill/etc"
+        /(?:your\s+)?last\s+([^.,;!?\n]+)/gi,
+    ];
+    
+    for (const pattern of lossPatterns) {
+        const matches = text.matchAll(pattern);
+        for (const match of matches) {
+            const normalized = normalizeItemName(match[1]);
+            if (normalized && normalized.length > 2 && normalized.split(' ').length <= 4) {
+                const type = inferInventoryType(normalized);
+                if (type !== 'other' && !seen.has(normalized.toLowerCase())) {
+                    seen.add(normalized.toLowerCase());
+                    items.push(normalized);
+                }
+            }
+        }
+    }
+    
+    return items;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MESSAGE SCANNING - For recent messages and auto-extraction
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get SillyTavern context (safe import)
+ */
+function getSTContext() {
+    try {
+        if (typeof window !== 'undefined' && window.SillyTavern?.getContext) {
+            return window.SillyTavern.getContext();
+        }
+        // Fallback for direct import
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Scan recent AI messages for inventory items
+ * @param {number} messageCount - How many recent messages to scan (default 3)
+ * @returns {Promise<{gained: string[], lost: string[]}>}
+ */
+export async function scanRecentMessages(messageCount = 3) {
+    const context = getSTContext();
+    if (!context) {
+        console.warn('[Inventory] Cannot access SillyTavern context');
+        return { gained: [], lost: [] };
+    }
+    
+    const chat = context.chat || [];
+    if (chat.length === 0) {
+        return { gained: [], lost: [] };
+    }
+    
+    // Get last N AI messages (not user messages)
+    const recentMessages = chat
+        .slice(-messageCount * 2) // Get more to filter
+        .filter(m => m.is_user === false)
+        .slice(-messageCount)
+        .map(m => m.mes)
+        .join('\n\n');
+    
+    if (!recentMessages) {
+        return { gained: [], lost: [] };
+    }
+    
+    const gained = quickExtractItemNames(recentMessages);
+    const lost = extractLostItems(recentMessages);
+    
+    console.log('[Inventory] Scanned messages - Gained:', gained, 'Lost:', lost);
+    
+    return { gained, lost };
+}
+
+/**
+ * Extract inventory changes from a single message
+ * Designed for MESSAGE_RECEIVED hook
+ * @param {string} messageText - The message content
+ * @returns {{gained: string[], lost: string[]}}
+ */
+export function extractFromMessage(messageText) {
+    if (!messageText || messageText.length < 20) {
+        return { gained: [], lost: [] };
+    }
+    
+    const gained = quickExtractItemNames(messageText);
+    const lost = extractLostItems(messageText);
+    
+    // Filter out items that appear in both (ambiguous)
+    const lostSet = new Set(lost.map(i => i.toLowerCase()));
+    const filteredGained = gained.filter(i => !lostSet.has(i.toLowerCase()));
+    
+    const gainedSet = new Set(filteredGained.map(i => i.toLowerCase()));
+    const filteredLost = lost.filter(i => !gainedSet.has(i.toLowerCase()));
+    
+    return { 
+        gained: filteredGained, 
+        lost: filteredLost 
+    };
+}
+
+/**
+ * Full extraction pipeline for MESSAGE_RECEIVED
+ * Extracts items, generates data, returns ready-to-add items
+ * @param {string} messageText - The AI message
+ * @param {object} options - Options
+ * @param {function} options.getFromStash - Function to check stash cache
+ * @param {function} options.saveToStash - Function to save to stash cache
+ * @returns {Promise<{toAdd: object[], toRemove: string[]}>}
+ */
+export async function processMessageForInventory(messageText, options = {}) {
+    const { getFromStash, saveToStash } = options;
+    
+    const { gained, lost } = extractFromMessage(messageText);
+    
+    const toAdd = [];
+    const toRemove = lost;
+    
+    // Process gained items
+    for (const itemName of gained) {
+        // Check stash first
+        let itemData = getFromStash?.(itemName);
+        
+        if (itemData) {
+            toAdd.push(itemData);
+        } else {
+            // Generate new item data
+            itemData = await generateSingleItem(itemName);
+            if (itemData) {
+                saveToStash?.(itemData);
+                toAdd.push(itemData);
+            }
+        }
+    }
+    
+    return { toAdd, toRemove };
+}
+
+// ═══════════════════════════════════════════════════════════════
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════
 
@@ -574,6 +773,10 @@ export default {
     normalizeStashKey,
     quickExtractItemNames,
     quickExtractItemsWithQuantity,
+    extractLostItems,
+    scanRecentMessages,
+    extractFromMessage,
+    processMessageForInventory,
     generateSingleItem,
     generateMultipleItems
 };
