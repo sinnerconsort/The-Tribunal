@@ -957,6 +957,38 @@ import('./src/ui/inventory-handlers.js').then(handlersModule => {
 }).catch(err => {
     console.warn('[Tribunal] Inventory handlers not loaded:', err.message);
 });
+
+        // Initialize inventory effects system
+import('./src/systems/inventory-effects.js').then(effectsModule => {
+    // Expose globally for handlers to use
+    window.TribunalEffects = effectsModule;
+    
+    // Initialize timers from saved state
+    effectsModule.initEffectTimers();
+    
+    console.log('[Tribunal] Inventory effects system initialized');
+    
+    // Listen for effect events
+    window.addEventListener('tribunal:effectApplied', (e) => {
+        console.log('[Tribunal] Effect applied:', e.detail.statusId);
+        // Could trigger UI updates here
+    });
+    
+    window.addEventListener('tribunal:effectRemoved', (e) => {
+        console.log('[Tribunal] Effect expired:', e.detail.statusId);
+        // Could trigger UI updates here
+    });
+    
+}).catch(err => {
+    console.warn('[Tribunal] Effects system not loaded:', err.message);
+});
+
+// Also expose state module globally for effects to access
+import('./src/core/state.js').then(stateModule => {
+    window.TribunalState = stateModule;
+}).catch(err => {
+    console.warn('[Tribunal] State module not exposed:', err.message);
+});
         
         // Expose debug helpers
         window.TribunalLedger = {
