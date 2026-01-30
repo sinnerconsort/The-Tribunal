@@ -640,3 +640,109 @@
     color: rgba(212, 165, 116, 0.6);
     line-height: 1.6;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   FORTUNE FATE-SEALING CSS
+   Add to compartment.css
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Pending fortune - envelope glows/pulses as hint */
+.dora-envelope.fortune-pending {
+    animation: fortune-pulse 2s ease-in-out infinite;
+    position: relative;
+}
+
+.dora-envelope.fortune-pending::after {
+    content: '?';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 22px;
+    height: 22px;
+    background: var(--ie-oblivion, #9d8cff);
+    color: #1a1a1a;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 12px;
+    font-family: 'Georgia', serif;
+    animation: fortune-bounce 1s ease-in-out infinite;
+    box-shadow: 0 0 10px rgba(157, 140, 255, 0.5);
+    z-index: 10;
+}
+
+@keyframes fortune-pulse {
+    0%, 100% { 
+        box-shadow: 0 0 5px rgba(157, 140, 255, 0.2);
+    }
+    50% { 
+        box-shadow: 0 0 20px rgba(157, 140, 255, 0.5),
+                    0 0 30px rgba(157, 140, 255, 0.2);
+    }
+}
+
+@keyframes fortune-bounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-4px) scale(1.1); }
+}
+
+/* Fate sealed - dramatic flash effect */
+.dora-envelope.fate-sealed {
+    animation: fate-flash 0.5s ease-out forwards;
+}
+
+@keyframes fate-flash {
+    0% { 
+        filter: brightness(1) saturate(1);
+        transform: scale(1);
+    }
+    20% { 
+        filter: brightness(2.5) saturate(1.5);
+        transform: scale(1.02);
+    }
+    40% {
+        filter: brightness(1.5) saturate(1.2);
+    }
+    100% { 
+        filter: brightness(1) saturate(1);
+        transform: scale(1);
+    }
+}
+
+/* Extra: Wax seal breaks on open when fate seals */
+.dora-envelope.fate-sealed .wax-seal {
+    animation: seal-crack 0.4s ease-out forwards;
+}
+
+@keyframes seal-crack {
+    0% { 
+        transform: rotate(0deg) scale(1);
+        opacity: 1;
+    }
+    50% { 
+        transform: rotate(-5deg) scale(1.1);
+        opacity: 0.8;
+    }
+    100% { 
+        transform: rotate(0deg) scale(1);
+        opacity: 1;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST STYLING FOR "FATE SEALED"
+   ═══════════════════════════════════════════════════════════════ */
+
+/* If using custom toasts instead of toastr */
+.ie-toast-fate-sealed {
+    background: linear-gradient(135deg, #2a1f3d 0%, #1a1520 100%);
+    border-left: 4px solid var(--ie-oblivion, #9d8cff);
+    color: #e0d0ff;
+}
+
+.ie-toast-fate-sealed .ie-toast-title {
+    color: var(--ie-oblivion, #9d8cff);
+    font-weight: bold;
+}
