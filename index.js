@@ -43,7 +43,7 @@ import { initSettingsTab } from './src/ui/settings-handlers.js';
 import { initCabinetHandlers, refreshCabinet } from './src/ui/cabinet-handler.js';
 import { initNewspaperStrip, updateNewspaperStrip } from './src/ui/newspaper-strip.js';
 import { initLocationHandlers, refreshLocations } from './src/ui/location-handlers.js';
-import { initAwareness } from './systems/ledger-awareness.js';
+import { initAwareness } from './src/systems/ledger-awareness.js';
 
 
 
