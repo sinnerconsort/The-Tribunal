@@ -49,6 +49,7 @@ export const INVENTORY_TAB_HTML = `
                     <button class="inv-evidence-detail-close" id="ie-detail-close">×</button>
                 </div>
                 <p class="inv-evidence-detail-desc" id="ie-detail-desc"></p>
+                <div id="ie-detail-stats" style="display: none;"></div>
                 <div class="inv-evidence-detail-effect" id="ie-detail-effect"></div>
                 <button class="inv-evidence-consume-btn" id="ie-consume-btn" style="display: none;">
                     ▶ CONSUME

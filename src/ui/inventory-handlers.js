@@ -489,7 +489,21 @@ function updateDetailPanel() {
     document.getElementById('ie-detail-name').textContent = item.name;
     document.getElementById('ie-detail-desc').textContent = item.description || 'No description.';
     
-    // Effect/quips
+    // Status effect preview (what will happen when consumed)
+    const statsEl = document.getElementById('ie-detail-stats');
+    if (statsEl && item.category === 'consumable') {
+        const effectPreview = getEffectPreview(item.type);
+        if (effectPreview) {
+            statsEl.innerHTML = effectPreview;
+            statsEl.style.display = 'block';
+        } else {
+            statsEl.style.display = 'none';
+        }
+    } else if (statsEl) {
+        statsEl.style.display = 'none';
+    }
+    
+    // Voice quips
     const effectEl = document.getElementById('ie-detail-effect');
     if (item.voiceQuips && item.voiceQuips.length > 0) {
         effectEl.innerHTML = item.voiceQuips.map(q => `
@@ -508,6 +522,59 @@ function updateDetailPanel() {
     }
     
     panel.style.display = 'block';
+}
+
+/**
+ * Get preview of what status effect an item will apply
+ */
+function getEffectPreview(itemType) {
+    // Try to get from TribunalEffects
+    const effectConfig = window.TribunalEffects?.CONSUMPTION_EFFECTS?.[itemType];
+    if (!effectConfig || !effectConfig.statusId) return null;
+    
+    // Get status data - try window.TribunalStatuses or inline fallback
+    const STATUS_EFFECTS = window.TribunalStatuses?.STATUS_EFFECTS || getInlineStatusEffects();
+    const status = STATUS_EFFECTS[effectConfig.statusId];
+    if (!status) return null;
+    
+    const boosts = (status.boosts || []).map(s => `<span class="stat-boost">+1 ${formatSkillName(s)}</span>`);
+    const debuffs = (status.debuffs || []).map(s => `<span class="stat-debuff">-1 ${formatSkillName(s)}</span>`);
+    
+    const durationMin = Math.round(effectConfig.duration / 60000);
+    
+    return `
+        <div class="inv-effect-preview">
+            <div class="inv-effect-name">${status.name}</div>
+            <div class="inv-effect-duration">${durationMin} min</div>
+            <div class="inv-effect-stats">
+                ${boosts.join(' ')}
+                ${debuffs.join(' ')}
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Fallback status effects if module not loaded
+ */
+function getInlineStatusEffects() {
+    return {
+        nicotine_rush: {
+            name: 'Nicotine Rush',
+            boosts: ['composure', 'volition', 'conceptualization', 'logic'],
+            debuffs: ['endurance']
+        },
+        revacholian_courage: {
+            name: 'Revacholian Courage',
+            boosts: ['electrochemistry', 'inland_empire', 'drama', 'suggestion', 'physical_instrument'],
+            debuffs: ['logic', 'hand_eye_coordination', 'reaction_speed', 'composure']
+        },
+        pyrholidon: {
+            name: 'Pyrholidon',
+            boosts: ['reaction_speed', 'perception', 'logic', 'visual_calculus', 'volition'],
+            debuffs: ['composure', 'empathy', 'inland_empire']
+        }
+    };
 }
 
 function formatSkillName(skill) {
