@@ -409,13 +409,10 @@ function createEvidenceBag(item) {
     bag.dataset.itemId = item.id;
     
     bag.innerHTML = `
-        <div class="inv-evidence-bag-top"></div>
-        <div class="inv-evidence-bag-content">
-            <span class="inv-evidence-icon">${typeInfo.icon || '📦'}</span>
-            <span class="inv-evidence-name">${item.name}</span>
-            ${item.quantity > 1 ? `<span class="inv-evidence-qty">×${item.quantity}</span>` : ''}
-        </div>
-        <div class="inv-evidence-label">${item.type.toUpperCase()}</div>
+        ${item.quantity > 1 ? `<span class="inv-evidence-qty">×${item.quantity}</span>` : ''}
+        <span class="inv-evidence-icon">${typeInfo.icon || '📦'}</span>
+        <span class="inv-evidence-name">${item.name}</span>
+        <span class="inv-evidence-type">${item.type?.toUpperCase() || 'ITEM'}</span>
     `;
     
     bag.addEventListener('click', () => selectItem(item.id));
