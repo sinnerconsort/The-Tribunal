@@ -198,182 +198,122 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   EVIDENCE BAGS - Disco Elysium Style
-   Worn manila folders with evidence tape
+   INVENTORY ITEMS - Compact Pill Style
+   Small inline tags with tape accent
    ═══════════════════════════════════════════════════════════════ */
 
-.inv-evidence-bag {
-    width: 100px;
-    min-height: 110px;
-    cursor: pointer;
-    transition: all 0.2s;
-    position: relative;
-    
-    /* Worn manila folder base */
-    background: linear-gradient(165deg, 
-        #c4a882 0%, 
-        #b8996e 30%,
-        #a88a5c 70%,
-        #9a7c4e 100%
-    );
-    border: none;
-    border-radius: 2px;
-    padding: 0;
-    
-    /* Paper texture */
-    box-shadow: 
-        inset 0 0 20px rgba(0, 0, 0, 0.15),
-        0 2px 6px rgba(0, 0, 0, 0.4),
-        0 1px 2px rgba(0, 0, 0, 0.3);
+.inv-evidence-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 4px 0;
 }
 
+.inv-evidence-bag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px 6px 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    
+    /* Worn paper/cardboard look */
+    background: linear-gradient(135deg, 
+        #b8a078 0%, 
+        #a89068 50%,
+        #98805a 100%
+    );
+    border-radius: 3px;
+    
+    /* Subtle depth */
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+/* Tape strip on left edge */
 .inv-evidence-bag::before {
     content: '';
     position: absolute;
-    inset: 0;
-    background: 
-        /* Noise texture */
-        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
-    opacity: 0.08;
-    pointer-events: none;
-    border-radius: 2px;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg,
+        rgba(180, 60, 60, 0.9) 0%,
+        rgba(160, 50, 50, 0.85) 100%
+    );
+    border-radius: 3px 0 0 3px;
 }
 
 .inv-evidence-bag:hover {
-    transform: translateY(-3px) rotate(-1deg);
+    transform: translateY(-1px);
     box-shadow: 
-        inset 0 0 20px rgba(0, 0, 0, 0.15),
-        0 6px 16px rgba(0, 0, 0, 0.5),
-        0 2px 4px rgba(0, 0, 0, 0.3);
+        0 3px 8px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, 
+        #c8b088 0%, 
+        #b8a078 50%,
+        #a8906a 100%
+    );
 }
 
 .inv-evidence-bag.selected {
-    transform: translateY(-2px);
     box-shadow: 
-        inset 0 0 20px rgba(0, 0, 0, 0.15),
         0 0 0 2px var(--ie-accent, #d4a574),
-        0 4px 12px rgba(0, 0, 0, 0.4);
+        0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* Evidence tape at top */
-.inv-evidence-bag::after {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: 10%;
-    right: 10%;
-    height: 14px;
-    background: linear-gradient(180deg,
-        rgba(200, 60, 60, 0.9) 0%,
-        rgba(180, 50, 50, 0.85) 50%,
-        rgba(160, 40, 40, 0.9) 100%
-    );
-    border-radius: 0 0 2px 2px;
-    box-shadow: 
-        0 1px 2px rgba(0, 0, 0, 0.3),
-        inset 0 -1px 1px rgba(0, 0, 0, 0.2);
-    /* Tape texture */
-    background-image: repeating-linear-gradient(
-        90deg,
-        transparent 0px,
-        transparent 2px,
-        rgba(255, 255, 255, 0.1) 2px,
-        rgba(255, 255, 255, 0.1) 4px
-    );
-}
-
-/* Item icon area */
-.inv-evidence-icon {
-    width: 100%;
-    height: 55px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    margin-top: 16px;
-    position: relative;
-    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
-}
-
-/* Item name - handwritten style */
-.inv-evidence-name {
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    font-size: 10px;
-    font-weight: 700;
-    color: #3a2a1a;
-    text-align: center;
-    padding: 4px 6px;
-    margin: 0 4px;
-    line-height: 1.2;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    /* Underline effect */
-    border-bottom: 1px solid rgba(58, 42, 26, 0.3);
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
-}
-
-/* Type label - stamped look */
-.inv-evidence-type {
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    font-size: 7px;
-    font-weight: 700;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: rgba(120, 40, 40, 0.7);
-    text-align: center;
-    padding: 4px 6px 8px;
-    /* Rubber stamp effect */
-    text-shadow: 
-        0 0 1px rgba(120, 40, 40, 0.5),
-        1px 0 0 rgba(120, 40, 40, 0.1);
-}
-
-/* Quantity badge - evidence number style */
-.inv-evidence-qty {
-    position: absolute;
-    top: 2px;
-    right: 4px;
-    background: rgba(30, 30, 30, 0.85);
-    color: #e8dcc0;
-    font-size: 8px;
-    font-weight: 700;
-    padding: 2px 5px;
-    border-radius: 2px;
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    letter-spacing: 0.5px;
-    border: 1px solid rgba(100, 100, 100, 0.3);
-    z-index: 5;
-}
-
-/* Evidence tag - case number */
-.inv-evidence-tag {
-    position: absolute;
-    bottom: 4px;
-    left: 4px;
-    background: #f5f0e0;
-    border: 1px solid #b8a888;
-    padding: 1px 4px;
-    font-size: 6px;
-    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
-    color: #5a4a3a;
-    transform: rotate(-2deg);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-/* Addictive items - warning tape */
-.inv-evidence-bag.addictive::after {
+/* Addictive items - hazard tape */
+.inv-evidence-bag.addictive::before {
+    width: 6px;
     background: repeating-linear-gradient(
         -45deg,
-        rgba(200, 60, 60, 0.9) 0px,
-        rgba(200, 60, 60, 0.9) 4px,
-        rgba(40, 40, 40, 0.9) 4px,
-        rgba(40, 40, 40, 0.9) 8px
-    ) !important;
+        rgba(200, 60, 60, 0.95) 0px,
+        rgba(200, 60, 60, 0.95) 2px,
+        rgba(40, 40, 40, 0.95) 2px,
+        rgba(40, 40, 40, 0.95) 4px
+    );
 }
 
-.inv-evidence-bag.addictive .inv-evidence-type {
-    color: rgba(180, 50, 50, 0.9);
+/* Icon */
+.inv-evidence-icon {
+    font-size: 16px;
+    line-height: 1;
+    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
+}
+
+/* Item name */
+.inv-evidence-name {
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    font-size: 11px;
+    font-weight: 600;
+    color: #2a1a0a;
+    white-space: nowrap;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Quantity badge */
+.inv-evidence-qty {
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    font-size: 9px;
+    font-weight: 700;
+    color: #f0e8d8;
+    background: rgba(30, 20, 10, 0.75);
+    padding: 1px 4px;
+    border-radius: 2px;
+    margin-left: 2px;
+}
+
+/* Type label - hidden in compact mode, shown on hover/detail */
+.inv-evidence-type {
+    display: none;
+}
+
+/* Evidence tag - not used in compact */
+.inv-evidence-tag {
+    display: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════
