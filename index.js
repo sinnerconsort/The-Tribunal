@@ -48,7 +48,7 @@ import { initCommentary } from './src/systems/ledger-commentary.js';
 import { initFortuneInjection } from './src/systems/fortune-injection.js';
 import { initFidgetPatterns } from './src/systems/fidget-patterns.js';
 import { initFidgetCommentary } from './src/systems/fidget-commentary.js';
-import { initInventoryTemplateHandlers } from './ui/inventory-template.js';
+import { initInventoryTemplateHandlers } from './src/ui/inventory-template.js';
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Weather System (lazy loaded - see init())
@@ -906,6 +906,10 @@ import('./src/ui/equipment-handlers.js').then(module => {
 }).catch(err => {
     console.warn('[Tribunal] Equipment handlers not loaded:', err.message);
 });
+
+    // Initialize inventory subtabs
+initInventoryTemplateHandlers();
+console.log('[Tribunal] Inventory template handlers initialized');
 
     initLocationHandlers();
     console.log('[Tribunal] Location handlers initialized');
