@@ -711,15 +711,28 @@ export function getState() {
     };
 }
 
-export function triggerPale() { setSpecialEffect('pale'); }
-export function exitPale() { if (currentSpecial === 'pale') setSpecialEffect(null); }
-export function isInPale() { return currentSpecial === 'pale'; }
-export function triggerHorror(duration = 15000) {
-    setSpecialEffect('horror');
-    if (duration > 0) setTimeout(() => { if (currentSpecial === 'horror') setSpecialEffect(null); }, duration);
+export function triggerPale() { 
+    window.TribunalConditionFX?.triggerPale?.();
 }
-export function exitHorror() { if (currentSpecial === 'horror') setSpecialEffect(null); }
 
+export function exitPale() { 
+    window.TribunalConditionFX?.exitPale?.();
+}
+
+export function isInPale() { 
+    return window.TribunalConditionFX?.isInPale?.() || false;
+}
+
+export function triggerHorror(duration = 15000) {
+    window.TribunalConditionFX?.triggerHorror?.();
+    if (duration > 0) {
+        setTimeout(() => window.TribunalConditionFX?.exitHorror?.(), duration);
+    }
+}
+
+export function exitHorror() { 
+    window.TribunalConditionFX?.exitHorror?.();
+}
 export function getAvailableEffects() {
     return { weather: ['rain', 'snow', 'storm', 'fog', 'wind', 'waves', 'smoke', 'clear'], period: ['day', 'city-night', 'quiet-night', 'indoor'], special: ['pale', 'horror'] };
 }
