@@ -14,10 +14,10 @@ import { STATUS_EFFECTS } from '../data/statuses.js';
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Map status IDs to OBSERVED STATES checkbox values
- * These match the checkbox values in medical-form.html
+ * Map effect IDs to UI checkbox data-status values
+ * Must match STATUS_UI_TO_ID in status-handlers.js
  */
-const STATUS_TO_CHECKBOX = {
+const EFFECT_ID_TO_UI_STATUS = {
     // Physical states
     revacholian_courage: 'drunk',
     nicotine_rush: 'smoking',
@@ -26,11 +26,12 @@ const STATUS_TO_CHECKBOX = {
     volumetric_shit_compressor: 'hungover',
     finger_on_the_eject_button: 'wounded',
     waste_land: 'exhausted',
+    white_mourning: 'dying',
     
-    // Mental states (if applicable)
-    the_expression: 'dissociated',
+    // Mental states
+    tequila_sunset: 'manic',
     the_pale: 'dissociated',
-    white_mourning: 'grieving',
+    the_expression: 'grieving',
     homo_sexual_underground: 'infatuated',
     jamrock_shuffle: 'lucky',
     caustic_echo: 'terrified',
@@ -62,72 +63,81 @@ function getTimedEffects() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CHECKBOX SYNC
+// CHECKBOX SYNC - Uses .rcm-checkbox[data-status] + .rcm-checked
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Sync OBSERVED STATES checkboxes with active effects
- * Call this after effects change
+ * Toggle observed state checkbox by UI status name
+ * Uses the same structure as status-handlers.js
+ * 
+ * @param {string} uiStatus - The data-status value (e.g., 'drunk', 'smoking')
+ * @param {boolean} checked - Whether to check or uncheck
+ */
+function setObservedState(uiStatus, checked) {
+    const checkbox = document.querySelector(`.rcm-checkbox[data-status="${uiStatus}"]`);
+    if (!checkbox) {
+        console.warn(`[TimedFX] Checkbox not found: data-status="${uiStatus}"`);
+        return false;
+    }
+    
+    if (checked) {
+        checkbox.classList.add('rcm-checked');
+    } else {
+        checkbox.classList.remove('rcm-checked');
+    }
+    
+    // Update label if it has labelOn/labelOff data attributes
+    const label = checkbox.querySelector('.rcm-checkbox-label');
+    if (label) {
+        const labelText = checked ? checkbox.dataset.labelOn : checkbox.dataset.labelOff;
+        if (labelText) label.textContent = labelText;
+    }
+    
+    console.log(`[TimedFX] Set ${uiStatus} = ${checked}`);
+    return true;
+}
+
+/**
+ * Get UI status name for an effect ID
+ */
+function getUIStatusForEffect(effectId) {
+    return EFFECT_ID_TO_UI_STATUS[effectId] || null;
+}
+
+/**
+ * Sync all observed state checkboxes with current active effects
  */
 function syncObservedStatesCheckboxes() {
     const effects = getTimedEffects();
-    const activeCheckboxValues = new Set();
     
-    // Build set of checkbox values that should be checked
+    // Build set of UI statuses that should be checked
+    const activeUIStatuses = new Set();
     for (const effect of effects) {
-        const checkboxValue = STATUS_TO_CHECKBOX[effect.id];
-        if (checkboxValue) {
-            activeCheckboxValues.add(checkboxValue);
+        const uiStatus = getUIStatusForEffect(effect.id);
+        if (uiStatus) {
+            activeUIStatuses.add(uiStatus);
         }
     }
     
-    // Find all observed state checkboxes and sync them
-    const checkboxes = document.querySelectorAll('.rcm-observed-checkbox, .observed-state-checkbox, input[name="observed_state"]');
+    // Sync all managed checkboxes
+    const managedStatuses = Object.values(EFFECT_ID_TO_UI_STATUS);
+    const uniqueStatuses = [...new Set(managedStatuses)];
     
-    checkboxes.forEach(checkbox => {
-        const value = checkbox.value || checkbox.dataset.state;
-        if (value && STATUS_TO_CHECKBOX_VALUES.includes(value)) {
-            const shouldBeChecked = activeCheckboxValues.has(value);
-            if (checkbox.checked !== shouldBeChecked) {
-                checkbox.checked = shouldBeChecked;
-                console.log(`[TimedFX] ${shouldBeChecked ? 'Checked' : 'Unchecked'} observed state: ${value}`);
+    for (const uiStatus of uniqueStatuses) {
+        const shouldBeChecked = activeUIStatuses.has(uiStatus);
+        const checkbox = document.querySelector(`.rcm-checkbox[data-status="${uiStatus}"]`);
+        
+        if (checkbox) {
+            const isCurrentlyChecked = checkbox.classList.contains('rcm-checked');
+            if (isCurrentlyChecked !== shouldBeChecked) {
+                setObservedState(uiStatus, shouldBeChecked);
             }
         }
-    });
-}
-
-// All possible checkbox values we manage
-const STATUS_TO_CHECKBOX_VALUES = [
-    'drunk', 'smoking', 'stimmed', 'hungover', 'wounded', 'exhausted', 'dying',
-    'manic', 'dissociated', 'infatuated', 'lucky', 'terrified', 'enraged', 'grieving'
-];
-
-/**
- * Toggle a specific observed state checkbox
- */
-function setObservedState(stateValue, checked) {
-    const selectors = [
-        `.rcm-observed-checkbox[value="${stateValue}"]`,
-        `.observed-state-checkbox[value="${stateValue}"]`,
-        `input[name="observed_state"][value="${stateValue}"]`,
-        `input[data-state="${stateValue}"]`
-    ];
-    
-    for (const selector of selectors) {
-        const checkbox = document.querySelector(selector);
-        if (checkbox) {
-            checkbox.checked = checked;
-            console.log(`[TimedFX] Set ${stateValue} = ${checked}`);
-            return true;
-        }
     }
-    
-    console.warn(`[TimedFX] Checkbox not found for state: ${stateValue}`);
-    return false;
 }
 
 // ═══════════════════════════════════════════════════════════════
-// RENDERING (No emojis - typewriter style)
+// RENDERING (Typewriter style - no emojis)
 // ═══════════════════════════════════════════════════════════════
 
 function getEffectType(statusId) {
@@ -164,7 +174,7 @@ function getProgressPercent(remaining, maxDuration = 10) {
 }
 
 /**
- * Render a single timed effect (typewriter style, no emoji)
+ * Render a single timed effect (typewriter style)
  */
 function renderEffect(effect) {
     const statusId = effect.id;
@@ -177,15 +187,15 @@ function renderEffect(effect) {
     const progress = getProgressPercent(remaining);
     const isExpiring = remaining <= EXPIRING_THRESHOLD;
     
-    // Typewriter-style indicator bar instead of emoji
-    const indicator = type === 'debuff' ? '▌' : type === 'buff' ? '│' : '┃';
+    // Typewriter-style indicator instead of emoji
+    const indicator = type === 'debuff' ? '▌' : '│';
     
     return `
         <div class="rcm-timed-effect ${isExpiring ? 'expiring' : ''}" 
              data-status="${statusId}" 
              data-type="${type}"
              data-source="${source}">
-            <span class="rcm-effect-indicator" data-type="${type}">${indicator}</span>
+            <span class="rcm-effect-icon">${indicator}</span>
             <span class="rcm-effect-name">
                 ${name}${stacks > 1 ? ` <span class="rcm-effect-stacks">×${stacks}</span>` : ''}
             </span>
@@ -204,7 +214,7 @@ function renderTimedEffectsSection(effects) {
     if (!effects || effects.length === 0) {
         return `
             <div class="rcm-timed-effects">
-                <div class="rcm-timed-effects-header">▸ ACTIVE SUBSTANCES</div>
+                <div class="rcm-timed-effects-header">ACTIVE SUBSTANCES</div>
                 <div class="rcm-timed-effects-empty">(system clear)</div>
             </div>
         `;
@@ -221,7 +231,7 @@ function renderTimedEffectsSection(effects) {
     
     return `
         <div class="rcm-timed-effects">
-            <div class="rcm-timed-effects-header">▸ ACTIVE SUBSTANCES</div>
+            <div class="rcm-timed-effects-header">ACTIVE SUBSTANCES</div>
             <div class="rcm-timed-effects-list">
                 ${sorted.map(e => renderEffect(e)).join('')}
             </div>
@@ -324,27 +334,29 @@ function bindEffectEvents() {
     window.addEventListener('tribunal:effectApplied', (e) => {
         updateTimedEffectsDisplay();
         
-        // Also directly toggle the checkbox for immediate feedback
+        // Immediately toggle the checkbox
         const statusId = e.detail?.statusId;
-        if (statusId && STATUS_TO_CHECKBOX[statusId]) {
-            setObservedState(STATUS_TO_CHECKBOX[statusId], true);
+        const uiStatus = getUIStatusForEffect(statusId);
+        if (uiStatus) {
+            setObservedState(uiStatus, true);
         }
     });
     
     window.addEventListener('tribunal:effectRemoved', (e) => {
-        updateTimedEffectsDisplay();
-        
-        // Check if any other effect still needs this checkbox
+        // Check if any other active effect still needs this checkbox
         const statusId = e.detail?.statusId;
-        if (statusId && STATUS_TO_CHECKBOX[statusId]) {
-            // Only uncheck if no other active effect uses this checkbox
+        const uiStatus = getUIStatusForEffect(statusId);
+        
+        if (uiStatus) {
             const effects = getTimedEffects();
-            const checkboxValue = STATUS_TO_CHECKBOX[statusId];
-            const stillActive = effects.some(eff => STATUS_TO_CHECKBOX[eff.id] === checkboxValue);
+            // Check if any remaining effect maps to the same UI status
+            const stillActive = effects.some(eff => getUIStatusForEffect(eff.id) === uiStatus);
             if (!stillActive) {
-                setObservedState(checkboxValue, false);
+                setObservedState(uiStatus, false);
             }
         }
+        
+        updateTimedEffectsDisplay();
     });
     
     window.addEventListener('tribunal:messageTick', () => {
@@ -392,5 +404,6 @@ export default {
     injectTimedEffectsContainer,
     getTimedEffects,
     syncObservedStatesCheckboxes,
-    setObservedState
+    setObservedState,
+    getUIStatusForEffect
 };
