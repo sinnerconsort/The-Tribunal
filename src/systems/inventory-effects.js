@@ -22,7 +22,7 @@ import { STATUS_EFFECTS } from '../data/statuses.js';
  */
 export const CONSUMPTION_EFFECTS = {
     cigarette: {
-        statusId: 'nicotine_rush',
+        id: 'nicotine_rush',
         duration: 4,              // 4 messages
         stackable: false,
         particleEffect: 'smoke',
@@ -30,7 +30,7 @@ export const CONSUMPTION_EFFECTS = {
         clears: []                // Doesn't clear anything
     },
     alcohol: {
-        statusId: 'revacholian_courage',
+        id: 'revacholian_courage',
         duration: 8,              // 8 messages
         stackable: true,
         maxStacks: 3,
@@ -39,7 +39,7 @@ export const CONSUMPTION_EFFECTS = {
         clears: ['volumetric_shit_compressor']  // Clears hangover
     },
     beer: {
-        statusId: 'revacholian_courage',
+        id: 'revacholian_courage',
         duration: 6,              // Weaker than hard liquor
         stackable: true,
         maxStacks: 3,
@@ -48,7 +48,7 @@ export const CONSUMPTION_EFFECTS = {
         clears: ['volumetric_shit_compressor']
     },
     drug: {
-        statusId: 'pyrholidon',
+        id: 'pyrholidon',
         duration: 6,
         stackable: false,
         particleEffect: 'stimulant',
@@ -56,7 +56,7 @@ export const CONSUMPTION_EFFECTS = {
         clears: ['waste_land']    // Clears exhaustion
     },
     stimulant: {
-        statusId: 'pyrholidon',
+        id: 'pyrholidon',
         duration: 6,
         stackable: false,
         particleEffect: 'stimulant',
@@ -64,7 +64,7 @@ export const CONSUMPTION_EFFECTS = {
         clears: ['waste_land']
     },
     pyrholidon: {
-        statusId: 'pyrholidon',
+        id: 'pyrholidon',
         duration: 8,              // Stronger, longer
         stackable: false,
         particleEffect: 'pale',
@@ -74,7 +74,7 @@ export const CONSUMPTION_EFFECTS = {
         sideEffectChance: 0.15    // 15% chance
     },
     coffee: {
-        statusId: 'nicotine_rush', // Similar focus effect
+        id: 'nicotine_rush', // Similar focus effect
         duration: 3,               // Short boost
         stackable: false,
         particleEffect: null,
@@ -82,7 +82,7 @@ export const CONSUMPTION_EFFECTS = {
         clears: ['waste_land']     // Coffee clears exhaustion!
     },
     food: {
-        statusId: null,
+        id: null,
         healHealth: 1,
         healMorale: 1,
         particleEffect: null,
@@ -90,7 +90,7 @@ export const CONSUMPTION_EFFECTS = {
         clears: []
     },
     medicine: {
-        statusId: null,
+        id: null,
         healHealth: 2,
         particleEffect: null,
         electrochemistryQuote: "Chemistry doing its job. The body responds.",
@@ -180,7 +180,7 @@ export function onMessageTick() {
         
         if (effect.remainingMessages <= 0) {
             expired.push(effect);
-            console.log(`[Effects] ${effect.statusId} expired after message tick`);
+            console.log(`[Effects] ${effect.id} expired after message tick`);
         } else {
             remaining.push(effect);
         }
@@ -191,8 +191,8 @@ export function onMessageTick() {
     
     // Process expirations (withdrawals, etc.)
     for (const effect of expired) {
-        emitEffectRemoved(effect.statusId);
-        checkWithdrawal(effect.statusId);
+        emitEffectRemoved(effect.id);
+        checkWithdrawal(effect.id);
     }
     
     return { expired, remaining };
@@ -233,7 +233,7 @@ export function applyConsumptionEffect(itemType, options = {}) {
     let clearedEffects = [];
     if (effectConfig.clears && effectConfig.clears.length > 0) {
         for (const clearId of effectConfig.clears) {
-            const idx = activeEffects.findIndex(e => e.statusId === clearId);
+            const idx = activeEffects.findIndex(e => e.id === clearId);
             if (idx >= 0) {
                 clearedEffects.push(clearId);
                 activeEffects.splice(idx, 1);
@@ -242,7 +242,7 @@ export function applyConsumptionEffect(itemType, options = {}) {
         }
     }
     
-    const existingIdx = activeEffects.findIndex(e => e.statusId === effectConfig.statusId);
+    const existingIdx = activeEffects.findIndex(e => e.id === effectConfig.statusId);
     const duration = effectConfig.duration || effectConfig.messages || 6; // Default 6 messages
     
     if (existingIdx >= 0) {
@@ -260,7 +260,7 @@ export function applyConsumptionEffect(itemType, options = {}) {
     } else {
         // New effect
         activeEffects.push({
-            statusId: effectConfig.statusId,
+            id: effectConfig.statusId,
             remainingMessages: duration,
             stacks: 1,
             source: itemType
@@ -283,7 +283,7 @@ export function applyConsumptionEffect(itemType, options = {}) {
     
     return {
         success: true,
-        statusId: effectConfig.statusId,
+        id: effectConfig.statusId,
         effect: statusData,
         remainingMessages: duration,
         electrochemistryQuote: effectConfig.electrochemistryQuote,
@@ -301,7 +301,7 @@ function handleHealingItem(effectConfig, options) {
         const activeEffects = getActiveEffects();
         let clearedAny = false;
         for (const clearId of effectConfig.clears) {
-            const idx = activeEffects.findIndex(e => e.statusId === clearId);
+            const idx = activeEffects.findIndex(e => e.id === clearId);
             if (idx >= 0) {
                 activeEffects.splice(idx, 1);
                 clearedAny = true;
@@ -323,7 +323,7 @@ function handleHealingItem(effectConfig, options) {
     
     return {
         success: true,
-        statusId: null,
+        id: null,
         healing: true,
         message: healed.join(', ') || 'Consumed'
     };
@@ -335,7 +335,7 @@ function handleHealingItem(effectConfig, options) {
  */
 export function removeEffect(statusId) {
     const activeEffects = getActiveEffects();
-    const filtered = activeEffects.filter(e => e.statusId !== statusId);
+    const filtered = activeEffects.filter(e => e.id !== statusId);
     
     if (filtered.length !== activeEffects.length) {
         saveActiveEffects(filtered);
@@ -388,12 +388,12 @@ function applyWithdrawalEffect(statusId, options = {}) {
     const duration = options.messages || 8;
     
     // Don't stack withdrawal - just apply/refresh
-    const existingIdx = activeEffects.findIndex(e => e.statusId === statusId);
+    const existingIdx = activeEffects.findIndex(e => e.id === statusId);
     if (existingIdx >= 0) {
         activeEffects[existingIdx].remainingMessages = duration;
     } else {
         activeEffects.push({
-            statusId: statusId,
+            id: statusId,
             remainingMessages: duration,
             stacks: 1,
             source: 'withdrawal'
@@ -438,7 +438,7 @@ export function getActiveSkillModifiers() {
     const modifiers = {};
     
     for (const effect of activeEffects) {
-        const status = STATUS_EFFECTS[effect.statusId];
+        const status = STATUS_EFFECTS[effect.id];
         if (!status) continue;
         
         // Apply boosts (+1 per stack)
@@ -470,7 +470,7 @@ export function getSkillModifier(skillId) {
  * @returns {string[]} Array of active status IDs
  */
 export function getActiveStatusIds() {
-    return getActiveEffects().map(e => e.statusId);
+    return getActiveEffects().map(e => e.id);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -524,7 +524,7 @@ export function initEffectTimers() {
     
     if (activeEffects.length > 0) {
         console.log(`[Effects] Active effects:`, activeEffects.map(e => 
-            `${e.statusId} (${e.remainingMessages} msgs left)`
+            `${e.id} (${e.remainingMessages} msgs left)`
         ).join(', '));
     } else {
         console.log('[Effects] No active effects');
@@ -536,7 +536,7 @@ export function initEffectTimers() {
  */
 export function getEffectPreviewText(statusId) {
     const effects = getActiveEffects();
-    const effect = effects.find(e => e.statusId === statusId);
+    const effect = effects.find(e => e.id === statusId);
     if (!effect) return null;
     
     const status = STATUS_EFFECTS[statusId];
