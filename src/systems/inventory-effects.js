@@ -482,9 +482,9 @@ export function getActiveStatusIds() {
  * @param {string} effectType - smoke, drunk, stimulant, pale
  */
 function triggerParticleEffect(effectType) {
-    // Hook into weather-effects.js particle system if available
-    if (window.TribunalWeather?.startParticleEffect) {
-        window.TribunalWeather.startParticleEffect(effectType);
+    // Use the new condition effects system (separate from weather)
+    if (window.TribunalConditionFX?.triggerConsumption) {
+        window.TribunalConditionFX.triggerConsumption(effectType);
         return;
     }
     
