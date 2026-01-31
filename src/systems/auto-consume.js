@@ -365,14 +365,252 @@ function handleAutoConsume(addictionId, config, item, tracker) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// INITIALIZATION
+// INITIALIZATION (moved to bottom with addiction tracking)
 // ═══════════════════════════════════════════════════════════════
 
 let initialized = false;
 
+// ═══════════════════════════════════════════════════════════════
+// ADDICTION LEVEL TRACKING
+// ═══════════════════════════════════════════════════════════════
+
 /**
- * Initialize auto-consume system
- * Hooks into message tick events
+ * Addiction level thresholds and effects
+ * Level 0: Clean
+ * Level 1: Casual user (no auto-consume yet)
+ * Level 2: Habitual (cravings begin)
+ * Level 3: Dependent (stronger cravings, harder to resist)
+ * Level 4: Severe (very hard to resist)
+ * Level 5: Terminal (basically impossible to resist)
+ */
+const MAX_ADDICTION_LEVEL = 5;
+
+/**
+ * Messages without using before addiction decays by 1 level
+ */
+const DECAY_THRESHOLD = 15;
+
+/**
+ * Map item types to addiction types
+ */
+const ITEM_TYPE_TO_ADDICTION = {
+    cigarette: 'nicotine',
+    alcohol: 'alcohol',
+    beer: 'alcohol',
+    drug: 'drugs',
+    stimulant: 'drugs',
+    pyrholidon: 'drugs'
+};
+
+/**
+ * Map effectIds to addiction types
+ */
+const EFFECT_ID_TO_ADDICTION = {
+    nicotine_rush: 'nicotine',
+    revacholian_courage: 'alcohol',
+    pyrholidon: 'drugs',
+    speed_freaks_delight: 'drugs'
+};
+
+/**
+ * Get addiction type for an item
+ */
+export function getAddictionTypeForItem(item) {
+    if (!item) return null;
+    
+    // Check effectId first
+    if (item.effectId && EFFECT_ID_TO_ADDICTION[item.effectId]) {
+        return EFFECT_ID_TO_ADDICTION[item.effectId];
+    }
+    
+    // Fall back to item type
+    if (item.type && ITEM_TYPE_TO_ADDICTION[item.type]) {
+        return ITEM_TYPE_TO_ADDICTION[item.type];
+    }
+    
+    return null;
+}
+
+/**
+ * Increase addiction level when consuming an addictive item
+ * Call this from consumeItem handler
+ * 
+ * @param {object} item - The consumed item
+ * @returns {object|null} { type, oldLevel, newLevel } or null if not addictive
+ */
+export function increaseAddiction(item) {
+    const addictionType = getAddictionTypeForItem(item);
+    if (!addictionType) return null;
+    
+    try {
+        const { getChatState, saveChatState } = window.TribunalState || {};
+        if (!getChatState) return null;
+        
+        const state = getChatState();
+        
+        // Initialize addictions object if needed
+        if (!state.inventory) state.inventory = {};
+        if (!state.inventory.addictions) state.inventory.addictions = {};
+        if (!state.inventory.addictions[addictionType]) {
+            state.inventory.addictions[addictionType] = { level: 0, messagesSinceUse: 0 };
+        }
+        
+        const addiction = state.inventory.addictions[addictionType];
+        const oldLevel = addiction.level;
+        
+        // Increase level (cap at max)
+        if (addiction.level < MAX_ADDICTION_LEVEL) {
+            addiction.level++;
+        }
+        
+        // Reset decay counter
+        addiction.messagesSinceUse = 0;
+        
+        if (saveChatState) saveChatState();
+        
+        const newLevel = addiction.level;
+        
+        // Show notification if addiction increased
+        if (newLevel > oldLevel) {
+            showAddictionNotification(addictionType, newLevel);
+        }
+        
+        console.log(`[Addiction] ${addictionType}: ${oldLevel} → ${newLevel}`);
+        
+        return { type: addictionType, oldLevel, newLevel };
+        
+    } catch (e) {
+        console.warn('[Addiction] Could not update addiction:', e);
+        return null;
+    }
+}
+
+/**
+ * Check for addiction decay (call on message tick)
+ * Addiction decreases by 1 if you go long enough without using
+ */
+export function checkAddictionDecay() {
+    try {
+        const { getChatState, saveChatState } = window.TribunalState || {};
+        if (!getChatState) return;
+        
+        const state = getChatState();
+        const addictions = state?.inventory?.addictions;
+        if (!addictions) return;
+        
+        let changed = false;
+        
+        for (const [type, addiction] of Object.entries(addictions)) {
+            if (addiction.level <= 0) continue;
+            
+            addiction.messagesSinceUse = (addiction.messagesSinceUse || 0) + 1;
+            
+            if (addiction.messagesSinceUse >= DECAY_THRESHOLD) {
+                addiction.level--;
+                addiction.messagesSinceUse = 0;
+                changed = true;
+                
+                console.log(`[Addiction] ${type} decayed to level ${addiction.level}`);
+                
+                if (addiction.level === 0) {
+                    showRecoveryNotification(type);
+                }
+            }
+        }
+        
+        if (changed && saveChatState) saveChatState();
+        
+    } catch (e) {
+        console.warn('[Addiction] Decay check failed:', e);
+    }
+}
+
+/**
+ * Show notification when addiction level increases
+ */
+function showAddictionNotification(type, level) {
+    if (typeof toastr === 'undefined') return;
+    
+    const messages = {
+        1: { title: 'Casual use', msg: "You could stop anytime. Obviously." },
+        2: { title: 'Habit forming', msg: "It's becoming routine now." },
+        3: { title: 'Dependency', msg: "Your body expects this now. It complains when denied." },
+        4: { title: 'Severe addiction', msg: "The cravings are constant. Resisting takes everything you have." },
+        5: { title: 'Terminal', msg: "ELECTROCHEMISTRY: You belong to me now." }
+    };
+    
+    const typeNames = { nicotine: 'Nicotine', alcohol: 'Alcohol', drugs: 'Drug' };
+    const info = messages[level];
+    
+    if (info) {
+        toastr.warning(
+            info.msg, 
+            `${typeNames[type] || type} - ${info.title}`,
+            { timeOut: 4000 }
+        );
+    }
+}
+
+/**
+ * Show notification when recovered from addiction
+ */
+function showRecoveryNotification(type) {
+    if (typeof toastr === 'undefined') return;
+    
+    const typeNames = { nicotine: 'Nicotine', alcohol: 'Alcohol', drugs: 'Drug' };
+    
+    toastr.success(
+        "The cravings have faded. You're clean. For now.",
+        `${typeNames[type] || type} - Recovered`,
+        { timeOut: 4000 }
+    );
+}
+
+/**
+ * Get current addiction level for a type
+ */
+export function getAddictionLevel(addictionType) {
+    try {
+        const { getChatState } = window.TribunalState || {};
+        if (!getChatState) return 0;
+        
+        const state = getChatState();
+        return state?.inventory?.addictions?.[addictionType]?.level || 0;
+    } catch (e) {
+        return 0;
+    }
+}
+
+/**
+ * Manually set addiction level (for testing/debug)
+ */
+export function setAddictionLevel(addictionType, level) {
+    try {
+        const { getChatState, saveChatState } = window.TribunalState || {};
+        if (!getChatState) return;
+        
+        const state = getChatState();
+        if (!state.inventory) state.inventory = {};
+        if (!state.inventory.addictions) state.inventory.addictions = {};
+        
+        state.inventory.addictions[addictionType] = {
+            level: Math.max(0, Math.min(MAX_ADDICTION_LEVEL, level)),
+            messagesSinceUse: 0
+        };
+        
+        if (saveChatState) saveChatState();
+        console.log(`[Addiction] Set ${addictionType} to level ${level}`);
+    } catch (e) {
+        console.warn('[Addiction] Could not set level:', e);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UPDATED INIT - Include decay check
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Initialize auto-consume system with addiction tracking
  */
 export function initAutoConsume() {
     if (initialized) return;
@@ -380,10 +618,17 @@ export function initAutoConsume() {
     // Listen for message ticks
     window.addEventListener('tribunal:messageTick', () => {
         checkCravings();
+        checkAddictionDecay();
     });
     
-    // Also listen for MESSAGE_RECEIVED if messageTick isn't firing
-    // (This is a backup - ideally messageTick handles it)
+    // Expose addiction functions globally for other modules
+    window.TribunalAddiction = {
+        increaseAddiction,
+        getAddictionLevel,
+        setAddictionLevel,
+        getAddictionTypeForItem,
+        checkAddictionDecay
+    };
     
     initialized = true;
     console.log('[AutoConsume] Initialized - addiction system active');
@@ -397,5 +642,10 @@ export default {
     initAutoConsume,
     checkCravings,
     resetCravingTimer,
+    increaseAddiction,
+    getAddictionLevel,
+    setAddictionLevel,
+    getAddictionTypeForItem,
+    checkAddictionDecay,
     ADDICTION_TYPES
 };
