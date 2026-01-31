@@ -607,6 +607,33 @@ function formatCopotypeId(id) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// WINDOW EXPOSURE & EVENT LISTENERS
+// ═══════════════════════════════════════════════════════════════
+
+// Expose for other modules (timed-effects-display, etc.)
+window.TribunalStatus = {
+    refreshStatusFromState,
+    updateActiveConditionsDisplay,
+    setStatusByUIName,
+    isStatusActive,
+    getActiveStatuses
+};
+
+// Listen for refresh requests from other modules
+window.addEventListener('tribunal:statusRefreshNeeded', () => {
+    refreshStatusFromState();
+});
+
+// Also refresh when effects change
+window.addEventListener('tribunal:effectApplied', () => {
+    updateActiveConditionsDisplay();
+});
+
+window.addEventListener('tribunal:effectRemoved', () => {
+    updateActiveConditionsDisplay();
+});
+
+// ═══════════════════════════════════════════════════════════════
 // VITALS CONTROLS - Manual +/- buttons
 // ═══════════════════════════════════════════════════════════════
 
