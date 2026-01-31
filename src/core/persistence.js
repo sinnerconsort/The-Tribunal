@@ -69,6 +69,37 @@ export function initSettings() {
     
     const s = extension_settings[EXT_ID];
     
+    // ═══════════════════════════════════════════════════════════════
+    // AUTO-FIX: Remove per-chat data that leaked into global settings
+    // These should ONLY exist in chat_metadata, not extension_settings
+    // ═══════════════════════════════════════════════════════════════
+    const perChatKeys = ['inventory', 'vitals', 'thoughtCabinet', 'ledger', 
+                         'relationships', 'persona', 'equipment', 'attributes',
+                         'skillLevels', 'skillBonuses', 'cravings', 'meta'];
+    
+    let contaminationFixed = false;
+    for (const key of perChatKeys) {
+        if (s[key] !== undefined) {
+            console.warn(`[Tribunal] ⚠️ Found "${key}" in GLOBAL settings - removing (this data belongs in per-chat storage)`);
+            delete s[key];
+            contaminationFixed = true;
+        }
+    }
+    
+    if (contaminationFixed) {
+        console.log('[Tribunal] 🔧 Cleaned contaminated global settings. Per-chat data removed.');
+        console.log('[Tribunal] Items/effects may need to be re-added to each chat individually.');
+        // Show toast if available
+        if (typeof toastr !== 'undefined') {
+            toastr.warning(
+                'Found and removed per-chat data from global settings. This fixes cross-chat bleeding.',
+                'Tribunal: State Fixed',
+                { timeOut: 6000 }
+            );
+        }
+    }
+    // ═══════════════════════════════════════════════════════════════
+    
     // Ensure all top-level keys exist
     for (const key of Object.keys(defaults)) {
         if (s[key] === undefined) {
@@ -81,6 +112,8 @@ export function initSettings() {
     if (!s.ui) s.ui = { ...defaults.ui };
     if (!s.voices) s.voices = { ...defaults.voices };
     if (!s.thoughts) s.thoughts = { ...defaults.thoughts };
+    // NOTE: s.vitals here is for SETTINGS (thresholds, etc), not actual HP values
+    // Actual HP is in chat_metadata.tribunal.vitals
     if (!s.vitals) s.vitals = { ...defaults.vitals };
     if (!s.dice) s.dice = { ...defaults.dice };
     if (!s.progression) s.progression = { ...defaults.progression };
@@ -93,6 +126,11 @@ export function initSettings() {
     
     // Run migrations
     migrateSettings(s);
+    
+    // Save if we fixed contamination
+    if (contaminationFixed) {
+        script.saveSettingsDebounced();
+    }
     
     console.log('[Tribunal] Global settings initialized');
 }
@@ -174,14 +212,17 @@ export function getChatState() {
     const chat_metadata = getCurrentChatMetadata();
     
     if (!chat_metadata) {
-        console.warn('[Tribunal] No chat_metadata available');
+        console.warn('[Tribunal] No chat_metadata available - returning null (not global state!)');
+        // IMPORTANT: Return null, not global state! 
+        // This prevents cross-chat contamination
         return null;
     }
     
     if (!chat_metadata[EXT_ID]) {
+        // Create FRESH state for this chat - don't copy from anywhere else
         chat_metadata[EXT_ID] = getDefaultChatState();
         chat_metadata[EXT_ID].meta.createdAt = Date.now();
-        console.log('[Tribunal] Created fresh chat state');
+        console.log('[Tribunal] Created fresh chat state for new chat');
     }
     
     return chat_metadata[EXT_ID];
