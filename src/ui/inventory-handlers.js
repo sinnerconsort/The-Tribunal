@@ -150,8 +150,16 @@ export function onChatChanged() {
 // STATE ACCESSORS
 // ═══════════════════════════════════════════════════════════════
 
+// Empty fallback - NEVER contains real data, just prevents crashes
+const EMPTY_INVENTORY = Object.freeze({
+    items: [],
+    stash: {},
+    currency: 0,
+    addictions: {}
+});
+
 function getInventoryState() {
-    // Always ensure items array exists
+    // Try to get from proper chat state
     if (stateModule?.getChatState) {
         const chatState = stateModule.getChatState();
         if (chatState) {
@@ -184,9 +192,11 @@ function getInventoryState() {
             };
         }
     }
-    // Ensure localState.items exists
-    if (!localState.items) localState.items = [];
-    return localState;
+    
+    // NO CHAT AVAILABLE - return empty object, NOT localState!
+    // This prevents cross-chat contamination
+    console.log('[Inventory] No chat state - returning empty inventory');
+    return EMPTY_INVENTORY;
 }
 
 function saveState() {
