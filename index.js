@@ -970,6 +970,17 @@ import('./src/ui/inventory-handlers.js').then(handlersModule => {
 import('./src/systems/inventory-effects.js').then(effectsModule => {
     // Expose globally for handlers to use
     window.TribunalEffects = effectsModule;
+
+    // Initialize timed effects display
+import('./src/ui/timed-effects-display.js').then(module => {
+    // Delay to ensure DOM is ready
+    setTimeout(() => {
+        module.initTimedEffectsDisplay();
+        console.log('[Tribunal] Timed effects display initialized');
+    }, 500);
+}).catch(err => {
+    console.warn('[Tribunal] Timed effects display not loaded:', err.message);
+});
     
     // Initialize timers from saved state
     effectsModule.initEffectTimers();
