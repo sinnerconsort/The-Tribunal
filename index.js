@@ -1046,6 +1046,12 @@ eventSource.on(event_types.CHAT_CHANGED, () => {
     registerEvents();
     
     eventSource.on(event_types.MESSAGE_RECEIVED, onNewAIMessage);
+    if (window.TribunalEffects?.onMessageTick) {
+        const tickResult = window.TribunalEffects.onMessageTick();
+        if (tickResult.expired.length > 0) {
+            console.log('[Tribunal] Effects expired:', tickResult.expired.map(e => e.statusId));
+        }
+    }
     console.log('[Tribunal] Voice trigger registered for MESSAGE_RECEIVED');
     
     const rescanBtn = document.getElementById('tribunal-rescan-btn');
