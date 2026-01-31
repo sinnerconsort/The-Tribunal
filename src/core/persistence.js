@@ -2,16 +2,35 @@
  * The Tribunal - Persistence Layer
  * Handles save/load to SillyTavern's storage systems
  * 
+ * FIXED: Get chat_metadata via getContext() instead of direct import
+ * to ensure we always have the CURRENT chat's metadata, not a stale reference
+ * 
  * Storage locations:
  * - Per-Chat: chat_metadata.tribunal
  * - Global: extension_settings.tribunal
  */
 
 import { extension_settings, getContext } from '../../../../../extensions.js';
-import { chat_metadata, saveSettingsDebounced, saveChatDebounced } from '../../../../../../script.js';
+// FIXED: Don't import chat_metadata directly - it becomes stale on chat switch
+// Instead we get it fresh via getContext() or from script.js as a live reference
+import { saveSettingsDebounced, saveChatDebounced } from '../../../../../../script.js';
 import { getDefaultChatState, getDefaultGlobalSettings } from '../data/defaults.js';
 
 const EXT_ID = 'tribunal';
+
+// ═══════════════════════════════════════════════════════════════
+// HELPER: Get fresh chat_metadata reference
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get the current chat_metadata object
+ * MUST use this instead of direct import to avoid stale references
+ * @returns {object|null} Current chat's metadata or null
+ */
+function getCurrentChatMetadata() {
+    const context = getContext();
+    return context?.chat_metadata || null;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // GLOBAL SETTINGS
@@ -152,6 +171,9 @@ export function setSetting(path, value) {
  * @returns {object|null} Chat state or null if no chat
  */
 export function getChatState() {
+    // FIXED: Get fresh reference every time
+    const chat_metadata = getCurrentChatMetadata();
+    
     if (!chat_metadata) {
         console.warn('[Tribunal] No chat_metadata available');
         return null;
@@ -169,6 +191,9 @@ export function getChatState() {
  * Save the current chat state (debounced)
  */
 export function saveChatState() {
+    // FIXED: Get fresh reference
+    const chat_metadata = getCurrentChatMetadata();
+    
     if (!chat_metadata) {
         console.warn('[Tribunal] Cannot save - no chat_metadata');
         return;
@@ -188,6 +213,9 @@ export function saveChatState() {
  * @returns {object} The loaded (or default) chat state
  */
 export function loadChatState() {
+    // FIXED: Get fresh reference
+    const chat_metadata = getCurrentChatMetadata();
+    
     if (!chat_metadata) {
         console.warn('[Tribunal] No chat_metadata - cannot load');
         return getDefaultChatState();
@@ -212,6 +240,9 @@ export function loadChatState() {
  * Reset chat state to defaults (for new playthroughs)
  */
 export function resetChatState() {
+    // FIXED: Get fresh reference
+    const chat_metadata = getCurrentChatMetadata();
+    
     if (!chat_metadata) {
         console.warn('[Tribunal] No chat_metadata - cannot reset');
         return;
@@ -238,21 +269,65 @@ function sanitizeChatState(state) {
         }
     }
     
-    // Ensure nested objects
+    // Ensure nested objects exist (but DON'T overwrite existing data!)
     if (!state.attributes) state.attributes = { ...defaults.attributes };
     if (!state.skillLevels) state.skillLevels = {};
     if (!state.skillBonuses) state.skillBonuses = {};
-    if (!state.vitals) state.vitals = { ...defaults.vitals };
-    if (!state.thoughtCabinet) state.thoughtCabinet = { ...defaults.thoughtCabinet };
-    if (!state.inventory) state.inventory = { ...defaults.inventory };
-    if (!state.equipment) state.equipment = { ...defaults.equipment };
-    if (!state.ledger) state.ledger = { ...defaults.ledger };
-    if (!state.relationships) state.relationships = {};
-    if (!state.voices) state.voices = { ...defaults.voices };
-    if (!state.persona) state.persona = { ...defaults.persona };
-    if (!state.meta) state.meta = { ...defaults.meta };
     
-    // Ensure arrays exist
+    // FIXED: For vitals, preserve existing data, only add missing fields
+    if (!state.vitals) {
+        state.vitals = { ...defaults.vitals };
+    } else {
+        // Merge defaults into existing vitals (existing takes priority)
+        state.vitals = { ...defaults.vitals, ...state.vitals };
+    }
+    
+    // Same pattern for other nested objects
+    if (!state.thoughtCabinet) {
+        state.thoughtCabinet = { ...defaults.thoughtCabinet };
+    } else {
+        state.thoughtCabinet = { ...defaults.thoughtCabinet, ...state.thoughtCabinet };
+    }
+    
+    if (!state.inventory) {
+        state.inventory = { ...defaults.inventory };
+    } else {
+        state.inventory = { ...defaults.inventory, ...state.inventory };
+    }
+    
+    if (!state.equipment) {
+        state.equipment = { ...defaults.equipment };
+    } else {
+        state.equipment = { ...defaults.equipment, ...state.equipment };
+    }
+    
+    if (!state.ledger) {
+        state.ledger = { ...defaults.ledger };
+    } else {
+        state.ledger = { ...defaults.ledger, ...state.ledger };
+    }
+    
+    if (!state.relationships) state.relationships = {};
+    
+    if (!state.voices) {
+        state.voices = { ...defaults.voices };
+    } else {
+        state.voices = { ...defaults.voices, ...state.voices };
+    }
+    
+    if (!state.persona) {
+        state.persona = { ...defaults.persona };
+    } else {
+        state.persona = { ...defaults.persona, ...state.persona };
+    }
+    
+    if (!state.meta) {
+        state.meta = { ...defaults.meta };
+    } else {
+        state.meta = { ...defaults.meta, ...state.meta };
+    }
+    
+    // Ensure arrays exist (but preserve existing arrays!)
     if (!Array.isArray(state.vitals.activeEffects)) state.vitals.activeEffects = [];
     if (!Array.isArray(state.vitals.ancientVoices)) state.vitals.ancientVoices = [];
     if (!Array.isArray(state.thoughtCabinet.discovered)) state.thoughtCabinet.discovered = [];
@@ -274,8 +349,14 @@ function sanitizeChatState(state) {
     if (!state.thoughtCabinet.researching) state.thoughtCabinet.researching = {};
     if (!state.thoughtCabinet.customThoughts) state.thoughtCabinet.customThoughts = {};
     if (!state.thoughtCabinet.themes) state.thoughtCabinet.themes = {};
-    if (!state.ledger.weather) state.ledger.weather = { ...defaults.ledger.weather };
-    if (!state.ledger.time) state.ledger.time = { ...defaults.ledger.time };
+    
+    // Ledger weather and time - preserve existing
+    if (!state.ledger.weather) {
+        state.ledger.weather = { ...defaults.ledger.weather };
+    }
+    if (!state.ledger.time) {
+        state.ledger.time = { ...defaults.ledger.time };
+    }
 }
 
 /**
@@ -374,3 +455,17 @@ export function exportDebugState() {
         entityName: getCurrentEntityName()
     };
 }
+
+// ═══════════════════════════════════════════════════════════════
+// WINDOW EXPOSURE for debugging and other modules
+// ═══════════════════════════════════════════════════════════════
+
+window.TribunalState = {
+    getChatState,
+    saveChatState,
+    loadChatState,
+    resetChatState,
+    getSettings,
+    saveSettings,
+    exportDebugState
+};
