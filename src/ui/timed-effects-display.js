@@ -88,15 +88,21 @@ function getEffectType(statusId) {
     if (hasDebuffs) return 'debuff';
     return 'buff';
 }
+//
 
 /**
- * Get display name for status
- */
-function getStatusName(statusId) {
-    const status = STATUS_EFFECTS[statusId];
-    return status?.simpleName || status?.name || formatStatusId(statusId);
+  *  Get display name for status
+ function getStatusName(statusId, effect) {
+    // Use stored name first (most reliable)
+    if (effect?.name) return effect.name;
+    
+    // Try STATUS_EFFECTS lookup
+    const status = STATUS_EFFECTS?.[statusId];
+    if (status) return status.simpleName || status.name;
+    
+    // Fallback: format the ID
+    return formatStatusId(statusId);
 }
-
 /**
  * Format status ID as display name (fallback)
  */
