@@ -971,7 +971,10 @@ import('./src/systems/inventory-effects.js').then(effectsModule => {
     // Expose globally for handlers to use
     window.TribunalEffects = effectsModule;
 
-    // Initialize timed effects display
+    // Initialize timers from saved state
+    effectsModule.initEffectTimers();
+
+        // Initialize timed effects display
 import('./src/ui/timed-effects-display.js').then(module => {
     // Delay to ensure DOM is ready
     setTimeout(() => {
@@ -982,8 +985,6 @@ import('./src/ui/timed-effects-display.js').then(module => {
     console.warn('[Tribunal] Timed effects display not loaded:', err.message);
 });
     
-    // Initialize timers from saved state
-    effectsModule.initEffectTimers();
     
     console.log('[Tribunal] Inventory effects system initialized');
     
@@ -1068,11 +1069,10 @@ eventSource.on(event_types.CHAT_CHANGED, () => {
     if (window.TribunalEffects?.onMessageTick) {
         const tickResult = window.TribunalEffects.onMessageTick();
         window.dispatchEvent(new CustomEvent('tribunal:messageTick', { detail: tickResult }));
-}
         if (tickResult.expired.length > 0) {
             console.log('[Tribunal] Effects expired:', tickResult.expired.map(e => e.statusId));
         }
-    }
+    }  //
     console.log('[Tribunal] Voice trigger registered for MESSAGE_RECEIVED');
     
     const rescanBtn = document.getElementById('tribunal-rescan-btn');
