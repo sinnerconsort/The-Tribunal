@@ -260,10 +260,11 @@ const statusData = STATUS_EFFECTS[effectConfig.id];
     } else {
         // New effect
         activeEffects.push({
-            id: effectConfig.statusId,
-            remainingMessages: duration,
-            stacks: 1,
-            source: itemType
+    id: effectConfig.id,
+    name: statusData.simpleName || statusData.name,  // ADD THIS
+    remainingMessages: duration,
+    stacks: 1,
+    source: 'consumption'
         });
         console.log(`[Effects] Applied ${effectConfig.statusId} for ${duration} messages`);
     }
