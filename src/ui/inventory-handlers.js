@@ -2,6 +2,8 @@
  * The Tribunal - Inventory Handlers
  * State management, item operations, and UI rendering
  * 
+ * FIXED: Added resetLocalState() and onChatChanged() for proper chat switching
+ * 
  * Mirrors equipment-handlers.js patterns
  */
 
@@ -106,6 +108,47 @@ let localState = {
     currency: 0,         // Réal
     addictions: {}       // { type: { level, lastFix, withdrawing } }
 };
+
+// ═══════════════════════════════════════════════════════════════
+// CHAT SWITCH HANDLING (FIX)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Reset local fallback state when switching chats
+ * Prevents stale items from appearing if getChatState() temporarily returns null
+ */
+export function resetLocalState() {
+    localState = {
+        items: [],
+        stash: {},
+        currency: 0,
+        addictions: {}
+    };
+    console.log('[Inventory] Local state reset');
+}
+
+/**
+ * Full handler for chat switch - resets state and refreshes display
+ */
+export function onChatChanged() {
+    // 1. Clear selection
+    selectedItemId = null;
+    
+    // 2. Reset local fallback state to prevent bleed
+    resetLocalState();
+    
+    // 3. Wait for chat_metadata to be fully updated, then refresh
+    // 150ms gives ST time to update chat_metadata
+    setTimeout(() => {
+        refreshDisplay();
+    }, 150);
+    
+    console.log('[Inventory] Chat changed, refreshing...');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATE ACCESSORS
+// ═══════════════════════════════════════════════════════════════
 
 function getInventoryState() {
     // Always ensure items array exists
@@ -699,6 +742,12 @@ async function onMessageReceived(messageIndex) {
         const message = context.chat[messageIndex];
         if (!message || message.is_user) return;
         
+        // processMessageForInventory should be imported or available globally
+        if (typeof processMessageForInventory !== 'function') {
+            console.warn('[Inventory] processMessageForInventory not available');
+            return;
+        }
+        
         const { toAdd, toRemove } = await processMessageForInventory(message.mes, {
             getFromStash,
             saveToStash
@@ -758,12 +807,10 @@ export async function initInventoryHandlers() {
         console.warn('[Inventory] Events not available, auto-extraction disabled');
     }
     
-    // Hook CHAT_CHANGED to refresh display
+    // Hook CHAT_CHANGED to refresh display (FIXED: use onChatChanged)
     if (eventSource && event_types?.CHAT_CHANGED) {
-        eventSource.on(event_types.CHAT_CHANGED, () => {
-            selectedItemId = null;
-            setTimeout(refreshDisplay, 100);
-        });
+        eventSource.on(event_types.CHAT_CHANGED, onChatChanged);
+        console.log('[Inventory] CHAT_CHANGED hook registered');
     }
     
     // Initial render
@@ -806,5 +853,9 @@ export default {
     setAutoExtract,
     
     // Init
-    initInventoryHandlers
+    initInventoryHandlers,
+    
+    // Chat switch (NEW)
+    resetLocalState,
+    onChatChanged
 };

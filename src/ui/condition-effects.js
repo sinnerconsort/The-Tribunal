@@ -2,6 +2,8 @@
  * The Tribunal - Condition Effects Controller
  * Visual effects for consumption (smoke, drunk, stimulant) and health states
  * 
+ * FIXED: Added resetConditionState() and onChatChanged() for proper chat switching
+ * 
  * INDEPENDENT from weather - these stack on top and coexist
  * 
  * Usage:
@@ -77,6 +79,55 @@ let conditionLayer = null;
 let activeConsumptionTimers = {};
 let currentHealthEffect = null;
 let currentSceneEffect = null;  // 'horror' or 'pale'
+
+// ═══════════════════════════════════════════════════════════════
+// CHAT SWITCH HANDLING (FIX)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Reset all condition effects when switching chats
+ * Clears visual effects and resets tracking state
+ */
+export function resetConditionState() {
+    // Clear all visual effect classes from the layer
+    if (conditionLayer) {
+        // Remove all effect classes but keep the base class
+        conditionLayer.className = 'tribunal-condition-layer';
+        
+        // Clear any lingering particles
+        clearSmokeParticles();
+        clearHorrorParticles();
+        clearPaleParticles();
+    }
+    
+    // Clear all active consumption timers
+    Object.values(activeConsumptionTimers).forEach(timerId => {
+        if (timerId) clearTimeout(timerId);
+    });
+    activeConsumptionTimers = {};
+    
+    // Reset state tracking
+    currentHealthEffect = null;
+    currentSceneEffect = null;
+    
+    console.log('[Condition FX] State reset for new chat');
+}
+
+/**
+ * Full handler for chat switch
+ */
+export function onChatChanged() {
+    // 1. Clear all visual effects
+    resetConditionState();
+    
+    // 2. Re-check vitals for the new chat to apply appropriate effects
+    // Small delay to ensure chat_metadata is updated
+    setTimeout(() => {
+        checkVitalsForEffects();
+    }, 100);
+    
+    console.log('[Condition FX] Reset complete for chat switch');
+}
 
 // ═══════════════════════════════════════════════════════════════
 // INITIALIZATION
@@ -549,7 +600,10 @@ window.TribunalConditionFX = {
     // Health monitor
     updateHealth: updateHealthEffects,
     startMonitor: startHealthMonitor,
-    triggerParticleEffect
+    triggerParticleEffect,
+    // Chat switch (NEW)
+    resetState: resetConditionState,
+    onChatChanged
 };
 
 export default {
@@ -564,5 +618,8 @@ export default {
     isInPale,
     updateHealthEffects,
     startHealthMonitor,
-    triggerParticleEffect
+    triggerParticleEffect,
+    // Chat switch (NEW)
+    resetConditionState,
+    onChatChanged
 };

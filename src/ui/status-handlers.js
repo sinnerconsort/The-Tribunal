@@ -1,6 +1,8 @@
 /**
  * The Tribunal - Status Handlers
  * Wires the RCM Medical Form (Status tab) to state persistence
+ * 
+ * FIXED: Added resetStatusState() and onChatChanged() for proper chat switching
  */
 
 import { 
@@ -160,6 +162,37 @@ const COPOTYPE_DISPLAY_NAMES = {
     'human_can_opener': 'Human Can-Opener',
     'innocence': 'Innocence'
 };
+
+// ═══════════════════════════════════════════════════════════════
+// CHAT SWITCH HANDLING (FIX)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Reset module-level state when switching chats
+ * Prevents stale data from bleeding between chats
+ */
+export function resetStatusState() {
+    previouslyActiveAncientVoiceIds = new Set();
+    console.log('[Tribunal] Status state reset for new chat');
+}
+
+/**
+ * Full handler for chat switch - call this from CHAT_CHANGED
+ * Resets state, refreshes UI, and re-initializes tracking
+ */
+export function onChatChanged() {
+    // 1. Reset module-level state
+    resetStatusState();
+    
+    // 2. Refresh UI from new chat's state
+    refreshStatusFromState();
+    
+    // 3. Re-initialize ancient voice tracking from new state
+    const currentVoices = getActiveAncientVoices();
+    previouslyActiveAncientVoiceIds = new Set(currentVoices.map(v => v.id));
+    
+    console.log('[Tribunal] Status handlers refreshed for chat switch');
+}
 
 // ═══════════════════════════════════════════════════════════════
 // INITIALIZATION
@@ -616,7 +649,9 @@ window.TribunalStatus = {
     updateActiveConditionsDisplay,
     setStatusByUIName,
     isStatusActive,
-    getActiveStatuses
+    getActiveStatuses,
+    resetStatusState,      // NEW: For chat switching
+    onChatChanged          // NEW: For chat switching
 };
 
 // Listen for refresh requests from other modules
