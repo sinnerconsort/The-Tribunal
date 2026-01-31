@@ -236,13 +236,17 @@ export async function refreshLedger() {
 /**
  * Handle chat switch
  * Loads per-chat state for the new chat
- * FIX: Reset cabinet state BEFORE loading to prevent phantom bleed
+ * FIX: Reset ALL module states BEFORE loading to prevent cross-chat bleeding
  */
 async function onChatChanged() {
     console.log('[Tribunal] Chat changed - resetting and loading state');
     
-    // STEP 1: Reset cabinet state FIRST (clears old thoughts from UI)
-    // Uses dynamic import so missing function won't break extension
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 1: Reset ALL module states BEFORE loading new chat
+    // This prevents stale data from bleeding between chats
+    // ═══════════════════════════════════════════════════════════════
+    
+    // Reset cabinet state
     try {
         const cabinet = await import('../systems/cabinet.js');
         if (typeof cabinet.resetCabinetState === 'function') {
@@ -253,7 +257,56 @@ async function onChatChanged() {
         // Function not available - that's okay
     }
     
+    // Reset inventory handlers (CRITICAL for preventing item bleed)
+    try {
+        const inventoryHandlers = await import('../ui/inventory-handlers.js');
+        if (typeof inventoryHandlers.onChatChanged === 'function') {
+            inventoryHandlers.onChatChanged();
+            console.log('[Tribunal] Inventory handlers reset');
+        } else if (typeof inventoryHandlers.resetLocalState === 'function') {
+            inventoryHandlers.resetLocalState();
+            console.log('[Tribunal] Inventory local state reset');
+        }
+    } catch (e) {
+        console.log('[Tribunal] Inventory reset skipped:', e.message);
+    }
+    
+    // Reset status handlers
+    try {
+        const statusHandlers = await import('../ui/status-handlers.js');
+        if (typeof statusHandlers.onChatChanged === 'function') {
+            statusHandlers.onChatChanged();
+            console.log('[Tribunal] Status handlers reset');
+        }
+    } catch (e) {
+        // Function not available - that's okay
+    }
+    
+    // Reset timed effects display
+    try {
+        const timedEffects = await import('../ui/timed-effects-display.js');
+        if (typeof timedEffects.onChatChanged === 'function') {
+            timedEffects.onChatChanged();
+            console.log('[Tribunal] Timed effects display reset');
+        }
+    } catch (e) {
+        // Function not available - that's okay
+    }
+    
+    // Reset condition effects
+    try {
+        const conditionEffects = await import('../ui/condition-effects.js');
+        if (typeof conditionEffects.onChatChanged === 'function') {
+            conditionEffects.onChatChanged();
+            console.log('[Tribunal] Condition effects reset');
+        }
+    } catch (e) {
+        // Function not available - that's okay
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
     // STEP 2: Load new chat state
+    // ═══════════════════════════════════════════════════════════════
     if (hasActiveChat()) {
         loadChatState();
         

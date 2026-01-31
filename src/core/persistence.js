@@ -98,6 +98,28 @@ export function initSettings() {
             );
         }
     }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // AGGRESSIVE CHECK: Also look for contamination in weird places
+    // ═══════════════════════════════════════════════════════════════
+    
+    // Check if there's a "default" or "template" state that might be contaminating new chats
+    if (s.defaultChatState || s.chatTemplate || s.initialState) {
+        console.warn('[Tribunal] ⚠️ Found template/default state in settings - removing');
+        delete s.defaultChatState;
+        delete s.chatTemplate;
+        delete s.initialState;
+        contaminationFixed = true;
+    }
+    
+    // Check for any arrays that look like inventory items in the root
+    if (Array.isArray(s.items) || Array.isArray(s.carried)) {
+        console.warn('[Tribunal] ⚠️ Found item arrays in root settings - removing');
+        delete s.items;
+        delete s.carried;
+        contaminationFixed = true;
+    }
+    
     // ═══════════════════════════════════════════════════════════════
     
     // Ensure all top-level keys exist
@@ -223,6 +245,23 @@ export function getChatState() {
         chat_metadata[EXT_ID] = getDefaultChatState();
         chat_metadata[EXT_ID].meta.createdAt = Date.now();
         console.log('[Tribunal] Created fresh chat state for new chat');
+        
+        // Verify it's actually fresh
+        const inv = chat_metadata[EXT_ID].inventory;
+        if (inv?.carried?.length > 0 || inv?.items?.length > 0) {
+            console.error('[Tribunal] ⚠️ BUG: Fresh state has items! Source: getDefaultChatState()');
+            console.error('[Tribunal] Items found:', inv.carried || inv.items);
+            // Force clear them
+            if (inv.carried) inv.carried = [];
+            if (inv.items) inv.items = [];
+        }
+    } else {
+        // Existing state - log what we found
+        const inv = chat_metadata[EXT_ID].inventory;
+        const itemCount = (inv?.carried?.length || 0) + (inv?.items?.length || 0);
+        if (itemCount > 0) {
+            console.log(`[Tribunal] Loaded existing chat state with ${itemCount} inventory items`);
+        }
     }
     
     return chat_metadata[EXT_ID];
