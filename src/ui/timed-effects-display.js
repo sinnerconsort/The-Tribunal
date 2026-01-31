@@ -2,8 +2,9 @@
  * The Tribunal - Timed Effects Display
  * Renders active consumable effects with message countdown on vitals tab
  * 
- * Shows: Effect name, icon, stacks, remaining messages, progress bar
+ * Shows: Effect name, stacks, remaining messages, progress bar
  * Updates: On effect apply/remove/tick events
+ * Syncs: OBSERVED STATES checkboxes with active effects
  */
 
 import { STATUS_EFFECTS } from '../data/statuses.js';
@@ -13,29 +14,29 @@ import { STATUS_EFFECTS } from '../data/statuses.js';
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Map status IDs to display icons (emoji)
+ * Map status IDs to OBSERVED STATES checkbox values
+ * These match the checkbox values in medical-form.html
  */
-const STATUS_ICONS = {
-    nicotine_rush: '🚬',
-    revacholian_courage: '🍺',
-    pyrholidon: '💊',
-    speed_freaks_delight: '⚡',
-    satiated: '🍞',
-    medicated: '💉',
-    the_expression: '🌀',
-    volumetric_shit_compressor: '🤢',
-    waste_land: '😴',
-    finger_on_the_eject_button: '🩸',
-    tequila_sunset: '🌅',
-    the_pale: '🌫️',
-    white_mourning: '💀',
-    caustic_echo: '😨',
-    law_jaw: '😤',
-    homo_sexual_underground: '💕',
-    jamrock_shuffle: '🍀'
+const STATUS_TO_CHECKBOX = {
+    // Physical states
+    revacholian_courage: 'drunk',
+    nicotine_rush: 'smoking',
+    pyrholidon: 'stimmed',
+    speed_freaks_delight: 'stimmed',
+    volumetric_shit_compressor: 'hungover',
+    finger_on_the_eject_button: 'wounded',
+    waste_land: 'exhausted',
+    
+    // Mental states (if applicable)
+    the_expression: 'dissociated',
+    the_pale: 'dissociated',
+    white_mourning: 'grieving',
+    homo_sexual_underground: 'infatuated',
+    jamrock_shuffle: 'lucky',
+    caustic_echo: 'terrified',
+    law_jaw: 'enraged'
 };
 
-const DEFAULT_ICON = '◆';
 const EXPIRING_THRESHOLD = 2;
 
 // ═══════════════════════════════════════════════════════════════
@@ -61,7 +62,72 @@ function getTimedEffects() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// RENDERING
+// CHECKBOX SYNC
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Sync OBSERVED STATES checkboxes with active effects
+ * Call this after effects change
+ */
+function syncObservedStatesCheckboxes() {
+    const effects = getTimedEffects();
+    const activeCheckboxValues = new Set();
+    
+    // Build set of checkbox values that should be checked
+    for (const effect of effects) {
+        const checkboxValue = STATUS_TO_CHECKBOX[effect.id];
+        if (checkboxValue) {
+            activeCheckboxValues.add(checkboxValue);
+        }
+    }
+    
+    // Find all observed state checkboxes and sync them
+    const checkboxes = document.querySelectorAll('.rcm-observed-checkbox, .observed-state-checkbox, input[name="observed_state"]');
+    
+    checkboxes.forEach(checkbox => {
+        const value = checkbox.value || checkbox.dataset.state;
+        if (value && STATUS_TO_CHECKBOX_VALUES.includes(value)) {
+            const shouldBeChecked = activeCheckboxValues.has(value);
+            if (checkbox.checked !== shouldBeChecked) {
+                checkbox.checked = shouldBeChecked;
+                console.log(`[TimedFX] ${shouldBeChecked ? 'Checked' : 'Unchecked'} observed state: ${value}`);
+            }
+        }
+    });
+}
+
+// All possible checkbox values we manage
+const STATUS_TO_CHECKBOX_VALUES = [
+    'drunk', 'smoking', 'stimmed', 'hungover', 'wounded', 'exhausted', 'dying',
+    'manic', 'dissociated', 'infatuated', 'lucky', 'terrified', 'enraged', 'grieving'
+];
+
+/**
+ * Toggle a specific observed state checkbox
+ */
+function setObservedState(stateValue, checked) {
+    const selectors = [
+        `.rcm-observed-checkbox[value="${stateValue}"]`,
+        `.observed-state-checkbox[value="${stateValue}"]`,
+        `input[name="observed_state"][value="${stateValue}"]`,
+        `input[data-state="${stateValue}"]`
+    ];
+    
+    for (const selector of selectors) {
+        const checkbox = document.querySelector(selector);
+        if (checkbox) {
+            checkbox.checked = checked;
+            console.log(`[TimedFX] Set ${stateValue} = ${checked}`);
+            return true;
+        }
+    }
+    
+    console.warn(`[TimedFX] Checkbox not found for state: ${stateValue}`);
+    return false;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENDERING (No emojis - typewriter style)
 // ═══════════════════════════════════════════════════════════════
 
 function getEffectType(statusId) {
@@ -76,19 +142,12 @@ function getEffectType(statusId) {
     return 'buff';
 }
 
-/**
- * Get display name for status
- * Priority: effect.name (stored) → STATUS_EFFECTS lookup → format ID
- */
 function getStatusName(statusId, effect) {
-    // Use stored name first (most reliable - set at effect apply time)
     if (effect?.name) return effect.name;
     
-    // Try STATUS_EFFECTS lookup
     const status = STATUS_EFFECTS?.[statusId];
     if (status) return status.simpleName || status.name;
     
-    // Fallback: format the ID
     return formatStatusId(statusId);
 }
 
@@ -100,16 +159,12 @@ function formatStatusId(id) {
         .join(' ');
 }
 
-function getStatusIcon(statusId) {
-    return STATUS_ICONS[statusId] || DEFAULT_ICON;
-}
-
 function getProgressPercent(remaining, maxDuration = 10) {
     return Math.min(100, Math.round((remaining / maxDuration) * 100));
 }
 
 /**
- * Render a single timed effect
+ * Render a single timed effect (typewriter style, no emoji)
  */
 function renderEffect(effect) {
     const statusId = effect.id;
@@ -118,26 +173,28 @@ function renderEffect(effect) {
     const source = effect.source || 'consumption';
     
     const type = getEffectType(statusId);
-    const name = getStatusName(statusId, effect);  // ← FIXED: Pass effect!
-    const icon = getStatusIcon(statusId);
+    const name = getStatusName(statusId, effect);
     const progress = getProgressPercent(remaining);
     const isExpiring = remaining <= EXPIRING_THRESHOLD;
+    
+    // Typewriter-style indicator bar instead of emoji
+    const indicator = type === 'debuff' ? '▌' : type === 'buff' ? '│' : '┃';
     
     return `
         <div class="rcm-timed-effect ${isExpiring ? 'expiring' : ''}" 
              data-status="${statusId}" 
              data-type="${type}"
              data-source="${source}">
-            <span class="rcm-effect-icon" data-status="${statusId}">${icon}</span>
+            <span class="rcm-effect-indicator" data-type="${type}">${indicator}</span>
             <span class="rcm-effect-name">
-                ${name}${stacks > 1 ? `<span class="rcm-effect-stacks">×${stacks}</span>` : ''}
+                ${name}${stacks > 1 ? ` <span class="rcm-effect-stacks">×${stacks}</span>` : ''}
             </span>
             <div class="rcm-effect-countdown">
                 <div class="rcm-effect-progress">
                     <div class="rcm-effect-progress-fill ${isExpiring ? 'low' : ''}" 
                          style="width: ${progress}%"></div>
                 </div>
-                <span class="rcm-effect-msgs" data-count="${remaining}">${remaining}</span>
+                <span class="rcm-effect-msgs">${remaining} <span class="rcm-effect-unit">msg</span></span>
             </div>
         </div>
     `;
@@ -147,7 +204,7 @@ function renderTimedEffectsSection(effects) {
     if (!effects || effects.length === 0) {
         return `
             <div class="rcm-timed-effects">
-                <div class="rcm-timed-effects-header">ACTIVE SUBSTANCES</div>
+                <div class="rcm-timed-effects-header">▸ ACTIVE SUBSTANCES</div>
                 <div class="rcm-timed-effects-empty">(system clear)</div>
             </div>
         `;
@@ -164,7 +221,7 @@ function renderTimedEffectsSection(effects) {
     
     return `
         <div class="rcm-timed-effects">
-            <div class="rcm-timed-effects-header">ACTIVE SUBSTANCES</div>
+            <div class="rcm-timed-effects-header">▸ ACTIVE SUBSTANCES</div>
             <div class="rcm-timed-effects-list">
                 ${sorted.map(e => renderEffect(e)).join('')}
             </div>
@@ -179,12 +236,15 @@ function renderTimedEffectsSection(effects) {
 export function updateTimedEffectsDisplay() {
     const container = document.getElementById('rcm-timed-effects-container');
     if (!container) {
-        console.warn('[TimedFX] Container #rcm-timed-effects-container not found');
+        console.warn('[TimedFX] Container not found');
         return;
     }
     
     const effects = getTimedEffects();
     container.innerHTML = renderTimedEffectsSection(effects);
+    
+    // Sync checkboxes with current effects
+    syncObservedStatesCheckboxes();
     
     console.log('[TimedFX] Display updated:', effects.length, 'active effects');
 }
@@ -208,7 +268,6 @@ export function injectTimedEffectsContainer() {
         const container = document.createElement('div');
         container.id = 'rcm-timed-effects-container';
         activeEffectsEl.insertAdjacentElement('afterend', container);
-        console.log('[TimedFX] Container injected after #rcm-active-effects element');
         return true;
     }
     
@@ -225,7 +284,6 @@ export function injectTimedEffectsContainer() {
         const container = document.createElement('div');
         container.id = 'rcm-timed-effects-container';
         insertAfter.insertAdjacentElement('afterend', container);
-        console.log('[TimedFX] Container injected after Active Conditions header');
         return true;
     }
     
@@ -237,12 +295,11 @@ export function injectTimedEffectsContainer() {
             const container = document.createElement('div');
             container.id = 'rcm-timed-effects-container';
             firstSection.insertAdjacentElement('afterend', container);
-            console.log('[TimedFX] Container injected in medical form');
             return true;
         }
     }
     
-    // Strategy 4: Fallback to status tab
+    // Strategy 4: Fallback
     const statusTab = document.querySelector('.ie-tab-content[data-tab-content="status"]');
     if (statusTab) {
         const container = document.createElement('div');
@@ -252,7 +309,6 @@ export function injectTimedEffectsContainer() {
         } else {
             statusTab.appendChild(container);
         }
-        console.log('[TimedFX] Container injected in status tab (fallback)');
         return true;
     }
     
@@ -265,12 +321,30 @@ export function injectTimedEffectsContainer() {
 // ═══════════════════════════════════════════════════════════════
 
 function bindEffectEvents() {
-    window.addEventListener('tribunal:effectApplied', () => {
+    window.addEventListener('tribunal:effectApplied', (e) => {
         updateTimedEffectsDisplay();
+        
+        // Also directly toggle the checkbox for immediate feedback
+        const statusId = e.detail?.statusId;
+        if (statusId && STATUS_TO_CHECKBOX[statusId]) {
+            setObservedState(STATUS_TO_CHECKBOX[statusId], true);
+        }
     });
     
-    window.addEventListener('tribunal:effectRemoved', () => {
+    window.addEventListener('tribunal:effectRemoved', (e) => {
         updateTimedEffectsDisplay();
+        
+        // Check if any other effect still needs this checkbox
+        const statusId = e.detail?.statusId;
+        if (statusId && STATUS_TO_CHECKBOX[statusId]) {
+            // Only uncheck if no other active effect uses this checkbox
+            const effects = getTimedEffects();
+            const checkboxValue = STATUS_TO_CHECKBOX[statusId];
+            const stillActive = effects.some(eff => STATUS_TO_CHECKBOX[eff.id] === checkboxValue);
+            if (!stillActive) {
+                setObservedState(checkboxValue, false);
+            }
+        }
     });
     
     window.addEventListener('tribunal:messageTick', () => {
@@ -316,5 +390,7 @@ export default {
     reinitTimedEffectsDisplay,
     updateTimedEffectsDisplay,
     injectTimedEffectsContainer,
-    getTimedEffects
+    getTimedEffects,
+    syncObservedStatesCheckboxes,
+    setObservedState
 };
