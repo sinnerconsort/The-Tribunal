@@ -2,8 +2,9 @@
  * The Tribunal - Persistence Layer
  * Handles save/load to SillyTavern's storage systems
  * 
- * FIXED: Get chat_metadata via getContext() instead of direct import
- * to ensure we always have the CURRENT chat's metadata, not a stale reference
+ * FIXED: Use namespace import for script.js so chat_metadata stays live
+ * When you destructure import { chat_metadata }, you get a snapshot.
+ * When you import * as script, script.chat_metadata always reads current value.
  * 
  * Storage locations:
  * - Per-Chat: chat_metadata.tribunal
@@ -11,9 +12,8 @@
  */
 
 import { extension_settings, getContext } from '../../../../../extensions.js';
-// FIXED: Don't import chat_metadata directly - it becomes stale on chat switch
-// Instead we get it fresh via getContext() or from script.js as a live reference
-import { saveSettingsDebounced, saveChatDebounced } from '../../../../../../script.js';
+// FIXED: Namespace import keeps chat_metadata reference live
+import * as script from '../../../../../../script.js';
 import { getDefaultChatState, getDefaultGlobalSettings } from '../data/defaults.js';
 
 const EXT_ID = 'tribunal';
@@ -24,12 +24,12 @@ const EXT_ID = 'tribunal';
 
 /**
  * Get the current chat_metadata object
- * MUST use this instead of direct import to avoid stale references
+ * Uses namespace import so we always get the current value, not a stale snapshot
  * @returns {object|null} Current chat's metadata or null
  */
 function getCurrentChatMetadata() {
-    const context = getContext();
-    return context?.chat_metadata || null;
+    // script.chat_metadata is LIVE - it reads the current value each time
+    return script.chat_metadata || null;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -51,7 +51,7 @@ export function getSettings() {
  * Save global settings (debounced)
  */
 export function saveSettings() {
-    saveSettingsDebounced();
+    script.saveSettingsDebounced();
 }
 
 /**
@@ -171,7 +171,6 @@ export function setSetting(path, value) {
  * @returns {object|null} Chat state or null if no chat
  */
 export function getChatState() {
-    // FIXED: Get fresh reference every time
     const chat_metadata = getCurrentChatMetadata();
     
     if (!chat_metadata) {
@@ -182,6 +181,7 @@ export function getChatState() {
     if (!chat_metadata[EXT_ID]) {
         chat_metadata[EXT_ID] = getDefaultChatState();
         chat_metadata[EXT_ID].meta.createdAt = Date.now();
+        console.log('[Tribunal] Created fresh chat state');
     }
     
     return chat_metadata[EXT_ID];
@@ -191,7 +191,6 @@ export function getChatState() {
  * Save the current chat state (debounced)
  */
 export function saveChatState() {
-    // FIXED: Get fresh reference
     const chat_metadata = getCurrentChatMetadata();
     
     if (!chat_metadata) {
@@ -199,12 +198,12 @@ export function saveChatState() {
         return;
     }
     
-    const state = getChatState();
+    const state = chat_metadata[EXT_ID];
     if (state) {
         state.meta.lastModified = Date.now();
     }
     
-    saveChatDebounced();
+    script.saveChatDebounced();
 }
 
 /**
@@ -213,7 +212,6 @@ export function saveChatState() {
  * @returns {object} The loaded (or default) chat state
  */
 export function loadChatState() {
-    // FIXED: Get fresh reference
     const chat_metadata = getCurrentChatMetadata();
     
     if (!chat_metadata) {
@@ -240,7 +238,6 @@ export function loadChatState() {
  * Reset chat state to defaults (for new playthroughs)
  */
 export function resetChatState() {
-    // FIXED: Get fresh reference
     const chat_metadata = getCurrentChatMetadata();
     
     if (!chat_metadata) {
@@ -269,16 +266,16 @@ function sanitizeChatState(state) {
         }
     }
     
-    // Ensure nested objects exist (but DON'T overwrite existing data!)
+    // Ensure nested objects exist (preserve existing data with spread)
     if (!state.attributes) state.attributes = { ...defaults.attributes };
     if (!state.skillLevels) state.skillLevels = {};
     if (!state.skillBonuses) state.skillBonuses = {};
     
-    // FIXED: For vitals, preserve existing data, only add missing fields
+    // For vitals, preserve existing data, only add missing fields
     if (!state.vitals) {
         state.vitals = { ...defaults.vitals };
     } else {
-        // Merge defaults into existing vitals (existing takes priority)
+        // Merge: defaults first, then existing (existing wins)
         state.vitals = { ...defaults.vitals, ...state.vitals };
     }
     
@@ -451,6 +448,7 @@ export function exportDebugState() {
     return {
         globalSettings: getSettings(),
         chatState: getChatState(),
+        chatMetadataExists: !!getCurrentChatMetadata(),
         hasChat: hasActiveChat(),
         entityName: getCurrentEntityName()
     };
@@ -467,5 +465,7 @@ window.TribunalState = {
     resetChatState,
     getSettings,
     saveSettings,
-    exportDebugState
+    exportDebugState,
+    // Debug helper
+    _getCurrentChatMetadata: getCurrentChatMetadata
 };
