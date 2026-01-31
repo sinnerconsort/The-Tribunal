@@ -127,6 +127,14 @@ export { generateVoicesForMessage, renderVoices, appendVoicesToChat };
 // Investigation functions
 export { initInvestigation, updateSceneContext, openInvestigation, closeInvestigation } from './src/systems/investigation.js';
 
+// Condition Effects
+import('./ui/condition-effects.js').then(module => {
+    module.initConditionEffects();
+    module.startHealthMonitor();  // Auto-monitor health for visual effects
+    console.log('[Tribunal] Condition effects initialized');
+}).catch(err => {
+    console.warn('[Tribunal] Condition effects not loaded:', err);
+});
 // ═══════════════════════════════════════════════════════════════
 // EXTENSION METADATA
 // ═══════════════════════════════════════════════════════════════
