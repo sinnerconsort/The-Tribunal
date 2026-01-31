@@ -31,6 +31,31 @@ PSYCHE: volition, inland_empire, empathy, authority, esprit_de_corps, suggestion
 PHYSIQUE: endurance, pain_threshold, physical_instrument, electrochemistry, shivers, half_light
 MOTORICS: hand_eye_coordination, perception, reaction_speed, savoir_faire, interfacing, composure
 `;
+const VALID_EFFECT_IDS = {
+    // Alcohol
+    revacholian_courage: 'Alcohol - beer, wine, spirits. Boosts social skills, debuffs coordination.',
+    
+    // Tobacco
+    nicotine_rush: 'Cigarettes, cigars, tobacco. Boosts focus skills, debuffs endurance.',
+    
+    // Drugs
+    pyrholidon: 'The specific drug pyrholidon. Boosts perception, debuffs empathy.',
+    speed_freaks_delight: 'Amphetamines, speed, uppers. Boosts motorics, debuffs composure.',
+    
+    // Food/Medicine
+    satiated: 'Food - restores minor health, no skill effects.',
+    medicated: 'Medicine, painkillers - restores health, minor debuffs.',
+    
+    // Special
+    the_expression: 'Strong hallucinogenics. Boosts psyche, heavy debuffs.',
+    
+    // None
+    none: 'No status effect - item is not a consumable or has no mechanical effect.'
+};
+
+const EFFECT_ID_REFERENCE = Object.entries(VALID_EFFECT_IDS)
+    .map(([id, desc]) => `- ${id}: ${desc}`)
+    .join('\n');
 
 const VALID_SKILLS = [
     'logic', 'encyclopedia', 'rhetoric', 'drama', 'conceptualization', 'visual_calculus',
@@ -328,6 +353,7 @@ export async function generateSingleItem(itemName, context = '') {
     const inferredType = inferInventoryType(itemName);
     const typeInfo = INVENTORY_TYPES[inferredType];
     const addictive = isAddictive(inferredType);
+    const consumable = isConsumable(inferredType);
     
     const systemPrompt = `You are channeling the internal skill voices of a Disco Elysium character. Every item tells a story. The skills in your head all have opinions about what you carry.
 
@@ -339,6 +365,7 @@ Output ONLY valid JSON, no markdown, no explanation.`;
 
 ITEM: ${itemName}
 TYPE: ${inferredType} (${typeInfo?.label || 'Unknown'})
+CONSUMABLE: ${consumable ? 'Yes' : 'No'}
 CONTEXT: ${context || 'Found in the character\'s possession'}
 ${addictive ? `ADDICTIVE: Yes - this item feeds an addiction` : ''}
 
@@ -346,16 +373,31 @@ ${addictive ? `ADDICTIVE: Yes - this item feeds an addiction` : ''}
 ${SKILL_REFERENCE}
 </skills>
 
+<effect_ids>
+${EFFECT_ID_REFERENCE}
+</effect_ids>
+
 Respond with ONLY this JSON structure:
 {
   "name": "${itemName}",
   "type": "${inferredType}",
+  "effectId": "${consumable ? 'CHOOSE_FROM_EFFECT_IDS' : 'none'}",
   "description": "2-3 sentence evocative description. Make it poetic and strange, in the style of Disco Elysium item descriptions.",
   "voiceQuips": [
     {"skill": "skill_id", "text": "One-liner about this item", "approves": true},
     {"skill": "other_skill", "text": "Different perspective one-liner", "approves": false}
   ]
 }
+
+EFFECT ID RULES:
+- Pick the MOST APPROPRIATE effect_id from the list above
+- Beer/wine/spirits → revacholian_courage
+- Cigarettes/tobacco → nicotine_rush  
+- Pyrholidon specifically → pyrholidon
+- Speed/amphetamines → speed_freaks_delight
+- Food → satiated
+- Medicine/painkillers → medicated
+- Non-consumables → none
 
 QUIP GUIDELINES:
 ${addictive ? `
@@ -380,7 +422,7 @@ Generate 2 voice quips from different skills.`;
         
         const parsed = parseItemResponse(response, itemName, inferredType);
         if (parsed) {
-            console.log('[Inventory] ✓ Generated:', parsed.name);
+            console.log('[Inventory] ✓ Generated:', parsed.name, 'effectId:', parsed.effectId);
             return parsed;
         }
         
@@ -557,11 +599,23 @@ function validateItem(item, expectedName, expectedType = null) {
     
     const name = item.name || expectedName || 'Unknown Item';
     const type = expectedType || item.type || inferInventoryType(name);
+    const consumable = isConsumable(type);
+    
+    // Validate effectId - must be from valid list or infer from type
+    let effectId = item.effectId || null;
+    if (effectId && !VALID_EFFECT_IDS[effectId]) {
+        console.warn('[Inventory] Invalid effectId:', effectId, '- inferring from type');
+        effectId = null;
+    }
+    if (!effectId && consumable) {
+        effectId = inferEffectIdFromType(type);
+    }
     
     const validated = {
         name: name,
         type: type,
-        category: isConsumable(type) ? 'consumable' : 'misc',
+        category: consumable ? 'consumable' : 'misc',
+        effectId: effectId || 'none',
         addictive: isAddictive(type),
         addictionType: getAddictionData(type)?.type || null,
         description: item.description || '',
@@ -585,6 +639,20 @@ function validateItem(item, expectedName, expectedType = null) {
     return validated;
 }
 
+/**
+ * Infer effect ID from item type (fallback)
+ */
+function inferEffectIdFromType(type) {
+    const typeToEffect = {
+        cigarette: 'nicotine_rush',
+        alcohol: 'revacholian_courage',
+        drug: 'speed_freaks_delight',
+        food: 'satiated',
+        medicine: 'medicated'
+    };
+    return typeToEffect[type] || 'none';
+}
+
 // ═══════════════════════════════════════════════════════════════
 // FALLBACK ITEM (when AI fails)
 // ═══════════════════════════════════════════════════════════════
@@ -592,11 +660,13 @@ function validateItem(item, expectedName, expectedType = null) {
 function createFallbackItem(name) {
     const type = inferInventoryType(name);
     const typeInfo = INVENTORY_TYPES[type];
+    const consumable = isConsumable(type);
     
     return {
         name: name,
         type: type,
-        category: isConsumable(type) ? 'consumable' : 'misc',
+        category: consumable ? 'consumable' : 'misc',
+        effectId: inferEffectIdFromType(type),
         addictive: isAddictive(type),
         addictionType: getAddictionData(type)?.type || null,
         description: `A ${name.toLowerCase()}. It's yours now.`,
