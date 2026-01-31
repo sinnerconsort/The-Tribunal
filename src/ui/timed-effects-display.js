@@ -2,6 +2,8 @@
  * The Tribunal - Timed Effects Display
  * Renders active consumable effects with message countdown on vitals tab
  * 
+ * FIXED: Added CHAT_CHANGED handler to refresh display on chat switch
+ * 
  * Shows: Effect name, stacks, remaining messages, progress bar
  * Updates: On effect apply/remove/tick events
  * Syncs: OBSERVED STATES checkboxes with active effects
@@ -327,8 +329,42 @@ export function injectTimedEffectsContainer() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// CHAT SWITCH HANDLING (FIX)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Handle chat switch - refresh display from new chat's state
+ * Called on CHAT_CHANGED event
+ */
+export function onChatChanged() {
+    console.log('[TimedFX] Chat changed, refreshing...');
+    
+    // Wait for chat_metadata to be fully updated
+    // Use longer delay to ensure ST has finished updating
+    setTimeout(() => {
+        updateTimedEffectsDisplay();
+    }, 200);
+}
+
+// ═══════════════════════════════════════════════════════════════
 // EVENT LISTENERS
 // ═══════════════════════════════════════════════════════════════
+
+let eventsModule = null;
+
+async function loadEvents() {
+    try {
+        const script = await import('../../../../../script.js');
+        eventsModule = {
+            eventSource: script.eventSource,
+            event_types: script.event_types
+        };
+        return true;
+    } catch (e) {
+        console.warn('[TimedFX] Could not load events:', e);
+        return false;
+    }
+}
 
 function bindEffectEvents() {
     window.addEventListener('tribunal:effectApplied', (e) => {
@@ -363,7 +399,18 @@ function bindEffectEvents() {
         updateTimedEffectsDisplay();
     });
     
-    console.log('[TimedFX] Event listeners bound');
+    console.log('[TimedFX] Effect event listeners bound');
+}
+
+async function bindChatChangedEvent() {
+    const loaded = await loadEvents();
+    if (!loaded || !eventsModule?.eventSource || !eventsModule?.event_types) {
+        console.warn('[TimedFX] Could not bind CHAT_CHANGED - events not available');
+        return;
+    }
+    
+    eventsModule.eventSource.on(eventsModule.event_types.CHAT_CHANGED, onChatChanged);
+    console.log('[TimedFX] CHAT_CHANGED listener bound');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -372,7 +419,7 @@ function bindEffectEvents() {
 
 let initialized = false;
 
-export function initTimedEffectsDisplay() {
+export async function initTimedEffectsDisplay() {
     if (initialized) return;
     
     const injected = injectTimedEffectsContainer();
@@ -382,6 +429,7 @@ export function initTimedEffectsDisplay() {
     }
     
     bindEffectEvents();
+    await bindChatChangedEvent();  // NEW: Bind CHAT_CHANGED
     updateTimedEffectsDisplay();
     
     initialized = true;
@@ -405,5 +453,6 @@ export default {
     getTimedEffects,
     syncObservedStatesCheckboxes,
     setObservedState,
-    getUIStatusForEffect
+    getUIStatusForEffect,
+    onChatChanged  // NEW
 };
