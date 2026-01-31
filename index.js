@@ -1067,6 +1067,8 @@ eventSource.on(event_types.CHAT_CHANGED, () => {
     eventSource.on(event_types.MESSAGE_RECEIVED, onNewAIMessage);
     if (window.TribunalEffects?.onMessageTick) {
         const tickResult = window.TribunalEffects.onMessageTick();
+        window.dispatchEvent(new CustomEvent('tribunal:messageTick', { detail: tickResult }));
+}
         if (tickResult.expired.length > 0) {
             console.log('[Tribunal] Effects expired:', tickResult.expired.map(e => e.statusId));
         }
