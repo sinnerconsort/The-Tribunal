@@ -1,9 +1,9 @@
 /**
  * The Tribunal - Slipstream SCA Radio
  * Tricentennial Electrics ambient soundscape player
- * Synced with weather effects system
+ * Synced with weather effects system + condition effects (horror/pale)
  * 
- * @version 1.0.0
+ * @version 1.1.0 - Added condition effects integration
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -134,6 +134,9 @@ let eqAnimationFrame = null;
 let weatherUnsubscribe = null;
 let initialized = false;
 
+// Store previous station when horror/pale takes over
+let preConditionStation = null;
+
 // Base path for audio files (absolute from ST webserver root)
 const AUDIO_BASE_PATH = '/scripts/extensions/third-party/The-Tribunal/assets/audio/';
 
@@ -174,8 +177,11 @@ export function initRadio() {
     // Bind UI handlers
     bindRadioHandlers();
     
-    // Connect to weather system
+    // Connect to weather system (for normal weather)
     connectToWeather();
+    
+    // Connect to condition effects (for horror/pale)
+    connectToConditionEffects();
     
     // Set initial station (daybreak default)
     currentStation = STATIONS.find(s => s.id === 'day') || STATIONS[0];
@@ -244,15 +250,92 @@ async function connectToWeather() {
 }
 
 /**
+ * Connect to condition effects events (horror, pale)
+ * These now come from condition-effects.js instead of weather
+ */
+function connectToConditionEffects() {
+    // ═══════════════════════════════════════════════════════════
+    // HORROR - Heartbeat sound
+    // ═══════════════════════════════════════════════════════════
+    window.addEventListener('tribunal:horrorStart', () => {
+        console.log('[Radio] Horror triggered - tuning to DREAD');
+        
+        // Store previous station to restore later
+        if (currentStation?.id !== 'horror') {
+            preConditionStation = currentStation?.id;
+        }
+        
+        tuneToStation('horror');
+        startPlayback();
+    });
+    
+    window.addEventListener('tribunal:horrorEnd', () => {
+        console.log('[Radio] Horror ended');
+        
+        // Restore previous station if we have one
+        if (preConditionStation) {
+            tuneToStation(preConditionStation);
+            preConditionStation = null;
+            
+            // Continue playing if autoTune is on
+            if (autoTune && isPlaying) {
+                startPlayback();
+            }
+        } else {
+            stopPlayback();
+        }
+    });
+    
+    // ═══════════════════════════════════════════════════════════
+    // THE PALE - Static/void sound  
+    // ═══════════════════════════════════════════════════════════
+    window.addEventListener('tribunal:paleStart', () => {
+        console.log('[Radio] The Pale triggered - tuning to THE PALE');
+        
+        // Store previous station
+        if (currentStation?.id !== 'static') {
+            preConditionStation = currentStation?.id;
+        }
+        
+        tuneToStation('static');
+        startPlayback();
+    });
+    
+    window.addEventListener('tribunal:paleEnd', () => {
+        console.log('[Radio] The Pale ended');
+        
+        // Restore previous station
+        if (preConditionStation) {
+            tuneToStation(preConditionStation);
+            preConditionStation = null;
+            
+            if (autoTune && isPlaying) {
+                startPlayback();
+            }
+        } else {
+            stopPlayback();
+        }
+    });
+    
+    console.log('[Radio] Connected to condition effects (horror/pale)');
+}
+
+/**
  * Handle weather changes - auto-tune to matching station
  */
 function onWeatherChange(data) {
     if (!autoTune) return;
     
+    // Don't change station if we're in a condition effect (horror/pale)
+    if (currentStation?.id === 'horror' || currentStation?.id === 'static') {
+        return;
+    }
+    
     // Priority: special > weather > period
     let targetWeather = null;
     
-    if (data.special) {
+    // Skip horror/pale from weather - now handled by condition-effects
+    if (data.special && data.special !== 'horror' && data.special !== 'pale') {
         targetWeather = data.special;
     } else if (data.weather && data.weather !== 'clear') {
         targetWeather = data.weather;
