@@ -1,79 +1,73 @@
 /**
  * The Tribunal - Timed Effects Display
  * Shows active consumable effects with message countdown
+ * Styled to match RCM Medical Form aesthetic
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   TIMED EFFECTS SECTION
+   TIMED EFFECTS SECTION - Medical form style
    ═══════════════════════════════════════════════════════════════ */
 
 .rcm-timed-effects {
-    margin: 12px 0;
-    padding: 8px 0;
-    border-top: 1px dashed rgba(139, 115, 85, 0.3);
-    border-bottom: 1px dashed rgba(139, 115, 85, 0.3);
+    margin: 12px 0 16px 0;
 }
 
 .rcm-timed-effects-header {
-    font-family: var(--tribunal-font-mono, 'IBM Plex Mono', monospace);
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--rcm-text-label, #6a5a4a);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
     margin-bottom: 8px;
     display: flex;
     align-items: center;
     gap: 6px;
+    color: #1a1a1a;
+    font-family: 'Courier New', Courier, monospace;
 }
 
 .rcm-timed-effects-header::before {
     content: '▸';
-    color: var(--rcm-accent, #d4a574);
+    font-size: 9px;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   EFFECT PILLS
+   EFFECT LIST
    ═══════════════════════════════════════════════════════════════ */
 
 .rcm-timed-effects-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
+    padding-left: 14px;
 }
 
 .rcm-timed-effect {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 10px;
-    background: rgba(60, 50, 40, 0.4);
-    border-radius: 4px;
-    border-left: 3px solid var(--effect-color, #d4a574);
-    font-family: var(--tribunal-font-mono, 'IBM Plex Mono', monospace);
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.03);
+    border-left: 3px solid #654321;
+    font-family: 'Courier New', Courier, monospace;
     transition: all 0.3s ease;
 }
 
-/* Effect type colors */
+/* Effect type colors - matches rcm-buff/rcm-debuff */
 .rcm-timed-effect[data-type="buff"] {
-    --effect-color: #4ade80;
-    border-left-color: #4ade80;
+    border-left-color: #2d5a2d;
 }
 
 .rcm-timed-effect[data-type="debuff"] {
-    --effect-color: #f87171;
-    border-left-color: #f87171;
+    border-left-color: #8b3a3a;
 }
 
 .rcm-timed-effect[data-type="mixed"] {
-    --effect-color: #fbbf24;
-    border-left-color: #fbbf24;
+    border-left-color: #8B4513;
 }
 
-/* Withdrawal effects - darker, more ominous */
+/* Withdrawal effects */
 .rcm-timed-effect[data-source="withdrawal"] {
-    background: rgba(80, 40, 40, 0.5);
-    border-left-color: #ef4444;
+    background: rgba(139, 58, 58, 0.08);
+    border-left-color: #8b0000;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -81,8 +75,8 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .rcm-effect-icon {
-    font-size: 14px;
-    width: 20px;
+    font-size: 12px;
+    width: 18px;
     text-align: center;
     flex-shrink: 0;
 }
@@ -94,20 +88,20 @@
 .rcm-effect-name {
     flex: 1;
     font-size: 11px;
-    font-weight: 500;
-    color: var(--rcm-text-value, #e8dcc8);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-weight: 600;
+    color: #1a1a1a;
+    letter-spacing: 0.3px;
 }
 
 .rcm-effect-stacks {
     font-size: 9px;
-    color: #fbbf24;
-    margin-left: 4px;
+    color: #8B4513;
+    margin-left: 2px;
+    font-weight: 700;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   COUNTDOWN DISPLAY
+   COUNTDOWN DISPLAY - Typewriter bar style
    ═══════════════════════════════════════════════════════════════ */
 
 .rcm-effect-countdown {
@@ -117,52 +111,71 @@
     flex-shrink: 0;
 }
 
-/* Progress bar */
+/* Progress bar - matches rcm-vital-bar */
 .rcm-effect-progress {
     width: 40px;
-    height: 6px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 3px;
+    height: 10px;
+    background: #e8e5dc;
+    border: 1px solid #1a1a1a;
+    position: relative;
     overflow: hidden;
 }
 
 .rcm-effect-progress-fill {
     height: 100%;
-    background: var(--effect-color, #d4a574);
-    border-radius: 3px;
+    background: repeating-linear-gradient(
+        90deg,
+        #1a1a1a 0px,
+        #1a1a1a 4px,
+        transparent 4px,
+        transparent 6px
+    );
     transition: width 0.3s ease;
 }
 
-/* Low progress warning */
-.rcm-effect-progress-fill.low {
-    background: #ef4444;
-    animation: progress-pulse 1s ease-in-out infinite;
+/* Buff = green bars */
+.rcm-timed-effect[data-type="buff"] .rcm-effect-progress-fill {
+    background: repeating-linear-gradient(
+        90deg,
+        #2d5a2d 0px,
+        #2d5a2d 4px,
+        transparent 4px,
+        transparent 6px
+    );
 }
 
-@keyframes progress-pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+/* Debuff = red bars */
+.rcm-timed-effect[data-type="debuff"] .rcm-effect-progress-fill,
+.rcm-effect-progress-fill.low {
+    background: repeating-linear-gradient(
+        90deg,
+        #8b3a3a 0px,
+        #8b3a3a 4px,
+        transparent 4px,
+        transparent 6px
+    );
+}
+
+/* Low progress warning - blink */
+.rcm-effect-progress-fill.low {
+    animation: rcm-vital-blink 0.8s ease-in-out infinite;
 }
 
 /* Message count */
 .rcm-effect-msgs {
     font-size: 10px;
-    font-weight: 600;
-    color: var(--rcm-text-label, #6a5a4a);
-    min-width: 24px;
+    font-weight: 700;
+    color: #1a1a1a;
+    min-width: 20px;
     text-align: right;
+    font-family: 'Courier New', monospace;
 }
 
 .rcm-effect-msgs::after {
     content: ' msg';
     font-size: 8px;
     font-weight: 400;
-    opacity: 0.7;
-}
-
-/* Single message uses singular */
-.rcm-effect-msgs[data-count="1"]::after {
-    content: ' msg';
+    color: #666;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -176,11 +189,11 @@
 @keyframes effect-expiring {
     0%, 100% { 
         opacity: 1;
-        background: rgba(60, 50, 40, 0.4);
+        background: rgba(0, 0, 0, 0.03);
     }
     50% { 
-        opacity: 0.7;
-        background: rgba(100, 50, 50, 0.5);
+        opacity: 0.6;
+        background: rgba(139, 58, 58, 0.1);
     }
 }
 
@@ -189,27 +202,8 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .rcm-timed-effects-empty {
-    font-size: 10px;
+    font-size: 11px;
     font-style: italic;
-    color: var(--rcm-text-label, #6a5a4a);
-    opacity: 0.7;
-    padding: 4px 0;
+    color: #666;
+    padding-left: 14px;
 }
-
-/* ═══════════════════════════════════════════════════════════════
-   EFFECT ICONS BY TYPE
-   ═══════════════════════════════════════════════════════════════ */
-
-/* Map status IDs to icons via data attribute */
-.rcm-effect-icon[data-status="nicotine_rush"]::before { content: '🚬'; }
-.rcm-effect-icon[data-status="revacholian_courage"]::before { content: '🍺'; }
-.rcm-effect-icon[data-status="pyrholidon"]::before { content: '💊'; }
-.rcm-effect-icon[data-status="volumetric_shit_compressor"]::before { content: '🤢'; }
-.rcm-effect-icon[data-status="waste_land"]::before { content: '😴'; }
-.rcm-effect-icon[data-status="finger_on_the_eject_button"]::before { content: '🩸'; }
-.rcm-effect-icon[data-status="tequila_sunset"]::before { content: '🌅'; }
-.rcm-effect-icon[data-status="the_pale"]::before { content: '🌫️'; }
-.rcm-effect-icon[data-status="white_mourning"]::before { content: '💀'; }
-
-/* Fallback icon */
-.rcm-effect-icon:empty::before { content: '◆'; }
