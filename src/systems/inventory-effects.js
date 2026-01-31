@@ -217,11 +217,11 @@ export function applyConsumptionEffect(itemType, options = {}) {
     }
     
     // Handle food/healing items (no status)
-    if (!effectConfig.statusId) {
-        return handleHealingItem(effectConfig, options);
-    }
-    
-    const statusData = STATUS_EFFECTS[effectConfig.statusId];
+   if (!effectConfig.id) {
+    return handleHealingItem(effectConfig, options);
+}
+
+const statusData = STATUS_EFFECTS[effectConfig.id];
     if (!statusData) {
         console.warn(`[Effects] Status not found: ${effectConfig.statusId}`);
         return { success: false, message: 'Status effect not found' };
