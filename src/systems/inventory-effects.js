@@ -13,22 +13,130 @@
  * 1. item.effectId (AI-assigned at generation)
  * 2. Name pattern matching (fuzzy)
  * 3. Type fallback
+ * 
+ * ADDICTION TRACKING:
+ * - Increases addiction level on consumption
+ * - Resets craving timer for auto-consume system
  */
 
 import { STATUS_EFFECTS } from '../data/statuses.js';
 
 // ═══════════════════════════════════════════════════════════════
+// ADDICTION TRACKING
+// ═══════════════════════════════════════════════════════════════
+
+const MAX_ADDICTION_LEVEL = 5;
+
+const ITEM_TYPE_TO_ADDICTION = {
+    cigarette: 'nicotine',
+    alcohol: 'alcohol',
+    beer: 'alcohol',
+    drug: 'drugs',
+    stimulant: 'drugs',
+    pyrholidon: 'drugs'
+};
+
+const EFFECT_ID_TO_ADDICTION = {
+    nicotine_rush: 'nicotine',
+    revacholian_courage: 'alcohol',
+    pyrholidon: 'drugs',
+    speed_freaks_delight: 'drugs'
+};
+
+/**
+ * Get addiction type for an item
+ */
+export function getAddictionTypeForItem(item) {
+    if (!item) return null;
+    
+    if (item.effectId && EFFECT_ID_TO_ADDICTION[item.effectId]) {
+        return EFFECT_ID_TO_ADDICTION[item.effectId];
+    }
+    
+    if (item.type && ITEM_TYPE_TO_ADDICTION[item.type]) {
+        return ITEM_TYPE_TO_ADDICTION[item.type];
+    }
+    
+    return null;
+}
+
+/**
+ * Increase addiction level when consuming addictive items
+ * Also resets craving timer for auto-consume system
+ */
+function trackAddiction(item) {
+    const addictionType = getAddictionTypeForItem(item);
+    if (!addictionType) return null;
+    
+    try {
+        const { getChatState, saveChatState } = window.TribunalState || {};
+        if (!getChatState) return null;
+        
+        const state = getChatState();
+        
+        if (!state.inventory) state.inventory = {};
+        if (!state.inventory.addictions) state.inventory.addictions = {};
+        if (!state.inventory.addictions[addictionType]) {
+            state.inventory.addictions[addictionType] = { level: 0, messagesSinceUse: 0 };
+        }
+        
+        const addiction = state.inventory.addictions[addictionType];
+        const oldLevel = addiction.level;
+        
+        if (addiction.level < MAX_ADDICTION_LEVEL) {
+            addiction.level++;
+        }
+        
+        addiction.messagesSinceUse = 0;
+        
+        // Reset craving timer for auto-consume system
+        if (state.cravings && state.cravings[addictionType]) {
+            state.cravings[addictionType].messagesSinceUse = 0;
+        }
+        
+        if (saveChatState) saveChatState();
+        
+        const newLevel = addiction.level;
+        
+        if (newLevel > oldLevel) {
+            showAddictionNotification(addictionType, newLevel);
+        }
+        
+        console.log(`[Effects] Addiction ${addictionType}: ${oldLevel} → ${newLevel}`);
+        
+        return { type: addictionType, oldLevel, newLevel };
+        
+    } catch (e) {
+        console.warn('[Effects] Could not track addiction:', e);
+        return null;
+    }
+}
+
+function showAddictionNotification(type, level) {
+    if (typeof toastr === 'undefined') return;
+    
+    const messages = {
+        1: { title: 'Casual use', msg: "You could stop anytime. Obviously." },
+        2: { title: 'Habit forming', msg: "It's becoming routine now." },
+        3: { title: 'Dependency', msg: "Your body expects this now." },
+        4: { title: 'Severe addiction', msg: "The cravings are constant." },
+        5: { title: 'Terminal', msg: "ELECTROCHEMISTRY: You belong to me now." }
+    };
+    
+    const typeNames = { nicotine: 'Nicotine', alcohol: 'Alcohol', drugs: 'Drug' };
+    const info = messages[level];
+    
+    if (info) {
+        toastr.warning(info.msg, `${typeNames[type] || type} - ${info.title}`, { timeOut: 4000 });
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // ITEM TYPE → STATUS MAPPING
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Maps inventory item types AND effect IDs to status effects
- * Duration in MESSAGE COUNT (not time!)
- */
 export const CONSUMPTION_EFFECTS = {
-    // ─────────────────────────────────────────────────────────────
-    // BY ITEM TYPE (original behavior)
-    // ─────────────────────────────────────────────────────────────
+    // BY ITEM TYPE
     cigarette: {
         id: 'nicotine_rush',
         duration: 4,
@@ -105,9 +213,7 @@ export const CONSUMPTION_EFFECTS = {
         clears: ['finger_on_the_eject_button']
     },
     
-    // ─────────────────────────────────────────────────────────────
     // BY EFFECT ID (for AI-assigned item.effectId)
-    // ─────────────────────────────────────────────────────────────
     revacholian_courage: {
         id: 'revacholian_courage',
         duration: 6,
@@ -162,12 +268,9 @@ export const CONSUMPTION_EFFECTS = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// SMART LOOKUP - Name patterns and type fallbacks
+// SMART LOOKUP
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Name patterns for fuzzy matching (priority 2)
- */
 const NAME_PATTERNS = {
     revacholian_courage: /beer|wine|whiskey|whisky|vodka|rum|booze|liquor|spirits|ale|mead|commodore|brandy/i,
     nicotine_rush: /cigarette|cigar|cig|smoke|tobacco|astra/i,
@@ -178,9 +281,6 @@ const NAME_PATTERNS = {
     medicated: /medicine|pill|painkiller|aspirin|bandage|medkit|nosaphed/i
 };
 
-/**
- * Type fallbacks (priority 3)
- */
 const TYPE_FALLBACKS = {
     alcohol: 'revacholian_courage',
     cigarette: 'nicotine_rush',
@@ -190,29 +290,17 @@ const TYPE_FALLBACKS = {
     medicine: 'medicated'
 };
 
-/**
- * Find effect config using smart lookup:
- * 1. item.effectId (AI-assigned at generation)
- * 2. Name pattern matching (fuzzy)
- * 3. Direct type lookup
- * 4. Type fallback to effect ID
- * 
- * @param {object} options - { item, itemName, itemType }
- * @returns {object|null} Effect config or null
- */
 function findEffectConfig(options = {}) {
     const { item } = options;
     const itemName = options.itemName || item?.name || '';
     const itemType = options.itemType || item?.type || '';
     
-    // Priority 1: Explicit effectId from item (AI-assigned)
     const effectId = item?.effectId;
     if (effectId && effectId !== 'none' && CONSUMPTION_EFFECTS[effectId]) {
         console.log('[Effects] Using effectId:', effectId);
         return CONSUMPTION_EFFECTS[effectId];
     }
     
-    // Priority 2: Name pattern matching
     const lowerName = itemName.toLowerCase();
     for (const [id, pattern] of Object.entries(NAME_PATTERNS)) {
         if (pattern.test(lowerName)) {
@@ -221,13 +309,11 @@ function findEffectConfig(options = {}) {
         }
     }
     
-    // Priority 3: Direct type lookup (original behavior)
     if (itemType && CONSUMPTION_EFFECTS[itemType]) {
         console.log('[Effects] Using item type:', itemType);
         return CONSUMPTION_EFFECTS[itemType];
     }
     
-    // Priority 4: Type fallback to effect ID
     const fallbackId = TYPE_FALLBACKS[itemType];
     if (fallbackId && CONSUMPTION_EFFECTS[fallbackId]) {
         console.log('[Effects] Using type fallback:', fallbackId);
@@ -238,9 +324,6 @@ function findEffectConfig(options = {}) {
     return null;
 }
 
-/**
- * Withdrawal mappings - what happens when effect expires
- */
 export const WITHDRAWAL_EFFECTS = {
     revacholian_courage: {
         withdrawalId: 'volumetric_shit_compressor',
@@ -260,14 +343,9 @@ export const WITHDRAWAL_EFFECTS = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// ACTIVE EFFECTS TRACKING (Message-count based)
+// ACTIVE EFFECTS TRACKING
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Get active effects from chat state
- * Each effect now has: { id, name, remainingMessages, stacks, source }
- * @returns {Array} Active effect objects
- */
 export function getActiveEffects() {
     try {
         const { getChatState } = window.TribunalState || {};
@@ -281,10 +359,6 @@ export function getActiveEffects() {
     }
 }
 
-/**
- * Save active effects to chat state
- * @param {Array} effects - Active effects array
- */
 function saveActiveEffects(effects) {
     try {
         const { getChatState, saveChatState } = window.TribunalState || {};
@@ -301,14 +375,9 @@ function saveActiveEffects(effects) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// MESSAGE TICK - Call this on each new message!
+// MESSAGE TICK
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Process a message tick - decrements all active effects
- * Call this from MESSAGE_RECEIVED event handler
- * @returns {object} { expired: [], remaining: [] }
- */
 export function onMessageTick() {
     const activeEffects = getActiveEffects();
     const expired = [];
@@ -325,10 +394,8 @@ export function onMessageTick() {
         }
     }
     
-    // Save remaining effects
     saveActiveEffects(remaining);
     
-    // Process expirations (withdrawals, etc.)
     for (const effect of expired) {
         emitEffectRemoved(effect.id);
         checkWithdrawal(effect.id);
@@ -341,18 +408,9 @@ export function onMessageTick() {
 // APPLY / REMOVE EFFECTS
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Apply a status effect from consuming an item
- * Uses smart lookup: effectId → name match → type fallback
- * 
- * @param {string} itemType - Type of item consumed (for backwards compat)
- * @param {object} options - { item, ... }
- * @returns {object} Result { success, statusId, effect, message }
- */
 export function applyConsumptionEffect(itemType, options = {}) {
     const { item } = options;
     
-    // Use smart lookup
     const effectConfig = findEffectConfig({
         item,
         itemName: item?.name,
@@ -364,7 +422,6 @@ export function applyConsumptionEffect(itemType, options = {}) {
         return { success: false, message: 'No effect for this item' };
     }
     
-    // Handle food/healing items (no status)
     if (!effectConfig.id) {
         return handleHealingItem(effectConfig, options);
     }
@@ -377,7 +434,6 @@ export function applyConsumptionEffect(itemType, options = {}) {
     
     const activeEffects = getActiveEffects();
     
-    // Clear any effects this item clears (from config)
     let clearedEffects = [];
     if (effectConfig.clears && effectConfig.clears.length > 0) {
         for (const clearId of effectConfig.clears) {
@@ -394,19 +450,15 @@ export function applyConsumptionEffect(itemType, options = {}) {
     const duration = effectConfig.duration || effectConfig.messages || 6;
     
     if (existingIdx >= 0) {
-        // Effect already active
         if (effectConfig.stackable && activeEffects[existingIdx].stacks < (effectConfig.maxStacks || 3)) {
-            // Stack it - add stacks AND refresh duration
             activeEffects[existingIdx].stacks++;
             activeEffects[existingIdx].remainingMessages = duration;
             console.log(`[Effects] Stacked ${effectConfig.id} to ${activeEffects[existingIdx].stacks}`);
         } else {
-            // Refresh duration
             activeEffects[existingIdx].remainingMessages = duration;
             console.log(`[Effects] Refreshed ${effectConfig.id} to ${duration} messages`);
         }
     } else {
-        // New effect
         activeEffects.push({
             id: effectConfig.id,
             name: statusData.simpleName || statusData.name,
@@ -419,12 +471,15 @@ export function applyConsumptionEffect(itemType, options = {}) {
     
     saveActiveEffects(activeEffects);
     
-    // Trigger particle effect if configured
+    // ═══════════════════════════════════════════════════════════
+    // TRACK ADDICTION
+    // ═══════════════════════════════════════════════════════════
+    const addictionResult = trackAddiction(item);
+    
     if (effectConfig.particleEffect) {
         triggerParticleEffect(effectConfig.particleEffect);
     }
     
-    // Emit events
     emitEffectApplied(effectConfig.id, statusData);
     for (const cleared of clearedEffects) {
         emitEffectRemoved(cleared);
@@ -437,15 +492,12 @@ export function applyConsumptionEffect(itemType, options = {}) {
         remainingMessages: duration,
         electrochemistryQuote: effectConfig.electrochemistryQuote,
         clearedEffects: clearedEffects,
+        addiction: addictionResult,
         message: `${statusData.name} applied`
     };
 }
 
-/**
- * Handle healing items (food, medicine)
- */
 function handleHealingItem(effectConfig, options) {
-    // Clear any effects this item clears
     if (effectConfig && effectConfig.clears && effectConfig.clears.length > 0) {
         const activeEffects = getActiveEffects();
         let clearedAny = false;
@@ -460,7 +512,6 @@ function handleHealingItem(effectConfig, options) {
         if (clearedAny) saveActiveEffects(activeEffects);
     }
     
-    // TODO: Hook into vitals system for actual healing
     const healed = [];
     
     if (effectConfig?.healHealth) {
@@ -478,10 +529,6 @@ function handleHealingItem(effectConfig, options) {
     };
 }
 
-/**
- * Remove a status effect manually
- * @param {string} statusId - Status to remove
- */
 export function removeEffect(statusId) {
     const activeEffects = getActiveEffects();
     const filtered = activeEffects.filter(e => e.id !== statusId);
@@ -493,27 +540,19 @@ export function removeEffect(statusId) {
     }
 }
 
-/**
- * Check if withdrawal should apply when effect ends
- * Uses WITHDRAWAL_EFFECTS config
- */
 function checkWithdrawal(expiredStatusId) {
     const config = WITHDRAWAL_EFFECTS[expiredStatusId];
     if (!config) return;
     
-    // Check if this has an addiction threshold
     if (config.addictionCheck && !config.withdrawalId) {
         const addictions = getAddictions();
         const threshold = config.addictionThreshold || 3;
-        // Check relevant addiction type
         if (addictions?.cigarette?.level >= threshold || addictions?.nicotine?.level >= threshold) {
             console.log(`[Effects] ${config.quote}`);
-            // Could apply a craving status here in the future
         }
         return;
     }
     
-    // Apply withdrawal effect
     if (config.withdrawalId) {
         applyWithdrawalEffect(config.withdrawalId, {
             messages: config.duration || config.messages || 8,
@@ -522,9 +561,6 @@ function checkWithdrawal(expiredStatusId) {
     }
 }
 
-/**
- * Apply a withdrawal/comedown effect (message-based)
- */
 function applyWithdrawalEffect(statusId, options = {}) {
     const status = STATUS_EFFECTS[statusId];
     
@@ -536,7 +572,6 @@ function applyWithdrawalEffect(statusId, options = {}) {
     const activeEffects = getActiveEffects();
     const duration = options.messages || 8;
     
-    // Don't stack withdrawal - just apply/refresh
     const existingIdx = activeEffects.findIndex(e => e.id === statusId);
     if (existingIdx >= 0) {
         activeEffects[existingIdx].remainingMessages = duration;
@@ -553,7 +588,6 @@ function applyWithdrawalEffect(statusId, options = {}) {
     saveActiveEffects(activeEffects);
     emitEffectApplied(statusId, status);
     
-    // Toast the withdrawal
     if (typeof toastr !== 'undefined' && options.quote) {
         toastr.warning(options.quote, status.name, { timeOut: 4000 });
     }
@@ -561,9 +595,6 @@ function applyWithdrawalEffect(statusId, options = {}) {
     console.log(`[Effects] Withdrawal applied: ${statusId} for ${duration} messages`);
 }
 
-/**
- * Get addiction levels from inventory state
- */
 function getAddictions() {
     try {
         const { getChatState } = window.TribunalState || {};
@@ -579,10 +610,6 @@ function getAddictions() {
 // SKILL MODIFIER CALCULATION
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Get total skill modifiers from all active effects
- * @returns {object} { skillId: modifier, ... }
- */
 export function getActiveSkillModifiers() {
     const activeEffects = getActiveEffects();
     const modifiers = {};
@@ -591,12 +618,10 @@ export function getActiveSkillModifiers() {
         const status = STATUS_EFFECTS[effect.id];
         if (!status) continue;
         
-        // Apply boosts (+1 per stack)
         for (const skill of (status.boosts || [])) {
             modifiers[skill] = (modifiers[skill] || 0) + (effect.stacks || 1);
         }
         
-        // Apply debuffs (-1 per stack)
         for (const skill of (status.debuffs || [])) {
             modifiers[skill] = (modifiers[skill] || 0) - (effect.stacks || 1);
         }
@@ -605,20 +630,11 @@ export function getActiveSkillModifiers() {
     return modifiers;
 }
 
-/**
- * Get modifier for a specific skill
- * @param {string} skillId - Skill to check
- * @returns {number} Total modifier (can be negative)
- */
 export function getSkillModifier(skillId) {
     const mods = getActiveSkillModifiers();
     return mods[skillId] || 0;
 }
 
-/**
- * Get list of active status IDs (for ancient voice checks, etc.)
- * @returns {string[]} Array of active status IDs
- */
 export function getActiveStatusIds() {
     return getActiveEffects().map(e => e.id);
 }
@@ -627,18 +643,12 @@ export function getActiveStatusIds() {
 // PARTICLE EFFECTS
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Trigger a visual particle effect
- * @param {string} effectType - smoke, drunk, stimulant, pale
- */
 function triggerParticleEffect(effectType) {
-    // Use the new condition effects system (separate from weather)
     if (window.TribunalConditionFX?.triggerConsumption) {
         window.TribunalConditionFX.triggerConsumption(effectType);
         return;
     }
     
-    // Fallback: dispatch event for other systems to handle
     window.dispatchEvent(new CustomEvent('tribunal:particle', {
         detail: { effect: effectType }
     }));
@@ -664,11 +674,6 @@ function emitEffectRemoved(statusId) {
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Initialize effects system - just logs active effects
- * (No timers needed - we use message ticks now!)
- * Call this on extension load / chat change
- */
 export function initEffectTimers() {
     const activeEffects = getActiveEffects();
     
@@ -681,9 +686,6 @@ export function initEffectTimers() {
     }
 }
 
-/**
- * Get effect preview text for UI
- */
 export function getEffectPreviewText(statusId) {
     const effects = getActiveEffects();
     const effect = effects.find(e => e.id === statusId);
@@ -712,5 +714,7 @@ export default {
     getActiveStatusIds,
     onMessageTick,
     initEffectTimers,
-    getEffectPreviewText
+    getEffectPreviewText,
+    getAddictionTypeForItem,
+    trackAddiction
 };
