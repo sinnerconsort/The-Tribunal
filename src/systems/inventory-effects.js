@@ -8,6 +8,11 @@
  * - Progress only when actively chatting
  * - Doesn't punish stepping away
  * - More like DE's action-based time
+ * 
+ * SMART LOOKUP (v2):
+ * 1. item.effectId (AI-assigned at generation)
+ * 2. Name pattern matching (fuzzy)
+ * 3. Type fallback
  */
 
 import { STATUS_EFFECTS } from '../data/statuses.js';
@@ -17,30 +22,33 @@ import { STATUS_EFFECTS } from '../data/statuses.js';
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Maps inventory item types to status effects
+ * Maps inventory item types AND effect IDs to status effects
  * Duration in MESSAGE COUNT (not time!)
  */
 export const CONSUMPTION_EFFECTS = {
+    // ─────────────────────────────────────────────────────────────
+    // BY ITEM TYPE (original behavior)
+    // ─────────────────────────────────────────────────────────────
     cigarette: {
         id: 'nicotine_rush',
-        duration: 4,              // 4 messages
+        duration: 4,
         stackable: false,
         particleEffect: 'smoke',
         electrochemistryQuote: "Oh yes. The sweet kiss of nicotine. Your old friend.",
-        clears: []                // Doesn't clear anything
+        clears: []
     },
     alcohol: {
         id: 'revacholian_courage',
-        duration: 8,              // 8 messages
+        duration: 8,
         stackable: true,
         maxStacks: 3,
         particleEffect: 'drunk',
         electrochemistryQuote: "The warmth spreads through you. This is what living feels like.",
-        clears: ['volumetric_shit_compressor']  // Clears hangover
+        clears: ['volumetric_shit_compressor']
     },
     beer: {
         id: 'revacholian_courage',
-        duration: 6,              // Weaker than hard liquor
+        duration: 6,
         stackable: true,
         maxStacks: 3,
         particleEffect: 'drunk',
@@ -53,7 +61,7 @@ export const CONSUMPTION_EFFECTS = {
         stackable: false,
         particleEffect: 'stimulant',
         electrochemistryQuote: "NEURONS FIRING. Time dilates. You are *awake*.",
-        clears: ['waste_land']    // Clears exhaustion
+        clears: ['waste_land']
     },
     stimulant: {
         id: 'pyrholidon',
@@ -65,21 +73,21 @@ export const CONSUMPTION_EFFECTS = {
     },
     pyrholidon: {
         id: 'pyrholidon',
-        duration: 8,              // Stronger, longer
+        duration: 8,
         stackable: false,
         particleEffect: 'pale',
         electrochemistryQuote: "Reality... bends. The Pale whispers at the edges.",
         clears: ['waste_land'],
-        sideEffect: 'the_pale',   // Risk of Pale at high use
-        sideEffectChance: 0.15    // 15% chance
+        sideEffect: 'the_pale',
+        sideEffectChance: 0.15
     },
     coffee: {
-        id: 'nicotine_rush', // Similar focus effect
-        duration: 3,               // Short boost
+        id: 'nicotine_rush',
+        duration: 3,
         stackable: false,
         particleEffect: null,
         electrochemistryQuote: "Caffeine. The socially acceptable stimulant.",
-        clears: ['waste_land']     // Coffee clears exhaustion!
+        clears: ['waste_land']
     },
     food: {
         id: null,
@@ -94,9 +102,141 @@ export const CONSUMPTION_EFFECTS = {
         healHealth: 2,
         particleEffect: null,
         electrochemistryQuote: "Chemistry doing its job. The body responds.",
-        clears: ['finger_on_the_eject_button']  // Clears wounded
+        clears: ['finger_on_the_eject_button']
+    },
+    
+    // ─────────────────────────────────────────────────────────────
+    // BY EFFECT ID (for AI-assigned item.effectId)
+    // ─────────────────────────────────────────────────────────────
+    revacholian_courage: {
+        id: 'revacholian_courage',
+        duration: 6,
+        stackable: true,
+        maxStacks: 3,
+        particleEffect: 'drunk',
+        electrochemistryQuote: "The warmth spreads through you. This is what living feels like.",
+        clears: ['volumetric_shit_compressor']
+    },
+    nicotine_rush: {
+        id: 'nicotine_rush',
+        duration: 4,
+        stackable: false,
+        particleEffect: 'smoke',
+        electrochemistryQuote: "Oh yes. The sweet kiss of nicotine. Your old friend.",
+        clears: []
+    },
+    speed_freaks_delight: {
+        id: 'speed_freaks_delight',
+        duration: 6,
+        stackable: false,
+        particleEffect: 'stimulant',
+        electrochemistryQuote: "Your heart hammers. The world slows down. You are UNSTOPPABLE.",
+        clears: ['waste_land']
+    },
+    satiated: {
+        id: 'satiated',
+        duration: 8,
+        healHealth: 1,
+        stackable: false,
+        particleEffect: null,
+        electrochemistryQuote: "Sustenance. Your body needed this.",
+        clears: []
+    },
+    medicated: {
+        id: 'medicated',
+        duration: 6,
+        healHealth: 2,
+        stackable: false,
+        particleEffect: null,
+        electrochemistryQuote: "The pain fades. Modern chemistry at work.",
+        clears: ['finger_on_the_eject_button']
+    },
+    the_expression: {
+        id: 'the_expression',
+        duration: 10,
+        stackable: false,
+        particleEffect: 'pale',
+        electrochemistryQuote: "Reality fractures. The pale whispers secrets only you can hear.",
+        clears: []
     }
 };
+
+// ═══════════════════════════════════════════════════════════════
+// SMART LOOKUP - Name patterns and type fallbacks
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Name patterns for fuzzy matching (priority 2)
+ */
+const NAME_PATTERNS = {
+    revacholian_courage: /beer|wine|whiskey|whisky|vodka|rum|booze|liquor|spirits|ale|mead|commodore|brandy/i,
+    nicotine_rush: /cigarette|cigar|cig|smoke|tobacco|astra/i,
+    pyrholidon: /pyrholidon/i,
+    speed_freaks_delight: /speed|amphetamine|upper|stimulant/i,
+    the_expression: /hallucinogen|lsd|acid|mushroom|expression/i,
+    satiated: /food|sandwich|bread|meal|snack|fruit|meat|soup|cheese/i,
+    medicated: /medicine|pill|painkiller|aspirin|bandage|medkit|nosaphed/i
+};
+
+/**
+ * Type fallbacks (priority 3)
+ */
+const TYPE_FALLBACKS = {
+    alcohol: 'revacholian_courage',
+    cigarette: 'nicotine_rush',
+    drug: 'pyrholidon',
+    stimulant: 'speed_freaks_delight',
+    food: 'satiated',
+    medicine: 'medicated'
+};
+
+/**
+ * Find effect config using smart lookup:
+ * 1. item.effectId (AI-assigned at generation)
+ * 2. Name pattern matching (fuzzy)
+ * 3. Direct type lookup
+ * 4. Type fallback to effect ID
+ * 
+ * @param {object} options - { item, itemName, itemType }
+ * @returns {object|null} Effect config or null
+ */
+function findEffectConfig(options = {}) {
+    const { item } = options;
+    const itemName = options.itemName || item?.name || '';
+    const itemType = options.itemType || item?.type || '';
+    
+    // Priority 1: Explicit effectId from item (AI-assigned)
+    const effectId = item?.effectId;
+    if (effectId && effectId !== 'none' && CONSUMPTION_EFFECTS[effectId]) {
+        console.log('[Effects] Using effectId:', effectId);
+        return CONSUMPTION_EFFECTS[effectId];
+    }
+    
+    // Priority 2: Name pattern matching
+    const lowerName = itemName.toLowerCase();
+    for (const [id, pattern] of Object.entries(NAME_PATTERNS)) {
+        if (pattern.test(lowerName)) {
+            console.log('[Effects] Matched by name pattern:', id);
+            return CONSUMPTION_EFFECTS[id];
+        }
+    }
+    
+    // Priority 3: Direct type lookup (original behavior)
+    if (itemType && CONSUMPTION_EFFECTS[itemType]) {
+        console.log('[Effects] Using item type:', itemType);
+        return CONSUMPTION_EFFECTS[itemType];
+    }
+    
+    // Priority 4: Type fallback to effect ID
+    const fallbackId = TYPE_FALLBACKS[itemType];
+    if (fallbackId && CONSUMPTION_EFFECTS[fallbackId]) {
+        console.log('[Effects] Using type fallback:', fallbackId);
+        return CONSUMPTION_EFFECTS[fallbackId];
+    }
+    
+    console.log('[Effects] No effect config found for:', itemName, 'type:', itemType);
+    return null;
+}
 
 /**
  * Withdrawal mappings - what happens when effect expires
@@ -104,16 +244,15 @@ export const CONSUMPTION_EFFECTS = {
 export const WITHDRAWAL_EFFECTS = {
     revacholian_courage: {
         withdrawalId: 'volumetric_shit_compressor',
-        duration: 10,             // 10 messages of hangover
+        duration: 10,
         quote: "The bill comes due. Your body remembers every drink."
     },
     pyrholidon: {
         withdrawalId: 'waste_land',
-        duration: 8,              // 8 messages of exhaustion
+        duration: 8,
         quote: "The high fades. Reality crashes back, heavier than before."
     },
     nicotine_rush: {
-        // Only triggers at high addiction
         withdrawalId: null,
         addictionThreshold: 3,
         quote: "Your fingers twitch. The craving gnaws."
@@ -126,7 +265,7 @@ export const WITHDRAWAL_EFFECTS = {
 
 /**
  * Get active effects from chat state
- * Each effect now has: { statusId, remainingMessages, stacks, source }
+ * Each effect now has: { id, name, remainingMessages, stacks, source }
  * @returns {Array} Active effect objects
  */
 export function getActiveEffects() {
@@ -204,26 +343,35 @@ export function onMessageTick() {
 
 /**
  * Apply a status effect from consuming an item
- * @param {string} itemType - Type of item consumed (cigarette, alcohol, etc.)
- * @param {object} options - Additional options
+ * Uses smart lookup: effectId → name match → type fallback
+ * 
+ * @param {string} itemType - Type of item consumed (for backwards compat)
+ * @param {object} options - { item, ... }
  * @returns {object} Result { success, statusId, effect, message }
  */
 export function applyConsumptionEffect(itemType, options = {}) {
-    const effectConfig = CONSUMPTION_EFFECTS[itemType];
+    const { item } = options;
+    
+    // Use smart lookup
+    const effectConfig = findEffectConfig({
+        item,
+        itemName: item?.name,
+        itemType: itemType
+    });
     
     if (!effectConfig) {
-        console.log(`[Effects] No effect config for item type: ${itemType}`);
+        console.log(`[Effects] No effect config for: ${item?.name || itemType}`);
         return { success: false, message: 'No effect for this item' };
     }
     
     // Handle food/healing items (no status)
-   if (!effectConfig.id) {
-    return handleHealingItem(effectConfig, options);
-}
+    if (!effectConfig.id) {
+        return handleHealingItem(effectConfig, options);
+    }
 
-const statusData = STATUS_EFFECTS[effectConfig.id];
+    const statusData = STATUS_EFFECTS[effectConfig.id];
     if (!statusData) {
-        console.warn(`[Effects] Status not found: ${effectConfig.statusId}`);
+        console.warn(`[Effects] Status not found: ${effectConfig.id}`);
         return { success: false, message: 'Status effect not found' };
     }
     
@@ -242,8 +390,8 @@ const statusData = STATUS_EFFECTS[effectConfig.id];
         }
     }
     
-    const existingIdx = activeEffects.findIndex(e => e.id === effectConfig.statusId);
-    const duration = effectConfig.duration || effectConfig.messages || 6; // Default 6 messages
+    const existingIdx = activeEffects.findIndex(e => e.id === effectConfig.id);
+    const duration = effectConfig.duration || effectConfig.messages || 6;
     
     if (existingIdx >= 0) {
         // Effect already active
@@ -251,22 +399,22 @@ const statusData = STATUS_EFFECTS[effectConfig.id];
             // Stack it - add stacks AND refresh duration
             activeEffects[existingIdx].stacks++;
             activeEffects[existingIdx].remainingMessages = duration;
-            console.log(`[Effects] Stacked ${effectConfig.statusId} to ${activeEffects[existingIdx].stacks}`);
+            console.log(`[Effects] Stacked ${effectConfig.id} to ${activeEffects[existingIdx].stacks}`);
         } else {
             // Refresh duration
             activeEffects[existingIdx].remainingMessages = duration;
-            console.log(`[Effects] Refreshed ${effectConfig.statusId} to ${duration} messages`);
+            console.log(`[Effects] Refreshed ${effectConfig.id} to ${duration} messages`);
         }
     } else {
         // New effect
         activeEffects.push({
-    id: effectConfig.id,
-    name: statusData.simpleName || statusData.name,  // ADD THIS
-    remainingMessages: duration,
-    stacks: 1,
-    source: 'consumption'
+            id: effectConfig.id,
+            name: statusData.simpleName || statusData.name,
+            remainingMessages: duration,
+            stacks: 1,
+            source: 'consumption'
         });
-        console.log(`[Effects] Applied ${effectConfig.statusId} for ${duration} messages`);
+        console.log(`[Effects] Applied ${effectConfig.id} for ${duration} messages`);
     }
     
     saveActiveEffects(activeEffects);
@@ -277,14 +425,14 @@ const statusData = STATUS_EFFECTS[effectConfig.id];
     }
     
     // Emit events
-    emitEffectApplied(effectConfig.statusId, statusData);
+    emitEffectApplied(effectConfig.id, statusData);
     for (const cleared of clearedEffects) {
         emitEffectRemoved(cleared);
     }
     
     return {
         success: true,
-        id: effectConfig.statusId,
+        statusId: effectConfig.id,
         effect: statusData,
         remainingMessages: duration,
         electrochemistryQuote: effectConfig.electrochemistryQuote,
@@ -298,7 +446,7 @@ const statusData = STATUS_EFFECTS[effectConfig.id];
  */
 function handleHealingItem(effectConfig, options) {
     // Clear any effects this item clears
-    if (effectConfig.clears && effectConfig.clears.length > 0) {
+    if (effectConfig && effectConfig.clears && effectConfig.clears.length > 0) {
         const activeEffects = getActiveEffects();
         let clearedAny = false;
         for (const clearId of effectConfig.clears) {
@@ -315,10 +463,10 @@ function handleHealingItem(effectConfig, options) {
     // TODO: Hook into vitals system for actual healing
     const healed = [];
     
-    if (effectConfig.healHealth) {
+    if (effectConfig?.healHealth) {
         healed.push(`+${effectConfig.healHealth} Health`);
     }
-    if (effectConfig.healMorale) {
+    if (effectConfig?.healMorale) {
         healed.push(`+${effectConfig.healMorale} Morale`);
     }
     
@@ -395,6 +543,7 @@ function applyWithdrawalEffect(statusId, options = {}) {
     } else {
         activeEffects.push({
             id: statusId,
+            name: status.simpleName || status.name,
             remainingMessages: duration,
             stacks: 1,
             source: 'withdrawal'
