@@ -6,24 +6,7 @@
  * Your current Font Awesome icons stay exactly as they are - we're just adding
  * transform/filter animations to them based on game state.
  * 
- * Toggle these classes via JS when conditions are met:
- * 
- * TABS:
- *   .voices-generating    - Brain "thinking" animation
- *   .voices-ready        - New voices waiting to be seen
- *   .thought-ready       - Thought ready to internalize
- *   .thought-discovered  - New thought just discovered
- *   .health-low          - Health below 30%
- *   .health-critical     - Health below 15%
- *   .morale-low          - Morale below 30%
- *   .condition-active    - Has active status effects
- *   .case-updated        - New case activity
- *   .item-added          - Item just added to inventory
- * 
- * FABS:
- *   .has-notification    - Something needs attention
- *   .urgent              - Critical state (health/morale low)
- *   .scanning            - Investigation in progress
+ * Classes are toggled automatically by contextual-animations.js
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -240,6 +223,35 @@
 .ie-tab[data-tab="inventory"].low-supplies i {
     animation: gentle-pulse 2.5s ease-in-out infinite;
     filter: saturate(0.7);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB ICON ANIMATIONS - SETTINGS (Cog)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Settings tab active - slow spin */
+.ie-tab[data-tab="settings"].ie-tab-active i {
+    animation: spin-slow 4s linear infinite;
+}
+
+@keyframes spin-slow {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB ICON ANIMATIONS - PROFILES (ID Card)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Profiles tab active - gentle sway like hanging badge */
+.ie-tab[data-tab="profiles"].ie-tab-active i {
+    animation: badge-sway 2s ease-in-out infinite;
+    transform-origin: top center;
+}
+
+@keyframes badge-sway {
+    0%, 100% { transform: rotate(-3deg); }
+    50% { transform: rotate(3deg); }
 }
 
 /* ═══════════════════════════════════════════════════════════════
