@@ -50,7 +50,7 @@ import { initFidgetPatterns } from './src/systems/fidget-patterns.js';
 import { initFidgetCommentary } from './src/systems/fidget-commentary.js';
 import { initInventoryTemplateHandlers } from './src/ui/inventory-template.js';
 import { initAutoConsume } from './src/systems/auto-consume.js';
-import './ui/contextual-animations.js';
+import './src/ui/contextual-animations.js';
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Weather System (lazy loaded - see init())
 // ═══════════════════════════════════════════════════════════════
