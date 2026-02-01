@@ -50,7 +50,7 @@ import { initFidgetPatterns } from './src/systems/fidget-patterns.js';
 import { initFidgetCommentary } from './src/systems/fidget-commentary.js';
 import { initInventoryTemplateHandlers } from './src/ui/inventory-template.js';
 import { initAutoConsume } from './src/systems/auto-consume.js';
-
+import { TabAnimations, FabAnimations } from '.src/ui/contextual-animations.js';
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Weather System (lazy loaded - see init())
 // ═══════════════════════════════════════════════════════════════
@@ -842,6 +842,7 @@ async function init() {
     initFidgetCommentary();
     initInventoryTemplateHandlers();
     initAutoConsume();
+    initContextualAnimations();
     // Lazy load extractor
 try {
     const extractor = await import('./src/systems/ai-extractor.js');
