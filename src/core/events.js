@@ -16,6 +16,9 @@ import {
 } from './persistence.js';
 import { incrementMessageCount, getVitals } from './state.js';
 
+// Import vitals extraction for HP/Morale parsing from AI messages
+import { processMessageVitals } from '../systems/vitals-extraction.js';
+
 // Import investigation module for scene context updates
 import { updateSceneContext } from '../systems/investigation.js';
 
@@ -356,6 +359,27 @@ async function onMessageReceived(messageId) {
         }
     } catch (error) {
         console.error('[Tribunal] Failed to update scene context:', error);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // VITALS EXTRACTION - Auto-update HP/Morale from AI text
+    // Detects "you take damage", "you heal", etc.
+    // ═══════════════════════════════════════════════════════════════
+    try {
+        if (messageText) {
+            const vitalsResult = processMessageVitals(messageText);
+            if (vitalsResult.applied) {
+                console.log('[Tribunal] Vitals updated:', vitalsResult.events);
+                if (vitalsResult.healthDelta !== 0) {
+                    console.log(`[Tribunal] Health ${vitalsResult.healthDelta > 0 ? '+' : ''}${vitalsResult.healthDelta}`);
+                }
+                if (vitalsResult.moraleDelta !== 0) {
+                    console.log(`[Tribunal] Morale ${vitalsResult.moraleDelta > 0 ? '+' : ''}${vitalsResult.moraleDelta}`);
+                }
+            }
+        }
+    } catch (error) {
+        console.log('[Tribunal] Vitals extraction skipped:', error.message);
     }
     
     // Track themes in message (fills theme meters)
