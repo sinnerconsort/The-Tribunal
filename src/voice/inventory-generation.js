@@ -7,6 +7,9 @@
  * STASH HISTORY - Items are cached forever
  * - First generation: API call, save to stash
  * - Re-add same item: Instant from cache, no API
+ * 
+ * FIXED: parseItems() now handles parentheses correctly
+ * "Pack of Astras (3x)" stays as ONE item
  */
 
 import { callAPIWithTokens } from './api-helpers.js';
@@ -63,6 +66,138 @@ const VALID_SKILLS = [
     'endurance', 'pain_threshold', 'physical_instrument', 'electrochemistry', 'shivers', 'half_light',
     'hand_eye_coordination', 'perception', 'reaction_speed', 'savoir_faire', 'interfacing', 'composure'
 ];
+
+// ═══════════════════════════════════════════════════════════════
+// FIXED: PARENTHESIS-AWARE ITEM PARSER
+// "Pack of Astras (3x), Lighter" → ["Pack of Astras (3x)", "Lighter"]
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Parse item strings with parenthesis-aware splitting
+ * @param {string} itemString - Raw item list string
+ * @returns {string[]} Array of cleaned item names
+ */
+function parseItems(itemString) {
+    if (!itemString || typeof itemString !== 'string') return [];
+    
+    let processed = itemString.trim();
+    if (processed === '' || processed.toLowerCase() === 'none') return [];
+    
+    // Strip wrapping brackets/quotes
+    while (
+        (processed.startsWith('[') && processed.endsWith(']')) ||
+        (processed.startsWith('{') && processed.endsWith('}')) ||
+        (processed.startsWith('"') && processed.endsWith('"')) ||
+        (processed.startsWith("'") && processed.endsWith("'"))
+    ) {
+        processed = processed.slice(1, -1).trim();
+        if (processed === '' || processed.toLowerCase() === 'none') return [];
+    }
+    
+    // Convert newlines to commas (outside parentheses)
+    let withCommas = '';
+    let parenDepth = 0;
+    for (let i = 0; i < processed.length; i++) {
+        const char = processed[i];
+        if (char === '(') {
+            parenDepth++;
+            withCommas += char;
+        } else if (char === ')') {
+            parenDepth = Math.max(0, parenDepth - 1);
+            withCommas += char;
+        } else if ((char === '\n' || char === '\r') && parenDepth === 0) {
+            if (withCommas[withCommas.length - 1] !== ',') {
+                withCommas += ',';
+            }
+        } else {
+            withCommas += char;
+        }
+    }
+    processed = withCommas;
+    
+    // Strip markdown: **bold**, *italic*, `code`
+    processed = processed
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\*(.+?)\*/g, '$1')
+        .replace(/`(.+?)`/g, '$1');
+    
+    // Smart comma splitting - only split outside parentheses
+    const items = [];
+    let currentItem = '';
+    parenDepth = 0;
+    
+    for (let i = 0; i < processed.length; i++) {
+        const char = processed[i];
+        
+        if (char === '(') {
+            parenDepth++;
+            currentItem += char;
+        } else if (char === ')') {
+            parenDepth = Math.max(0, parenDepth - 1);
+            currentItem += char;
+        } else if ((char === ',' || char === '+' || char === '|' || char === ';') && parenDepth === 0) {
+            // Check for decimal comma (1,000)
+            const prevChar = i > 0 ? processed[i - 1] : '';
+            const nextChar = i < processed.length - 1 ? processed[i + 1] : '';
+            const isDecimalComma = char === ',' && /\d/.test(prevChar) && /\d/.test(nextChar);
+            
+            if (isDecimalComma) {
+                currentItem += char;
+            } else {
+                const cleaned = cleanItemString(currentItem);
+                if (cleaned) items.push(cleaned);
+                currentItem = '';
+            }
+        } else if (char === '&' && parenDepth === 0) {
+            const prevChar = i > 0 ? processed[i - 1] : '';
+            const nextChar = i < processed.length - 1 ? processed[i + 1] : '';
+            if (prevChar === ' ' && nextChar === ' ') {
+                const cleaned = cleanItemString(currentItem);
+                if (cleaned) items.push(cleaned);
+                currentItem = '';
+            } else {
+                currentItem += char;
+            }
+        } else {
+            currentItem += char;
+        }
+    }
+    
+    // Don't forget last item
+    const cleaned = cleanItemString(currentItem);
+    if (cleaned) items.push(cleaned);
+    
+    return items;
+}
+
+/**
+ * Clean a single item string (helper for parseItems)
+ */
+function cleanItemString(item) {
+    if (!item || typeof item !== 'string') return null;
+    
+    let cleaned = item.trim();
+    if (cleaned === '' || cleaned.toLowerCase() === 'none') return null;
+    
+    // Strip list markers
+    cleaned = cleaned.replace(/^[-•*]\s+/, '');
+    cleaned = cleaned.replace(/^\d+\.\s+/, '');
+    cleaned = cleaned.replace(/^[a-z]\)\s+/i, '');
+    
+    // Strip wrapping quotes
+    if ((cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+        (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+        cleaned = cleaned.slice(1, -1).trim();
+    }
+    
+    // Normalize whitespace
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    
+    if (cleaned === '' || cleaned.length < 2) return null;
+    
+    // Capitalize first letter
+    return cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
+}
 
 // ═══════════════════════════════════════════════════════════════
 // STASH KEY NORMALIZATION (mirrors wardrobe key)
@@ -321,16 +456,38 @@ export function quickExtractItemsWithQuantity(text) {
 function normalizeItemName(raw) {
     if (!raw) return null;
     
-    let cleaned = raw
-        .trim()
-        .replace(/^["'\[\(]+|["'\]\)\.]+$/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
+    let cleaned = raw.trim();
+    
+    // Remove surrounding punctuation and brackets
+    cleaned = cleaned.replace(/^["'\[\(\{<]+|["'\]\)\}>.,;:!?]+$/g, '');
+    
+    // Strip markdown: **bold**, *italic*, `code`
+    cleaned = cleaned
+        .replace(/\*\*(.+?)\*\*/g, '$1')
+        .replace(/\*(.+?)\*/g, '$1')
+        .replace(/`(.+?)`/g, '$1');
+    
+    // Strip list markers: "- item", "1. item"
+    cleaned = cleaned.replace(/^[-•*]\s+/, '');
+    cleaned = cleaned.replace(/^\d+\.\s+/, '');
+    
+    // Normalize whitespace
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
     
     if (cleaned.length < 2) return null;
     
     // Remove leading quantity indicators
     cleaned = cleaned.replace(/^\d+x?\s*/i, '');
+    
+    // Don't accept non-items
+    const invalidPatterns = [
+        /^(the|a|an|some|his|her|their|your|my)$/i,
+        /^(it|this|that|these|those)$/i,
+        /^(and|or|but|with|from|to|for)$/i,
+    ];
+    if (invalidPatterns.some(p => p.test(cleaned))) {
+        return null;
+    }
     
     // Capitalize each word
     return cleaned
@@ -898,5 +1055,6 @@ export default {
     extractFromMessage,
     processMessageForInventory,
     generateSingleItem,
-    generateMultipleItems
+    generateMultipleItems,
+    parseItems  // Exported for testing/reuse
 };
