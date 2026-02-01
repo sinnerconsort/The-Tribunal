@@ -29,6 +29,7 @@ import {
 } from '../systems/cabinet.js';
 import { handleGenerateThought } from '../voice/thought-generation.js';
 import { showToast } from './toasts.js';
+import { FALLBACK_ICON } from '../data/thoughts.js';
 
 // Import status system for special effect application
 import { setStatusByUIName, refreshStatusFromState } from './status-handlers.js';
@@ -653,7 +654,7 @@ function renderDiscoveredContent() {
     content.innerHTML = `
         <div class="cabinet-card-expanded" style="--card-bg: ${color.bg}; --card-border: ${color.border};">
             <div class="cabinet-card-header">
-                <span class="cabinet-card-icon">${thought?.icon || '💭'}</span>
+                <span class="cabinet-card-icon">${thought?.icon || FALLBACK_ICON}</span>
                 <span class="cabinet-card-title">${thought?.name || 'Unknown'}</span>
             </div>
             
@@ -718,7 +719,7 @@ function renderInternalizedTabs() {
             <div class="cabinet-tab ${isActive ? 'active' : ''}" 
                  data-thought-id="${thought.id}"
                  style="--tab-bg: ${color.bg}; --tab-border: ${color.border}; --tab-index: ${index};">
-                <span class="cabinet-tab-icon">${thought.icon || '💭'}</span>
+                <span class="cabinet-tab-icon">${thought.icon || FALLBACK_ICON}</span>
                 <span class="cabinet-tab-name">${truncateText(thought.name || '???', 12)}</span>
             </div>
         `;
@@ -766,7 +767,7 @@ function renderInternalizedContent() {
     content.innerHTML = `
         <div class="cabinet-card-expanded" style="--card-bg: ${color.bg}; --card-border: ${color.border};">
             <div class="cabinet-card-header">
-                <span class="cabinet-card-icon">${thought?.icon || '💭'}</span>
+                <span class="cabinet-card-icon">${thought?.icon || FALLBACK_ICON}</span>
                 <span class="cabinet-card-title">${thought?.name || 'Unknown'}</span>
             </div>
             
