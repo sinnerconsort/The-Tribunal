@@ -175,6 +175,10 @@ export const INVENTORY_TAB_HTML = `
                             <span class="radio-knob-label">POWER</span>
                         </div>
                         <div class="radio-knob-group">
+                            <div class="radio-knob" id="ie-radio-volume"><div class="radio-knob-indicator" style="transform: rotate(0deg);"></div></div>
+                            <span class="radio-knob-label">VOL</span>
+                        </div>
+                        <div class="radio-knob-group">
                             <div class="radio-knob radio-tuner" id="ie-radio-tuner"><div class="radio-knob-indicator" style="transform: rotate(0deg);"></div></div>
                             <span class="radio-knob-label">TUNE</span>
                         </div>
