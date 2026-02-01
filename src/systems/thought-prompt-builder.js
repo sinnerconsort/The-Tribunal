@@ -4,10 +4,10 @@
  * Builds prompts for AI to generate Disco Elysium-style thoughts
  * dynamically based on persona, themes, and chat context.
  * 
- * @version 4.2.0 - Added pronoun support to prevent misgendering from narrative context
+ * @version 4.3.0 - Theme-based Lucide icons instead of AI emojis
  */
 
-import { THEMES, getTopThemes } from '../data/thoughts.js';
+import { THEMES, getTopThemes, THEME_ICONS, FALLBACK_ICON } from '../data/thoughts.js';
 import { getPersona, getThoughtCabinet } from '../core/state.js';
 import { getContext } from '../../../../../extensions.js';
 
@@ -202,7 +202,7 @@ function formatPronounGuidance(pronouns) {
  */
 function buildSystemPrompt(perspective, themes, personaContext, existingThoughts, playerPronouns = 'they/them') {
     const themeList = themes.length > 0
-        ? themes.map(t => `- **${t.name}** (${t.icon}): intensity ${t.count}/10`).join('\n')
+        ? themes.map(t => `- **${t.name}**: intensity ${t.count}/10`).join('\n')
         : '- No strong themes detected yet - infer from context';
     
     const existingList = existingThoughts.length > 0
@@ -211,6 +211,7 @@ function buildSystemPrompt(perspective, themes, personaContext, existingThoughts
     
     const formattedPronouns = formatPronounGuidance(playerPronouns);
     
+    // NOTE: We no longer ask for "icon" in the JSON since we derive it from theme
     return `You are the internal voice generator for The Tribunal, a Disco Elysium-inspired system.
 
 ## YOUR TASK
@@ -221,129 +222,68 @@ ${perspective.description}
 
 ${personaContext ? `**Who they are:** ${personaContext}` : '**No persona context provided** - generate something that fits the narrative.'}
 
-## CRITICAL - PLAYER PRONOUNS
-The player uses **${formattedPronouns}** pronouns. When your thought addresses the player (the "you" being spoken to), use these pronouns consistently. Do NOT infer different pronouns from characters in the chat or narrative context - the player is distinct from any characters they may be roleplaying with or observing.
+**CRITICAL - PLAYER PRONOUNS: Use ${formattedPronouns} when addressing the player. Do not infer pronouns from narrative context.**
 
-## FRAMING RULES
+## FRAMING
 ${perspective.framing}
 Example: ${perspective.example}
 
-## CURRENT STORY THEMES
-These themes have emerged from the ongoing story (pick one that fits, or infer from context):
+## ACTIVE THEMES
 ${themeList}
-
-Available theme IDs: ${Object.keys(THEMES).join(', ')}
 ${existingList}
 
-## THOUGHT STRUCTURE
-Generate a thought with ALL of these fields:
-
-1. **name**: Short, evocative, slightly absurd (2-5 words in ALL CAPS style)
-   Examples: "VOLUMETRIC SHIT COMPRESSOR", "THE FIFTEENTH INDOTRIBE", "HOMO-SEXUAL UNDERGROUND", "ACTUAL ART DEGREE"
-
-2. **icon**: Single emoji that captures the vibe
-
-3. **theme**: One theme ID from: ${Object.keys(THEMES).join(', ')}
-   Pick the one most relevant to the thought's content.
-
-4. **researchTime**: Number from 5-15 (how many messages to complete research)
-
-5. **problemText**: 2-4 paragraphs of rambling, philosophical, stream-of-consciousness text.
-   - This plays WHILE the thought is being researched
-   - Question, spiral, contradict itself
-   - Be slightly unhinged but profound
-   - Reference the user's perspective (${perspective.type})
-   - Use ${formattedPronouns} when addressing the player
-   - End mid-thought, unresolved
-
-6. **solutionText**: 2-3 paragraphs of resolution.
-   - This plays WHEN the thought completes
-   - Provide twisted clarity
-   - Feel earned after the rambling
-   - Can be darkly funny or painfully sincere
-
-7. **researchBonus**: Skill penalties while researching (mental distraction)
-   Format: { "skill_id": { "value": -1, "flavor": "brief reason" } }
-   Use 1-2 skills, values of -1 or -2
-
-8. **internalizedBonus**: Skill bonuses when complete (insight gained)
-   Format: { "skill_id": { "value": 1, "flavor": "brief reason" } }
-   Use 1-3 skills, values of +1 to +3
-
-9. **specialEffect** (OPTIONAL - include for ~25% of thoughts):
-   A special rule that changes gameplay. Format:
-   { "type": "effect_type", "target": "what it affects", "description": "Human-readable description" }
-   
-   Effect types:
-   - "toggle_state": Enables an observed state. Targets: ${[...OBSERVED_STATES.physical, ...OBSERVED_STATES.mental].join(', ')}
-   - "unlock_copotype": Unlocks a cop classification. Targets: ${COPOTYPES.join(', ')}
-   - "unlock_voice": Unlocks an ancient voice. Targets: ${ANCIENT_VOICES.join(', ')}
-   - "no_buff_from": Blocks positive effects from a source. Targets: "alcohol", "drugs", "sleep"
-   - "voice_amplify": Makes a skill speak more often. Target: any skill_id
-   - "voice_silence": Silences a skill. Target: any skill_id
-   
-   Example: { "type": "toggle_state", "target": "waste_land", "description": "You're sober now. No positive effects from alcohol." }
-
-## SKILL IDs (use underscores, lowercase)
-**Intellect:** logic, encyclopedia, rhetoric, drama, conceptualization, visual_calculus
-**Psyche:** volition, inland_empire, empathy, authority, esprit_de_corps, suggestion
-**Physique:** endurance, pain_threshold, physical_instrument, electrochemistry, shivers, half_light
-**Motorics:** hand_eye_coordination, perception, reaction_speed, savoir_faire, interfacing, composure
-
 ## OUTPUT FORMAT
-Respond with ONLY valid JSON, no markdown, no explanation:
+Return ONLY valid JSON with this exact structure:
 {
-  "name": "THE THOUGHT NAME",
-  "icon": "🎭",
-  "theme": "identity",
+  "name": "SHORT EVOCATIVE NAME IN ALL CAPS",
+  "theme": "one of: identity|death|love|violence|mystery|substance|failure|authority|paranoia|philosophy|money|supernatural",
   "researchTime": 10,
-  "problemText": "Rambling philosophical text...",
-  "solutionText": "Resolution text...",
-  "researchBonus": { "volition": { "value": -1, "flavor": "Distracted by this idea" } },
-  "internalizedBonus": { "inland_empire": { "value": 1, "flavor": "New perspective gained" } },
+  "problemText": "2-3 paragraphs of rambling, philosophical internal monologue. Question everything. Be poetic, fragmented, obsessive.",
+  "solutionText": "2 paragraphs of twisted clarity. A conclusion that changes something - even if that change is just acceptance.",
+  "researchBonus": { "skill_id": { "value": -1, "flavor": "brief reason" } },
+  "internalizedBonus": { "skill_id": { "value": 1, "flavor": "brief reason" } },
   "specialEffect": null
 }
 
-For specialEffect, either use null or include the object - don't skip the field.`;
+## SKILL IDS (use these exact IDs)
+logic, encyclopedia, rhetoric, drama, conceptualization, visual_calculus, volition, inland_empire, empathy, authority, esprit_de_corps, suggestion, endurance, pain_threshold, physical_instrument, electrochemistry, shivers, half_light, hand_eye_coordination, perception, reaction_speed, savoir_faire, interfacing, composure
+
+## STYLE GUIDE
+- Thoughts are OBSESSIVE and RECURSIVE
+- They question everything, especially themselves
+- The "problem" phase is CONFUSION - beautiful, poetic confusion
+- The "solution" is not always positive - sometimes it's just... acceptance
+- Use the character's actions and words as fuel for introspection
+- Reference specific moments from the chat when possible`;
 }
 
 /**
- * Build the user prompt with recent context
- * @param {string[]} recentMessages - Recent chat messages
- * @param {string} characterName - Name of the character being talked to
+ * Build the user prompt with chat context
+ * @param {string[]} messages - Recent chat messages
+ * @param {string} characterName - Name of the character
  * @returns {string}
  */
-function buildUserPrompt(recentMessages, characterName) {
-    const chatContext = recentMessages.length > 0
-        ? recentMessages.join('\n\n')
-        : 'No recent messages available - generate something introspective and universal.';
+function buildUserPrompt(messages, characterName) {
+    const chatContext = messages.length > 0
+        ? messages.join('\n\n')
+        : 'No recent chat context available.';
     
-    return `## RECENT STORY CONTEXT
-The user is interacting with: ${characterName}
+    return `The user is engaged with ${characterName}.
 
 Recent conversation:
 ---
 ${chatContext}
 ---
 
-Based on this context and any themes present, generate a thought that feels relevant to what's happening. The thought should resonate with the user's experience of this narrative - it could be about the character, the situation, the user's role as observer/participant, or something deeper that the conversation has stirred up.
-
-The name should be memorable and slightly absurd in that Disco Elysium way.
-
-Remember: Output ONLY the JSON object, nothing else.`;
+Generate a thought that crystallizes something from this interaction. What's bubbling beneath the surface? What does this conversation reveal about the user's relationship with this story?`;
 }
 
-// ═══════════════════════════════════════════════════════════════
-// MAIN EXPORT
-// ═══════════════════════════════════════════════════════════════
-
 /**
- * Build complete prompt for thought generation
- * @param {Object} options - Optional overrides
- * @returns {Object} { system, user, meta } prompts ready for API call
+ * Build the full prompt for thought generation
+ * @param {Object} options - Options from thought-generation.js
+ * @returns {Object} { system, user, meta }
  */
 export function buildThoughtPrompt(options = {}) {
-    // Get persona context (the USER's "who are you", not the character)
     const persona = getPersona();
     const personaContext = persona?.context || '';
     const playerPronouns = persona?.pronouns || 'they';
@@ -383,6 +323,7 @@ export function buildThoughtPrompt(options = {}) {
 
 /**
  * Parse the AI response into a thought object
+ * Icons are now derived from theme, not from AI response
  * @param {string} response - Raw AI response
  * @returns {Object|null} Parsed thought or null on failure
  */
@@ -418,10 +359,15 @@ export function parseThoughtResponse(response) {
         // Normalize the name to uppercase style
         const normalizedName = thought.name.toUpperCase();
         
+        // Get icon from theme (NOT from AI response)
+        // This ensures consistent Lucide icons across all thoughts
+        const themeIcon = thought.theme ? THEME_ICONS[thought.theme] : null;
+        const icon = themeIcon || FALLBACK_ICON;
+        
         // Ensure proper structure
         return {
             name: normalizedName,
-            icon: thought.icon || '💭',
+            icon: icon,  // Lucide SVG from theme, not AI emoji
             theme: thought.theme || null,
             researchTime: thought.researchTime || 10,
             problemText: thought.problemText,
@@ -457,6 +403,7 @@ export function buildQuickThoughtPrompt(concept) {
         ? `\nExisting thoughts (don't duplicate): ${existingThoughts.join(', ')}`
         : '';
     
+    // NOTE: No "icon" field requested - we derive it from theme
     const system = `You generate Disco Elysium-style thoughts. The user is a ${perspective.type} (${perspective.description}).
 
 **CRITICAL - PLAYER PRONOUNS: Use ${playerPronouns} when addressing the player. Do not infer pronouns from narrative context.**
@@ -465,7 +412,6 @@ ${existingNote}
 Generate ONE thought about the concept provided. Output ONLY valid JSON:
 {
   "name": "SHORT EVOCATIVE NAME IN CAPS",
-  "icon": "emoji",
   "theme": "identity|death|love|violence|mystery|substance|failure|authority|paranoia|philosophy|money|supernatural",
   "researchTime": 10,
   "problemText": "2-3 paragraphs of rambling philosophical questioning",
@@ -509,10 +455,11 @@ export function buildThemeTriggeredPrompt(spikingTheme) {
     const characterName = getCharacterName();
     const existingThoughts = [...getInternalizedThoughtNames(), ...getResearchingThoughtNames()];
     
+    // NOTE: No "icon" field requested - theme is pre-determined
     const system = `You generate Disco Elysium-style thoughts. The user is a ${perspective.type}.
 
 ## CRITICAL: THEME SPIKE
-The theme "${spikingTheme.name}" (${spikingTheme.icon}) has reached critical mass in this story.
+The theme "${spikingTheme.name}" has reached critical mass in this story.
 This thought MUST be primarily about ${spikingTheme.name.toLowerCase()}.
 
 **CRITICAL - PLAYER PRONOUNS: Use ${playerPronouns} when addressing the player. Do not infer pronouns from narrative context.**
@@ -525,7 +472,6 @@ Generate ONE thought that crystallizes what "${spikingTheme.name}" means in this
 Output ONLY valid JSON:
 {
   "name": "EVOCATIVE NAME RELATED TO ${spikingTheme.name.toUpperCase()}",
-  "icon": "emoji",
   "theme": "${spikingTheme.id}",
   "researchTime": 10,
   "problemText": "Why does ${spikingTheme.name.toLowerCase()} keep appearing? What does it mean? Ramble philosophically...",
