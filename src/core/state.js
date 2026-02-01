@@ -19,7 +19,7 @@ import {
 // So other modules can import everything from state.js
 // ═══════════════════════════════════════════════════════════════
 
-export { getSettings, saveSettings, getChatState } from './persistence.js';
+export { getSettings, saveSettings, getChatState, saveChatState } from './persistence.js';
 
 // ═══════════════════════════════════════════════════════════════
 // VITALS
