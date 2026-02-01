@@ -1,0 +1,348 @@
+/**
+ * The Tribunal - Vitals Extraction
+ * 
+ * THE MISSING PIECE: Extracts HP/Morale changes from AI responses
+ * and updates state accordingly.
+ * 
+ * Call extractVitalsFromMessage() on MESSAGE_RECEIVED to auto-update vitals.
+ */
+
+// ═══════════════════════════════════════════════════════════════
+// DAMAGE/HEAL PATTERNS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Patterns that indicate HEALTH damage
+ */
+const HEALTH_DAMAGE_PATTERNS = [
+    // Explicit damage numbers
+    /(?:you\s+)?(?:take|receive|suffer)\s+(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?(?:damage|injury|harm)/gi,
+    /(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?(?:damage|injury|harm)\s+(?:to\s+you|dealt)/gi,
+    
+    // Physical harm descriptions (estimate 1-3 damage)
+    /(?:you\s+(?:are|get)\s+)?(?:shot|stabbed|slashed|cut|burned|punched|kicked|hit|struck|wounded)/gi,
+    /(?:bullet|knife|blade|fist)\s+(?:hits?|strikes?|pierces?)\s+(?:you|your)/gi,
+    
+    // Health critical
+    /(?:you\s+)?(?:collapse|fall\s+unconscious|black\s*out|pass\s*out)/gi,
+    /(?:your\s+)?health\s+(?:drops?|falls?|plummets?)/gi,
+    
+    // Disco Elysium style
+    /\[HEALTH\s*[-–]\s*(\d+)\]/gi,
+    /HEALTH:\s*[-–]\s*(\d+)/gi,
+    /-(\d+)\s+HEALTH/gi,
+];
+
+/**
+ * Patterns that indicate HEALTH healing
+ */
+const HEALTH_HEAL_PATTERNS = [
+    // Explicit healing numbers
+    /(?:you\s+)?(?:heal|recover|restore|regain)\s+(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?(?:health|hp|hit\s*points?)/gi,
+    /(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?(?:health|hp)\s+(?:restored|recovered|healed)/gi,
+    
+    // Medicine/treatment (estimate 2-4 healing)
+    /(?:you\s+)?(?:apply|use|take)\s+(?:a\s+)?(?:bandage|medkit|medicine|pills?|painkillers?)/gi,
+    /(?:wounds?\s+)?(?:are\s+)?(?:bandaged|treated|dressed|healed)/gi,
+    
+    // Disco Elysium style
+    /\[HEALTH\s*\+\s*(\d+)\]/gi,
+    /HEALTH:\s*\+\s*(\d+)/gi,
+    /\+(\d+)\s+HEALTH/gi,
+];
+
+/**
+ * Patterns that indicate MORALE damage
+ */
+const MORALE_DAMAGE_PATTERNS = [
+    // Explicit morale damage
+    /(?:you\s+)?(?:take|receive|suffer)\s+(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?(?:morale|psychic|mental)\s+(?:damage|harm)/gi,
+    /(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?morale\s+(?:damage|lost)/gi,
+    
+    // Emotional harm descriptions (estimate 1-3 damage)
+    /(?:you\s+(?:are|feel)\s+)?(?:devastated|crushed|humiliated|ashamed|horrified|traumatized)/gi,
+    /(?:your\s+)?(?:spirit|will|resolve|confidence)\s+(?:breaks?|shatters?|crumbles?)/gi,
+    /(?:waves?\s+of\s+)?(?:shame|guilt|despair|horror|dread)\s+(?:wash(?:es)?|crashes?)\s+over\s+you/gi,
+    
+    // Failed checks (Disco Elysium style)
+    /(?:you\s+)?fail(?:ed)?\s+(?:the\s+)?(?:composure|volition|authority|empathy)\s+check/gi,
+    
+    // Morale critical
+    /(?:you\s+)?(?:break\s+down|lose\s+it|snap|crack)/gi,
+    /(?:your\s+)?morale\s+(?:drops?|falls?|plummets?)/gi,
+    
+    // Disco Elysium style tags
+    /\[MORALE\s*[-–]\s*(\d+)\]/gi,
+    /MORALE:\s*[-–]\s*(\d+)/gi,
+    /-(\d+)\s+MORALE/gi,
+];
+
+/**
+ * Patterns that indicate MORALE recovery
+ */
+const MORALE_HEAL_PATTERNS = [
+    // Explicit morale recovery
+    /(?:you\s+)?(?:recover|restore|regain)\s+(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?morale/gi,
+    /(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?morale\s+(?:restored|recovered)/gi,
+    
+    // Emotional recovery (estimate 1-2 recovery)
+    /(?:you\s+(?:feel|are)\s+)?(?:relieved|reassured|comforted|encouraged|validated)/gi,
+    /(?:a\s+)?(?:sense\s+of\s+)?(?:calm|peace|relief|hope)\s+(?:washes?|settles?)\s+over\s+you/gi,
+    
+    // Successful social (Disco Elysium style)
+    /(?:you\s+)?(?:pass(?:ed)?|succeed(?:ed)?)\s+(?:the\s+)?(?:composure|volition|empathy)\s+check/gi,
+    
+    // Substances that boost morale
+    /(?:the\s+)?(?:alcohol|drink|cigarette|smoke)\s+(?:calms?|soothes?|helps?)/gi,
+    
+    // Disco Elysium style tags
+    /\[MORALE\s*\+\s*(\d+)\]/gi,
+    /MORALE:\s*\+\s*(\d+)/gi,
+    /\+(\d+)\s+MORALE/gi,
+];
+
+// ═══════════════════════════════════════════════════════════════
+// EXTRACTION FUNCTION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Extract vital changes from message text
+ * @param {string} messageText - The AI message to analyze
+ * @returns {{healthDelta: number, moraleDelta: number, events: string[]}}
+ */
+export function extractVitalsFromMessage(messageText) {
+    if (!messageText || messageText.length < 20) {
+        return { healthDelta: 0, moraleDelta: 0, events: [] };
+    }
+    
+    let healthDelta = 0;
+    let moraleDelta = 0;
+    const events = [];
+    
+    // ─────────────────────────────────────────────────────────────
+    // HEALTH DAMAGE
+    // ─────────────────────────────────────────────────────────────
+    for (const pattern of HEALTH_DAMAGE_PATTERNS) {
+        const matches = messageText.matchAll(pattern);
+        for (const match of matches) {
+            // Try to get explicit number, otherwise estimate
+            const explicitDamage = match[1] ? parseInt(match[1], 10) : 0;
+            
+            if (explicitDamage > 0) {
+                healthDelta -= explicitDamage;
+                events.push(`Health -${explicitDamage} (explicit)`);
+            } else {
+                // Estimate based on severity keywords
+                const severity = estimateSeverity(match[0]);
+                healthDelta -= severity;
+                events.push(`Health -${severity} (${match[0].trim().substring(0, 30)})`);
+            }
+        }
+    }
+    
+    // ─────────────────────────────────────────────────────────────
+    // HEALTH HEALING
+    // ─────────────────────────────────────────────────────────────
+    for (const pattern of HEALTH_HEAL_PATTERNS) {
+        const matches = messageText.matchAll(pattern);
+        for (const match of matches) {
+            const explicitHeal = match[1] ? parseInt(match[1], 10) : 0;
+            
+            if (explicitHeal > 0) {
+                healthDelta += explicitHeal;
+                events.push(`Health +${explicitHeal} (explicit)`);
+            } else {
+                const severity = estimateHealSeverity(match[0]);
+                healthDelta += severity;
+                events.push(`Health +${severity} (${match[0].trim().substring(0, 30)})`);
+            }
+        }
+    }
+    
+    // ─────────────────────────────────────────────────────────────
+    // MORALE DAMAGE
+    // ─────────────────────────────────────────────────────────────
+    for (const pattern of MORALE_DAMAGE_PATTERNS) {
+        const matches = messageText.matchAll(pattern);
+        for (const match of matches) {
+            const explicitDamage = match[1] ? parseInt(match[1], 10) : 0;
+            
+            if (explicitDamage > 0) {
+                moraleDelta -= explicitDamage;
+                events.push(`Morale -${explicitDamage} (explicit)`);
+            } else {
+                const severity = estimateSeverity(match[0]);
+                moraleDelta -= severity;
+                events.push(`Morale -${severity} (${match[0].trim().substring(0, 30)})`);
+            }
+        }
+    }
+    
+    // ─────────────────────────────────────────────────────────────
+    // MORALE RECOVERY
+    // ─────────────────────────────────────────────────────────────
+    for (const pattern of MORALE_HEAL_PATTERNS) {
+        const matches = messageText.matchAll(pattern);
+        for (const match of matches) {
+            const explicitHeal = match[1] ? parseInt(match[1], 10) : 0;
+            
+            if (explicitHeal > 0) {
+                moraleDelta += explicitHeal;
+                events.push(`Morale +${explicitHeal} (explicit)`);
+            } else {
+                const severity = estimateHealSeverity(match[0]);
+                moraleDelta += severity;
+                events.push(`Morale +${severity} (${match[0].trim().substring(0, 30)})`);
+            }
+        }
+    }
+    
+    // Cap deltas to reasonable bounds per message
+    healthDelta = Math.max(-6, Math.min(6, healthDelta));
+    moraleDelta = Math.max(-6, Math.min(6, moraleDelta));
+    
+    return { healthDelta, moraleDelta, events };
+}
+
+/**
+ * Estimate damage severity from description
+ */
+function estimateSeverity(text) {
+    const lower = text.toLowerCase();
+    
+    // Critical/severe = 3
+    if (/fatal|critical|devastating|massive|collapse|unconscious|black\s*out/.test(lower)) {
+        return 3;
+    }
+    
+    // Moderate = 2
+    if (/shot|stabbed|slashed|crushed|shattered|horrified|traumatized/.test(lower)) {
+        return 2;
+    }
+    
+    // Minor = 1
+    return 1;
+}
+
+/**
+ * Estimate healing severity from description
+ */
+function estimateHealSeverity(text) {
+    const lower = text.toLowerCase();
+    
+    // Major healing = 3
+    if (/fully\s+heal|complete|medkit|surgery|major/.test(lower)) {
+        return 3;
+    }
+    
+    // Moderate = 2  
+    if (/bandage|medicine|treated|comforted|relieved/.test(lower)) {
+        return 2;
+    }
+    
+    // Minor = 1
+    return 1;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INTEGRATION WITH STATE
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Process a message and update vitals state
+ * Call this from MESSAGE_RECEIVED hook
+ * 
+ * Uses window.TribunalState if available (matches your existing pattern)
+ * 
+ * @param {string} messageText - The AI message
+ * @returns {{applied: boolean, healthDelta: number, moraleDelta: number, events: string[]}}
+ */
+export function processMessageVitals(messageText) {
+    const { healthDelta, moraleDelta, events } = extractVitalsFromMessage(messageText);
+    
+    // Nothing to apply
+    if (healthDelta === 0 && moraleDelta === 0) {
+        return { applied: false, healthDelta: 0, moraleDelta: 0, events: [] };
+    }
+    
+    // Get state accessors (matches your existing pattern in condition-effects.js)
+    const { getChatState, saveChatState } = window.TribunalState || {};
+    if (!getChatState) {
+        console.warn('[Vitals Extraction] TribunalState not available');
+        return { applied: false, healthDelta, moraleDelta, events };
+    }
+    
+    const state = getChatState();
+    if (!state.vitals) state.vitals = { health: 10, maxHealth: 13, morale: 10, maxMorale: 13 };
+    
+    const vitals = state.vitals;
+    let changed = false;
+    
+    // Apply health change
+    if (healthDelta !== 0) {
+        const oldHealth = vitals.health;
+        vitals.health = Math.max(0, Math.min(vitals.maxHealth, vitals.health + healthDelta));
+        changed = vitals.health !== oldHealth;
+        
+        if (changed) {
+            console.log(`[Vitals] Health ${healthDelta > 0 ? '+' : ''}${healthDelta} → ${vitals.health}/${vitals.maxHealth}`);
+            
+            // Flash CRT effect
+            if (window.TribunalCRT?.flashEffect) {
+                window.TribunalCRT.flashEffect(healthDelta < 0 ? 'damage' : 'heal');
+            }
+        }
+    }
+    
+    // Apply morale change
+    if (moraleDelta !== 0) {
+        const oldMorale = vitals.morale;
+        vitals.morale = Math.max(0, Math.min(vitals.maxMorale, vitals.morale + moraleDelta));
+        changed = changed || vitals.morale !== oldMorale;
+        
+        if (vitals.morale !== oldMorale) {
+            console.log(`[Vitals] Morale ${moraleDelta > 0 ? '+' : ''}${moraleDelta} → ${vitals.morale}/${vitals.maxMorale}`);
+        }
+    }
+    
+    // Save and dispatch event
+    if (changed) {
+        if (saveChatState) saveChatState();
+        
+        // Dispatch event for CRT and condition-effects to pick up
+        window.dispatchEvent(new CustomEvent('tribunal:vitalsChanged', {
+            detail: {
+                health: vitals.health,
+                maxHealth: vitals.maxHealth,
+                morale: vitals.morale,
+                maxMorale: vitals.maxMorale,
+                healthDelta,
+                moraleDelta
+            }
+        }));
+    }
+    
+    return { applied: changed, healthDelta, moraleDelta, events };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PROMPT INJECTION - Tell AI to use explicit format
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get Author's Note text for vitals tracking
+ * Inject this to encourage AI to use explicit format
+ */
+export function getVitalsPromptInjection() {
+    return `[System: When the protagonist takes physical damage or heals, note it as [HEALTH -X] or [HEALTH +X]. When they suffer or recover from emotional/psychic damage, note it as [MORALE -X] or [MORALE +X]. Use realistic values: minor = 1, moderate = 2, severe = 3.]`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXPORTS
+// ═══════════════════════════════════════════════════════════════
+
+export default {
+    extractVitalsFromMessage,
+    processMessageVitals,
+    getVitalsPromptInjection
+};
