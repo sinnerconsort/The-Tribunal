@@ -14,7 +14,36 @@
  */
 
 import { getSettings, getChatState, saveChatState } from '../core/state.js';
-import { callAPIWithTokens } from '../voice/api-helpers.js';
+
+// Try to import API helpers - handle both possible function names
+let callAPIWithTokens = null;
+let callAPI = null;
+
+try {
+    const apiHelpers = await import('../voice/api-helpers.js');
+    callAPIWithTokens = apiHelpers.callAPIWithTokens;
+    callAPI = apiHelpers.callAPI;
+    console.log('[AI Extractor] API helpers loaded:', {
+        callAPIWithTokens: !!callAPIWithTokens,
+        callAPI: !!callAPI
+    });
+} catch (e) {
+    console.error('[AI Extractor] Failed to load api-helpers:', e.message);
+}
+
+/**
+ * Wrapper to call API with either function
+ */
+async function makeAPICall(systemPrompt, userPrompt, maxTokens) {
+    if (callAPIWithTokens) {
+        return await makeAPICall(systemPrompt, userPrompt, maxTokens);
+    } else if (callAPI) {
+        return await callAPI(systemPrompt, userPrompt, { maxTokens, temperature: 0.3 });
+    } else {
+        console.error('[AI Extractor] No API function available!');
+        return null;
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // MAIN EXTRACTION PROMPT (EXPANDED)
@@ -155,7 +184,7 @@ ${personaText.substring(0, 3000)}
 
 Respond with a JSON array of clothing item names only.`;
 
-        const response = await callAPIWithTokens(systemPrompt, userPrompt, 500);
+        const response = await makeAPICall(systemPrompt, userPrompt, 500);
         
         if (!response) {
             console.warn('[AI Extractor] No response for persona extraction');
@@ -211,6 +240,8 @@ Respond with a JSON array of clothing item names only.`;
  */
 export async function extractInventoryFromContext(personaText, chatContext) {
     console.log('[AI Extractor] Extracting inventory from persona + chat context...');
+    console.log('[AI Extractor] Persona length:', personaText?.length || 0);
+    console.log('[AI Extractor] Chat context length:', chatContext?.length || 0);
     
     const combinedText = `
 === CHARACTER PERSONA ===
@@ -220,7 +251,12 @@ ${personaText || 'No persona provided.'}
 ${chatContext || 'No chat context.'}
 `.trim();
 
-    if (combinedText.length < 30) return [];
+    if (combinedText.length < 30) {
+        console.log('[AI Extractor] Combined text too short, skipping');
+        return [];
+    }
+    
+    console.log('[AI Extractor] Combined text preview:', combinedText.substring(0, 200) + '...');
     
     try {
         const systemPrompt = `You extract carried/pocket items from character descriptions and roleplay context.
@@ -263,9 +299,15 @@ ${combinedText.substring(0, 4000)}
 
 Return a JSON array of items with quantities. Remember: include reasonable inferences!`;
 
-        const response = await callAPIWithTokens(systemPrompt, userPrompt, 800);
+        console.log('[AI Extractor] Calling API...');
+        const response = await makeAPICall(systemPrompt, userPrompt, 800);
         
-        if (!response) return [];
+        console.log('[AI Extractor] API response:', response ? response.substring(0, 300) : 'NULL/EMPTY');
+        
+        if (!response) {
+            console.error('[AI Extractor] No response from API!');
+            return [];
+        }
         
         // Parse JSON array
         let cleaned = response.trim();
@@ -275,15 +317,19 @@ Return a JSON array of items with quantities. Remember: include reasonable infer
         const arrayEnd = cleaned.lastIndexOf(']');
         
         if (arrayStart === -1 || arrayEnd === -1) {
-            console.warn('[AI Extractor] No JSON array in inventory response');
+            console.warn('[AI Extractor] No JSON array in inventory response:', cleaned.substring(0, 200));
             return [];
         }
         
         cleaned = cleaned.slice(arrayStart, arrayEnd + 1);
+        console.log('[AI Extractor] Cleaned JSON:', cleaned.substring(0, 200));
         
         const items = JSON.parse(cleaned);
         
-        if (!Array.isArray(items)) return [];
+        if (!Array.isArray(items)) {
+            console.warn('[AI Extractor] Parsed result is not an array');
+            return [];
+        }
         
         // Clean and normalize items
         const validItems = items
@@ -301,6 +347,7 @@ Return a JSON array of items with quantities. Remember: include reasonable infer
         
     } catch (error) {
         console.error('[AI Extractor] Context inventory extraction error:', error);
+        console.error('[AI Extractor] Error stack:', error.stack);
         return [];
     }
 }
@@ -345,7 +392,7 @@ ${personaText.substring(0, 3000)}
 
 Respond with a JSON array.`;
 
-        const response = await callAPIWithTokens(systemPrompt, userPrompt, 500);
+        const response = await makeAPICall(systemPrompt, userPrompt, 500);
         
         if (!response) return [];
         
@@ -419,7 +466,7 @@ export async function extractFromMessage(messageText, options = {}) {
         
         const systemPrompt = `You are a precise data extraction assistant for a Disco Elysium-style RPG system. Extract game state changes from roleplay messages. Output only valid JSON with no additional text or markdown formatting.`;
         
-        const response = await callAPIWithTokens(systemPrompt, prompt, 1500);
+        const response = await makeAPICall(systemPrompt, prompt, 1500);
         
         if (!response) {
             results.error = 'No response from API';
