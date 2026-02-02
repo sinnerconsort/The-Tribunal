@@ -205,6 +205,106 @@ Respond with a JSON array of clothing item names only.`;
 }
 
 /**
+ * Extract inventory items from BOTH persona AND chat context using AI
+ * This mimics RPG Companion's "Refresh RPG Info" behavior
+ * 
+ * @param {string} personaText - The user's persona description
+ * @param {string} chatContext - Recent chat messages
+ * @returns {Promise<Array>} Array of inventory item objects
+ */
+export async function extractInventoryFromContext(personaText, chatContext) {
+    console.log('[AI Extractor] Extracting inventory from persona + chat context...');
+    
+    const combinedText = `
+=== CHARACTER PERSONA ===
+${personaText || 'No persona provided.'}
+
+=== RECENT ROLEPLAY ===
+${chatContext || 'No chat context.'}
+`.trim();
+
+    if (combinedText.length < 20) return [];
+    
+    try {
+        const systemPrompt = `You extract carried/pocket items from character descriptions and roleplay context.
+
+Your job is to identify what items this character would reasonably have ON THEIR PERSON right now.
+
+EXTRACT these types of items:
+- Consumables: cigarettes, alcohol, drugs, food, gum, mints
+- Tools: lighters, flashlights, pens, multitools
+- Personal effects: wallet, phone, keys (car keys, house keys)
+- Documents: ID, badges, notes, photos, business cards
+- Money: cash, coins (estimate reasonable amounts)
+- Weapons: if mentioned or contextually appropriate
+- Small accessories: headphones, glasses case, etc.
+
+EXTRACTION RULES:
+1. Include items EXPLICITLY mentioned in persona or chat
+2. Include items the character USED or REFERENCED in chat (e.g., "pulls out a cigarette" = has cigarettes)
+3. Include REASONABLE INFERENCES (someone with car keys probably has a wallet)
+4. For consumables, estimate realistic quantities (pack of cigarettes = 10-20, not 1)
+5. Do NOT include clothing (that's equipment, not inventory)
+6. Do NOT include large items that wouldn't fit in pockets/bag
+7. Do NOT include items the character LOST or GAVE AWAY in the chat
+
+Respond with ONLY a JSON array:
+[{"name": "Item Name", "quantity": 1, "type": "consumable|tool|document|money|weapon|misc", "reason": "why included"}]
+
+If no items found, respond with: []`;
+
+        const userPrompt = `Extract all pocket/carried items this character would have:
+
+${combinedText.substring(0, 4000)}
+
+Return a JSON array of items with quantities.`;
+
+        const response = await callAPI(systemPrompt, userPrompt, {
+            maxTokens: 800,
+            temperature: 0.3
+        });
+        
+        if (!response) return [];
+        
+        // Parse JSON array
+        let cleaned = response.trim();
+        cleaned = cleaned.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '');
+        
+        const arrayStart = cleaned.indexOf('[');
+        const arrayEnd = cleaned.lastIndexOf(']');
+        
+        if (arrayStart === -1 || arrayEnd === -1) {
+            console.warn('[AI Extractor] No JSON array in inventory response');
+            return [];
+        }
+        
+        cleaned = cleaned.slice(arrayStart, arrayEnd + 1);
+        
+        const items = JSON.parse(cleaned);
+        
+        if (!Array.isArray(items)) return [];
+        
+        // Clean and normalize items
+        const validItems = items
+            .filter(item => item && item.name && typeof item.name === 'string')
+            .map(item => ({
+                name: item.name.trim(),
+                quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
+                type: item.type || inferInventoryType(item.name),
+                reason: item.reason || null,
+                source: 'ai-scan'
+            }));
+        
+        console.log('[AI Extractor] Extracted inventory from context:', validItems.map(i => `${i.quantity}x ${i.name}`));
+        return validItems;
+        
+    } catch (error) {
+        console.error('[AI Extractor] Context inventory extraction error:', error);
+        return [];
+    }
+}
+
+/**
  * Extract inventory items from a persona description using AI
  * 
  * @param {string} personaText - The persona description
@@ -891,5 +991,6 @@ export default {
     extractFromMessage,
     extractEquipmentFromPersona,
     extractInventoryFromPersona,
+    extractInventoryFromContext,
     processExtractionResults
 };
