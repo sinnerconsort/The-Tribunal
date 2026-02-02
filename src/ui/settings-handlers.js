@@ -34,6 +34,13 @@ const SETTINGS_IDS = {
     autoVitals: 'cfg-auto-vitals',
     vitalsSensitivity: 'cfg-vitals-sensitivity',
     vitalsNotify: 'cfg-vitals-notify',
+    deathEnabled: 'cfg-death-enabled',
+    autoConsume: 'cfg-auto-consume',
+    
+    // Auto-Extraction (Section IV.5)
+    autoEquipment: 'cfg-auto-equipment',
+    autoInventory: 'cfg-auto-inventory',
+    extractionNotify: 'cfg-extraction-notify',
     
     // Case Detection (Section V)
     autoCases: 'cfg-auto-cases',
@@ -238,6 +245,13 @@ export function refreshSettingsFromState() {
     setCheckbox(SETTINGS_IDS.autoVitals, settings.vitals?.autoDetect ?? true);
     setSelectValue(SETTINGS_IDS.vitalsSensitivity, settings.vitals?.sensitivity || 'medium');
     setCheckbox(SETTINGS_IDS.vitalsNotify, settings.vitals?.showNotifications ?? true);
+    setCheckbox(SETTINGS_IDS.deathEnabled, settings.vitals?.deathEnabled ?? true);
+    setCheckbox(SETTINGS_IDS.autoConsume, settings.vitals?.autoConsume ?? true);
+    
+    // Auto-Extraction
+    setCheckbox(SETTINGS_IDS.autoEquipment, settings.extraction?.autoEquipment ?? false);
+    setCheckbox(SETTINGS_IDS.autoInventory, settings.extraction?.autoInventory ?? false);
+    setCheckbox(SETTINGS_IDS.extractionNotify, settings.extraction?.showNotifications ?? true);
     
     // Case Detection
     setCheckbox(SETTINGS_IDS.autoCases, settings.cases?.autoDetect ?? false);
@@ -375,6 +389,14 @@ export function saveAllSettings() {
     settings.vitals.autoDetect = getCheckbox(SETTINGS_IDS.autoVitals, true);
     settings.vitals.sensitivity = getInputValue(SETTINGS_IDS.vitalsSensitivity, 'medium');
     settings.vitals.showNotifications = getCheckbox(SETTINGS_IDS.vitalsNotify, true);
+    settings.vitals.deathEnabled = getCheckbox(SETTINGS_IDS.deathEnabled, true);
+    settings.vitals.autoConsume = getCheckbox(SETTINGS_IDS.autoConsume, true);
+    
+    // Auto-Extraction
+    if (!settings.extraction) settings.extraction = {};
+    settings.extraction.autoEquipment = getCheckbox(SETTINGS_IDS.autoEquipment, false);
+    settings.extraction.autoInventory = getCheckbox(SETTINGS_IDS.autoInventory, false);
+    settings.extraction.showNotifications = getCheckbox(SETTINGS_IDS.extractionNotify, true);
     
     // Case Detection
     settings.cases.autoDetect = getCheckbox(SETTINGS_IDS.autoCases, false);

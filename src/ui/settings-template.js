@@ -181,6 +181,63 @@ export const SETTINGS_TAB_HTML = `
                     <input type="checkbox" id="cfg-vitals-notify" checked>
                     <span>Show vitals notifications</span>
                 </label>
+                
+                <div style="border-top: 1px dashed rgba(255,255,255,0.2); margin: 12px 0; padding-top: 12px;">
+                    <div class="rcm-field-note" style="margin-bottom: 8px;">
+                        <em>💀 Death System</em>
+                    </div>
+                    <label class="rcm-checkbox-row">
+                        <input type="checkbox" id="cfg-death-enabled" checked>
+                        <span>Enable death system</span>
+                    </label>
+                    <div class="rcm-field-note">
+                        <em>Skill checks when HP/Morale hits 0. Fail = newspaper death screen</em>
+                    </div>
+                </div>
+                
+                <div style="border-top: 1px dashed rgba(255,255,255,0.2); margin: 12px 0; padding-top: 12px;">
+                    <div class="rcm-field-note" style="margin-bottom: 8px;">
+                        <em>🧪 Auto-Consume (Addiction)</em>
+                    </div>
+                    <label class="rcm-checkbox-row">
+                        <input type="checkbox" id="cfg-auto-consume" checked>
+                        <span>Enable auto-consume</span>
+                    </label>
+                    <div class="rcm-field-note">
+                        <em>Addicted characters auto-use substances. Volition resists</em>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Section IV.5: Auto-Extraction -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">IV.5 AUTO-EXTRACTION</div>
+            <div class="rcm-section-content">
+                <div class="rcm-field-note" style="margin-bottom: 10px;">
+                    <em>🤖 AI extracts game state from chat messages</em>
+                </div>
+                
+                <label class="rcm-checkbox-row">
+                    <input type="checkbox" id="cfg-auto-equipment">
+                    <span>Auto-extract equipment</span>
+                </label>
+                <div class="rcm-field-note">
+                    <em>Clothing, accessories gained/lost in chat</em>
+                </div>
+                
+                <label class="rcm-checkbox-row">
+                    <input type="checkbox" id="cfg-auto-inventory">
+                    <span>Auto-extract inventory</span>
+                </label>
+                <div class="rcm-field-note">
+                    <em>Items, weapons, consumables from chat</em>
+                </div>
+                
+                <label class="rcm-checkbox-row">
+                    <input type="checkbox" id="cfg-extraction-notify" checked>
+                    <span>Show extraction notifications</span>
+                </label>
             </div>
         </div>
         
