@@ -15,34 +15,50 @@
 
 import { getSettings, getChatState, saveChatState } from '../core/state.js';
 
-// Try to import API helpers - handle both possible function names
-let callAPIWithTokens = null;
-let callAPI = null;
+// Lazy-loaded API helpers - try both function names
+let apiModule = null;
 
-try {
-    const apiHelpers = await import('../voice/api-helpers.js');
-    callAPIWithTokens = apiHelpers.callAPIWithTokens;
-    callAPI = apiHelpers.callAPI;
-    console.log('[AI Extractor] API helpers loaded:', {
-        callAPIWithTokens: !!callAPIWithTokens,
-        callAPI: !!callAPI
-    });
-} catch (e) {
-    console.error('[AI Extractor] Failed to load api-helpers:', e.message);
+async function getAPIFunction() {
+    if (!apiModule) {
+        try {
+            apiModule = await import('../voice/api-helpers.js');
+        } catch (e) {
+            console.error('[AI Extractor] Failed to import api-helpers:', e);
+            return null;
+        }
+    }
+    // Return whichever function exists
+    return apiModule.callAPIWithTokens || apiModule.callAPI || null;
 }
 
 /**
- * Wrapper to call API with either function
+ * Make an API call - handles both function signatures
  */
 async function makeAPICall(systemPrompt, userPrompt, maxTokens) {
-    if (callAPIWithTokens) {
-        return await makeAPICall(systemPrompt, userPrompt, maxTokens);
-    } else if (callAPI) {
-        return await callAPI(systemPrompt, userPrompt, { maxTokens, temperature: 0.3 });
-    } else {
-        console.error('[AI Extractor] No API function available!');
+    const apiFn = await getAPIFunction();
+    
+    if (!apiFn) {
+        console.error('[AI Extractor] No API function found in api-helpers!');
         return null;
     }
+    
+    try {
+        // Try the callAPIWithTokens signature (system, user, tokens)
+        if (apiModule.callAPIWithTokens) {
+            console.log('[AI Extractor] Using callAPIWithTokens');
+            return await apiModule.callAPIWithTokens(systemPrompt, userPrompt, maxTokens);
+        }
+        // Fall back to callAPI (system, user) - no third param!
+        if (apiModule.callAPI) {
+            console.log('[AI Extractor] Using callAPI (2 params)');
+            return await apiModule.callAPI(systemPrompt, userPrompt);
+        }
+    } catch (e) {
+        console.error('[AI Extractor] API call error:', e);
+        return null;
+    }
+    
+    return null;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -239,77 +255,54 @@ Respond with a JSON array of clothing item names only.`;
  * @returns {Promise<Array>} Array of inventory item objects
  */
 export async function extractInventoryFromContext(personaText, chatContext) {
-    console.log('[AI Extractor] Extracting inventory from persona + chat context...');
-    console.log('[AI Extractor] Persona length:', personaText?.length || 0);
-    console.log('[AI Extractor] Chat context length:', chatContext?.length || 0);
+    // Toast helper (if available)
+    const toast = (msg, type = 'info') => {
+        if (typeof toastr !== 'undefined') {
+            toastr[type](msg, 'AI Extractor');
+        }
+        console.log(`[AI Extractor] ${type}: ${msg}`);
+    };
+    
+    toast('Starting extraction...', 'info');
     
     const combinedText = `
-=== CHARACTER PERSONA ===
-${personaText || 'No persona provided.'}
+PERSONA: ${personaText || 'None'}
 
-=== RECENT ROLEPLAY ===
-${chatContext || 'No chat context.'}
+ROLEPLAY:
+${chatContext || 'None'}
 `.trim();
 
-    if (combinedText.length < 30) {
-        console.log('[AI Extractor] Combined text too short, skipping');
+    if (combinedText.length < 50) {
+        toast('Text too short', 'warning');
         return [];
     }
     
-    console.log('[AI Extractor] Combined text preview:', combinedText.substring(0, 200) + '...');
-    
+    // Simpler, more direct prompt
+    const systemPrompt = `Extract items a character would carry in their pockets. Return ONLY a JSON array like: [{"name":"Cigarettes","quantity":10,"type":"consumable"}]
+Types: consumable, tool, document, money, weapon, misc
+Include: cigarettes, lighters, phones, wallets, keys, cash, weapons mentioned
+Exclude: clothing, body features
+If someone is smoking, they have cigarettes AND a lighter.
+Return [] if no items found.`;
+
+    const userPrompt = `What items would this character have on them?
+
+${combinedText.substring(0, 3000)}
+
+Return JSON array only:`;
+
     try {
-        const systemPrompt = `You extract carried/pocket items from character descriptions and roleplay context.
-
-Your job is to identify what items this character would reasonably have ON THEIR PERSON.
-
-EXTRACT these types of items:
-- Consumables: cigarettes, alcohol, drugs, food, gum, mints, candy, snacks
-- Tools: lighters, flashlights, pens, phones, multitools, keys
-- Personal effects: wallet, phone, keys (car keys, house keys), ID
-- Documents: notes, letters, photos, business cards
-- Money: cash, coins (estimate reasonable amounts based on context)
-- Weapons: if mentioned, implied, or contextually appropriate
-- Small accessories: headphones, glasses case, chapstick, etc.
-- Context-specific items: items that make sense for the character's setting/situation
-
-EXTRACTION RULES:
-1. Include items EXPLICITLY mentioned in persona or chat
-2. Include items the character USED, TOUCHED, or REFERENCED in chat
-3. Include items that are STRONGLY IMPLIED (e.g., someone smoking = has cigarettes + lighter)
-4. Include REASONABLE INFERENCES based on character type:
-   - A modern human probably has: phone, wallet, keys
-   - A smoker probably has: cigarettes, lighter
-   - A student probably has: phone, pen, some cash
-5. For consumables, estimate realistic quantities
-6. Do NOT include clothing (that's equipment)
-7. Do NOT include items clearly LOST or GIVEN AWAY in the chat
-8. When in doubt, INCLUDE the item - it's better to have too many than too few
-
-BE GENEROUS with inferences. If the character seems like they would have something, include it.
-
-Respond with ONLY a JSON array:
-[{"name": "Item Name", "quantity": 1, "type": "consumable|tool|document|money|weapon|misc", "reason": "brief reason"}]
-
-If truly no items can be inferred, respond with: []`;
-
-        const userPrompt = `Extract all pocket/carried items this character would have. Be generous with inferences based on character type and context:
-
-${combinedText.substring(0, 4000)}
-
-Return a JSON array of items with quantities. Remember: include reasonable inferences!`;
-
-        console.log('[AI Extractor] Calling API...');
-        const response = await makeAPICall(systemPrompt, userPrompt, 800);
-        
-        console.log('[AI Extractor] API response:', response ? response.substring(0, 300) : 'NULL/EMPTY');
+        toast('Calling API...', 'info');
+        const response = await makeAPICall(systemPrompt, userPrompt, 600);
         
         if (!response) {
-            console.error('[AI Extractor] No response from API!');
+            toast('API returned null!', 'error');
             return [];
         }
         
-        // Parse JSON array
+        toast(`Got response: ${response.substring(0, 50)}...`, 'info');
+        
+        // Parse JSON
         let cleaned = response.trim();
         cleaned = cleaned.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '');
         
@@ -317,37 +310,33 @@ Return a JSON array of items with quantities. Remember: include reasonable infer
         const arrayEnd = cleaned.lastIndexOf(']');
         
         if (arrayStart === -1 || arrayEnd === -1) {
-            console.warn('[AI Extractor] No JSON array in inventory response:', cleaned.substring(0, 200));
+            toast('No JSON array in response', 'warning');
             return [];
         }
         
         cleaned = cleaned.slice(arrayStart, arrayEnd + 1);
-        console.log('[AI Extractor] Cleaned JSON:', cleaned.substring(0, 200));
         
         const items = JSON.parse(cleaned);
         
         if (!Array.isArray(items)) {
-            console.warn('[AI Extractor] Parsed result is not an array');
+            toast('Parsed result not an array', 'warning');
             return [];
         }
         
-        // Clean and normalize items
-        const validItems = items
-            .filter(item => item && item.name && typeof item.name === 'string')
+        toast(`Parsed ${items.length} items`, 'success');
+        
+        // Normalize items
+        return items
+            .filter(item => item && item.name)
             .map(item => ({
-                name: item.name.trim(),
+                name: String(item.name).trim(),
                 quantity: Math.max(1, parseInt(item.quantity, 10) || 1),
-                type: item.type || inferInventoryType(item.name),
-                reason: item.reason || null,
+                type: item.type || 'misc',
                 source: 'ai-scan'
             }));
         
-        console.log('[AI Extractor] Extracted inventory from context:', validItems.map(i => `${i.quantity}x ${i.name}`));
-        return validItems;
-        
     } catch (error) {
-        console.error('[AI Extractor] Context inventory extraction error:', error);
-        console.error('[AI Extractor] Error stack:', error.stack);
+        toast(`Error: ${error.message}`, 'error');
         return [];
     }
 }
