@@ -685,6 +685,112 @@ const DEATH_CSS = `
 `;
 
 // ═══════════════════════════════════════════════════════════════
+// TEST / DEBUG FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Test death screen with a specific type
+ * @param {string} type - 'health' or 'morale' or specific type like 'cardiac', 'breakdown'
+ * @param {string} customContext - Optional custom context for AI article generation
+ */
+export function testDeathScreen(type = 'health', customContext = '') {
+    const testContexts = {
+        // Health deaths
+        cardiac: "Your heart pounds erratically. The years of abuse have caught up. You clutch your chest as the world spins.",
+        violence: "The bullet tears through your shoulder. Blood sprays across the wall. You collapse against the filing cabinet.",
+        overdose: "The room tilts. You've had too much. Way too much. The empty bottles mock you from the floor.",
+        environmental: "The canal water is freezing. Your limbs stop responding. The current pulls you under.",
+        
+        // Morale deaths
+        breakdown: "You can't stop crying. In the middle of the street. People are staring. You don't care anymore.",
+        humiliation: "They're all laughing. The whole precinct. Your career is over. Your reputation is garbage.",
+        existential: "What's the point? Of any of this? The case, the job, existence itself? Nothing matters.",
+        rejection: "She's gone. They're all gone. Nobody came to help. Nobody ever will. You are completely alone."
+    };
+    
+    // Determine death type
+    let isMoraleDeath = false;
+    let deathType = null;
+    let context = customContext;
+    
+    if (type === 'health') {
+        // Random health death
+        const healthTypes = ['cardiac', 'violence', 'overdose', 'environmental'];
+        const randomType = healthTypes[Math.floor(Math.random() * healthTypes.length)];
+        deathType = { key: randomType, ...DEATH_TYPES[randomType] };
+        context = context || testContexts[randomType];
+        isMoraleDeath = false;
+    } else if (type === 'morale') {
+        // Random morale death
+        const moraleTypes = ['breakdown', 'humiliation', 'existential', 'rejection'];
+        const randomType = moraleTypes[Math.floor(Math.random() * moraleTypes.length)];
+        deathType = { key: randomType, ...DEATH_TYPES[randomType] };
+        context = context || testContexts[randomType];
+        isMoraleDeath = true;
+    } else if (DEATH_TYPES[type]) {
+        // Specific type requested
+        deathType = { key: type, ...DEATH_TYPES[type] };
+        context = context || testContexts[type] || "Test death scenario.";
+        isMoraleDeath = !!DEATH_TYPES[type].isMorale;
+    } else {
+        console.warn('[Death Test] Unknown type:', type);
+        console.log('Available types: health, morale, cardiac, violence, overdose, environmental, breakdown, humiliation, existential, rejection');
+        return;
+    }
+    
+    console.log(`[Death Test] Triggering ${deathType.key} death (${isMoraleDeath ? 'morale' : 'health'})`);
+    
+    // Trigger death screen directly
+    triggerDeath(deathType, isMoraleDeath, context);
+    
+    return { type: deathType.key, isMoraleDeath, context };
+}
+
+/**
+ * Test skill check without triggering death
+ * @param {string} skillId - Skill to test
+ * @param {number} difficulty - Check difficulty
+ */
+export function testSkillCheck(skillId = 'endurance', difficulty = 10) {
+    const result = attemptDeathSave(skillId, difficulty);
+    
+    const msg = `${skillId.toUpperCase()}: [${result.die1}+${result.die2}] + ${result.skillLevel} + ${result.modifier} = ${result.total} vs ${difficulty}`;
+    
+    if (typeof toastr !== 'undefined') {
+        if (result.success) {
+            toastr.success(msg, 'Skill Check PASSED');
+        } else {
+            toastr.error(msg, 'Skill Check FAILED');
+        }
+    }
+    
+    console.log('[Death Test] Skill check:', result);
+    return result;
+}
+
+/**
+ * Test close call (skill check that saves from death)
+ */
+export function testCloseCall() {
+    // Temporarily force a success
+    const result = {
+        success: true,
+        die1: 6,
+        die2: 5,
+        roll: 11,
+        skillLevel: 3,
+        modifier: 0,
+        total: 14,
+        difficulty: 10,
+        skill: 'endurance'
+    };
+    
+    showCloseCallToast(result, false);
+    console.log('[Death Test] Close call toast shown');
+    return result;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════
 
@@ -692,11 +798,19 @@ export default {
     checkForDeath,
     initDeathHandler,
     classifyDeath,
-    attemptDeathSave
+    attemptDeathSave,
+    // Test functions
+    testDeathScreen,
+    testSkillCheck,
+    testCloseCall
 };
 
 // Global access
 window.TribunalDeath = {
     checkForDeath,
-    init: initDeathHandler
+    init: initDeathHandler,
+    // Test functions for console access
+    test: testDeathScreen,
+    testSkill: testSkillCheck,
+    testCloseCall
 };
