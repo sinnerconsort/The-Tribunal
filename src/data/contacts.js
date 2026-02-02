@@ -101,6 +101,141 @@ const DISPOSITION_TO_TYPE = {
     hostile: 'suspect'
 };
 
+// ═══════════════════════════════════════════════════════════════
+// BASELINE OPINION SEEDING
+// Gives voices immediate differentiated reactions to new contacts
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Base opinion score from contact's disposition
+ * Represents "how should voices generally feel about this person?"
+ */
+const DISPOSITION_BASELINE = {
+    trusted: 5,
+    neutral: 0,
+    cautious: -2,
+    suspicious: -4,
+    hostile: -6
+};
+
+/**
+ * Per-skill temperament variance
+ * Represents each skill's natural bias when meeting people
+ * Positive = trusting/warm, Negative = suspicious/guarded
+ */
+const SKILL_TEMPERAMENT = {
+    // INTELLECT - Generally analytical, neutral
+    logic: 0,
+    encyclopedia: 0,
+    rhetoric: 1,           // Likes people (needs audience)
+    drama: 1,              // Theatrical, drawn to interesting people
+    conceptualization: 0,
+    visual_calculus: 0,
+    
+    // PSYCHE - Varied, personality-driven
+    volition: 0,
+    inland_empire: 0,      // Vibes-based, seeded randomly below
+    empathy: 2,            // Sees the best in people
+    authority: -1,         // Skeptical, needs to be convinced
+    esprit_de_corps: 1,    // Team player, loyal
+    suggestion: 1,         // Charming, assumes others are too
+    
+    // PHYSIQUE - Instinct-driven
+    endurance: 0,
+    pain_threshold: 0,
+    physical_instrument: 0,
+    electrochemistry: 2,   // Loves everyone (party friend)
+    shivers: 0,            // City speaks, not people
+    half_light: -2,        // Paranoid, fight-or-flight
+    
+    // MOTORICS - Observational
+    hand_eye_coordination: 0,
+    perception: 0,
+    reaction_speed: -1,    // Twitchy, on guard
+    savoir_faire: 1,       // Cool with everyone
+    interfacing: 0,
+    composure: 0
+};
+
+/**
+ * Skills that get random variance (chaotic personalities)
+ */
+const CHAOTIC_SKILLS = ['inland_empire', 'electrochemistry', 'shivers'];
+
+/**
+ * Generate baseline voice opinions for a new contact
+ * @param {string} disposition - Contact's disposition (trusted, neutral, etc.)
+ * @returns {object} Seeded voiceOpinions object
+ */
+export function seedVoiceOpinions(disposition) {
+    const baseline = DISPOSITION_BASELINE[disposition] ?? 0;
+    const opinions = {};
+    
+    for (const [skillId, temperament] of Object.entries(SKILL_TEMPERAMENT)) {
+        let score = baseline + temperament;
+        
+        // Chaotic skills get extra random variance (-2 to +2)
+        if (CHAOTIC_SKILLS.includes(skillId)) {
+            score += Math.floor(Math.random() * 5) - 2;
+        }
+        
+        // Clamp to valid range (-10 to +10)
+        score = Math.max(-10, Math.min(10, score));
+        
+        // Only store non-zero opinions (sparse storage)
+        if (score !== 0) {
+            opinions[skillId] = {
+                score,
+                source: 'baseline',
+                timestamp: Date.now()
+            };
+        }
+    }
+    
+    return opinions;
+}
+
+/**
+ * Reseed opinions when disposition changes significantly
+ * Blends existing opinions with new baseline (doesn't wipe history)
+ * @param {object} existingOpinions - Current voiceOpinions
+ * @param {string} oldDisposition - Previous disposition
+ * @param {string} newDisposition - New disposition  
+ * @returns {object} Updated voiceOpinions
+ */
+export function reseedOnDispositionChange(existingOpinions, oldDisposition, newDisposition) {
+    const oldBaseline = DISPOSITION_BASELINE[oldDisposition] ?? 0;
+    const newBaseline = DISPOSITION_BASELINE[newDisposition] ?? 0;
+    const shift = newBaseline - oldBaseline;
+    
+    // If no significant shift, keep existing
+    if (Math.abs(shift) < 2) {
+        return existingOpinions;
+    }
+    
+    const updated = { ...existingOpinions };
+    
+    for (const [skillId, data] of Object.entries(updated)) {
+        // Shift existing scores toward new baseline
+        const newScore = Math.max(-10, Math.min(10, data.score + Math.round(shift * 0.5)));
+        updated[skillId] = {
+            ...data,
+            score: newScore,
+            lastShift: Date.now()
+        };
+    }
+    
+    // Add any skills that didn't have opinions yet
+    const freshSeed = seedVoiceOpinions(newDisposition);
+    for (const [skillId, data] of Object.entries(freshSeed)) {
+        if (!updated[skillId]) {
+            updated[skillId] = data;
+        }
+    }
+    
+    return updated;
+}
+
 /**
  * Get contact type based on disposition
  * @param {string} disposition - The disposition ID
@@ -135,10 +270,16 @@ export function getDisposition(dispositionId) {
 
 /**
  * Create a new contact object with defaults
+ * Automatically seeds voice opinions based on disposition
  * @param {object} overrides - Properties to override
  * @returns {object} New contact object
  */
 export function createContact(overrides = {}) {
+    const disposition = overrides.disposition || 'neutral';
+    
+    // Seed voice opinions unless explicitly provided
+    const seededOpinions = overrides.voiceOpinions || seedVoiceOpinions(disposition);
+    
     return {
         id: overrides.id || `contact_${Date.now()}`,
         name: overrides.name || 'Unknown',
@@ -151,10 +292,10 @@ export function createContact(overrides = {}) {
         notes: overrides.notes || '',
         
         // Disposition (starts neutral, voices suggest changes)
-        disposition: overrides.disposition || 'neutral',
+        disposition: disposition,
         
         // Auto-derived type, but can be overridden
-        type: overrides.type || getTypeFromDisposition(overrides.disposition || 'neutral'),
+        type: overrides.type || getTypeFromDisposition(disposition),
         
         // AI-generated dossier content
         dossier: overrides.dossier || null,
@@ -175,12 +316,12 @@ export function createContact(overrides = {}) {
         createdAt: overrides.createdAt || Date.now(),
         lastModified: overrides.lastModified || Date.now(),
         
-        // For contact intelligence (voice opinion tracking)
-        voiceOpinions: overrides.voiceOpinions || {},
+        // Voice opinions - NOW SEEDED with baseline
+        voiceOpinions: seededOpinions,
         /* voiceOpinions structure:
         {
-            'logic': { score: 3, lastQuote: "His alibi checks out.", timestamp: ... },
-            'half_light': { score: -5, lastQuote: "Something's wrong.", timestamp: ... }
+            'logic': { score: 3, source: 'baseline', timestamp: ... },
+            'half_light': { score: -5, source: 'chat', lastQuote: "Something's wrong.", timestamp: ... }
         }
         */
         
@@ -191,7 +332,10 @@ export function createContact(overrides = {}) {
         manuallyEdited: overrides.manuallyEdited || false,
         
         // Spread any additional overrides
-        ...overrides
+        ...overrides,
+        
+        // Ensure voiceOpinions isn't overwritten by spread if we seeded it
+        voiceOpinions: overrides.voiceOpinions || seededOpinions
     };
 }
 
