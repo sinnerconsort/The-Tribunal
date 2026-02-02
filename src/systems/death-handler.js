@@ -20,37 +20,39 @@ const DEATH_TYPES = {
     cardiac: {
         triggers: ['heart', 'cardiac', 'chest pain', 'ticker', 'attack'],
         headlines: [
-            "COP SUFFERS FINAL HEART ATTACK",
-            "DETECTIVE'S HEART GIVES OUT",
-            "OFFICER'S TICKER STOPS MID-INVESTIGATION"
+            "THE HEART GIVES OUT",
+            "A FINAL, FATAL BEAT",
+            "WHEN THE BODY BETRAYS"
         ],
         skill: 'endurance'
     },
     violence: {
         triggers: ['shot', 'stabbed', 'beaten', 'killed', 'murdered', 'attack', 'fight', 'bullet', 'knife', 'blood'],
         headlines: [
-            "OFFICER FOUND DEAD IN MARTINAISE",
-            "DETECTIVE KILLED IN LINE OF DUTY",
-            "RCM LIEUTENANT SLAIN"
+            "BLOOD ON THE GROUND",
+            "A VIOLENT END",
+            "DEATH COMES SWIFTLY",
+            "THE FINAL BLOW"
         ],
         skill: 'physical_instrument'
     },
     overdose: {
         triggers: ['overdose', 'drugs', 'pills', 'alcohol', 'drunk', 'poisoning', 'intoxication'],
         headlines: [
-            "DETECTIVE'S FINAL BENDER",
-            "OFFICER DIES OF SUBSTANCE ABUSE",
-            "COP'S DEMONS FINALLY WIN"
+            "THE DEMONS FINALLY WIN",
+            "ONE DRINK TOO MANY",
+            "POISON IN THE VEINS",
+            "THE LAST HIGH"
         ],
         skill: 'electrochemistry'
     },
     environmental: {
         triggers: ['cold', 'freeze', 'drown', 'fall', 'exposure', 'hypothermia', 'water', 'river', 'canal'],
         headlines: [
-            "BODY RECOVERED FROM CANAL",
-            "OFFICER LOST TO THE ELEMENTS",
-            "DETECTIVE SUCCUMBS TO HYPOTHERMIA",
-            "RCM OFFICER FOUND FROZEN IN MARTINAISE"
+            "CLAIMED BY THE ELEMENTS",
+            "THE COLD TAKES ANOTHER",
+            "LOST TO THE WATERS",
+            "NATURE'S CRUEL EMBRACE"
         ],
         skill: 'shivers'
     },
@@ -59,9 +61,10 @@ const DEATH_TYPES = {
     breakdown: {
         triggers: ['cry', 'sob', 'break', 'snap', 'scream', 'despair', 'hopeless'],
         headlines: [
-            "DISGRACED COP SLEEPS IN TRASH",
-            "OFFICER'S MENTAL BREAKDOWN PUBLIC SPECTACLE",
-            "DETECTIVE LAST SEEN WEEPING IN ALLEY"
+            "THE MIND SHATTERS",
+            "A SPIRIT BREAKS",
+            "WHEN HOPE DIES",
+            "THE BREAKING POINT"
         ],
         skill: 'volition',
         isMorale: true
@@ -69,9 +72,10 @@ const DEATH_TYPES = {
     humiliation: {
         triggers: ['shame', 'humiliat', 'embarrass', 'laugh', 'mock', 'ridicul'],
         headlines: [
-            "COP GIVES UP THE DETECTIVE GENRE FOR SOCIAL REALISM",
-            "OFFICER RESIGNS AFTER PUBLIC HUMILIATION",
-            "DETECTIVE'S REPUTATION IN TATTERS"
+            "DIGNITY IN TATTERS",
+            "THE WEIGHT OF SHAME",
+            "A REPUTATION DESTROYED",
+            "HUMILIATION COMPLETE"
         ],
         skill: 'composure',
         isMorale: true
@@ -79,9 +83,10 @@ const DEATH_TYPES = {
     existential: {
         triggers: ['meaning', 'purpose', 'why', 'nothing', 'empty', 'pointless', 'futile', 'absurd'],
         headlines: [
-            "WEEKS LATER, NO ANSWERS ABOUT EXTRACTED COP",
-            "DETECTIVE QUESTIONS EVERYTHING, FINDS NOTHING",
-            "OFFICER STARES INTO ABYSS, ABYSS STARES BACK"
+            "THE ABYSS STARES BACK",
+            "MEANING SLIPS AWAY",
+            "WHEN NOTHING MATTERS",
+            "THE VOID WITHIN"
         ],
         skill: 'inland_empire',
         isMorale: true
@@ -89,9 +94,10 @@ const DEATH_TYPES = {
     rejection: {
         triggers: ['reject', 'leave', 'abandon', 'alone', 'nobody', 'hate'],
         headlines: [
-            "NOBODY CAME TO THE FUNERAL",
-            "FORMER DETECTIVE DIES ALONE",
-            "OFFICER'S LAST WORDS: 'I NEVER LOVED THAT WOMAN'"
+            "UTTERLY ALONE",
+            "NOBODY CAME",
+            "ABANDONED BY ALL",
+            "THE LONELIEST END"
         ],
         skill: 'empathy',
         isMorale: true
@@ -100,12 +106,12 @@ const DEATH_TYPES = {
 
 // Default fallbacks
 const DEFAULT_HEALTH_DEATH = {
-    headlines: ["DETECTIVE FOUND DEAD", "OFFICER'S FINAL CASE", "RCM LOSES ANOTHER"],
+    headlines: ["THE END COMES", "A LIFE EXTINGUISHED", "FINAL MOMENTS"],
     skill: 'endurance'
 };
 
 const DEFAULT_MORALE_DEATH = {
-    headlines: ["COP GIVES UP", "DETECTIVE'S SPIRIT BROKEN", "OFFICER WALKS AWAY"],
+    headlines: ["THE SPIRIT BREAKS", "WILL TO LIVE FADES", "GIVING UP"],
     skill: 'volition',
     isMorale: true
 };
@@ -339,6 +345,7 @@ async function triggerDeath(deathType, isMoraleDeath, context) {
 /**
  * Generate death article via AI
  * Pulls character names from ST context via stored getContext function
+ * Genre-agnostic - works for fantasy, modern, sci-fi, etc.
  */
 async function generateDeathArticle(headline, deathType, isMoraleDeath, context) {
     // Get character names from ST context
@@ -356,8 +363,8 @@ async function generateDeathArticle(headline, deathType, isMoraleDeath, context)
     
     // Default article if AI fails
     const defaultArticle = isMoraleDeath 
-        ? `Sources close to ${protagonistName} report their mental state had been deteriorating for some time. "We all saw it coming," said one acquaintance who wished to remain anonymous.`
-        : `Authorities have declined to comment on the circumstances surrounding ${protagonistName}. An investigation is reportedly underway.`;
+        ? `Those who knew ${protagonistName} say the signs were there. "We all saw it coming," said one acquaintance who wished to remain anonymous. Their whereabouts remain unknown.`
+        : `The circumstances surrounding ${protagonistName}'s fate remain unclear. Those who knew them have declined to comment.`;
     
     try {
         // Try to get API for generation
@@ -369,31 +376,36 @@ async function generateDeathArticle(headline, deathType, isMoraleDeath, context)
             return defaultArticle;
         }
         
-        const systemPrompt = `You are writing a brief, somber newspaper article about a ${isMoraleDeath ? 'mental breakdown or disappearance' : 'tragic death'}. 
+        const deathDescription = isMoraleDeath 
+            ? 'a mental breakdown, disappearance, or loss of will to continue'
+            : 'a death or tragic end';
+        
+        const systemPrompt = `Write a brief, somber newspaper-style obituary or report about ${deathDescription}.
 
 CRITICAL RULES:
-- The main character's name is: "${protagonistName}"
-- The other character is: "${characterName}"
-- Use ONLY these names - do NOT invent any other character names
-- If you need a quote, attribute it to "a witness", "a colleague", or "an acquaintance" 
-- Keep it under 100 words total
-- Write plain prose - NO markdown, NO asterisks, NO headers
-- Do NOT repeat the headline or newspaper name
-- Do NOT use generic terms like "officer" or "detective" - use the actual name`;
+- Main character's name: "${protagonistName}"
+- Other character: "${characterName}"
+- Use ONLY these names - invent NO other names
+- For quotes, use "a witness", "an acquaintance", "a friend", or "someone close to them"
+- Keep under 100 words
+- NO markdown, asterisks, or headers
+- Do NOT use genre-specific terms like: officer, detective, case, investigation, precinct, department
+- Match the tone and setting of the context provided
+- Be atmospheric and melancholic`;
 
-        const userPrompt = `Write a newspaper article with this headline: "${headline}"
+        const userPrompt = `Headline: "${headline}"
 
 Main character: "${protagonistName}"
 Other character: "${characterName}"
 
-Recent events:
+What happened:
 ${context.substring(0, 400)}
 
 Write 2 short paragraphs:
-1. What happened (reference the context details)
-2. A quote from "a witness" or "an acquaintance" (NO invented names)
+1. Describe what happened to ${protagonistName} (use details from the context above)
+2. Include a quote from "a witness" or "someone who knew them" (NO invented names)
 
-Always refer to the main character as "${protagonistName}".`;
+Stay true to whatever setting/genre the context suggests. Do not assume any particular genre.`;
 
         const response = await (apiModule.callAPIWithTokens 
             ? callAPI(systemPrompt, userPrompt, 300)
@@ -776,15 +788,15 @@ export function testDeathScreen(type = 'health', customContext = '') {
     const testContexts = {
         // Health deaths
         cardiac: "Your heart pounds erratically. The years of abuse have caught up. You clutch your chest as the world spins.",
-        violence: "The bullet tears through your shoulder. Blood sprays across the wall. You collapse against the filing cabinet.",
+        violence: "The blade finds its mark. Blood sprays across the wall. You collapse, strength fading fast.",
         overdose: "The room tilts. You've had too much. Way too much. The empty bottles mock you from the floor.",
-        environmental: "The canal water is freezing. Your limbs stop responding. The current pulls you under.",
+        environmental: "The water is freezing. Your limbs stop responding. The cold seeps into your bones.",
         
         // Morale deaths
         breakdown: "You can't stop crying. In the middle of the street. People are staring. You don't care anymore.",
-        humiliation: "They're all laughing. The whole precinct. Your career is over. Your reputation is garbage.",
-        existential: "What's the point? Of any of this? The case, the job, existence itself? Nothing matters.",
-        rejection: "She's gone. They're all gone. Nobody came to help. Nobody ever will. You are completely alone."
+        humiliation: "They're all laughing. Everyone you know. Your reputation is destroyed. Your dignity in tatters.",
+        existential: "What's the point? Of any of this? Life, purpose, existence itself? Nothing matters.",
+        rejection: "They're gone. All of them. Nobody came to help. Nobody ever will. You are completely alone."
     };
     
     // Determine death type
