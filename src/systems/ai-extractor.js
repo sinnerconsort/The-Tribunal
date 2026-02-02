@@ -223,45 +223,52 @@ ${personaText || 'No persona provided.'}
 ${chatContext || 'No chat context.'}
 `.trim();
 
-    if (combinedText.length < 20) return [];
+    if (combinedText.length < 30) return [];
     
     try {
         const systemPrompt = `You extract carried/pocket items from character descriptions and roleplay context.
 
-Your job is to identify what items this character would reasonably have ON THEIR PERSON right now.
+Your job is to identify what items this character would reasonably have ON THEIR PERSON.
 
 EXTRACT these types of items:
-- Consumables: cigarettes, alcohol, drugs, food, gum, mints
-- Tools: lighters, flashlights, pens, multitools
-- Personal effects: wallet, phone, keys (car keys, house keys)
-- Documents: ID, badges, notes, photos, business cards
-- Money: cash, coins (estimate reasonable amounts)
-- Weapons: if mentioned or contextually appropriate
-- Small accessories: headphones, glasses case, etc.
+- Consumables: cigarettes, alcohol, drugs, food, gum, mints, candy, snacks
+- Tools: lighters, flashlights, pens, phones, multitools, keys
+- Personal effects: wallet, phone, keys (car keys, house keys), ID
+- Documents: notes, letters, photos, business cards
+- Money: cash, coins (estimate reasonable amounts based on context)
+- Weapons: if mentioned, implied, or contextually appropriate
+- Small accessories: headphones, glasses case, chapstick, etc.
+- Context-specific items: items that make sense for the character's setting/situation
 
 EXTRACTION RULES:
 1. Include items EXPLICITLY mentioned in persona or chat
-2. Include items the character USED or REFERENCED in chat (e.g., "pulls out a cigarette" = has cigarettes)
-3. Include REASONABLE INFERENCES (someone with car keys probably has a wallet)
-4. For consumables, estimate realistic quantities (pack of cigarettes = 10-20, not 1)
-5. Do NOT include clothing (that's equipment, not inventory)
-6. Do NOT include large items that wouldn't fit in pockets/bag
-7. Do NOT include items the character LOST or GAVE AWAY in the chat
+2. Include items the character USED, TOUCHED, or REFERENCED in chat
+3. Include items that are STRONGLY IMPLIED (e.g., someone smoking = has cigarettes + lighter)
+4. Include REASONABLE INFERENCES based on character type:
+   - A modern human probably has: phone, wallet, keys
+   - A smoker probably has: cigarettes, lighter
+   - A student probably has: phone, pen, some cash
+5. For consumables, estimate realistic quantities
+6. Do NOT include clothing (that's equipment)
+7. Do NOT include items clearly LOST or GIVEN AWAY in the chat
+8. When in doubt, INCLUDE the item - it's better to have too many than too few
+
+BE GENEROUS with inferences. If the character seems like they would have something, include it.
 
 Respond with ONLY a JSON array:
-[{"name": "Item Name", "quantity": 1, "type": "consumable|tool|document|money|weapon|misc", "reason": "why included"}]
+[{"name": "Item Name", "quantity": 1, "type": "consumable|tool|document|money|weapon|misc", "reason": "brief reason"}]
 
-If no items found, respond with: []`;
+If truly no items can be inferred, respond with: []`;
 
-        const userPrompt = `Extract all pocket/carried items this character would have:
+        const userPrompt = `Extract all pocket/carried items this character would have. Be generous with inferences based on character type and context:
 
 ${combinedText.substring(0, 4000)}
 
-Return a JSON array of items with quantities.`;
+Return a JSON array of items with quantities. Remember: include reasonable inferences!`;
 
         const response = await callAPI(systemPrompt, userPrompt, {
             maxTokens: 800,
-            temperature: 0.3
+            temperature: 0.4  // Slightly higher for more creative inferences
         });
         
         if (!response) return [];
