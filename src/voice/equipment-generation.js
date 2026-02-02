@@ -218,55 +218,164 @@ async function callEquipmentAPI(systemPrompt, userPrompt) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Extract item names from text without AI
- * Used to find what items exist, then check wardrobe/generate
+ * Extract clothing item names from text using AI
+ * RPG Companion approach: AI understands context, regex doesn't
+ * 
+ * @param {string} text - Persona or message text
+ * @returns {Promise<string[]>} Array of clothing item names
  */
-export function quickExtractItemNames(text) {
+export async function quickExtractItemNames(text) {
+    if (!text) return [];
+    
+    console.log('[Equipment] AI-extracting clothing from text...');
+    
+    try {
+        const items = await extractClothingWithAI(text);
+        console.log('[Equipment] AI extracted:', items);
+        return items;
+    } catch (error) {
+        console.warn('[Equipment] AI extraction failed, using fallback:', error.message);
+        return fallbackExtractClothing(text);
+    }
+}
+
+/**
+ * AI-based clothing extraction (primary method)
+ * Sends text to AI and asks for ONLY wearable items
+ */
+async function extractClothingWithAI(text) {
+    const systemPrompt = `You extract ONLY wearable clothing and accessories from character descriptions.
+
+EXTRACT these types of items:
+- Garments: shirts, pants, jackets, coats, dresses, skirts, etc.
+- Footwear: shoes, boots, sneakers, sandals, etc.
+- Accessories: hats, glasses, scarves, belts, ties, etc.
+- Jewelry: rings, necklaces, bracelets, earrings, watches, etc.
+- Bags: backpacks, purses, briefcases, etc.
+
+DO NOT extract:
+- Physical features: face shape, body type, scars, tattoos, birthmarks
+- Hair: hair color, hair style, facial hair, beards, mustaches
+- Eyes: eye color, eye shape
+- Skin: skin color, skin tone, complexion
+- Body parts: arms, legs, hands, face
+- Abstract descriptions: "ravaged look", "burst capillaries", "bloated face"
+- Field labels: "Hair:", "Eyes:", "Appearance:"
+
+Respond with ONLY a JSON array of item names, nothing else.
+If no clothing items found, respond with: []`;
+
+    const userPrompt = `Extract ONLY wearable clothing items from this text:
+
+${text.substring(0, 2000)}
+
+Respond with a JSON array of clothing item names only. Example: ["Black Leather Jacket", "Worn Jeans", "Combat Boots"]`;
+
+    try {
+        const response = await callAPIWithTokens(systemPrompt, userPrompt, 500);
+        
+        if (!response) return [];
+        
+        // Parse JSON response
+        let cleaned = response.trim();
+        cleaned = cleaned.replace(/^```json?\s*/i, '').replace(/\s*```$/i, '');
+        
+        const arrayStart = cleaned.indexOf('[');
+        const arrayEnd = cleaned.lastIndexOf(']');
+        
+        if (arrayStart === -1 || arrayEnd === -1) return [];
+        
+        cleaned = cleaned.slice(arrayStart, arrayEnd + 1);
+        
+        const items = JSON.parse(cleaned);
+        
+        if (!Array.isArray(items)) return [];
+        
+        // Clean and validate each item
+        return items
+            .filter(item => typeof item === 'string' && item.trim().length > 1)
+            .map(item => {
+                let clean = item.trim();
+                // Capitalize first letter of each word
+                return clean.split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                    .join(' ');
+            })
+            .filter(item => item.length > 1 && item.length < 60);
+            
+    } catch (error) {
+        console.error('[Equipment] AI extraction parse error:', error);
+        return [];
+    }
+}
+
+/**
+ * Fallback regex extraction - VERY strict, only high-confidence matches
+ * Used when AI is unavailable
+ */
+function fallbackExtractClothing(text) {
     if (!text) return [];
     
     const items = [];
     const seen = new Set();
     
-    // Pattern 1: Appearance: ["item+item+item"]
-    const appearanceMatch = text.match(/Appearance\s*:?\s*\[?"?([^\]"]+)"?\]?/i);
-    if (appearanceMatch) {
-        // FIXED: Use parseItems() instead of .split(/[+&,;|\/]/)
-        const rawItems = parseItems(appearanceMatch[1]);
-        for (const item of rawItems) {
+    // Only match explicit "wears/wearing [item]" patterns
+    const wearingPatterns = [
+        /(?:wears?|wearing)\s+(?:a|an|the)?\s*([^.,;!?\n]{3,40})/gi,
+        /dressed\s+in\s+(?:a|an|the)?\s*([^.,;!?\n]{3,40})/gi,
+    ];
+    
+    for (const pattern of wearingPatterns) {
+        const matches = text.matchAll(pattern);
+        for (const match of matches) {
+            const item = match[1].trim();
             const normalized = normalizeItemName(item);
-            if (normalized && !seen.has(normalized.toLowerCase())) {
+            
+            if (normalized && 
+                isDefinitelyClothing(normalized) && 
+                !seen.has(normalized.toLowerCase())) {
                 seen.add(normalized.toLowerCase());
                 items.push(normalized);
             }
         }
     }
     
-    // Pattern 2: Clothing: [...] or Wearing: [...]
-    const clothingMatch = text.match(/(?:Clothing|Wearing|Outfit)\s*:?\s*\[?"?([^\]"]+)"?\]?/i);
-    if (clothingMatch) {
-        // FIXED: Use parseItems() instead of .split(/[+&,;|\/]/)
-        const rawItems = parseItems(clothingMatch[1]);
-        for (const item of rawItems) {
-            const normalized = normalizeItemName(item);
-            if (normalized && !seen.has(normalized.toLowerCase())) {
-                seen.add(normalized.toLowerCase());
-                items.push(normalized);
-            }
-        }
-    }
-    
-    // Pattern 3: "wearing a/an [item]" in prose
-    const wearingMatches = text.matchAll(/wearing\s+(?:a|an|the)?\s*([^.,;!?\n]+)/gi);
-    for (const match of wearingMatches) {
-        const normalized = normalizeItemName(match[1]);
-        if (normalized && normalized.length > 2 && normalized.split(' ').length <= 5 && !seen.has(normalized.toLowerCase())) {
-            seen.add(normalized.toLowerCase());
-            items.push(normalized);
-        }
-    }
-    
-    console.log('[Equipment] Quick extracted items:', items);
+    console.log('[Equipment] Fallback extracted:', items);
     return items;
+}
+
+/**
+ * VERY strict clothing check - only high-confidence matches
+ * Used for fallback when AI unavailable
+ */
+function isDefinitelyClothing(name) {
+    if (!name || name.length < 3) return false;
+    
+    const lower = name.toLowerCase();
+    
+    // Must contain an actual clothing word
+    const clothingWords = [
+        'jacket', 'coat', 'shirt', 'blouse', 'top', 'sweater', 'hoodie', 'cardigan',
+        'pants', 'jeans', 'trousers', 'shorts', 'slacks',
+        'dress', 'skirt', 'gown',
+        'suit', 'vest', 'blazer', 'tuxedo',
+        'boots', 'shoes', 'sneakers', 'heels', 'sandals', 'loafers', 'flats',
+        'hat', 'cap', 'beanie', 'fedora', 'beret',
+        'glasses', 'sunglasses', 'shades',
+        'gloves', 'mittens',
+        'scarf', 'tie', 'belt', 'socks', 'stockings',
+        'ring', 'necklace', 'bracelet', 'earring', 'watch', 'choker', 'pendant',
+        'bag', 'backpack', 'purse', 'briefcase', 'wallet',
+        'mask', 'bandana'
+    ];
+    
+    for (const word of clothingWords) {
+        if (lower.includes(word)) {
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 function normalizeItemName(raw) {
