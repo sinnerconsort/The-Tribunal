@@ -429,10 +429,14 @@ async function onMessageReceived(messageId) {
     // ═══════════════════════════════════════════════════════════════
     try {
         const settings = getSettings();
-        const aiExtractionEnabled = settings.cases?.autoDetect || 
-                                     settings.contacts?.autoDetect ||
-                                     settings.equipment?.autoDetect !== false ||  // Default on
-                                     settings.inventory?.autoDetect !== false;    // Default on
+        
+        // Check individual extraction toggles
+        const extractCases = settings.cases?.autoDetect;
+        const extractContacts = settings.contacts?.autoDetect;
+        const extractEquipment = settings.extraction?.autoEquipment ?? false;  // Default OFF
+        const extractInventory = settings.extraction?.autoInventory ?? false;  // Default OFF
+        
+        const aiExtractionEnabled = extractCases || extractContacts || extractEquipment || extractInventory;
         
         if (aiExtractionEnabled && messageText) {
             const aiExtractor = await getAIExtractor();
@@ -461,8 +465,10 @@ async function onMessageReceived(messageId) {
                     console.warn('[Tribunal] AI extraction error:', results.error);
                 } else {
                     // Process results with notifications
+                    const showNotifications = settings.extraction?.showNotifications ?? true;
+                    
                     const processed = await aiExtractor.processExtractionResults(results, {
-                        notifyCallback: (msg, type) => {
+                        notifyCallback: showNotifications ? (msg, type) => {
                             if (typeof toastr === 'undefined') return;
                             
                             // Determine notification style based on type
@@ -473,7 +479,7 @@ async function onMessageReceived(messageId) {
                             } else {
                                 toastr.info(msg, 'The Tribunal');
                             }
-                        }
+                        } : null
                     });
                     
                     // Log what was extracted
