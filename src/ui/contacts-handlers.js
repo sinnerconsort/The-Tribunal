@@ -448,11 +448,31 @@ async function handleInlineEditSave(contactId) {
         return;
     }
     
+    const oldDisposition = contact.disposition;
+    const newDisposition = document.getElementById('contact-edit-disposition')?.value || 'neutral';
+    
     contact.name = name;
     contact.context = document.getElementById('contact-edit-context')?.value?.trim() || '';
-    contact.disposition = document.getElementById('contact-edit-disposition')?.value || 'neutral';
+    contact.disposition = newDisposition;
     contact.notes = document.getElementById('contact-edit-notes')?.value?.trim() || '';
     contact.manuallyEdited = true;
+    
+    // Reseed voice opinions if disposition changed significantly
+    if (oldDisposition !== newDisposition) {
+        try {
+            const contactsData = await getContactsData();
+            if (contactsData.reseedOnDispositionChange) {
+                contact.voiceOpinions = contactsData.reseedOnDispositionChange(
+                    contact.voiceOpinions || {},
+                    oldDisposition,
+                    newDisposition
+                );
+                console.log(`[Contacts] Reseeded opinions for ${contact.name}: ${oldDisposition} → ${newDisposition}`);
+            }
+        } catch (e) {
+            console.warn('[Contacts] Could not reseed opinions:', e.message);
+        }
+    }
     
     await saveContact(contact);
     await renderContactsList();
