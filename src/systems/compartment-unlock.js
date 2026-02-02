@@ -9,14 +9,17 @@
  * - Session 2: Stronger hint toast, tab ghosts in (barely visible)
  * - Session 3: Final reveal toast with apricot, tab fully visible
  * 
- * STATE TRACKING:
- * - lateNightSessions: count of qualifying sessions
- * - lastSessionDate: prevent multiple counts per night
- * - crackStage: 0 (hidden) → 1 (hint) → 2 (ghosting) → 3 (revealed)
- * - isRevealed: permanent flag once unlocked
+ * STATE TRACKING (GLOBAL - persists across all chats):
+ * - crackCount: count of qualifying sessions (0-3)
+ * - crackDates: dates when cracks occurred
+ * - lastCrackDate: prevent multiple counts per night
+ * - unlocked: permanent flag once unlocked
+ * 
+ * FIX: Now uses getSettings().progression.secretPanel (global/permanent)
+ *      instead of getChatState().compartment (per-chat/ephemeral)
  */
 
-import { getChatState, saveChatState } from '../core/persistence.js';
+import { getSettings, saveSettings, getChatState } from '../core/persistence.js';
 
 // ═══════════════════════════════════════════════════════════════
 // TIME UTILITIES
@@ -44,45 +47,54 @@ function getTodayKey() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// STATE MANAGEMENT
+// STATE MANAGEMENT - NOW USES GLOBAL PROGRESSION
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Get compartment state from chat state
+ * Get compartment state from GLOBAL settings (persists across all chats)
+ * Maps to: extension_settings.tribunal.progression.secretPanel
  */
 function getCompartmentState() {
-    const state = getChatState();
-    if (!state) return null;
+    const settings = getSettings();
+    if (!settings) return null;
     
-    if (!state.compartment) {
-        state.compartment = {
-            lateNightSessions: 0,
-            lastSessionDate: null,
-            crackStage: 0,
-            isRevealed: false
+    // Ensure progression.secretPanel exists
+    if (!settings.progression) {
+        settings.progression = {};
+    }
+    if (!settings.progression.secretPanel) {
+        settings.progression.secretPanel = {
+            unlocked: false,
+            crackCount: 0,
+            crackDates: [],
+            lastCrackDate: null
         };
     }
     
-    return state.compartment;
+    return settings.progression.secretPanel;
 }
 
 /**
- * Save compartment state
+ * Save compartment state (global settings)
  */
-function saveCompartmentState(compartmentState) {
-    const state = getChatState();
-    if (!state) return;
-    
-    state.compartment = compartmentState;
-    saveChatState();
+function saveCompartmentState() {
+    // Just save global settings - the state is already updated in place
+    saveSettings();
 }
 
 /**
  * Get current crack stage (0-3)
+ * Derived from crackCount for backwards compatibility
  */
 export function getCrackStage() {
     const comp = getCompartmentState();
-    return comp?.crackStage || 0;
+    if (!comp) return 0;
+    
+    // If unlocked, always return 3
+    if (comp.unlocked) return 3;
+    
+    // Otherwise, stage = crackCount (clamped to 0-3)
+    return Math.min(comp.crackCount || 0, 3);
 }
 
 /**
@@ -90,7 +102,7 @@ export function getCrackStage() {
  */
 export function isCompartmentRevealed() {
     const comp = getCompartmentState();
-    return comp?.isRevealed || false;
+    return comp?.unlocked || false;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -265,8 +277,8 @@ export function checkCompartmentProgression() {
     const comp = getCompartmentState();
     if (!comp) return false;
     
-    // Already fully revealed - nothing to do
-    if (comp.isRevealed) {
+    // Already fully unlocked - nothing to do
+    if (comp.unlocked) {
         updateTabVisibility(3);
         return false;
     }
@@ -274,30 +286,35 @@ export function checkCompartmentProgression() {
     // Must be late night
     if (!isLateNight()) {
         // Still update tab visibility for current stage
-        updateTabVisibility(comp.crackStage);
+        updateTabVisibility(getCrackStage());
         return false;
     }
     
     // Check if this is a new night (haven't counted this session yet)
     const todayKey = getTodayKey();
-    if (comp.lastSessionDate === todayKey) {
+    if (comp.lastCrackDate === todayKey) {
         // Already counted tonight
-        updateTabVisibility(comp.crackStage);
+        updateTabVisibility(getCrackStage());
         return false;
     }
     
     // NEW LATE NIGHT SESSION!
-    comp.lastSessionDate = todayKey;
-    comp.lateNightSessions++;
+    comp.lastCrackDate = todayKey;
+    comp.crackCount = (comp.crackCount || 0) + 1;
     
-    console.log(`[Compartment] Late night session #${comp.lateNightSessions}`);
+    // Track the date
+    if (!Array.isArray(comp.crackDates)) {
+        comp.crackDates = [];
+    }
+    comp.crackDates.push(todayKey);
+    
+    console.log(`[Compartment] Late night session #${comp.crackCount}`);
     
     // Progress based on session count
-    if (comp.lateNightSessions >= 3 && comp.crackStage < 3) {
+    if (comp.crackCount >= 3) {
         // FULL REVEAL
-        comp.crackStage = 3;
-        comp.isRevealed = true;
-        saveCompartmentState(comp);
+        comp.unlocked = true;
+        saveCompartmentState();
         
         // Delay the reveal toast slightly for drama
         setTimeout(() => {
@@ -307,10 +324,9 @@ export function checkCompartmentProgression() {
         
         return true;
         
-    } else if (comp.lateNightSessions >= 2 && comp.crackStage < 2) {
+    } else if (comp.crackCount >= 2) {
         // Stage 2 - ghosting
-        comp.crackStage = 2;
-        saveCompartmentState(comp);
+        saveCompartmentState();
         
         setTimeout(() => {
             showHintToast(2);
@@ -319,10 +335,9 @@ export function checkCompartmentProgression() {
         
         return true;
         
-    } else if (comp.lateNightSessions >= 1 && comp.crackStage < 1) {
+    } else if (comp.crackCount >= 1) {
         // Stage 1 - first hint
-        comp.crackStage = 1;
-        saveCompartmentState(comp);
+        saveCompartmentState();
         
         setTimeout(() => {
             showHintToast(1);
@@ -332,8 +347,8 @@ export function checkCompartmentProgression() {
         return true;
     }
     
-    saveCompartmentState(comp);
-    updateTabVisibility(comp.crackStage);
+    saveCompartmentState();
+    updateTabVisibility(getCrackStage());
     return false;
 }
 
@@ -347,16 +362,12 @@ export function checkCompartmentProgression() {
  */
 export function initCompartmentUnlock() {
     // Initial visibility check
+    const stage = getCrackStage();
+    updateTabVisibility(stage);
+    
     const comp = getCompartmentState();
-    if (comp) {
-        updateTabVisibility(comp.crackStage);
-    }
-    
-    // Check for progression when panel opens
-    // (Hook this into panel open event)
-    
     console.log('[Compartment] Unlock system initialized');
-    console.log(`[Compartment] Current state: stage ${comp?.crackStage || 0}, sessions ${comp?.lateNightSessions || 0}`);
+    console.log(`[Compartment] Current state: stage ${stage}, sessions ${comp?.crackCount || 0}, unlocked: ${comp?.unlocked || false}`);
 }
 
 /**
@@ -366,10 +377,9 @@ export function forceReveal() {
     const comp = getCompartmentState();
     if (!comp) return;
     
-    comp.crackStage = 3;
-    comp.isRevealed = true;
-    comp.lateNightSessions = 3;
-    saveCompartmentState(comp);
+    comp.unlocked = true;
+    comp.crackCount = 3;
+    saveCompartmentState();
     
     showRevealToast();
     updateTabVisibility(3);
@@ -381,16 +391,16 @@ export function forceReveal() {
  * Reset compartment state (debug)
  */
 export function resetCompartment() {
-    const state = getChatState();
-    if (!state) return;
+    const settings = getSettings();
+    if (!settings?.progression) return;
     
-    state.compartment = {
-        lateNightSessions: 0,
-        lastSessionDate: null,
-        crackStage: 0,
-        isRevealed: false
+    settings.progression.secretPanel = {
+        unlocked: false,
+        crackCount: 0,
+        crackDates: [],
+        lastCrackDate: null
     };
-    saveChatState();
+    saveSettings();
     
     updateTabVisibility(0);
     console.log('[Compartment] Reset to hidden');
