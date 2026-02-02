@@ -52,7 +52,6 @@ import { initInventoryTemplateHandlers } from './src/ui/inventory-template.js';
 import { initAutoConsume } from './src/systems/auto-consume.js';
 import './src/ui/contextual-animations.js';
 import { initDeathHandler } from './src/systems/death-handler.js';
-
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Weather System (lazy loaded - see init())
 // ═══════════════════════════════════════════════════════════════
@@ -844,7 +843,7 @@ async function init() {
     initFidgetCommentary();
     initInventoryTemplateHandlers();
     initAutoConsume();
-    initDeathHandler();
+    initDeathHandler(getContext);  //
 
     // Lazy load extractor
 try {
