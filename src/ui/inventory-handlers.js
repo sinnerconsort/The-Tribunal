@@ -62,16 +62,40 @@ function findUserPersona() {
  * @param {number} maxMessages - Maximum messages to include
  * @returns {string} Combined message text
  */
-function getRecentChatContext(maxMessages = 10) {
+function getRecentChatContext(maxMessages = 15) {
     try {
         const context = window.SillyTavern?.getContext?.() || window.getContext?.();
         if (!context?.chat) return '';
         
-        const messages = context.chat.slice(0, maxMessages);
-        return messages
-            .filter(m => m.mes)
-            .map(m => m.mes)
-            .join('\n\n');
+        // Get messages (newest first typically, so slice from end)
+        const allMessages = context.chat;
+        const messages = allMessages.slice(-maxMessages);
+        
+        const cleanedMessages = messages
+            .filter(m => m.mes && !m.is_system) // Skip system messages
+            .map(m => {
+                let text = m.mes;
+                
+                // Strip HTML comments (system assessments, hidden text)
+                text = text.replace(/<!--[\s\S]*?-->/g, '');
+                
+                // Strip common OOC markers
+                text = text.replace(/\[OOC:.*?\]/gi, '');
+                text = text.replace(/\(OOC:.*?\)/gi, '');
+                
+                // Strip XML-like system tags
+                text = text.replace(/<[^>]*(?:assessment|system|state|status)[^>]*>[\s\S]*?<\/[^>]*>/gi, '');
+                
+                // Clean up excessive whitespace
+                text = text.replace(/\s+/g, ' ').trim();
+                
+                return text;
+            })
+            .filter(text => text.length > 20); // Skip very short/empty messages
+        
+        console.log(`[Inventory] Found ${cleanedMessages.length} chat messages for context`);
+        
+        return cleanedMessages.join('\n\n---\n\n');
     } catch (e) {
         console.warn('[Inventory] Could not get chat context:', e.message);
         return '';
