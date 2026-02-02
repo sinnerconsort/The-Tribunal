@@ -14,7 +14,7 @@
  */
 
 import { getSettings, getChatState, saveChatState } from '../core/state.js';
-import { callAPI } from '../voice/api-helpers.js';
+import { callAPIWithTokens } from '../voice/api-helpers.js';
 
 // ═══════════════════════════════════════════════════════════════
 // MAIN EXTRACTION PROMPT (EXPANDED)
@@ -155,10 +155,7 @@ ${personaText.substring(0, 3000)}
 
 Respond with a JSON array of clothing item names only.`;
 
-        const response = await callAPI(systemPrompt, userPrompt, {
-            maxTokens: 500,
-            temperature: 0.2
-        });
+        const response = await callAPIWithTokens(systemPrompt, userPrompt, 500);
         
         if (!response) {
             console.warn('[AI Extractor] No response for persona extraction');
@@ -266,10 +263,7 @@ ${combinedText.substring(0, 4000)}
 
 Return a JSON array of items with quantities. Remember: include reasonable inferences!`;
 
-        const response = await callAPI(systemPrompt, userPrompt, {
-            maxTokens: 800,
-            temperature: 0.4  // Slightly higher for more creative inferences
-        });
+        const response = await callAPIWithTokens(systemPrompt, userPrompt, 800);
         
         if (!response) return [];
         
@@ -351,10 +345,7 @@ ${personaText.substring(0, 3000)}
 
 Respond with a JSON array.`;
 
-        const response = await callAPI(systemPrompt, userPrompt, {
-            maxTokens: 500,
-            temperature: 0.2
-        });
+        const response = await callAPIWithTokens(systemPrompt, userPrompt, 500);
         
         if (!response) return [];
         
@@ -428,11 +419,7 @@ export async function extractFromMessage(messageText, options = {}) {
         
         const systemPrompt = `You are a precise data extraction assistant for a Disco Elysium-style RPG system. Extract game state changes from roleplay messages. Output only valid JSON with no additional text or markdown formatting.`;
         
-        const response = await callAPI(systemPrompt, prompt, {
-            maxTokens: 1500,
-            temperature: 0.3,
-            timeout
-        });
+        const response = await callAPIWithTokens(systemPrompt, prompt, 1500);
         
         if (!response) {
             results.error = 'No response from API';
