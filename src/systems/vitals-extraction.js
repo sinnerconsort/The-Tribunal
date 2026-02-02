@@ -4,7 +4,10 @@
  * THE MISSING PIECE: Extracts HP/Morale changes from AI responses
  * and updates state accordingly.
  * 
- * Call extractVitalsFromMessage() on MESSAGE_RECEIVED to auto-update vitals.
+ * v2.0 - DEATH SYSTEM INTEGRATION
+ * Now checks for death before applying damage, triggers skill checks
+ * 
+ * Call processMessageVitals() on MESSAGE_RECEIVED to auto-update vitals.
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -119,20 +122,16 @@ export function extractVitalsFromMessage(messageText) {
     let moraleDelta = 0;
     const events = [];
     
-    // ─────────────────────────────────────────────────────────────
     // HEALTH DAMAGE
-    // ─────────────────────────────────────────────────────────────
     for (const pattern of HEALTH_DAMAGE_PATTERNS) {
         const matches = messageText.matchAll(pattern);
         for (const match of matches) {
-            // Try to get explicit number, otherwise estimate
             const explicitDamage = match[1] ? parseInt(match[1], 10) : 0;
             
             if (explicitDamage > 0) {
                 healthDelta -= explicitDamage;
                 events.push(`Health -${explicitDamage} (explicit)`);
             } else {
-                // Estimate based on severity keywords
                 const severity = estimateSeverity(match[0]);
                 healthDelta -= severity;
                 events.push(`Health -${severity} (${match[0].trim().substring(0, 30)})`);
@@ -140,9 +139,7 @@ export function extractVitalsFromMessage(messageText) {
         }
     }
     
-    // ─────────────────────────────────────────────────────────────
     // HEALTH HEALING
-    // ─────────────────────────────────────────────────────────────
     for (const pattern of HEALTH_HEAL_PATTERNS) {
         const matches = messageText.matchAll(pattern);
         for (const match of matches) {
@@ -159,9 +156,7 @@ export function extractVitalsFromMessage(messageText) {
         }
     }
     
-    // ─────────────────────────────────────────────────────────────
     // MORALE DAMAGE
-    // ─────────────────────────────────────────────────────────────
     for (const pattern of MORALE_DAMAGE_PATTERNS) {
         const matches = messageText.matchAll(pattern);
         for (const match of matches) {
@@ -178,9 +173,7 @@ export function extractVitalsFromMessage(messageText) {
         }
     }
     
-    // ─────────────────────────────────────────────────────────────
     // MORALE RECOVERY
-    // ─────────────────────────────────────────────────────────────
     for (const pattern of MORALE_HEAL_PATTERNS) {
         const matches = messageText.matchAll(pattern);
         for (const match of matches) {
@@ -204,137 +197,181 @@ export function extractVitalsFromMessage(messageText) {
     return { healthDelta, moraleDelta, events };
 }
 
-/**
- * Estimate damage severity from description
- */
 function estimateSeverity(text) {
     const lower = text.toLowerCase();
-    
-    // Critical/severe = 3
-    if (/fatal|critical|devastating|massive|collapse|unconscious|black\s*out/.test(lower)) {
-        return 3;
-    }
-    
-    // Moderate = 2
-    if (/shot|stabbed|slashed|crushed|shattered|horrified|traumatized/.test(lower)) {
-        return 2;
-    }
-    
-    // Minor = 1
+    if (/fatal|critical|devastating|massive|collapse|unconscious|black\s*out/.test(lower)) return 3;
+    if (/shot|stabbed|slashed|crushed|shattered|horrified|traumatized/.test(lower)) return 2;
     return 1;
 }
 
-/**
- * Estimate healing severity from description
- */
 function estimateHealSeverity(text) {
     const lower = text.toLowerCase();
-    
-    // Major healing = 3
-    if (/fully\s+heal|complete|medkit|surgery|major/.test(lower)) {
-        return 3;
-    }
-    
-    // Moderate = 2  
-    if (/bandage|medicine|treated|comforted|relieved/.test(lower)) {
-        return 2;
-    }
-    
-    // Minor = 1
+    if (/fully\s+heal|complete|medkit|surgery|major/.test(lower)) return 3;
+    if (/bandage|medicine|treated|comforted|relieved/.test(lower)) return 2;
     return 1;
 }
 
 // ═══════════════════════════════════════════════════════════════
-// INTEGRATION WITH STATE
+// INTEGRATION WITH STATE (v2.0 - DEATH SYSTEM)
 // ═══════════════════════════════════════════════════════════════
 
 /**
  * Process a message and update vitals state
- * Call this from MESSAGE_RECEIVED hook
- * 
- * Uses window.TribunalState if available (matches your existing pattern)
- * 
- * @param {string} messageText - The AI message
- * @returns {{applied: boolean, healthDelta: number, moraleDelta: number, events: string[]}}
+ * v2.0: Integrates with death-handler.js for skill checks
  */
 export function processMessageVitals(messageText) {
     const { healthDelta, moraleDelta, events } = extractVitalsFromMessage(messageText);
     
-    // Nothing to apply
     if (healthDelta === 0 && moraleDelta === 0) {
-        return { applied: false, healthDelta: 0, moraleDelta: 0, events: [] };
+        return { applied: false, healthDelta: 0, moraleDelta: 0, events: [], death: null };
     }
     
-    // Get state accessors (matches your existing pattern in condition-effects.js)
     const { getChatState, saveChatState } = window.TribunalState || {};
     if (!getChatState) {
-        console.warn('[Vitals Extraction] TribunalState not available');
-        return { applied: false, healthDelta, moraleDelta, events };
+        console.warn('[Vitals] TribunalState not available');
+        return { applied: false, healthDelta, moraleDelta, events, death: null };
     }
     
     const state = getChatState();
     if (!state.vitals) state.vitals = { health: 10, maxHealth: 13, morale: 10, maxMorale: 13 };
     
     const vitals = state.vitals;
-    let changed = false;
+    let deathResult = null;
+    let finalHealthDelta = healthDelta;
+    let finalMoraleDelta = moraleDelta;
     
-    // Apply health change
-    if (healthDelta !== 0) {
-        const oldHealth = vitals.health;
-        vitals.health = Math.max(0, Math.min(vitals.maxHealth, vitals.health + healthDelta));
-        changed = vitals.health !== oldHealth;
+    // ═══════════════════════════════════════════════════════════
+    // DEATH CHECK BEFORE APPLYING DAMAGE
+    // ═══════════════════════════════════════════════════════════
+    
+    if (healthDelta < 0 || moraleDelta < 0) {
+        const deathHandler = window.TribunalDeath;
         
-        if (changed) {
-            console.log(`[Vitals] Health ${healthDelta > 0 ? '+' : ''}${healthDelta} → ${vitals.health}/${vitals.maxHealth}`);
+        if (deathHandler?.checkForDeath) {
+            deathResult = deathHandler.checkForDeath(
+                vitals.health,
+                vitals.morale,
+                healthDelta,
+                moraleDelta,
+                messageText
+            );
             
-            // Flash CRT effect
-            if (window.TribunalCRT?.flashEffect) {
-                window.TribunalCRT.flashEffect(healthDelta < 0 ? 'damage' : 'heal');
+            if (deathResult.prevented) {
+                // Skill check saved us
+                const wouldDieHealth = vitals.health + healthDelta <= 0;
+                const wouldDieMorale = vitals.morale + moraleDelta <= 0;
+                
+                if (wouldDieHealth) finalHealthDelta = -(vitals.health - 1);
+                if (wouldDieMorale) finalMoraleDelta = -(vitals.morale - 1);
+                
+                events.push(`[CLOSE CALL - ${deathResult.skillCheck.skill.toUpperCase()} saved you!]`);
+            }
+            
+            // Death triggered - screen handles reset
+            if (!deathResult.prevented && (deathResult.newHealth <= 0 || deathResult.newMorale <= 0)) {
+                console.log('[Vitals] Death triggered');
+                return { applied: true, healthDelta, moraleDelta, events, death: deathResult };
             }
         }
     }
     
-    // Apply morale change
-    if (moraleDelta !== 0) {
-        const oldMorale = vitals.morale;
-        vitals.morale = Math.max(0, Math.min(vitals.maxMorale, vitals.morale + moraleDelta));
-        changed = changed || vitals.morale !== oldMorale;
+    // ═══════════════════════════════════════════════════════════
+    // APPLY CHANGES
+    // ═══════════════════════════════════════════════════════════
+    
+    let changed = false;
+    
+    if (finalHealthDelta !== 0) {
+        const oldHealth = vitals.health;
+        vitals.health = Math.max(0, Math.min(vitals.maxHealth, vitals.health + finalHealthDelta));
+        changed = vitals.health !== oldHealth;
         
-        if (vitals.morale !== oldMorale) {
-            console.log(`[Vitals] Morale ${moraleDelta > 0 ? '+' : ''}${moraleDelta} → ${vitals.morale}/${vitals.maxMorale}`);
+        if (changed) {
+            console.log(`[Vitals] Health ${finalHealthDelta > 0 ? '+' : ''}${finalHealthDelta} → ${vitals.health}/${vitals.maxHealth}`);
+            
+            if (finalHealthDelta <= -2 && typeof toastr !== 'undefined') {
+                toastr.warning(`Health ${finalHealthDelta}`, 'Damage!', { timeOut: 2000 });
+            }
         }
     }
     
-    // Save and dispatch event
+    if (finalMoraleDelta !== 0) {
+        const oldMorale = vitals.morale;
+        vitals.morale = Math.max(0, Math.min(vitals.maxMorale, vitals.morale + finalMoraleDelta));
+        changed = changed || vitals.morale !== oldMorale;
+        
+        if (vitals.morale !== oldMorale) {
+            console.log(`[Vitals] Morale ${finalMoraleDelta > 0 ? '+' : ''}${finalMoraleDelta} → ${vitals.morale}/${vitals.maxMorale}`);
+            
+            if (finalMoraleDelta <= -2 && typeof toastr !== 'undefined') {
+                toastr.warning(`Morale ${finalMoraleDelta}`, 'Psychic damage!', { timeOut: 2000 });
+            }
+        }
+    }
+    
     if (changed) {
         if (saveChatState) saveChatState();
         
-        // Dispatch event for CRT and condition-effects to pick up
         window.dispatchEvent(new CustomEvent('tribunal:vitalsChanged', {
             detail: {
                 health: vitals.health,
                 maxHealth: vitals.maxHealth,
                 morale: vitals.morale,
                 maxMorale: vitals.maxMorale,
-                healthDelta,
-                moraleDelta
+                healthDelta: finalHealthDelta,
+                moraleDelta: finalMoraleDelta
             }
         }));
     }
     
-    return { applied: changed, healthDelta, moraleDelta, events };
+    return { applied: changed, healthDelta: finalHealthDelta, moraleDelta: finalMoraleDelta, events, death: deathResult };
 }
-
-// ═══════════════════════════════════════════════════════════════
-// PROMPT INJECTION - Tell AI to use explicit format
-// ═══════════════════════════════════════════════════════════════
 
 /**
  * Get Author's Note text for vitals tracking
- * Inject this to encourage AI to use explicit format
  */
 export function getVitalsPromptInjection() {
-    return `[System: When the protagonist takes physical damage or heals, note it as [HEALTH -X] or [HEALTH +X]. When they suffer or recover from emotional/psychic damage, note it as [MORALE -X] or [MORALE +X]. Use realistic values: minor = 1, moderate = 2, severe = 3.]`;
+    return `[System: When the protagonist takes physical damage or heals, note it as [HEALTH -X] or [HEALTH +X]. When they suffer emotional damage, note it as [MORALE -X] or [MORALE +X]. Values: minor=1, moderate=2, severe=3.]`;
+}
+
+/**
+ * Directly adjust vitals (for item use, etc.)
+ */
+export function adjustVitals(healthDelta, moraleDelta, source = 'manual') {
+    const { getChatState, saveChatState } = window.TribunalState || {};
+    if (!getChatState) return { success: false };
+    
+    const state = getChatState();
+    if (!state.vitals) return { success: false };
+    
+    const vitals = state.vitals;
+    
+    // Check for death if taking damage
+    if ((healthDelta < 0 || moraleDelta < 0) && window.TribunalDeath?.checkForDeath) {
+        const deathResult = window.TribunalDeath.checkForDeath(
+            vitals.health, vitals.morale, healthDelta, moraleDelta, source
+        );
+        
+        if (!deathResult.prevented && (deathResult.newHealth <= 0 || deathResult.newMorale <= 0)) {
+            return { success: true, death: true, deathResult };
+        }
+        
+        if (deathResult.prevented) {
+            healthDelta = vitals.health - deathResult.newHealth;
+            moraleDelta = vitals.morale - deathResult.newMorale;
+        }
+    }
+    
+    vitals.health = Math.max(0, Math.min(vitals.maxHealth, vitals.health + healthDelta));
+    vitals.morale = Math.max(0, Math.min(vitals.maxMorale, vitals.morale + moraleDelta));
+    
+    if (saveChatState) saveChatState();
+    
+    window.dispatchEvent(new CustomEvent('tribunal:vitalsChanged', {
+        detail: { health: vitals.health, maxHealth: vitals.maxHealth, morale: vitals.morale, maxMorale: vitals.maxMorale, healthDelta, moraleDelta, source }
+    }));
+    
+    return { success: true, death: false };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -344,5 +381,6 @@ export function getVitalsPromptInjection() {
 export default {
     extractVitalsFromMessage,
     processMessageVitals,
+    adjustVitals,
     getVitalsPromptInjection
 };
