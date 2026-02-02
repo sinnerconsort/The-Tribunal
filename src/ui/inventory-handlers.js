@@ -28,18 +28,8 @@ async function loadEvents() {
     }
 }
 
-// AI Extractor for smart scanning
-let aiExtractor = null;
-async function getAIExtractor() {
-    if (aiExtractor) return aiExtractor;
-    try {
-        aiExtractor = await import('../systems/ai-extractor.js');
-        return aiExtractor;
-    } catch (e) {
-        console.warn('[Inventory] AI Extractor not available:', e.message);
-        return null;
-    }
-}
+// AI Extractor - direct import like equipment-handlers.js
+import { extractInventoryFromContext } from '../systems/ai-extractor.js';
 
 // ═══════════════════════════════════════════════════════════════
 // PERSONA + CHAT CONTEXT HELPERS
@@ -818,19 +808,13 @@ function toast(msg, type = 'info') {
  * This mimics RPG Companion's multi-source scanning behavior
  */
 export async function scanForInventory() {
-    toast('AI scanning for inventory...', 'info');
+    toast('Starting inventory scan...', 'info');
     
     const persona = findUserPersona();
-    const chatContext = getRecentChatContext(10);
+    const chatContext = getRecentChatContext(15);
     
     if (!persona && !chatContext) {
-        toast('No persona or chat context found!', 'warning');
-        return;
-    }
-    
-    const extractor = await getAIExtractor();
-    if (!extractor) {
-        toast('AI Extractor not available', 'error');
+        toast('No persona or chat context!', 'warning');
         return;
     }
     
@@ -841,13 +825,13 @@ export async function scanForInventory() {
     
     const chatState = stateModule?.getChatState?.();
     if (!chatState) {
-        toast('No active chat - open a chat first!', 'warning');
+        toast('No active chat!', 'warning');
         return;
     }
     
     try {
-        // Use combined extraction (persona + chat)
-        const items = await extractor.extractInventoryFromContext(persona, chatContext);
+        // Use combined extraction (persona + chat) - direct import
+        const items = await extractInventoryFromContext(persona, chatContext);
         
         if (!items || items.length === 0) {
             toast('No items found', 'info');
