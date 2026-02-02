@@ -424,83 +424,110 @@ async function onMessageReceived(messageId) {
     }
     
     // ═══════════════════════════════════════════════════════════════
-    // AI EXTRACTION - Extract cases and contacts using AI
-    // More accurate than regex patterns, handles both in one call
+    // AI EXTRACTION - Extract ALL game state using AI
+    // Now handles: cases, contacts, locations, equipment, inventory, vitals
     // ═══════════════════════════════════════════════════════════════
     try {
         const settings = getSettings();
-        const aiExtractionEnabled = settings.cases?.autoDetect || settings.contacts?.autoDetect;
+        const aiExtractionEnabled = settings.cases?.autoDetect || 
+                                     settings.contacts?.autoDetect ||
+                                     settings.equipment?.autoDetect !== false ||  // Default on
+                                     settings.inventory?.autoDetect !== false;    // Default on
         
         if (aiExtractionEnabled && messageText) {
             const aiExtractor = await getAIExtractor();
             
             if (aiExtractor) {
-                // Gather existing data for context
+                // Gather ALL existing data for context
                 const state = getChatState() || {};
-                const existingCases = Object.values(state.cases || {});
+                const existingCases = state.ledger?.cases || [];
                 const existingContacts = Object.values(state.contacts || {});
+                const existingLocations = state.ledger?.locations || [];
+                const existingEquipment = state.equipment?.items || [];
+                const existingInventory = state.inventory?.carried || [];
                 
-                console.log('[Tribunal] Running AI extraction...');
+                console.log('[Tribunal] Running AI extraction (full)...');
                 
-                // Extract from message
+                // Extract ALL types from message
                 const results = await aiExtractor.extractFromMessage(messageText, {
                     existingCases,
-                    existingContacts
+                    existingContacts,
+                    existingLocations,
+                    existingEquipment,
+                    existingInventory
                 });
                 
                 if (results.error) {
                     console.warn('[Tribunal] AI extraction error:', results.error);
                 } else {
-                    // Get data modules for creating objects
-                    const casesData = settings.cases?.autoDetect ? await getCasesData() : null;
-                    const contactsData = settings.contacts?.autoDetect ? await getContactsData() : null;
-                    
-                    const showCaseNotify = settings.cases?.showNotifications ?? true;
-                    const showContactNotify = settings.contacts?.showNotifications ?? true;
-                    
-                    // Process results
+                    // Process results with notifications
                     const processed = await aiExtractor.processExtractionResults(results, {
-                        casesModule: casesData,
-                        contactsModule: contactsData,
                         notifyCallback: (msg, type) => {
-                            const shouldNotify = 
-                                (type.startsWith('case') && showCaseNotify) ||
-                                (type.startsWith('contact') && showContactNotify);
+                            if (typeof toastr === 'undefined') return;
                             
-                            if (shouldNotify && typeof toastr !== 'undefined') {
-                                if (type === 'case-complete') {
-                                    toastr.success(msg, 'Task Complete');
-                                } else {
-                                    toastr.info(msg, 'Detected');
-                                }
+                            // Determine notification style based on type
+                            if (type.includes('complete') || type.includes('gain')) {
+                                toastr.success(msg, 'The Tribunal');
+                            } else if (type.includes('lost') || type.includes('loss')) {
+                                toastr.warning(msg, 'The Tribunal');
+                            } else {
+                                toastr.info(msg, 'The Tribunal');
                             }
                         }
                     });
                     
-                    // Log what was found
-                    if (processed.casesCreated.length > 0) {
-                        console.log('[Tribunal] AI created cases:', processed.casesCreated.map(c => c.title));
-                    }
-                    if (processed.casesCompleted.length > 0) {
-                        console.log('[Tribunal] AI completed cases:', processed.casesCompleted.map(c => c.title));
-                    }
-                    if (processed.contactsCreated.length > 0) {
-                        console.log('[Tribunal] AI created contacts:', processed.contactsCreated.map(c => c.name));
+                    // Log what was extracted
+                    const extracted = [];
+                    if (processed.casesCreated.length) extracted.push(`${processed.casesCreated.length} quests`);
+                    if (processed.casesCompleted.length) extracted.push(`${processed.casesCompleted.length} completed`);
+                    if (processed.contactsCreated.length) extracted.push(`${processed.contactsCreated.length} contacts`);
+                    if (processed.locationsCreated.length) extracted.push(`${processed.locationsCreated.length} locations`);
+                    if (processed.equipmentGained.length) extracted.push(`${processed.equipmentGained.length} clothing`);
+                    if (processed.equipmentLost.length) extracted.push(`-${processed.equipmentLost.length} clothing`);
+                    if (processed.inventoryGained.length) extracted.push(`${processed.inventoryGained.length} items`);
+                    if (processed.inventoryLost.length) extracted.push(`-${processed.inventoryLost.length} items`);
+                    if (processed.healthChange) extracted.push(`HP ${processed.healthChange > 0 ? '+' : ''}${processed.healthChange}`);
+                    if (processed.moraleChange) extracted.push(`Morale ${processed.moraleChange > 0 ? '+' : ''}${processed.moraleChange}`);
+                    
+                    if (extracted.length > 0) {
+                        console.log('[Tribunal] AI extracted:', extracted.join(', '));
                     }
                     
-                    // Refresh UI if anything changed
-                    if (processed.casesCreated.length > 0 || processed.casesCompleted.length > 0 || processed.casesUpdated.length > 0) {
+                    // Refresh UI for all changed sections
+                    if (processed.casesCreated.length > 0 || processed.casesCompleted.length > 0) {
                         const casesHandlers = await getCasesHandlers();
-                        if (casesHandlers?.renderCasesList) {
-                            await casesHandlers.renderCasesList();
-                        }
+                        if (casesHandlers?.renderCasesList) await casesHandlers.renderCasesList();
                     }
                     
                     if (processed.contactsCreated.length > 0 || processed.contactsUpdated.length > 0) {
                         const contactsHandlers = await getContactsHandlers();
-                        if (contactsHandlers?.renderContactsList) {
-                            await contactsHandlers.renderContactsList();
-                        }
+                        if (contactsHandlers?.renderContactsList) await contactsHandlers.renderContactsList();
+                    }
+                    
+                    if (processed.locationsCreated.length > 0 || processed.currentLocationSet) {
+                        // Trigger location UI refresh
+                        triggerRefresh();
+                    }
+                    
+                    if (processed.equipmentGained.length > 0 || processed.equipmentLost.length > 0) {
+                        // Refresh equipment display
+                        try {
+                            const equipHandlers = await import('../ui/equipment-handlers.js');
+                            if (equipHandlers?.refreshEquipmentDisplay) equipHandlers.refreshEquipmentDisplay();
+                        } catch (e) { /* optional */ }
+                    }
+                    
+                    if (processed.inventoryGained.length > 0 || processed.inventoryLost.length > 0) {
+                        // Refresh inventory display
+                        try {
+                            const invHandlers = await import('../ui/inventory-handlers.js');
+                            if (invHandlers?.refreshDisplay) invHandlers.refreshDisplay();
+                        } catch (e) { /* optional */ }
+                    }
+                    
+                    if (processed.healthChange !== 0 || processed.moraleChange !== 0) {
+                        // Update vitals display
+                        triggerRefresh();
                     }
                 }
             } else {
