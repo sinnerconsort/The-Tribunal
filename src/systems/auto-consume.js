@@ -163,6 +163,19 @@ function getInventoryItems() {
  * @returns {object|null} Result if auto-consume happened, null otherwise
  */
 export function checkCravings() {
+    // Check if auto-consume is enabled in settings
+    try {
+        const { getSettings } = window.TribunalState || {};
+        if (getSettings) {
+            const settings = getSettings();
+            if (settings?.vitals?.autoConsume === false) {
+                return null; // Auto-consume disabled
+            }
+        }
+    } catch (e) {
+        // Continue if settings unavailable
+    }
+    
     const addictions = getAddictions();
     const inventory = getInventoryItems();
     const cravings = getCravingState();

@@ -243,6 +243,27 @@ function attemptDeathSave(skillId, difficulty = 10) {
  * @returns {object} { prevented, newHealth, newMorale, deathType, skillCheck }
  */
 export function checkForDeath(currentHealth, currentMorale, healthDelta, moraleDelta, context = '') {
+    // Check if death system is enabled in settings
+    try {
+        const { getSettings } = window.TribunalState || {};
+        if (getSettings) {
+            const settings = getSettings();
+            if (settings?.vitals?.deathEnabled === false) {
+                // Death system disabled - just return normal damage
+                return {
+                    prevented: false,
+                    newHealth: Math.max(0, currentHealth + healthDelta),
+                    newMorale: Math.max(0, currentMorale + moraleDelta),
+                    deathType: null,
+                    skillCheck: null,
+                    disabled: true
+                };
+            }
+        }
+    } catch (e) {
+        // Continue if settings unavailable
+    }
+    
     const newHealth = currentHealth + healthDelta;
     const newMorale = currentMorale + moraleDelta;
     
