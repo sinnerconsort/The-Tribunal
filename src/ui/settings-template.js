@@ -552,6 +552,34 @@ export const SETTINGS_TAB_HTML = `
             </div>
         </div>
         
+        <!-- Secret Compartment Settings (hidden until unlocked) -->
+        <div class="rcm-section rcm-compartment-settings" id="compartment-settings-section" style="display: none;">
+            <div class="rcm-section-header" style="color: #d4a574;">
+                <i class="fa-solid fa-lock-open" style="margin-right: 6px;"></i>
+                COMPARTMENT
+            </div>
+            <div class="rcm-section-content">
+                <div class="rcm-field-note" style="margin-bottom: 12px; color: #a8a8a8;">
+                    <em>🍑 The binding gave way. You found it.</em>
+                </div>
+                
+                <div style="padding: 10px; background: rgba(212, 165, 116, 0.1); border: 1px dashed rgba(212, 165, 116, 0.3); border-radius: 4px; margin-bottom: 12px;">
+                    <div style="font-size: 11px; color: #d4a574; margin-bottom: 6px;">UNLOCK STATUS</div>
+                    <div id="compartment-unlock-status" style="font-size: 12px; color: #888;">
+                        <i class="fa-solid fa-check" style="color: #4a7c4a;"></i> Fully Unlocked
+                    </div>
+                    <div id="compartment-unlock-dates" style="font-size: 10px; color: #666; margin-top: 4px;"></div>
+                </div>
+                
+                <button id="cfg-reset-compartment" class="rcm-btn rcm-btn-dashed" style="width: 100%; border-color: rgba(212, 165, 116, 0.4); color: #d4a574;">
+                    <i class="fa-solid fa-rotate-left"></i> Re-seal Compartment
+                </button>
+                <div class="rcm-field-note" style="margin-top: 6px;">
+                    <em>Reset unlock progress. You'll need to find it again...</em>
+                </div>
+            </div>
+        </div>
+        
         <!-- Actions -->
         <div class="rcm-section rcm-actions">
             <label class="rcm-checkbox-row">

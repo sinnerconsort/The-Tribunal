@@ -100,6 +100,12 @@ const SETTINGS_IDS = {
     useAIExtractor: 'cfg-use-ai-extractor',
     injectWorldTag: 'cfg-inject-world-tag',
     copyWorldInject: 'cfg-copy-world-inject',
+    
+    // Compartment Settings (secret section)
+    compartmentSection: 'compartment-settings-section',
+    compartmentStatus: 'compartment-unlock-status',
+    compartmentDates: 'compartment-unlock-dates',
+    resetCompartment: 'cfg-reset-compartment',
 };
 
 // Track if handlers are bound to prevent duplicates
@@ -149,6 +155,9 @@ export function initSettingsTab() {
 
     // Bind world state handlers
     bindWorldStateHandlers();
+    
+    // Bind compartment settings handlers (secret section)
+    bindCompartmentSettingsHandlers();
     
     console.log('[Tribunal] Settings handlers initialized');
 }
@@ -1122,6 +1131,112 @@ function setCrackStage(stage) {
     }
     
     console.log(`[Tribunal] Crack stage: ${stage}`);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMPARTMENT SETTINGS HANDLERS (Secret Section)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Bind compartment settings section handlers
+ * This section only appears when the compartment has been unlocked
+ */
+function bindCompartmentSettingsHandlers() {
+    const section = document.getElementById(SETTINGS_IDS.compartmentSection);
+    const resetBtn = document.getElementById(SETTINGS_IDS.resetCompartment);
+    const statusEl = document.getElementById(SETTINGS_IDS.compartmentStatus);
+    const datesEl = document.getElementById(SETTINGS_IDS.compartmentDates);
+    
+    // Check if compartment is unlocked and show/hide section
+    updateCompartmentSettingsVisibility();
+    
+    // Bind reset button
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            // Confirm before resetting
+            const confirmed = confirm(
+                'Re-seal the compartment?\n\n' +
+                'You\'ll need to find it again through late-night sessions (10pm - 3am).\n\n' +
+                'This cannot be undone.'
+            );
+            
+            if (confirmed) {
+                // Reset compartment state using the global progression
+                if (window.TribunalCompartment?.reset) {
+                    window.TribunalCompartment.reset();
+                } else {
+                    // Fallback: reset directly via settings
+                    const settings = getSettings();
+                    if (settings?.progression?.secretPanel) {
+                        settings.progression.secretPanel = {
+                            unlocked: false,
+                            crackCount: 0,
+                            crackDates: [],
+                            lastCrackDate: null
+                        };
+                        saveSettings();
+                    }
+                    
+                    // Update UI
+                    hideCompartment();
+                }
+                
+                // Hide this settings section
+                if (section) {
+                    section.style.display = 'none';
+                }
+                
+                if (typeof toastr !== 'undefined') {
+                    toastr.info('The compartment has been re-sealed...', 'The Tribunal', { timeOut: 4000 });
+                }
+                
+                console.log('[Tribunal] Compartment reset by user');
+            }
+        });
+        console.log('[Tribunal] Compartment reset button bound');
+    }
+    
+    console.log('[Tribunal] Compartment settings handlers initialized');
+}
+
+/**
+ * Update compartment settings section visibility based on unlock state
+ * Shows the section only when the compartment is unlocked
+ */
+export function updateCompartmentSettingsVisibility() {
+    const section = document.getElementById(SETTINGS_IDS.compartmentSection);
+    const statusEl = document.getElementById(SETTINGS_IDS.compartmentStatus);
+    const datesEl = document.getElementById(SETTINGS_IDS.compartmentDates);
+    
+    if (!section) return;
+    
+    // Check unlock state from global settings
+    const settings = getSettings();
+    const secretPanel = settings?.progression?.secretPanel;
+    const isUnlocked = secretPanel?.unlocked || false;
+    
+    if (isUnlocked) {
+        section.style.display = 'block';
+        
+        // Update status display
+        if (statusEl) {
+            statusEl.innerHTML = '<i class="fa-solid fa-check" style="color: #4a7c4a;"></i> Fully Unlocked';
+        }
+        
+        // Show unlock dates
+        if (datesEl && secretPanel?.crackDates?.length > 0) {
+            const dateStr = secretPanel.crackDates.map(d => {
+                const date = new Date(d);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }).join(' → ');
+            datesEl.textContent = `Found: ${dateStr}`;
+        }
+        
+        console.log('[Tribunal] Compartment settings section shown (unlocked)');
+    } else {
+        section.style.display = 'none';
+        console.log('[Tribunal] Compartment settings section hidden (locked)');
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
