@@ -136,20 +136,22 @@ export function trackThemesInMessage(text) {
     const themes = state.thoughtCabinet.themes;
     
     // Check settings for decay
+    // FIX: Use themeDecayRate from settings, default to 0 (disabled)
     const settings = getSettings();
-    const decayEnabled = settings?.thoughts?.enableDecay ?? true;
-    const decayAmount = settings?.thoughts?.decayAmount ?? THEME_DECAY_AMOUNT;
+    const decayRate = settings?.thoughts?.themeDecayRate ?? 0;
+    const decayEnabled = decayRate > 0;
     
     // Apply decay to themes NOT detected in this message
     if (decayEnabled) {
         for (const themeId of Object.keys(themes)) {
             if (!detected.includes(themeId) && themes[themeId] > 0) {
-                themes[themeId] = Math.max(0, themes[themeId] - decayAmount);
+                themes[themeId] = Math.max(0, themes[themeId] - decayRate);
             }
         }
     }
     
     // Increment detected themes
+    // Only increment if we found themes (skip generic messages)
     if (detected.length > 0) {
         for (const themeId of detected) {
             const current = themes[themeId] || 0;
@@ -202,6 +204,7 @@ function dischargeThoughtTheme(thought) {
     if (!thought?.theme) return;
     
     const settings = getSettings();
+    // FIX: Use internalizeDischarge from settings (matching the defaults name)
     const dischargeAmount = settings?.thoughts?.internalizeDischarge ?? THEME_INTERNALIZE_DISCHARGE;
     
     console.log('[Tribunal] Discharging theme for internalized thought:', thought.name, '→', thought.theme);
