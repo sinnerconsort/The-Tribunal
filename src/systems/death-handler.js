@@ -11,6 +11,8 @@
  * Inspired by Disco Elysium's iconic death screens
  */
 
+import { rollSkillCheckWithStatuses, formatCheckResult } from './dice.js';
+
 // ═══════════════════════════════════════════════════════════════
 // DEATH TYPE CLASSIFICATION
 // ═══════════════════════════════════════════════════════════════
@@ -181,49 +183,85 @@ function getRandomHeadline(deathType) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
+ * Skill to attribute mapping for death saves
+ */
+const SKILL_ATTRIBUTES = {
+    // Intellect skills
+    logic: 'intellect', encyclopedia: 'intellect', rhetoric: 'intellect',
+    drama: 'intellect', conceptualization: 'intellect', visual_calculus: 'intellect',
+    // Psyche skills
+    volition: 'psyche', inland_empire: 'psyche', empathy: 'psyche',
+    authority: 'psyche', esprit_de_corps: 'psyche', suggestion: 'psyche',
+    // Physique skills
+    endurance: 'physique', pain_threshold: 'physique', physical_instrument: 'physique',
+    electrochemistry: 'physique', shivers: 'physique', half_light: 'physique',
+    // Motorics skills
+    hand_eye_coordination: 'motorics', perception: 'motorics', reaction_speed: 'motorics',
+    savoir_faire: 'motorics', interfacing: 'motorics', composure: 'motorics'
+};
+
+/**
  * Attempt a skill check to avoid death
+ * Uses the proper dice.js system with status effects
+ * 
  * @param {string} skillId - Skill to check (endurance, volition, etc.)
  * @param {number} difficulty - Check difficulty (default 10)
- * @returns {object} { success, roll, modifier, total, skill }
+ * @returns {object} { success, roll, modifier, total, skill, ... }
  */
 function attemptDeathSave(skillId, difficulty = 10) {
-    // Get skill level (default 3)
-    let skillLevel = 3;
-    let skillModifier = 0;
+    // Get skill level from chat state
+    let skillLevel = 3; // Default fallback
+    let activeStatuses = [];
     
     try {
         const { getChatState } = window.TribunalState || {};
         if (getChatState) {
             const state = getChatState();
-            // Get base from attributes or skill levels
-            skillLevel = state?.skillLevels?.[skillId] || state?.attributes?.physique || 3;
-            // Get modifiers from effects
-            skillModifier = window.TribunalEffects?.getSkillModifier?.(skillId) || 0;
+            
+            // First try to get specific skill level
+            if (state?.skillLevels?.[skillId]) {
+                skillLevel = state.skillLevels[skillId];
+            } 
+            // Fall back to the appropriate attribute
+            else {
+                const attribute = SKILL_ATTRIBUTES[skillId] || 'physique';
+                skillLevel = state?.attributes?.[attribute] || 3;
+            }
+            
+            // Get active status effects for modifier calculation
+            if (state?.vitals?.activeEffects && Array.isArray(state.vitals.activeEffects)) {
+                activeStatuses = state.vitals.activeEffects.map(e => 
+                    typeof e === 'string' ? e : e.id
+                ).filter(Boolean);
+            }
         }
     } catch (e) {
         console.warn('[Death] Could not get skill level:', e);
     }
     
-    // Roll 2d6
-    const die1 = Math.floor(Math.random() * 6) + 1;
-    const die2 = Math.floor(Math.random() * 6) + 1;
-    const roll = die1 + die2;
+    // Use the proper dice.js roll function with status modifiers
+    const result = rollSkillCheckWithStatuses(skillId, skillLevel, difficulty, activeStatuses);
     
-    const total = roll + skillLevel + skillModifier;
-    const success = total >= difficulty;
-    
-    console.log(`[Death] Skill check: ${skillId} - Roll ${die1}+${die2}=${roll} + ${skillLevel} + ${skillModifier} = ${total} vs ${difficulty} → ${success ? 'SUCCESS' : 'FAILURE'}`);
+    console.log(`[Death] Skill check: ${skillId.toUpperCase()} - ` +
+        `Roll [${result.die1}+${result.die2}]=${result.roll} + ` +
+        `skill ${result.skillLevel} + mod ${result.modifier} = ${result.total} ` +
+        `vs ${difficulty} → ${result.success ? 'SUCCESS' : 'FAILURE'}` +
+        `${result.isCritical ? ` (${result.isBoxcars ? 'BOXCARS!' : 'SNAKE EYES!'})` : ''}`);
     
     return {
-        success,
-        roll,
-        die1,
-        die2,
-        skillLevel,
-        modifier: skillModifier,
-        total,
-        difficulty,
-        skill: skillId
+        success: result.success,
+        roll: result.roll,
+        die1: result.die1,
+        die2: result.die2,
+        skillLevel: result.skillLevel,
+        modifier: result.modifier,
+        total: result.total,
+        difficulty: result.difficulty,
+        skill: skillId,
+        isBoxcars: result.isBoxcars,
+        isSnakeEyes: result.isSnakeEyes,
+        isCritical: result.isCritical,
+        formatted: formatCheckResult(result)
     };
 }
 
@@ -335,8 +373,23 @@ function showCloseCallToast(skillCheck, isMoraleDeath) {
     const skillName = skillNames[skillCheck.skill] || skillCheck.skill.toUpperCase();
     const vital = isMoraleDeath ? 'Morale' : 'Health';
     
+    // Check for critical success (boxcars)
+    if (skillCheck.isBoxcars) {
+        toastr.success(
+            `⚡ CRITICAL SUCCESS [${skillCheck.die1}+${skillCheck.die2}] - Impossible odds!`,
+            `${skillName} - ${vital} saved!`,
+            { timeOut: 6000 }
+        );
+        return;
+    }
+    
+    // Normal success
+    const modStr = skillCheck.modifier !== 0 
+        ? `+${skillCheck.skillLevel}${skillCheck.modifier >= 0 ? '+' : ''}${skillCheck.modifier}` 
+        : `+${skillCheck.skillLevel}`;
+    
     toastr.warning(
-        `[${skillCheck.die1}+${skillCheck.die2}]+${skillCheck.skillLevel}+${skillCheck.modifier} = ${skillCheck.total} vs ${skillCheck.difficulty}`,
+        `[${skillCheck.die1}+${skillCheck.die2}]${modStr} = ${skillCheck.total} vs ${skillCheck.difficulty}`,
         `${skillName} [Success] - ${vital} saved!`,
         { timeOut: 5000 }
     );
@@ -866,13 +919,21 @@ export function testDeathScreen(type = 'health', customContext = '') {
 export function testSkillCheck(skillId = 'endurance', difficulty = 10) {
     const result = attemptDeathSave(skillId, difficulty);
     
-    const msg = `${skillId.toUpperCase()}: [${result.die1}+${result.die2}] + ${result.skillLevel} + ${result.modifier} = ${result.total} vs ${difficulty}`;
+    let msg = `[${result.die1}+${result.die2}] + ${result.skillLevel}`;
+    if (result.modifier !== 0) {
+        msg += ` ${result.modifier >= 0 ? '+' : ''}${result.modifier}`;
+    }
+    msg += ` = ${result.total} vs ${difficulty}`;
     
     if (typeof toastr !== 'undefined') {
-        if (result.success) {
-            toastr.success(msg, 'Skill Check PASSED');
+        if (result.isBoxcars) {
+            toastr.success(`⚡ ${msg}`, `${skillId.toUpperCase()} - CRITICAL SUCCESS!`);
+        } else if (result.isSnakeEyes) {
+            toastr.error(`💀 ${msg}`, `${skillId.toUpperCase()} - CRITICAL FAILURE!`);
+        } else if (result.success) {
+            toastr.success(msg, `${skillId.toUpperCase()} - Passed`);
         } else {
-            toastr.error(msg, 'Skill Check FAILED');
+            toastr.error(msg, `${skillId.toUpperCase()} - Failed`);
         }
     }
     
@@ -882,23 +943,27 @@ export function testSkillCheck(skillId = 'endurance', difficulty = 10) {
 
 /**
  * Test close call (skill check that saves from death)
+ * @param {boolean} forceCritical - If true, simulates a boxcars roll
  */
-export function testCloseCall() {
-    // Temporarily force a success
+export function testCloseCall(forceCritical = false) {
+    // Simulate a successful save
     const result = {
         success: true,
-        die1: 6,
-        die2: 5,
-        roll: 11,
+        die1: forceCritical ? 6 : 5,
+        die2: forceCritical ? 6 : 4,
+        roll: forceCritical ? 12 : 9,
         skillLevel: 3,
         modifier: 0,
-        total: 14,
+        total: forceCritical ? 15 : 12,
         difficulty: 10,
-        skill: 'endurance'
+        skill: 'endurance',
+        isBoxcars: forceCritical,
+        isSnakeEyes: false,
+        isCritical: forceCritical
     };
     
     showCloseCallToast(result, false);
-    console.log('[Death Test] Close call toast shown');
+    console.log('[Death Test] Close call toast shown', forceCritical ? '(CRITICAL)' : '');
     return result;
 }
 
