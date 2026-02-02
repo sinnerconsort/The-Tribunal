@@ -453,6 +453,45 @@ export const SETTINGS_TAB_HTML = `
                 <div id="debug-status-display" class="rcm-field-note" style="text-align: center; margin-top: 8px;">
                     <em>Compartment: Hidden</em>
                 </div>
+                
+                <!-- Death System Testing -->
+                <div style="border-top: 1px dashed rgba(255,255,255,0.2); margin: 12px 0; padding-top: 12px;">
+                    <div class="rcm-field-note" style="margin-bottom: 8px;">
+                        <em>💀 Death Screen Testing</em>
+                    </div>
+                    
+                    <div class="rcm-field-row">
+                        <label class="rcm-field-label">DEATH TYPE:</label>
+                        <div style="display: flex; gap: 6px;">
+                            <select id="cfg-test-death-type" class="rcm-select" style="flex: 1;">
+                                <optgroup label="Health Deaths">
+                                    <option value="health">🎲 Random Health</option>
+                                    <option value="cardiac">💔 Cardiac</option>
+                                    <option value="violence">⚔️ Violence</option>
+                                    <option value="overdose">💊 Overdose</option>
+                                    <option value="environmental">🌊 Environmental</option>
+                                </optgroup>
+                                <optgroup label="Morale Deaths">
+                                    <option value="morale">🎲 Random Morale</option>
+                                    <option value="breakdown">😭 Breakdown</option>
+                                    <option value="humiliation">😰 Humiliation</option>
+                                    <option value="existential">🌀 Existential</option>
+                                    <option value="rejection">💔 Rejection</option>
+                                </optgroup>
+                            </select>
+                            <button class="rcm-btn rcm-btn-small" id="cfg-test-death" title="Trigger Death Screen" style="background: #8B0000;">💀</button>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 6px; margin-top: 8px;">
+                        <button id="cfg-test-skill-check" class="rcm-btn rcm-btn-dashed" style="flex: 1;">
+                            🎲 Test Skill Check
+                        </button>
+                        <button id="cfg-test-close-call" class="rcm-btn rcm-btn-dashed" style="flex: 1;">
+                            ⚡ Test Close Call
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
         

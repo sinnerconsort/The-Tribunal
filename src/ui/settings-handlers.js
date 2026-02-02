@@ -64,6 +64,11 @@ const SETTINGS_IDS = {
     debugCrack: 'cfg-debug-crack',
     applyCrack: 'cfg-apply-crack',
     debugStatus: 'debug-status-display',
+    // Death testing
+    testDeathType: 'cfg-test-death-type',
+    testDeath: 'cfg-test-death',
+    testSkillCheck: 'cfg-test-skill-check',
+    testCloseCall: 'cfg-test-close-call',
     
     // Weather dropdowns (new)
     testWeather: 'cfg-test-weather',
@@ -929,6 +934,91 @@ function bindDebugHandlers() {
             }
         });
         console.log('[Tribunal] Debug: Crack stage bound');
+    }
+    
+    // ═══════════════════════════════════════════════════════════
+    // DEATH SYSTEM TEST HANDLERS
+    // ═══════════════════════════════════════════════════════════
+    
+    const deathTypeSelect = document.getElementById(SETTINGS_IDS.testDeathType);
+    const testDeathBtn = document.getElementById(SETTINGS_IDS.testDeath);
+    const testSkillCheckBtn = document.getElementById(SETTINGS_IDS.testSkillCheck);
+    const testCloseCallBtn = document.getElementById(SETTINGS_IDS.testCloseCall);
+    
+    // Test Death Screen button
+    if (testDeathBtn && deathTypeSelect) {
+        testDeathBtn.addEventListener('click', () => {
+            const deathType = deathTypeSelect.value || 'health';
+            
+            if (window.TribunalDeath?.test) {
+                console.log(`[Debug] Triggering ${deathType} death screen`);
+                window.TribunalDeath.test(deathType);
+            } else {
+                // Try dynamic import
+                import('../systems/death-handler.js').then(module => {
+                    if (module.testDeathScreen) {
+                        module.testDeathScreen(deathType);
+                    } else {
+                        if (typeof toastr !== 'undefined') {
+                            toastr.error('Death handler not loaded', 'Debug');
+                        }
+                    }
+                }).catch(e => {
+                    console.error('[Debug] Could not load death handler:', e);
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error('Death handler not available', 'Debug');
+                    }
+                });
+            }
+        });
+        console.log('[Tribunal] Debug: Death test button bound');
+    }
+    
+    // Test Skill Check button
+    if (testSkillCheckBtn) {
+        testSkillCheckBtn.addEventListener('click', () => {
+            const skills = ['endurance', 'volition', 'composure', 'inland_empire', 'shivers'];
+            const randomSkill = skills[Math.floor(Math.random() * skills.length)];
+            
+            if (window.TribunalDeath?.testSkill) {
+                window.TribunalDeath.testSkill(randomSkill, 10);
+            } else {
+                // Simulate a skill check visually
+                const die1 = Math.floor(Math.random() * 6) + 1;
+                const die2 = Math.floor(Math.random() * 6) + 1;
+                const total = die1 + die2 + 3; // Base skill of 3
+                const success = total >= 10;
+                
+                if (typeof toastr !== 'undefined') {
+                    const msg = `[${die1}+${die2}] + 3 = ${total} vs 10`;
+                    if (success) {
+                        toastr.success(msg, `${randomSkill.toUpperCase()} [Success]`);
+                    } else {
+                        toastr.error(msg, `${randomSkill.toUpperCase()} [Failure]`);
+                    }
+                }
+            }
+        });
+        console.log('[Tribunal] Debug: Skill check test bound');
+    }
+    
+    // Test Close Call button
+    if (testCloseCallBtn) {
+        testCloseCallBtn.addEventListener('click', () => {
+            if (window.TribunalDeath?.testCloseCall) {
+                window.TribunalDeath.testCloseCall();
+            } else {
+                // Simulate close call toast
+                if (typeof toastr !== 'undefined') {
+                    toastr.warning(
+                        '[6+5] + 3 + 0 = 14 vs 10',
+                        'ENDURANCE [Success] - Health saved!',
+                        { timeOut: 5000 }
+                    );
+                }
+            }
+        });
+        console.log('[Tribunal] Debug: Close call test bound');
     }
     
     console.log('[Tribunal] Debug handlers initialized');
