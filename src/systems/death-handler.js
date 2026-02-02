@@ -338,12 +338,29 @@ async function triggerDeath(deathType, isMoraleDeath, context) {
 
 /**
  * Generate death article via AI
+ * Now properly pulls character names from ST context
  */
 async function generateDeathArticle(headline, deathType, isMoraleDeath, context) {
+    // Get character names from ST context
+    let protagonistName = 'The protagonist';
+    let characterName = 'someone';
+    
+    try {
+        // Try to get ST context for names
+        const getContext = (await import('../../../../extensions.js').catch(() => null))?.getContext;
+        if (getContext) {
+            const ctx = getContext();
+            protagonistName = ctx?.name1 || 'The protagonist';
+            characterName = ctx?.name2 || 'someone';
+        }
+    } catch (e) {
+        console.warn('[Death] Could not get ST context:', e);
+    }
+    
     // Default article if AI fails
     const defaultArticle = isMoraleDeath 
-        ? "Sources close to the investigation report that the individual's mental state had been deteriorating for some time. \"We all saw it coming,\" said one acquaintance who wished to remain anonymous."
-        : "Authorities have declined to comment on the circumstances. An investigation is reportedly underway.";
+        ? `Sources close to ${protagonistName} report their mental state had been deteriorating for some time. "We all saw it coming," said one acquaintance who wished to remain anonymous.`
+        : `Authorities have declined to comment on the circumstances surrounding ${protagonistName}. An investigation is reportedly underway.`;
     
     try {
         // Try to get AI extractor for API access
@@ -355,21 +372,32 @@ async function generateDeathArticle(headline, deathType, isMoraleDeath, context)
             return defaultArticle;
         }
         
-        const systemPrompt = `You are writing a brief, somber newspaper article about a ${isMoraleDeath ? 'mental breakdown or disappearance' : 'death'}. Write 2-3 short paragraphs. Be darkly atmospheric and melancholic. Include a quote from a colleague, witness, or acquaintance. Keep it under 120 words. Do NOT use markdown formatting like asterisks or headers. Write plain prose only.`;
-        
+        const systemPrompt = `You are writing a brief, somber newspaper article about a ${isMoraleDeath ? 'mental breakdown or disappearance' : 'tragic death'}. 
+
+CRITICAL RULES:
+- The protagonist's name is: ${protagonistName}
+- Use ONLY names that appear in the provided context
+- Do NOT invent any names - if you need a quote, use "a witness" or "a colleague" or "an acquaintance"
+- Keep it under 100 words
+- Write plain prose - NO markdown, NO asterisks, NO headers
+- Do NOT repeat the headline or newspaper name`;
+
         const userPrompt = `Write a newspaper article with this headline: "${headline}"
 
-Recent context: ${context.substring(0, 400)}
+Protagonist name: ${protagonistName}
+Other character involved: ${characterName}
 
-Write 2-3 paragraphs that:
-- Reference details from the context if relevant
-- Include one quote from someone who knew them
-- Stay atmospheric and somber
-- Do NOT include any markdown, asterisks, or formatting
-- Do NOT repeat the headline or newspaper name in the body`;
+Recent events:
+${context.substring(0, 400)}
+
+Write 2 short paragraphs:
+1. Brief description of what happened (use context details)
+2. A quote from "a witness", "an acquaintance", or "a colleague" (do NOT invent specific names)
+
+Remember: Use "${protagonistName}" for the protagonist. Do NOT make up any other names.`;
 
         const response = await (apiModule.callAPIWithTokens 
-            ? callAPI(systemPrompt, userPrompt, 350)
+            ? callAPI(systemPrompt, userPrompt, 300)
             : callAPI(systemPrompt, userPrompt));
         
         if (response && response.length > 50) {
