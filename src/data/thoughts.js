@@ -50,7 +50,8 @@ export const THEMES = {
         id: 'death',
         name: 'Death',
         icon: THEME_ICONS.death,
-        keywords: ['death', 'dead', 'dying', 'kill', 'murder', 'corpse', 'funeral', 'grave', 'mortality', 'deceased', 'fatal', 'lethal', 'body', 'remains']
+        // Removed 'body', 'remains' - too common in other contexts
+        keywords: ['death', 'dead', 'dying', 'kill', 'murder', 'corpse', 'funeral', 'grave', 'mortality', 'deceased', 'fatal', 'lethal', 'lifeless']
     },
     love: {
         id: 'love',
@@ -68,7 +69,8 @@ export const THEMES = {
         id: 'mystery',
         name: 'Mystery',
         icon: THEME_ICONS.mystery,
-        keywords: ['mystery', 'clue', 'evidence', 'investigate', 'secret', 'hidden', 'unknown', 'suspicious', 'curious', 'strange', 'puzzle', 'case', 'detective']
+        // Removed 'case' - too common ("in case", "case study", etc.)
+        keywords: ['mystery', 'clue', 'evidence', 'investigate', 'secret', 'hidden', 'unknown', 'suspicious', 'curious', 'strange', 'puzzle', 'detective', 'enigma']
     },
     substance: {
         id: 'substance',
@@ -86,7 +88,8 @@ export const THEMES = {
         id: 'identity',
         name: 'Identity',
         icon: THEME_ICONS.identity,
-        keywords: ['identity', 'who', 'self', 'name', 'person', 'remember', 'forget', 'past', 'memory', 'amnesia', 'mirror', 'face', 'real']
+        // Removed 'who', 'name', 'person', 'face', 'real' - too common in normal conversation
+        keywords: ['identity', 'self', 'remember', 'forget', 'past', 'memory', 'amnesia', 'mirror', 'recognize', 'stranger']
     },
     authority: {
         id: 'authority',
@@ -104,7 +107,8 @@ export const THEMES = {
         id: 'philosophy',
         name: 'Philosophy',
         icon: THEME_ICONS.philosophy,
-        keywords: ['philosophy', 'meaning', 'existence', 'truth', 'reality', 'consciousness', 'soul', 'mind', 'think', 'believe', 'question', 'purpose', 'why']
+        // Removed 'why', 'think', 'believe', 'question', 'mind' - too common
+        keywords: ['philosophy', 'meaning', 'existence', 'truth', 'reality', 'consciousness', 'soul', 'existential', 'purpose', 'absurd', 'nihil']
     },
     money: {
         id: 'money',
