@@ -338,23 +338,20 @@ async function triggerDeath(deathType, isMoraleDeath, context) {
 
 /**
  * Generate death article via AI
- * Now properly pulls character names from ST context
+ * Pulls character names from ST context via stored getContext function
  */
 async function generateDeathArticle(headline, deathType, isMoraleDeath, context) {
     // Get character names from ST context
     let protagonistName = 'The protagonist';
     let characterName = 'someone';
     
-    try {
-        // Try to get ST context for names
-        const getContext = (await import('../../../../extensions.js').catch(() => null))?.getContext;
-        if (getContext) {
-            const ctx = getContext();
-            protagonistName = ctx?.name1 || 'The protagonist';
-            characterName = ctx?.name2 || 'someone';
-        }
-    } catch (e) {
-        console.warn('[Death] Could not get ST context:', e);
+    const ctx = getSTContext();
+    if (ctx) {
+        protagonistName = ctx.name1 || 'The protagonist';
+        characterName = ctx.name2 || 'someone';
+        console.log(`[Death] Got names: "${protagonistName}", "${characterName}"`);
+    } else {
+        console.warn('[Death] No ST context available, using defaults');
     }
     
     // Default article if AI fails
@@ -363,7 +360,7 @@ async function generateDeathArticle(headline, deathType, isMoraleDeath, context)
         : `Authorities have declined to comment on the circumstances surrounding ${protagonistName}. An investigation is reportedly underway.`;
     
     try {
-        // Try to get AI extractor for API access
+        // Try to get API for generation
         const apiModule = await import('../voice/api-helpers.js').catch(() => null);
         const callAPI = apiModule?.callAPIWithTokens || apiModule?.callAPI;
         
@@ -375,41 +372,43 @@ async function generateDeathArticle(headline, deathType, isMoraleDeath, context)
         const systemPrompt = `You are writing a brief, somber newspaper article about a ${isMoraleDeath ? 'mental breakdown or disappearance' : 'tragic death'}. 
 
 CRITICAL RULES:
-- The protagonist's name is: ${protagonistName}
-- Use ONLY names that appear in the provided context
-- Do NOT invent any names - if you need a quote, use "a witness" or "a colleague" or "an acquaintance"
-- Keep it under 100 words
+- The main character's name is: "${protagonistName}"
+- The other character is: "${characterName}"
+- Use ONLY these names - do NOT invent any other character names
+- If you need a quote, attribute it to "a witness", "a colleague", or "an acquaintance" 
+- Keep it under 100 words total
 - Write plain prose - NO markdown, NO asterisks, NO headers
-- Do NOT repeat the headline or newspaper name`;
+- Do NOT repeat the headline or newspaper name
+- Do NOT use generic terms like "officer" or "detective" - use the actual name`;
 
         const userPrompt = `Write a newspaper article with this headline: "${headline}"
 
-Protagonist name: ${protagonistName}
-Other character involved: ${characterName}
+Main character: "${protagonistName}"
+Other character: "${characterName}"
 
 Recent events:
 ${context.substring(0, 400)}
 
 Write 2 short paragraphs:
-1. Brief description of what happened (use context details)
-2. A quote from "a witness", "an acquaintance", or "a colleague" (do NOT invent specific names)
+1. What happened (reference the context details)
+2. A quote from "a witness" or "an acquaintance" (NO invented names)
 
-Remember: Use "${protagonistName}" for the protagonist. Do NOT make up any other names.`;
+Always refer to the main character as "${protagonistName}".`;
 
         const response = await (apiModule.callAPIWithTokens 
             ? callAPI(systemPrompt, userPrompt, 300)
             : callAPI(systemPrompt, userPrompt));
         
         if (response && response.length > 50) {
-            // Strip any markdown formatting the AI might have added
+            // Strip any markdown formatting
             let cleaned = response.trim()
-                .replace(/\*\*([^*]+)\*\*/g, '$1')  // Remove **bold**
-                .replace(/\*([^*]+)\*/g, '$1')      // Remove *italic*
-                .replace(/__([^_]+)__/g, '$1')      // Remove __bold__
-                .replace(/_([^_]+)_/g, '$1')        // Remove _italic_
-                .replace(/^#+\s*/gm, '')            // Remove # headers
-                .replace(/^[-*]\s+/gm, '')          // Remove bullet points
-                .replace(/^\d+\.\s+/gm, '');        // Remove numbered lists
+                .replace(/\*\*([^*]+)\*\*/g, '$1')
+                .replace(/\*([^*]+)\*/g, '$1')
+                .replace(/__([^_]+)__/g, '$1')
+                .replace(/_([^_]+)_/g, '$1')
+                .replace(/^#+\s*/gm, '')
+                .replace(/^[-*]\s+/gm, '')
+                .replace(/^\d+\.\s+/gm, '');
             
             return cleaned;
         }
@@ -520,11 +519,21 @@ function dismissDeathScreen() {
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
 
+// Store reference to getContext function
+let storedGetContext = null;
+
 /**
  * Initialize death handler
  * Injects CSS for death screen
+ * @param {Function} getContextFn - Optional getContext function from ST
  */
-export function initDeathHandler() {
+export function initDeathHandler(getContextFn = null) {
+    // Store getContext for later use
+    if (getContextFn) {
+        storedGetContext = getContextFn;
+        console.log('[Death Handler] getContext function stored');
+    }
+    
     // Inject CSS if not already present
     if (!document.getElementById('tribunal-death-css')) {
         const style = document.createElement('style');
@@ -534,6 +543,31 @@ export function initDeathHandler() {
     }
     
     console.log('[Death Handler] Initialized');
+}
+
+/**
+ * Get ST context using stored function or fallbacks
+ */
+function getSTContext() {
+    // Method 1: Use stored getContext
+    if (storedGetContext) {
+        try {
+            return storedGetContext();
+        } catch (e) {
+            console.warn('[Death] Stored getContext failed:', e);
+        }
+    }
+    
+    // Method 2: Check window.SillyTavern
+    if (typeof window !== 'undefined' && window.SillyTavern?.getContext) {
+        try {
+            return window.SillyTavern.getContext();
+        } catch (e) {
+            console.warn('[Death] window.SillyTavern.getContext failed:', e);
+        }
+    }
+    
+    return null;
 }
 
 // ═══════════════════════════════════════════════════════════════
