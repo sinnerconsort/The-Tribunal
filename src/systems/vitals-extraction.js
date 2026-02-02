@@ -44,9 +44,20 @@ const HEALTH_HEAL_PATTERNS = [
     /(?:you\s+)?(?:heal|recover|restore|regain)\s+(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?(?:health|hp|hit\s*points?)/gi,
     /(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?(?:health|hp)\s+(?:restored|recovered|healed)/gi,
     
-    // Medicine/treatment (estimate 2-4 healing)
+    // Medicine/treatment (estimate 2-3 healing)
     /(?:you\s+)?(?:apply|use|take)\s+(?:a\s+)?(?:bandage|medkit|medicine|pills?|painkillers?)/gi,
     /(?:wounds?\s+)?(?:are\s+)?(?:bandaged|treated|dressed|healed)/gi,
+    
+    // Sleep/rest (estimate 3-4 healing)
+    /(?:you\s+)?(?:fall\s+asleep|drift\s+off|sleep|rest|nap|doze)/gi,
+    /(?:you\s+)?(?:wake\s+up|awaken)\s+(?:feeling\s+)?(?:better|refreshed|rested|restored)/gi,
+    /(?:a\s+)?(?:good\s+)?(?:night'?s?\s+)?(?:sleep|rest)\s+(?:helps?|heals?|restores?)/gi,
+    /(?:you\s+)?(?:get\s+some\s+)?(?:sleep|rest|shut-?eye)/gi,
+    
+    // Food/eating (estimate 1-2 healing)
+    /(?:you\s+)?(?:eat|consume|have)\s+(?:a\s+)?(?:meal|food|breakfast|lunch|dinner|snack)/gi,
+    /(?:the\s+)?(?:food|meal)\s+(?:helps?|restores?|nourishes?)/gi,
+    /(?:you\s+)?(?:feel\s+)?(?:nourished|fed|satiated|full)/gi,
     
     // Disco Elysium style
     /\[HEALTH\s*\+\s*(\d+)\]/gi,
@@ -88,15 +99,53 @@ const MORALE_HEAL_PATTERNS = [
     /(?:you\s+)?(?:recover|restore|regain)\s+(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?morale/gi,
     /(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?morale\s+(?:restored|recovered)/gi,
     
-    // Emotional recovery (estimate 1-2 recovery)
+    // ─────────────────────────────────────────────────────────────
+    // SUCCESS / ACCOMPLISHMENT (opposite of failed checks)
+    // ─────────────────────────────────────────────────────────────
+    /(?:you\s+)?(?:succeed|manage|accomplish|achieve|complete|solve|figure\s*(?:it\s+)?out)/gi,
+    /(?:you\s+)?(?:pass(?:ed)?|succeed(?:ed)?)\s+(?:the\s+)?(?:\w+\s+)?check/gi,
+    /(?:you\s+)?(?:did\s+it|made\s+it|pull(?:ed)?\s+it\s+off|got\s+it\s+right)/gi,
+    /(?:a\s+)?(?:success|victory|breakthrough|triumph|accomplishment)/gi,
+    
+    // ─────────────────────────────────────────────────────────────
+    // VALIDATION / APPROVAL (opposite of humiliation)
+    // ─────────────────────────────────────────────────────────────
+    /(?:they|she|he)\s+(?:agree|nod|approve|praise|thank|compliment)/gi,
+    /(?:they|she|he)\s+(?:look(?:s)?|seem(?:s)?)\s+(?:impressed|proud|pleased)/gi,
+    /(?:well\s+done|good\s+job|nice\s+work|that'?s?\s+(?:good|great|impressive))/gi,
+    /(?:you\s+)?(?:earn(?:ed)?|gain(?:ed)?|won)\s+(?:their\s+)?(?:respect|trust|approval|admiration)/gi,
+    
+    // ─────────────────────────────────────────────────────────────
+    // CONNECTION / BONDING (opposite of rejection)
+    // ─────────────────────────────────────────────────────────────
+    /(?:they|she|he)\s+(?:smile(?:s)?|laugh(?:s)?|grin(?:s)?)\s+(?:at|with)\s+you/gi,
+    /(?:they|she|he)\s+(?:hug(?:s)?|embrace(?:s)?|hold(?:s)?|comfort(?:s)?)\s+you/gi,
+    /(?:you\s+(?:feel|are)\s+)?(?:welcome|accepted|included|understood|loved)/gi,
+    /(?:a\s+)?(?:moment\s+of\s+)?(?:connection|understanding|intimacy|closeness|warmth)/gi,
+    /(?:you'?re?\s+)?not\s+alone/gi,
+    
+    // ─────────────────────────────────────────────────────────────
+    // EMOTIONAL RECOVERY (existing)
+    // ─────────────────────────────────────────────────────────────
     /(?:you\s+(?:feel|are)\s+)?(?:relieved|reassured|comforted|encouraged|validated)/gi,
-    /(?:a\s+)?(?:sense\s+of\s+)?(?:calm|peace|relief|hope)\s+(?:washes?|settles?)\s+over\s+you/gi,
+    /(?:a\s+)?(?:sense\s+of\s+)?(?:calm|peace|relief|hope|pride)\s+(?:washes?|settles?|fills?)/gi,
+    /(?:your\s+)?(?:spirits?|mood|confidence)\s+(?:lifts?|rises?|improves?|brightens?)/gi,
     
-    // Successful social (Disco Elysium style)
-    /(?:you\s+)?(?:pass(?:ed)?|succeed(?:ed)?)\s+(?:the\s+)?(?:composure|volition|empathy)\s+check/gi,
+    // ─────────────────────────────────────────────────────────────
+    // POSITIVE EMOTIONS / HUMOR
+    // ─────────────────────────────────────────────────────────────
+    /(?:you\s+)?(?:laugh|chuckle|smile|grin)\s+(?:to\s+yourself|genuinely|warmly)?/gi,
+    /(?:you\s+(?:feel|are)\s+)?(?:happy|joyful|content|satisfied|proud|confident)/gi,
+    /(?:you\s+)?(?:can't\s+help\s+but\s+)?(?:smile|laugh|feel\s+good)/gi,
     
-    // Substances that boost morale
-    /(?:the\s+)?(?:alcohol|drink|cigarette|smoke)\s+(?:calms?|soothes?|helps?)/gi,
+    // ─────────────────────────────────────────────────────────────
+    // SLEEP / FOOD / SUBSTANCES
+    // ─────────────────────────────────────────────────────────────
+    /(?:you\s+)?(?:wake\s+up|awaken)\s+(?:feeling\s+)?(?:better|refreshed|rested)/gi,
+    /(?:a\s+)?(?:good\s+)?(?:night'?s?\s+)?(?:sleep|rest)\s+(?:clears?\s+your\s+(?:head|mind)|helps?)/gi,
+    /(?:the\s+)?(?:food|meal|breakfast|lunch|dinner)\s+(?:helps?|lifts?\s+your\s+spirits?|makes?\s+you\s+feel\s+better)/gi,
+    /(?:you\s+)?(?:eat|enjoy)\s+(?:a\s+)?(?:good|warm|hot|hearty)\s+(?:meal|food)/gi,
+    /(?:the\s+)?(?:alcohol|drink|cigarette|smoke)\s+(?:calms?|soothes?|helps?|takes?\s+the\s+edge\s+off)/gi,
     
     // Disco Elysium style tags
     /\[MORALE\s*\+\s*(\d+)\]/gi,
@@ -206,8 +255,14 @@ function estimateSeverity(text) {
 
 function estimateHealSeverity(text) {
     const lower = text.toLowerCase();
-    if (/fully\s+heal|complete|medkit|surgery|major/.test(lower)) return 3;
-    if (/bandage|medicine|treated|comforted|relieved/.test(lower)) return 2;
+    
+    // Major healing = 3 (big successes, deep connection, full rest)
+    if (/fully\s+heal|complete|medkit|surgery|major|good\s+night|breakthrough|triumph|loved|intimacy/.test(lower)) return 3;
+    
+    // Moderate = 2 (success, validation, rest, bonding)
+    if (/succeed|accomplish|solve|pass|impressed|proud|respect|trust|hug|embrace|comfort|bandage|medicine|treated|relieved|sleep|rest|nap|refreshed|smile.*at\s+you|laugh.*with/.test(lower)) return 2;
+    
+    // Minor = 1 (small wins, food, minor comfort)
     return 1;
 }
 

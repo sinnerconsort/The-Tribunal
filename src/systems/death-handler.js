@@ -342,8 +342,8 @@ async function triggerDeath(deathType, isMoraleDeath, context) {
 async function generateDeathArticle(headline, deathType, isMoraleDeath, context) {
     // Default article if AI fails
     const defaultArticle = isMoraleDeath 
-        ? "Sources close to the investigation report the officer's mental state had been deteriorating for some time. \"We all saw it coming,\" said one colleague who wished to remain anonymous."
-        : "The RCM has declined to comment on the circumstances of the officer's death. An internal investigation is reportedly underway.";
+        ? "Sources close to the investigation report that the individual's mental state had been deteriorating for some time. \"We all saw it coming,\" said one acquaintance who wished to remain anonymous."
+        : "Authorities have declined to comment on the circumstances. An investigation is reportedly underway.";
     
     try {
         // Try to get AI extractor for API access
@@ -355,20 +355,35 @@ async function generateDeathArticle(headline, deathType, isMoraleDeath, context)
             return defaultArticle;
         }
         
-        const systemPrompt = `You are writing a brief newspaper article for the Périphérique newspaper in the style of Disco Elysium. Write 2-3 short paragraphs about an RCM officer's ${isMoraleDeath ? 'mental breakdown/resignation' : 'death'}. Be darkly humorous, melancholic, and reference Revachol. Include a quote from a colleague or witness. Keep it under 150 words.`;
+        const systemPrompt = `You are writing a brief, somber newspaper article about a ${isMoraleDeath ? 'mental breakdown or disappearance' : 'death'}. Write 2-3 short paragraphs. Be darkly atmospheric and melancholic. Include a quote from a colleague, witness, or acquaintance. Keep it under 120 words. Do NOT use markdown formatting like asterisks or headers. Write plain prose only.`;
         
-        const userPrompt = `Write a Périphérique newspaper article with this headline: "${headline}"
+        const userPrompt = `Write a newspaper article with this headline: "${headline}"
 
-Context from recent events: ${context.substring(0, 500)}
+Recent context: ${context.substring(0, 400)}
 
-Write 2-3 paragraphs in the style of Disco Elysium's newspaper death screens. Include details that reference the context if possible.`;
+Write 2-3 paragraphs that:
+- Reference details from the context if relevant
+- Include one quote from someone who knew them
+- Stay atmospheric and somber
+- Do NOT include any markdown, asterisks, or formatting
+- Do NOT repeat the headline or newspaper name in the body`;
 
         const response = await (apiModule.callAPIWithTokens 
-            ? callAPI(systemPrompt, userPrompt, 400)
+            ? callAPI(systemPrompt, userPrompt, 350)
             : callAPI(systemPrompt, userPrompt));
         
         if (response && response.length > 50) {
-            return response.trim();
+            // Strip any markdown formatting the AI might have added
+            let cleaned = response.trim()
+                .replace(/\*\*([^*]+)\*\*/g, '$1')  // Remove **bold**
+                .replace(/\*([^*]+)\*/g, '$1')      // Remove *italic*
+                .replace(/__([^_]+)__/g, '$1')      // Remove __bold__
+                .replace(/_([^_]+)_/g, '$1')        // Remove _italic_
+                .replace(/^#+\s*/gm, '')            // Remove # headers
+                .replace(/^[-*]\s+/gm, '')          // Remove bullet points
+                .replace(/^\d+\.\s+/gm, '');        // Remove numbered lists
+            
+            return cleaned;
         }
         
     } catch (e) {
@@ -397,12 +412,11 @@ function showDeathScreen(headline, article, isMoraleDeath) {
             
             <header class="death-newspaper-header">
                 <div class="death-masthead">PÉRIPHÉRIQUE</div>
-                <div class="death-tagline">The Independent Voice of Revachol</div>
             </header>
             
             <main class="death-newspaper-content">
                 <h1 class="death-headline">${headline}</h1>
-                <div class="death-article">${article.split('\n').map(p => `<p>${p}</p>`).join('')}</div>
+                <div class="death-article">${article.split('\n').filter(p => p.trim()).map(p => `<p>${p}</p>`).join('')}</div>
             </main>
             
             <footer class="death-newspaper-footer">
@@ -513,33 +527,35 @@ const DEATH_CSS = `
     z-index: 99999;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 1s ease, background 1s ease;
+    transition: opacity 0.8s ease, background 0.8s ease;
 }
 
 .tribunal-death-overlay.active {
     pointer-events: auto;
     opacity: 1;
-    background: rgba(0, 0, 0, 0.92);
+    background: rgba(0, 0, 0, 0.9);
 }
 
-/* Newspaper */
+/* Newspaper - COMPACT */
 .death-newspaper {
     position: relative;
-    width: 90%;
-    max-width: 700px;
+    width: 85%;
+    max-width: 480px;
+    max-height: 80vh;
+    overflow-y: auto;
     background: #1a1a1a;
-    border: 1px solid #333;
-    padding: 2rem;
+    border: 1px solid #444;
+    padding: 1.25rem;
     transform: scale(0.9);
     opacity: 0;
-    transition: transform 0.5s ease, opacity 0.5s ease;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+    transition: transform 0.4s ease, opacity 0.4s ease;
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8);
 }
 
 .tribunal-death-overlay.active .death-newspaper {
     transform: scale(1);
     opacity: 1;
-    transition-delay: 0.3s;
+    transition-delay: 0.2s;
 }
 
 /* Paper texture overlay */
@@ -554,79 +570,75 @@ const DEATH_CSS = `
             0deg,
             transparent,
             transparent 2px,
-            rgba(255, 255, 255, 0.02) 2px,
-            rgba(255, 255, 255, 0.02) 4px
+            rgba(255, 255, 255, 0.015) 2px,
+            rgba(255, 255, 255, 0.015) 4px
         );
     pointer-events: none;
     opacity: 0.5;
 }
 
-/* Masthead */
+/* Masthead - COMPACT */
 .death-newspaper-header {
     text-align: center;
     border-bottom: 2px solid #444;
-    padding-bottom: 1rem;
-    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
 }
 
 .death-masthead {
     font-family: 'Times New Roman', Georgia, serif;
-    font-size: 2.5rem;
+    font-size: 1.6rem;
     font-weight: bold;
-    letter-spacing: 0.3em;
+    letter-spacing: 0.25em;
     color: #d4c5a9;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
 }
 
-.death-tagline {
-    font-family: 'Times New Roman', Georgia, serif;
-    font-size: 0.75rem;
-    font-style: italic;
-    color: #888;
-    letter-spacing: 0.1em;
-    margin-top: 0.25rem;
-}
-
-/* Content */
+/* Content - COMPACT */
 .death-newspaper-content {
     color: #d4c5a9;
 }
 
 .death-headline {
     font-family: 'Times New Roman', Georgia, serif;
-    font-size: 1.8rem;
+    font-size: 1.3rem;
     font-weight: bold;
     text-align: center;
-    line-height: 1.2;
-    margin-bottom: 1.5rem;
+    line-height: 1.25;
+    margin-bottom: 1rem;
     color: #fff;
     text-transform: uppercase;
+    border-bottom: 1px solid #555;
+    padding-bottom: 0.75rem;
 }
 
 .death-article {
     font-family: 'Times New Roman', Georgia, serif;
-    font-size: 1rem;
-    line-height: 1.6;
+    font-size: 0.9rem;
+    line-height: 1.5;
     color: #bbb;
-    column-count: 1;
     text-align: justify;
 }
 
 .death-article p {
-    margin-bottom: 1rem;
-    text-indent: 1.5em;
+    margin-bottom: 0.75rem;
+    text-indent: 1em;
 }
 
 .death-article p:first-child {
     text-indent: 0;
 }
 
-/* Footer / End Button */
+.death-article p:last-child {
+    margin-bottom: 0;
+}
+
+/* Footer / End Button - COMPACT */
 .death-newspaper-footer {
-    margin-top: 2rem;
+    margin-top: 1rem;
     text-align: center;
-    border-top: 1px solid #333;
-    padding-top: 1.5rem;
+    border-top: 1px solid #444;
+    padding-top: 1rem;
 }
 
 .death-end-btn {
@@ -634,13 +646,13 @@ const DEATH_CSS = `
     border: none;
     color: #fff;
     font-family: 'Courier New', monospace;
-    font-size: 1.2rem;
+    font-size: 1rem;
     font-weight: bold;
-    padding: 0.75rem 3rem;
+    padding: 0.6rem 2.5rem;
     cursor: pointer;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
     transition: background 0.2s, transform 0.1s;
 }
 
@@ -663,22 +675,27 @@ const DEATH_CSS = `
 }
 
 /* Mobile adjustments */
-@media (max-width: 600px) {
+@media (max-width: 500px) {
     .death-newspaper {
-        padding: 1.5rem;
-        width: 95%;
+        padding: 1rem;
+        width: 92%;
     }
     
     .death-masthead {
-        font-size: 1.8rem;
-        letter-spacing: 0.2em;
+        font-size: 1.3rem;
+        letter-spacing: 0.15em;
     }
     
     .death-headline {
-        font-size: 1.4rem;
+        font-size: 1.1rem;
     }
     
     .death-article {
+        font-size: 0.85rem;
+    }
+    
+    .death-end-btn {
+        padding: 0.5rem 2rem;
         font-size: 0.9rem;
     }
 }
