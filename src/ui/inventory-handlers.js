@@ -3,6 +3,7 @@
  * State management, item operations, and UI rendering
  * 
  * FIXED: Added resetLocalState() and onChatChanged() for proper chat switching
+ * NEW: AI-powered scan that checks persona + chat context (like RPG Companion)
  * 
  * Mirrors equipment-handlers.js patterns
  */
@@ -24,6 +25,56 @@ async function loadEvents() {
         eventsLoaded = true;
     } catch (e) {
         console.warn('[Inventory] Events not available:', e.message);
+    }
+}
+
+// AI Extractor for smart scanning
+let aiExtractor = null;
+async function getAIExtractor() {
+    if (aiExtractor) return aiExtractor;
+    try {
+        aiExtractor = await import('../systems/ai-extractor.js');
+        return aiExtractor;
+    } catch (e) {
+        console.warn('[Inventory] AI Extractor not available:', e.message);
+        return null;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PERSONA + CHAT CONTEXT HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get the user's persona description
+ */
+function findUserPersona() {
+    if (window.power_user?.personas) {
+        const name = window.power_user.persona_name || window.power_user.default_persona;
+        if (name && window.power_user.personas[name]) return window.power_user.personas[name];
+    }
+    if (window.power_user?.persona_description) return window.power_user.persona_description;
+    return document.getElementById('persona_description')?.value || null;
+}
+
+/**
+ * Get recent chat messages for context
+ * @param {number} maxMessages - Maximum messages to include
+ * @returns {string} Combined message text
+ */
+function getRecentChatContext(maxMessages = 10) {
+    try {
+        const context = window.SillyTavern?.getContext?.() || window.getContext?.();
+        if (!context?.chat) return '';
+        
+        const messages = context.chat.slice(0, maxMessages);
+        return messages
+            .filter(m => m.mes)
+            .map(m => m.mes)
+            .join('\n\n');
+    } catch (e) {
+        console.warn('[Inventory] Could not get chat context:', e.message);
+        return '';
     }
 }
 
@@ -734,6 +785,102 @@ function toast(msg, type = 'info') {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// AI-POWERED INVENTORY SCAN (like RPG Companion's Refresh)
+// Scans persona + chat context for items
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Scan persona AND chat context for inventory items
+ * This mimics RPG Companion's multi-source scanning behavior
+ */
+export async function scanForInventory() {
+    toast('AI scanning for inventory...', 'info');
+    
+    const persona = findUserPersona();
+    const chatContext = getRecentChatContext(10);
+    
+    if (!persona && !chatContext) {
+        toast('No persona or chat context found!', 'warning');
+        return;
+    }
+    
+    const extractor = await getAIExtractor();
+    if (!extractor) {
+        toast('AI Extractor not available', 'error');
+        return;
+    }
+    
+    try {
+        // Use combined extraction (persona + chat)
+        const items = await extractor.extractInventoryFromContext(persona, chatContext);
+        
+        if (!items || items.length === 0) {
+            toast('No items found', 'info');
+            return;
+        }
+        
+        // Add items that don't already exist
+        let added = 0;
+        let skipped = 0;
+        
+        const state = getInventoryState();
+        const existingNames = state.items.map(i => i.name.toLowerCase());
+        
+        for (const item of items) {
+            // Check for duplicates
+            if (existingNames.includes(item.name.toLowerCase())) {
+                skipped++;
+                continue;
+            }
+            
+            // Create proper item structure
+            const newItem = {
+                id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                name: item.name,
+                type: item.type || inferInventoryType(item.name),
+                category: isConsumable(item.type || inferInventoryType(item.name)) ? 'consumable' : 'misc',
+                quantity: item.quantity || 1,
+                description: item.reason || null,
+                source: 'ai-scan',
+                addedAt: Date.now()
+            };
+            
+            state.items.push(newItem);
+            existingNames.push(item.name.toLowerCase());
+            added++;
+        }
+        
+        if (added > 0) {
+            saveState();
+            refreshDisplay();
+            toast(`Added ${added} item${added !== 1 ? 's' : ''}${skipped > 0 ? ` (${skipped} already had)` : ''}`, 'success');
+        } else {
+            toast(`All ${items.length} items already in inventory`, 'info');
+        }
+        
+    } catch (error) {
+        console.error('[Inventory] Scan error:', error);
+        toast('Scan failed: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Initialize scan button handler
+ */
+function initScanButton() {
+    const scanBtn = document.getElementById('ie-scan-btn');
+    if (scanBtn) {
+        scanBtn.addEventListener('click', scanForInventory);
+    }
+    
+    // Also check for alternative button IDs
+    const altScanBtn = document.getElementById('inv-scan-persona');
+    if (altScanBtn) {
+        altScanBtn.addEventListener('click', scanForInventory);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // MESSAGE_RECEIVED AUTO-EXTRACTION
 // ═══════════════════════════════════════════════════════════════
 
@@ -808,6 +955,7 @@ export async function initInventoryHandlers() {
     await loadStateModule();
     
     initDetailPanelHandlers();
+    initScanButton();
     
     // Hook MESSAGE_RECEIVED for auto-extraction
     if (eventSource && event_types?.MESSAGE_RECEIVED) {
@@ -858,6 +1006,9 @@ export default {
     
     // UI
     refreshDisplay,
+    
+    // Scanning
+    scanForInventory,
     
     // Config
     setAutoExtract,
