@@ -251,7 +251,7 @@ function getInventoryState() {
 }
 
 function saveState() {
-    if (stateModule?.saveState) stateModule.saveState();
+    if (stateModule?.saveChatState) stateModule.saveChatState();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -810,6 +810,17 @@ export async function scanForInventory() {
         return;
     }
     
+    // Check if we have a valid chat state
+    if (!stateModule?.getChatState) {
+        await loadStateModule();
+    }
+    
+    const chatState = stateModule?.getChatState?.();
+    if (!chatState) {
+        toast('No active chat - open a chat first!', 'warning');
+        return;
+    }
+    
     try {
         // Use combined extraction (persona + chat)
         const items = await extractor.extractInventoryFromContext(persona, chatContext);
@@ -819,11 +830,19 @@ export async function scanForInventory() {
             return;
         }
         
+        // Get state (will create inventory structure if needed)
+        const state = getInventoryState();
+        
+        // Double-check we have a mutable state
+        if (Object.isFrozen(state) || Object.isFrozen(state.items)) {
+            toast('No active chat - cannot save items', 'warning');
+            return;
+        }
+        
         // Add items that don't already exist
         let added = 0;
         let skipped = 0;
         
-        const state = getInventoryState();
         const existingNames = state.items.map(i => i.name.toLowerCase());
         
         for (const item of items) {

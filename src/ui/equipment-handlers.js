@@ -47,7 +47,7 @@ function getEquipmentState() {
 }
 
 function saveState() {
-    if (stateModule?.saveState) stateModule.saveState();
+    if (stateModule?.saveChatState) stateModule.saveChatState();
 }
 
 // ═══════════════════════════════════════════════════════════════
