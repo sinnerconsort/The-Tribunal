@@ -8,10 +8,12 @@ import { eventSource, event_types } from '../../../../../../script.js';
 
 import {
     normalizeWardrobeKey,
-    quickExtractItemNames,
     generateSingleItem,
     generateMultipleItems
 } from '../voice/equipment-generation.js';
+
+// AI-based extraction (replaces regex)
+import { extractEquipmentFromPersona } from '../systems/ai-extractor.js';
 
 // ═══════════════════════════════════════════════════════════════
 // STATE
@@ -158,10 +160,13 @@ async function scanForEquipment() {
     const persona = findUserPersona();
     if (!persona) { toast('No persona found!', 'warning'); return; }
     
-    const names = quickExtractItemNames(persona);
-    if (names.length === 0) { toast('No items found in persona', 'info'); return; }
+    toast('AI scanning persona for clothing...', 'info');
     
-    toast(`Found ${names.length} items...`, 'info');
+    // Use AI extraction - much smarter than regex!
+    const names = await extractEquipmentFromPersona(persona);
+    if (names.length === 0) { toast('No clothing items found', 'info'); return; }
+    
+    toast(`Found ${names.length} clothing items...`, 'info');
     
     let cached = 0, generated = 0;
     for (const name of names) {
