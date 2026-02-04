@@ -125,6 +125,32 @@ const CONFIG = {
 };
 
 // ═══════════════════════════════════════════════════════════════
+// CHARACTER NAME EXCLUSION
+// Gets player + AI character names to prevent adding them as contacts
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get the current player character name and AI character name
+ * Used to exclude them from NPC detection
+ * @returns {string[]} Array of names to exclude
+ */
+function getCharacterNames() {
+    const names = [];
+    try {
+        // SillyTavern global context
+        const ctx = window.SillyTavern?.getContext?.() || 
+                     (typeof getContext === 'function' ? getContext() : null);
+        if (ctx) {
+            if (ctx.name1) names.push(ctx.name1); // Player character
+            if (ctx.name2) names.push(ctx.name2); // AI character
+        }
+    } catch (e) {
+        // Silent fail - names will just be empty
+    }
+    return names;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // DISPOSITION MAPPING (Local copy to avoid import dependency)
 // ═══════════════════════════════════════════════════════════════
 
@@ -186,11 +212,24 @@ const NAME_PATTERNS = [
 /**
  * Detect potential NPC names from message text
  * @param {string} messageText - The chat message to scan
+ * @param {string[]} excludeNames - Names to exclude (player character, AI character, etc.)
  * @returns {Map} Map of name -> { count, confidence, contexts }
  */
-export function detectPotentialNPCs(messageText) {
+export function detectPotentialNPCs(messageText, excludeNames = []) {
     if (!messageText || typeof messageText !== 'string') {
         return new Map();
+    }
+    
+    // Build exclusion set from provided names (case-insensitive, includes first names)
+    const excluded = new Set();
+    for (const name of excludeNames) {
+        if (!name) continue;
+        excluded.add(name.toLowerCase().trim());
+        // Also exclude first name only (e.g. "Harry" from "Harry Du Bois")
+        const firstName = name.trim().split(/\s+/)[0];
+        if (firstName && firstName.length > 1) {
+            excluded.add(firstName.toLowerCase());
+        }
     }
     
     const detected = new Map();
@@ -199,6 +238,12 @@ export function detectPotentialNPCs(messageText) {
         const normalized = name?.trim();
         if (!normalized || normalized.length < 2) return;
         if (COMMON_WORDS.has(normalized.toLowerCase())) return;
+        
+        // FIX (Bug 4): Skip player character and AI character names
+        if (excluded.has(normalized.toLowerCase())) return;
+        // Also check first name of detected multi-word names
+        const detectedFirst = normalized.split(/\s+/)[0];
+        if (detectedFirst && excluded.has(detectedFirst.toLowerCase())) return;
         
         // Skip single short words
         const words = normalized.split(/\s+/);
@@ -867,8 +912,11 @@ export async function updateContactIntelligence(voiceResults, context) {
         
         console.log('[Contact Intelligence] Scanning for NPCs...');
         
-        // Detect potential NPCs
-        const detected = detectPotentialNPCs(context.message);
+        // FIX (Bug 4): Get character names to exclude from detection
+        const excludeNames = getCharacterNames();
+        
+        // Detect potential NPCs (excluding player/AI character names)
+        const detected = detectPotentialNPCs(context.message, excludeNames);
         
         if (detected.size === 0) {
             return;
