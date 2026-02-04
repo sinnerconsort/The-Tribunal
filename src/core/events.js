@@ -197,6 +197,28 @@ function isEnabled() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// HELPER: Get character names to exclude from NPC detection
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get player + AI character names for NPC detection filtering
+ * Prevents user persona and AI character from being added as contacts
+ * @returns {string[]}
+ */
+function getCharacterNames() {
+    const names = [];
+    try {
+        const ctx = window.SillyTavern?.getContext?.() ||
+                     (typeof getContext === 'function' ? getContext() : null);
+        if (ctx) {
+            if (ctx.name1) names.push(ctx.name1);
+            if (ctx.name2) names.push(ctx.name2);
+        }
+    } catch (e) { /* silent */ }
+    return names;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // LEDGER INITIALIZATION (Cases + Contacts)
 // ═══════════════════════════════════════════════════════════════
 
@@ -456,8 +478,11 @@ async function onMessageReceived(messageId) {
     try {
         const contactIntel = await getContactIntelligence();
         if (contactIntel && messageText) {
+            // FIX (Bug 4): Exclude player + AI character from NPC detection
+            const excludeNames = getCharacterNames();
+            
             // Just track mentions - voice sentiment analysis happens separately
-            const detected = contactIntel.detectPotentialNPCs(messageText);
+            const detected = contactIntel.detectPotentialNPCs(messageText, excludeNames);
             
             if (detected && detected.size > 0) {
                 for (const [name, data] of detected) {
@@ -512,7 +537,8 @@ async function onMessageReceived(messageId) {
                     existingContacts,
                     existingLocations,
                     existingEquipment,
-                    existingInventory
+                    existingInventory,
+                    excludeNames: getCharacterNames()
                 });
                 
                 if (results.error) {
@@ -522,6 +548,7 @@ async function onMessageReceived(messageId) {
                     const showNotifications = settings.extraction?.showNotifications ?? true;
                     
                     const processed = await aiExtractor.processExtractionResults(results, {
+                        excludeNames: getCharacterNames(),
                         notifyCallback: showNotifications ? (msg, type) => {
                             if (typeof toastr === 'undefined') return;
                             
@@ -781,7 +808,9 @@ async function fallbackRegexExtraction(messageText, settings) {
         try {
             const contactIntel = await getContactIntelligence();
             if (contactIntel?.detectPotentialNPCs) {
-                const detected = contactIntel.detectPotentialNPCs(messageText);
+                // FIX (Bug 4): Exclude player + AI character from NPC detection
+                const excludeNames = getCharacterNames();
+                const detected = contactIntel.detectPotentialNPCs(messageText, excludeNames);
                 
                 if (detected && detected.size > 0) {
                     // Track all detected names as pending
