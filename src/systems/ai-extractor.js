@@ -68,7 +68,7 @@ async function makeAPICall(systemPrompt, userPrompt, maxTokens) {
 /**
  * Build the extraction prompt for analyzing a message
  */
-function buildExtractionPrompt(messageText, existingData = {}) {
+function buildExtractionPrompt(messageText, existingData = {}, excludeNames = []) {
     const {
         cases = [],
         contacts = [],
@@ -142,6 +142,7 @@ Extract ALL of the following. Respond with ONLY valid JSON (no markdown, no expl
 }
 
 RULES:
+- CONTACTS: Extract only NPCs (non-player characters). Do NOT extract the player character or the main AI character as contacts.${excludeNames.length > 0 ? `\n- EXCLUDED NAMES (these are the player/main character, NOT NPCs): ${excludeNames.join(', ')}` : ''}
 - EQUIPMENT = wearable items ONLY: clothing, shoes, hats, glasses, jewelry, bags, watches, accessories
 - EQUIPMENT is NOT: body features, hair, eyes, scars, tattoos, physical descriptions
 - INVENTORY = carried/usable items: weapons, tools, consumables, documents, money, keys, etc.
@@ -426,6 +427,7 @@ export async function extractFromMessage(messageText, options = {}) {
         existingLocations = [],
         existingEquipment = [],
         existingInventory = [],
+        excludeNames = [],
         timeout = 30000
     } = options;
     
@@ -451,7 +453,7 @@ export async function extractFromMessage(messageText, options = {}) {
             locations: existingLocations,
             equipment: existingEquipment,
             inventory: existingInventory
-        });
+        }, excludeNames);
         
         const systemPrompt = `You are a precise data extraction assistant for a Disco Elysium-style RPG system. Extract game state changes from roleplay messages. Output only valid JSON with no additional text or markdown formatting.`;
         
@@ -570,7 +572,7 @@ function parseExtractionResponse(response) {
  * @returns {Promise<object>} What was processed
  */
 export async function processExtractionResults(results, options = {}) {
-    const { notifyCallback } = options;
+    const { notifyCallback, excludeNames = [] } = options;
     
     const processed = {
         casesCreated: [],
@@ -827,28 +829,65 @@ export async function processExtractionResults(results, options = {}) {
     }
     
     // ─────────────────────────────────────────────────────────────
-    // Process Contacts (existing logic)
+    // Process Contacts
+    // FIX (Bug 5): Write to state.relationships (not state.contacts)
+    // FIX (Bug 5): Use proper contact structure with disposition/context
+    // FIX (Bug 4): Filter out player character and AI character names
     // ─────────────────────────────────────────────────────────────
     if (results.contacts?.new?.length > 0) {
-        if (!state.contacts) state.contacts = {};
+        if (!state.relationships) state.relationships = {};
+        
+        // Build exclusion set for persona names (case-insensitive)
+        const excluded = new Set();
+        for (const name of excludeNames) {
+            if (!name) continue;
+            excluded.add(name.toLowerCase().trim());
+            const firstName = name.trim().split(/\s+/)[0];
+            if (firstName && firstName.length > 1) {
+                excluded.add(firstName.toLowerCase());
+            }
+        }
         
         for (const contact of results.contacts.new) {
             if (!contact.name) continue;
             
-            const existingNames = Object.values(state.contacts).map(c => c.name.toLowerCase());
-            if (existingNames.includes(contact.name.toLowerCase())) continue;
+            // FIX (Bug 4): Skip player/AI character names
+            const contactLower = contact.name.toLowerCase().trim();
+            if (excluded.has(contactLower)) {
+                console.log(`[AI Extractor] Skipping excluded name: ${contact.name}`);
+                continue;
+            }
+            const contactFirst = contactLower.split(/\s+/)[0];
+            if (contactFirst && excluded.has(contactFirst)) {
+                console.log(`[AI Extractor] Skipping excluded name (first name match): ${contact.name}`);
+                continue;
+            }
+            
+            // Check existing in relationships (the proper store)
+            const existingNames = Object.values(state.relationships).map(c => c.name?.toLowerCase());
+            if (existingNames.includes(contactLower)) continue;
+            
+            // FIX (Bug 5): Build proper contact structure matching createContact() schema
+            const disposition = mapRelationshipToDisposition(contact.relationship);
             
             const newContact = {
                 id: `contact_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
                 name: contact.name,
-                description: contact.description || '',
-                role: contact.role || '',
-                relationship: mapRelationship(contact.relationship),
-                aiGenerated: true,
-                createdAt: Date.now()
+                context: contact.description || '',   // AI description → context field
+                relationship: '',                      // Legacy field, keep empty
+                notes: '',
+                disposition: disposition,
+                type: DISPOSITION_TO_TYPE[disposition] || 'unknown',
+                dossier: null,
+                createdAt: Date.now(),
+                lastModified: Date.now(),
+                voiceOpinions: {},                     // Will be seeded by contact-intelligence
+                detectedTraits: [],
+                manuallyEdited: false,
+                aiGenerated: true
             };
             
-            state.contacts[newContact.id] = newContact;
+            state.relationships[newContact.id] = newContact;
             processed.contactsCreated.push(newContact);
             
             if (notifyCallback) {
@@ -951,6 +990,30 @@ function mapRelationship(rel) {
     if (lower.includes('friendly') || lower.includes('friend')) return 4;
     if (lower.includes('lover') || lower.includes('romantic')) return 5;
     return 3;
+}
+
+/**
+ * Map AI extractor's relationship labels to proper disposition strings
+ * The AI prompt returns: hostile|unfriendly|neutral|friendly|lover
+ * The contact system uses: hostile|suspicious|cautious|neutral|trusted
+ */
+const DISPOSITION_TO_TYPE = {
+    trusted: 'informant',
+    neutral: 'unknown',
+    cautious: 'witness',
+    suspicious: 'accomplice',
+    hostile: 'suspect'
+};
+
+function mapRelationshipToDisposition(rel) {
+    if (!rel) return 'neutral';
+    const lower = rel.toLowerCase();
+    if (lower.includes('hostile') || lower.includes('enemy')) return 'hostile';
+    if (lower.includes('unfriendly') || lower.includes('suspicious')) return 'suspicious';
+    if (lower.includes('neutral')) return 'neutral';
+    if (lower.includes('friendly') || lower.includes('friend')) return 'neutral';  // friendly = neutral disposition
+    if (lower.includes('lover') || lower.includes('romantic')) return 'trusted';
+    return 'neutral';
 }
 
 function similarity(a, b) {
