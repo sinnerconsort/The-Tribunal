@@ -142,7 +142,7 @@ Extract ALL of the following. Respond with ONLY valid JSON (no markdown, no expl
 }
 
 RULES:
-- CONTACTS: Extract only NPCs (non-player characters). Do NOT extract the player character or the main AI character as contacts.${excludeNames.length > 0 ? `\n- EXCLUDED NAMES (these are the player/main character, NOT NPCs): ${excludeNames.join(', ')}` : ''}
+- CONTACTS: Extract only NPCs (non-player characters) with actual proper names. Do NOT extract common words, descriptions, locations, or generic nouns as contacts. A contact must be a named CHARACTER (person, entity with a name).${excludeNames.length > 0 ? `\n- EXCLUDED NAMES (these are the player/main character, NOT NPCs - never extract these): ${excludeNames.join(', ')}` : ''}
 - EQUIPMENT = wearable items ONLY: clothing, shoes, hats, glasses, jewelry, bags, watches, accessories
 - EQUIPMENT is NOT: body features, hair, eyes, scars, tattoos, physical descriptions
 - INVENTORY = carried/usable items: weapons, tools, consumables, documents, money, keys, etc.
@@ -833,6 +833,7 @@ export async function processExtractionResults(results, options = {}) {
     // FIX (Bug 5): Write to state.relationships (not state.contacts)
     // FIX (Bug 5): Use proper contact structure with disposition/context
     // FIX (Bug 4): Filter out player character and AI character names
+    // FIX: Validate names to prevent garbage like "The Horror", "Heavily"
     // ─────────────────────────────────────────────────────────────
     if (results.contacts?.new?.length > 0) {
         if (!state.relationships) state.relationships = {};
@@ -848,6 +849,37 @@ export async function processExtractionResults(results, options = {}) {
             }
         }
         
+        // Name quality validation (inline version of looksLikeName)
+        const ARTICLE_PREFIXES = new Set(['the', 'a', 'an', 'some', 'any', 'no', 'every', 'each', 'this', 'that']);
+        const REJECT_WORDS = new Set([
+            'agree', 'another', 'heavily', 'potential', 'creatures', 'houses',
+            'horror', 'scare', 'shows', 'games', 'food', 'zones', 'birdie',
+            'moment', 'suddenly', 'however', 'although', 'perhaps', 'actually',
+            'someone', 'something', 'nothing', 'everything', 'everyone',
+            'door', 'room', 'floor', 'wall', 'window', 'table', 'chair',
+            'hand', 'hands', 'eyes', 'face', 'head', 'voice', 'words',
+            'place', 'world', 'thing', 'things', 'way', 'time',
+        ]);
+        
+        function isValidContactName(name) {
+            if (!name || name.length < 2) return false;
+            const words = name.trim().split(/\s+/);
+            const lower = name.toLowerCase().trim();
+            
+            // Reject single common/generic words
+            if (words.length === 1) {
+                if (REJECT_WORDS.has(lower)) return false;
+                // Reject words ending in non-name suffixes
+                if (/(?:ing|tion|sion|ment|ness|ful|less|ous|ive|able|ible|ally|edly|ily|ity)$/i.test(name)) return false;
+                if (name.length < 3) return false;
+            }
+            
+            // Reject "The X" patterns - almost never real NPC names
+            if (words.length >= 2 && ARTICLE_PREFIXES.has(words[0].toLowerCase())) return false;
+            
+            return true;
+        }
+        
         for (const contact of results.contacts.new) {
             if (!contact.name) continue;
             
@@ -860,6 +892,12 @@ export async function processExtractionResults(results, options = {}) {
             const contactFirst = contactLower.split(/\s+/)[0];
             if (contactFirst && excluded.has(contactFirst)) {
                 console.log(`[AI Extractor] Skipping excluded name (first name match): ${contact.name}`);
+                continue;
+            }
+            
+            // QUALITY GATE: Reject names that don't look like real character names
+            if (!isValidContactName(contact.name)) {
+                console.log(`[AI Extractor] Rejected non-name: "${contact.name}"`);
                 continue;
             }
             
@@ -994,8 +1032,7 @@ function mapRelationship(rel) {
 
 /**
  * Map AI extractor's relationship labels to proper disposition strings
- * The AI prompt returns: hostile|unfriendly|neutral|friendly|lover
- * The contact system uses: hostile|suspicious|cautious|neutral|trusted
+ * The contact system uses: hostile|suspicious|neutral|cautious|trusted
  */
 const DISPOSITION_TO_TYPE = {
     trusted: 'informant',
@@ -1011,7 +1048,7 @@ function mapRelationshipToDisposition(rel) {
     if (lower.includes('hostile') || lower.includes('enemy')) return 'hostile';
     if (lower.includes('unfriendly') || lower.includes('suspicious')) return 'suspicious';
     if (lower.includes('neutral')) return 'neutral';
-    if (lower.includes('friendly') || lower.includes('friend')) return 'neutral';  // friendly = neutral disposition
+    if (lower.includes('friendly') || lower.includes('friend')) return 'neutral';
     if (lower.includes('lover') || lower.includes('romantic')) return 'trusted';
     return 'neutral';
 }
