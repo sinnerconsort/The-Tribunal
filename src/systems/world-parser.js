@@ -138,17 +138,29 @@ function normalizeWeatherForWatch(weatherStr) {
         'rainy': 'rainy',
         'raining': 'rainy',
         'light rain': 'rainy',
+        'drizzle': 'rainy',
+        'drizzling': 'rainy',
+        'light drizzle': 'rainy',
+        'heavy drizzle': 'rainy',
         'heavy rain': 'stormy',
+        'downpour': 'stormy',
         'storm': 'stormy',
         'stormy': 'stormy',
         'thunderstorm': 'stormy',
         'snow': 'snowy',
         'snowy': 'snowy',
         'snowing': 'snowy',
+        'light snow': 'snowy',
+        'heavy snow': 'snowy',
+        'blizzard': 'snowy',
+        'sleet': 'rainy',
+        'hail': 'stormy',
         'fog': 'foggy',
         'foggy': 'foggy',
         'mist': 'foggy',
         'misty': 'foggy',
+        'haze': 'foggy',
+        'hazy': 'foggy',
         'wind': 'windy',
         'windy': 'windy'
     };
@@ -159,10 +171,11 @@ function normalizeWeatherForWatch(weatherStr) {
     }
     
     // Check partial matches
+    if (lower.includes('drizzl')) return 'rainy';
     if (lower.includes('rain')) return 'rainy';
     if (lower.includes('storm') || lower.includes('thunder')) return 'stormy';
-    if (lower.includes('snow')) return 'snowy';
-    if (lower.includes('fog') || lower.includes('mist')) return 'foggy';
+    if (lower.includes('snow') || lower.includes('blizzard')) return 'snowy';
+    if (lower.includes('fog') || lower.includes('mist') || lower.includes('haz')) return 'foggy';
     if (lower.includes('wind')) return 'windy';
     if (lower.includes('cloud') || lower.includes('overcast')) return 'cloudy';
     if (lower.includes('clear') || lower.includes('sunny')) return 'clear-day';
@@ -271,7 +284,10 @@ export function applyWorldState(worldData, options = {}) {
         const temp = worldData.temp || worldData.temperature;
         
         // Update ledger weather (for persistence)
-        setWeather(weatherStr);
+        // setWeather expects an object { condition, temp, ... }
+        const weatherObj = { condition: weatherStr };
+        if (temp !== undefined && temp !== null) weatherObj.temp = temp;
+        setWeather(weatherObj);
         
         // Update watch display
         const watchWeather = normalizeWeatherForWatch(weatherStr);
@@ -294,11 +310,25 @@ export function applyWorldState(worldData, options = {}) {
     if (updateTime && worldData.time) {
         const timeStr = worldData.time;
         
-        // Update ledger time (for persistence)
-        setTime(timeStr);
-        
-        // Parse and update watch display
+        // Parse time first so we can use it for both state and watch
         const parsed = parseTimeString(timeStr);
+        
+        // Update ledger time (for persistence)
+        // setTime expects an object { display, period, ... }
+        const timeObj = { display: timeStr };
+        if (parsed) {
+            // Add period for UI consumption
+            const h = parsed.hours;
+            if (h >= 5 && h < 7) timeObj.period = 'DAWN';
+            else if (h >= 7 && h < 12) timeObj.period = 'MORNING';
+            else if (h >= 12 && h < 17) timeObj.period = 'AFTERNOON';
+            else if (h >= 17 && h < 20) timeObj.period = 'EVENING';
+            else if (h >= 20 && h < 23) timeObj.period = 'NIGHT';
+            else timeObj.period = 'LATE_NIGHT';
+        }
+        setTime(timeObj);
+        
+        // Update watch display
         if (parsed) {
             try {
                 setRPTime(parsed.hours, parsed.minutes);

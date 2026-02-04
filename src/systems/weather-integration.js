@@ -489,7 +489,12 @@ const JSON_WEATHER_MAP = {
     'rain': 'rain',
     'rainy': 'rain',
     'light rain': 'rain',
+    'drizzle': 'rain',
+    'drizzling': 'rain',
+    'light drizzle': 'rain',
+    'heavy drizzle': 'rain',
     'heavy rain': 'storm',
+    'downpour': 'storm',
     'storm': 'storm',
     'stormy': 'storm',
     'thunderstorm': 'storm',
@@ -499,10 +504,14 @@ const JSON_WEATHER_MAP = {
     'light snow': 'snow',
     'heavy snow': 'snow',
     'blizzard': 'snow',
+    'sleet': 'rain',
+    'hail': 'storm',
     'fog': 'fog',
     'foggy': 'fog',
     'mist': 'fog',
     'misty': 'fog',
+    'haze': 'fog',
+    'hazy': 'fog',
     'wind': 'wind',
     'windy': 'wind'
 };
@@ -510,7 +519,19 @@ const JSON_WEATHER_MAP = {
 function normalizeWeatherFromJSON(weatherStr) {
     if (!weatherStr) return null;
     const lower = weatherStr.toLowerCase().trim();
-    return JSON_WEATHER_MAP[lower] || lower;
+    
+    // Direct match
+    if (JSON_WEATHER_MAP[lower]) return JSON_WEATHER_MAP[lower];
+    
+    // Partial match fallback (handles AI variations like "Light Drizzle with Fog")
+    if (lower.includes('drizzl') || lower.includes('rain')) return 'rain';
+    if (lower.includes('storm') || lower.includes('thunder')) return 'storm';
+    if (lower.includes('snow') || lower.includes('blizzard')) return 'snow';
+    if (lower.includes('fog') || lower.includes('mist') || lower.includes('haz')) return 'fog';
+    if (lower.includes('wind')) return 'wind';
+    if (lower.includes('clear') || lower.includes('sunny')) return 'clear';
+    
+    return lower;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -613,6 +634,9 @@ function processMessageForWeather(message) {
             // Also extract temperature if available
             if (worldState.temperature?.value) {
                 currentTemp = worldState.temperature;
+                console.log('[Weather] Temperature:', currentTemp);
+            } else if (worldState.temp !== undefined) {
+                currentTemp = { value: worldState.temp };
                 console.log('[Weather] Temperature:', currentTemp);
             }
             
