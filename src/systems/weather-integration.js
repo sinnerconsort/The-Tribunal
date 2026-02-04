@@ -437,7 +437,8 @@ function extractWorldState(message) {
     // PRIORITY 1: HTML Comment (invisible to user!)
     // Format: <!--WORLD{...}-->
     // ═══════════════════════════════════════════════════════════
-    const htmlCommentPattern = /<!--\s*WORLD\s*(\{[\s\S]*?\})\s*-->/i;
+    // Match both <!-- WORLD{...} --> and <!--- WORLD{...} ---> (2 or 3 dashes)
+    const htmlCommentPattern = /<!-{2,3}\s*WORLD\s*(\{[\s\S]*?\})\s*-{2,3}>/i;
     const commentMatch = message.match(htmlCommentPattern);
     if (commentMatch) {
         try {
