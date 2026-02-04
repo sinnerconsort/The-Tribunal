@@ -4,7 +4,10 @@
  * Bridge module: re-exports functions from state.js and thoughts.js
  * with the names that cabinet-handler.js expects.
  * 
- * @version 4.3.0 - Added theme discharge on internalize + passive decay
+ * @version 4.4.0 - BUG FIXES:
+ *   - trackThemesInMessage() now respects settings.thoughts.trackThemes (Bug 1)
+ *   - resetCabinetState() now actually clears transient theme data (Bug 1)
+ *   - Added freshness guard to prevent spike checks on brand-new chats
  * 
  * THEME SYSTEM (Option C):
  * - Themes increment from message scanning (via trackThemesInMessage)
@@ -119,10 +122,22 @@ export function getTopThemes(limit = 3) {
  * Track themes in a message and update counters
  * Also applies passive decay to themes NOT detected in this message
  * Called on MESSAGE_RECEIVED to build up theme meters
+ * 
+ * FIX v4.4.0: Now respects settings.thoughts.trackThemes
+ * 
  * @param {string} text - Message text to analyze
  * @returns {string[]} Detected theme IDs
  */
 export function trackThemesInMessage(text) {
+    // ═══════════════════════════════════════════════════════════
+    // FIX (Bug 1): Check trackThemes setting
+    // Previously this always ran regardless of the setting
+    // ═══════════════════════════════════════════════════════════
+    const settings = getSettings();
+    if (settings?.thoughts?.trackThemes === false) {
+        return [];
+    }
+    
     const state = getChatState();
     if (!state) return [];
     
@@ -137,7 +152,6 @@ export function trackThemesInMessage(text) {
     
     // Check settings for decay
     // FIX: Use themeDecayRate from settings, default to 0 (disabled)
-    const settings = getSettings();
     const decayRate = settings?.thoughts?.themeDecayRate ?? 0;
     const decayEnabled = decayRate > 0;
     
@@ -613,14 +627,28 @@ export function setPlayerContext(context) {
 
 /**
  * Reset cabinet state (for chat changes)
+ * 
+ * FIX v4.4.0: Now actually clears transient theme data
+ * Previously this was a complete no-op that just logged a message.
+ * Thoughts (discovered/researching/internalized) are per-chat and 
+ * correctly isolated by loadChatState(), but theme counters need 
+ * explicit clearing to prevent any stale in-flight data from the 
+ * previous chat's processing.
  */
 export function resetCabinetState() {
     const state = getChatState();
     if (!state) return;
     
-    // Don't wipe everything - just reset transient data
-    // Thoughts are per-chat and should persist
-    console.log('[Tribunal] Cabinet state preserved for current chat');
+    // Clear theme counters - these are transient accumulators
+    // The new chat's themes will be loaded fresh by loadChatState()
+    if (state.thoughtCabinet?.themes) {
+        state.thoughtCabinet.themes = {};
+        console.log('[Tribunal] Cabinet themes cleared for chat change');
+    }
+    
+    // Thoughts, research, and internalized are per-chat persistent data
+    // They get loaded correctly by loadChatState() - don't touch them here
+    console.log('[Tribunal] Cabinet state reset for chat change');
 }
 
 /**
@@ -851,10 +879,23 @@ export function getResearchSpeedMultiplier() {
 
 /**
  * Check if a theme is "spiking" (high enough to suggest thought generation)
+ * 
+ * FIX v4.4.0: Added freshness guard - won't report spikes on brand-new chats
+ * (within first 3 messages) to prevent cascade on chat open
+ * 
  * @param {number} threshold - Count threshold (default: THEME_SPIKE_THRESHOLD)
  * @returns {Object|null} Spiking theme or null
  */
 export function getSpikingTheme(threshold = THEME_SPIKE_THRESHOLD) {
+    // ═══════════════════════════════════════════════════════════
+    // FIX (Bug 1): Don't spike on very fresh chats
+    // Prevents cascade generation when opening a new/recently-switched chat
+    // ═══════════════════════════════════════════════════════════
+    const state = getChatState();
+    if (state?.meta?.messageCount < 3) {
+        return null;
+    }
+    
     const themes = getThemeCounters();
     
     for (const [id, count] of Object.entries(themes)) {
