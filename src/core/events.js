@@ -218,6 +218,22 @@ function getCharacterNames() {
     return names;
 }
 
+/**
+ * Lazy-loaded looksLikeName from contact-intelligence
+ * Used as final quality gate before promoting contacts
+ */
+let _looksLikeName = null;
+async function getLooksLikeName() {
+    if (_looksLikeName) return _looksLikeName;
+    try {
+        const mod = await import('./contact-intelligence.js');
+        _looksLikeName = mod.looksLikeName || (() => true);
+    } catch (e) {
+        _looksLikeName = () => true; // Fallback: allow all
+    }
+    return _looksLikeName;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // LEDGER INITIALIZATION (Cases + Contacts)
 // ═══════════════════════════════════════════════════════════════
@@ -710,7 +726,34 @@ async function promoteReadyContacts(contactIntel) {
         
         let promoted = 0;
         
+        // FIX (Bug 4): Get character names to exclude
+        const charNames = getCharacterNames();
+        const excludedLower = new Set();
+        for (const n of charNames) {
+            if (!n) continue;
+            excludedLower.add(n.toLowerCase().trim());
+            const first = n.trim().split(/\s+/)[0];
+            if (first && first.length > 1) excludedLower.add(first.toLowerCase());
+        }
+        
+        // Load name validator as final quality gate
+        const validateName = await getLooksLikeName();
+        
         for (const suggestion of suggestions) {
+            // FIX (Bug 4): Skip player/AI character names
+            const nameLower = suggestion.name?.toLowerCase()?.trim();
+            if (excludedLower.has(nameLower)) {
+                contactIntel.clearPendingContact?.(suggestion.name);
+                continue;
+            }
+            
+            // QUALITY GATE: Reject names that don't look like real character names
+            if (!validateName(suggestion.name)) {
+                console.log(`[Tribunal] Rejected non-name: "${suggestion.name}"`);
+                contactIntel.clearPendingContact?.(suggestion.name);
+                continue;
+            }
+            
             // Don't duplicate - check if already in relationships
             const alreadyExists = Object.values(state.relationships).some(
                 c => c.name?.toLowerCase() === suggestion.name?.toLowerCase()
