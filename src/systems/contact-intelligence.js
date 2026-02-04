@@ -115,7 +115,8 @@ const CONFIG = {
     },
     
     // How many mentions before suggesting "Add contact?"
-    MENTION_THRESHOLD: 3,
+    // Raised from 3→5 to reduce false positives from noisy detection
+    MENTION_THRESHOLD: 5,
     
     // How many top voices to show opinions from
     TOP_VOICES_COUNT: 3,
@@ -123,32 +124,6 @@ const CONFIG = {
     // Score range for voice opinions
     OPINION_SCORE_RANGE: { min: -10, max: 10 }
 };
-
-// ═══════════════════════════════════════════════════════════════
-// CHARACTER NAME EXCLUSION
-// Gets player + AI character names to prevent adding them as contacts
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Get the current player character name and AI character name
- * Used to exclude them from NPC detection
- * @returns {string[]} Array of names to exclude
- */
-function getCharacterNames() {
-    const names = [];
-    try {
-        // SillyTavern global context
-        const ctx = window.SillyTavern?.getContext?.() || 
-                     (typeof getContext === 'function' ? getContext() : null);
-        if (ctx) {
-            if (ctx.name1) names.push(ctx.name1); // Player character
-            if (ctx.name2) names.push(ctx.name2); // AI character
-        }
-    } catch (e) {
-        // Silent fail - names will just be empty
-    }
-    return names;
-}
 
 // ═══════════════════════════════════════════════════════════════
 // DISPOSITION MAPPING (Local copy to avoid import dependency)
@@ -167,46 +142,337 @@ function getTypeFromDisposition(disposition) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// CHARACTER NAME EXCLUSION
+// Gets player + AI character names to prevent adding them as contacts
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get the current player character name and AI character name
+ * Used to exclude them from NPC detection
+ * @returns {string[]} Array of names to exclude
+ */
+function getCharacterNames() {
+    const names = [];
+    try {
+        const ctx = window.SillyTavern?.getContext?.() ||
+                     (typeof getContext === 'function' ? getContext() : null);
+        if (ctx) {
+            if (ctx.name1) names.push(ctx.name1); // Player character
+            if (ctx.name2) names.push(ctx.name2); // AI character
+        }
+    } catch (e) {
+        // Silent fail
+    }
+    return names;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // NPC DETECTION
 // ═══════════════════════════════════════════════════════════════
 
 /**
  * Common words to exclude from NPC detection
+ * Massively expanded to prevent false positives from sentence-start capitalization,
+ * common RP nouns, verbs, adjectives, and other non-name words.
  */
 const COMMON_WORDS = new Set([
+    // ── Pronouns & determiners ──
     'the', 'a', 'an', 'this', 'that', 'these', 'those',
     'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them',
-    'my', 'your', 'his', 'its', 'our', 'their',
-    'is', 'are', 'was', 'were', 'be', 'been', 'being',
-    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
-    'and', 'but', 'or', 'so', 'if', 'then', 'because', 'although',
-    'what', 'who', 'where', 'when', 'why', 'how',
-    'all', 'each', 'every', 'both', 'few', 'more', 'most', 'some', 'any', 'no',
+    'my', 'your', 'his', 'its', 'our', 'their', 'mine', 'yours', 'hers', 'ours', 'theirs',
+    'myself', 'yourself', 'himself', 'herself', 'itself', 'ourselves', 'themselves',
+    'who', 'whom', 'whose', 'which', 'what', 'where', 'when', 'why', 'how',
+    'someone', 'anyone', 'everyone', 'nobody', 'somebody', 'anybody', 'everybody',
+    'something', 'anything', 'everything', 'nothing',
+    'somewhere', 'anywhere', 'everywhere', 'nowhere',
+
+    // ── Conjunctions & prepositions ──
+    'and', 'but', 'or', 'so', 'if', 'then', 'because', 'although', 'though',
+    'while', 'when', 'where', 'since', 'until', 'unless', 'after', 'before',
+    'about', 'above', 'across', 'against', 'along', 'among', 'around',
+    'at', 'behind', 'below', 'beneath', 'beside', 'between', 'beyond',
+    'by', 'down', 'during', 'except', 'for', 'from', 'in', 'inside',
+    'into', 'like', 'near', 'of', 'off', 'on', 'onto', 'out', 'outside',
+    'over', 'past', 'through', 'to', 'toward', 'towards', 'under', 'up',
+    'upon', 'with', 'within', 'without',
+
+    // ── Common verbs (including RP action verbs) ──
+    'is', 'are', 'was', 'were', 'be', 'been', 'being', 'am',
+    'have', 'has', 'had', 'having',
+    'do', 'does', 'did', 'doing', 'done',
+    'will', 'would', 'could', 'should', 'shall', 'may', 'might', 'must', 'can',
+    'get', 'got', 'gets', 'getting', 'gotten',
+    'go', 'goes', 'went', 'going', 'gone',
+    'come', 'came', 'comes', 'coming',
+    'make', 'made', 'makes', 'making',
+    'take', 'took', 'takes', 'taking', 'taken',
+    'give', 'gave', 'gives', 'giving', 'given',
+    'say', 'said', 'says', 'saying',
+    'tell', 'told', 'tells', 'telling',
+    'think', 'thought', 'thinks', 'thinking',
+    'know', 'knew', 'knows', 'knowing', 'known',
+    'see', 'saw', 'sees', 'seeing', 'seen',
+    'look', 'looked', 'looks', 'looking',
+    'find', 'found', 'finds', 'finding',
+    'want', 'wanted', 'wants', 'wanting',
+    'need', 'needed', 'needs', 'needing',
+    'feel', 'felt', 'feels', 'feeling',
+    'try', 'tried', 'tries', 'trying',
+    'leave', 'left', 'leaves', 'leaving',
+    'call', 'called', 'calls', 'calling',
+    'keep', 'kept', 'keeps', 'keeping',
+    'let', 'lets', 'letting',
+    'begin', 'began', 'begins', 'beginning', 'begun',
+    'seem', 'seemed', 'seems', 'seeming',
+    'help', 'helped', 'helps', 'helping',
+    'show', 'showed', 'shows', 'showing', 'shown',
+    'hear', 'heard', 'hears', 'hearing',
+    'play', 'played', 'plays', 'playing',
+    'run', 'ran', 'runs', 'running',
+    'move', 'moved', 'moves', 'moving',
+    'live', 'lived', 'lives', 'living',
+    'believe', 'believed', 'believes',
+    'bring', 'brought', 'brings', 'bringing',
+    'happen', 'happened', 'happens',
+    'write', 'wrote', 'writes', 'writing', 'written',
+    'sit', 'sat', 'sits', 'sitting',
+    'stand', 'stood', 'stands', 'standing',
+    'lose', 'lost', 'loses', 'losing',
+    'pay', 'paid', 'pays', 'paying',
+    'meet', 'met', 'meets', 'meeting',
+    'include', 'included', 'includes',
+    'continue', 'continued', 'continues',
+    'set', 'sets', 'setting',
+    'learn', 'learned', 'learns',
+    'change', 'changed', 'changes',
+    'lead', 'led', 'leads', 'leading',
+    'understand', 'understood', 'understands',
+    'watch', 'watched', 'watches', 'watching',
+    'follow', 'followed', 'follows',
+    'stop', 'stopped', 'stops',
+    'create', 'created', 'creates',
+    'speak', 'spoke', 'speaks', 'speaking', 'spoken',
+    'read', 'reads', 'reading',
+    'allow', 'allowed', 'allows',
+    'add', 'added', 'adds',
+    'spend', 'spent', 'spends',
+    'grow', 'grew', 'grows', 'growing', 'grown',
+    'open', 'opened', 'opens', 'opening',
+    'walk', 'walked', 'walks', 'walking',
+    'win', 'won', 'wins', 'winning',
+    'offer', 'offered', 'offers',
+    'remember', 'remembered', 'remembers',
+    'consider', 'considered', 'considers',
+    'appear', 'appeared', 'appears', 'appearing',
+    'buy', 'bought', 'buys',
+    'wait', 'waited', 'waits', 'waiting',
+    'serve', 'served', 'serves',
+    'die', 'died', 'dies', 'dying',
+    'send', 'sent', 'sends',
+    'build', 'built', 'builds',
+    'stay', 'stayed', 'stays', 'staying',
+    'fall', 'fell', 'falls', 'falling', 'fallen',
+    'cut', 'cuts', 'cutting',
+    'reach', 'reached', 'reaches', 'reaching',
+    'kill', 'killed', 'kills', 'killing',
+    'remain', 'remained', 'remains',
+    'raise', 'raised', 'raises',
+    'pass', 'passed', 'passes', 'passing',
+    'hold', 'held', 'holds', 'holding',
+    'turn', 'turned', 'turns', 'turning',
+    'put', 'puts', 'putting',
+    'agree', 'agreed', 'agrees', 'agreeing',
+    'pick', 'picked', 'picks', 'picking',
+    'drop', 'dropped', 'drops', 'dropping',
+    'grab', 'grabbed', 'grabs', 'grabbing',
+    'catch', 'caught', 'catches', 'catching',
+    'throw', 'threw', 'throws', 'throwing', 'thrown',
+    'hit', 'hits', 'hitting',
+    'break', 'broke', 'breaks', 'breaking', 'broken',
+    'wear', 'wore', 'wears', 'wearing', 'worn',
+    'step', 'stepped', 'steps', 'stepping',
+    'stare', 'stared', 'stares', 'staring',
+    'glance', 'glanced', 'glances', 'glancing',
+    'nod', 'nodded', 'nods', 'nodding',
+    'shake', 'shook', 'shakes', 'shaking',
+    'smile', 'smiled', 'smiles', 'smiling',
+    'laugh', 'laughed', 'laughs', 'laughing',
+    'cry', 'cried', 'cries', 'crying',
+    'sigh', 'sighed', 'sighs', 'sighing',
+    'frown', 'frowned', 'frowns', 'frowning',
+    'whisper', 'whispered', 'whispers', 'whispering',
+    'shout', 'shouted', 'shouts', 'shouting',
+    'scream', 'screamed', 'screams', 'screaming',
+    'gasp', 'gasped', 'gasps', 'gasping',
+    'mutter', 'muttered', 'mutters', 'muttering',
+    'murmur', 'murmured', 'murmurs',
+    'crumple', 'crumpled', 'crumples',
+    'notice', 'noticed', 'notices', 'noticing',
+    'realize', 'realized', 'realizes',
+    'wonder', 'wondered', 'wonders', 'wondering',
+    'press', 'pressed', 'presses', 'pressing',
+    'squeeze', 'squeezed', 'squeezes',
+    'lean', 'leaned', 'leans', 'leaning',
+    'wrap', 'wrapped', 'wraps', 'wrapping',
+    'slip', 'slipped', 'slips', 'slipping',
+    'drag', 'dragged', 'drags', 'dragging',
+    'lift', 'lifted', 'lifts', 'lifting',
+    'carry', 'carried', 'carries', 'carrying',
+    'swing', 'swung', 'swings', 'swinging',
+    'kick', 'kicked', 'kicks', 'kicking',
+    'shut', 'shuts', 'shutting',
+    'crawl', 'crawled', 'crawls', 'crawling',
+    'climb', 'climbed', 'climbs', 'climbing',
+    'jump', 'jumped', 'jumps', 'jumping',
+    'duck', 'ducked', 'ducks', 'ducking',
+    'pull', 'pulled', 'pulls', 'pulling',
+    'push', 'pushed', 'pushes', 'pushing',
+
+    // ── Adverbs & adjectives ──
     'not', 'only', 'just', 'also', 'very', 'too', 'really', 'quite',
-    // Common RP/story words that aren't names
-    'door', 'room', 'floor', 'wall', 'window', 'table', 'chair',
-    'hand', 'hands', 'eyes', 'face', 'head', 'voice', 'words',
-    'moment', 'time', 'day', 'night', 'morning', 'evening',
-    'something', 'nothing', 'everything', 'anything',
-    'way', 'thing', 'place', 'world', 'life', 'death'
+    'all', 'each', 'every', 'both', 'few', 'more', 'most', 'some', 'any', 'no',
+    'still', 'already', 'always', 'never', 'often', 'sometimes', 'again',
+    'here', 'there', 'now', 'then', 'today', 'tomorrow', 'yesterday',
+    'perhaps', 'maybe', 'probably', 'certainly', 'definitely', 'actually',
+    'suddenly', 'slowly', 'quickly', 'quietly', 'softly', 'gently', 'heavily',
+    'carefully', 'barely', 'hardly', 'nearly', 'almost', 'finally', 'clearly',
+    'enough', 'however', 'instead', 'rather', 'otherwise', 'anyway', 'somehow',
+    'even', 'ever', 'once', 'twice', 'first', 'last', 'next',
+    'such', 'much', 'many', 'several', 'certain', 'other', 'another',
+    'same', 'different', 'whole', 'entire', 'possible', 'potential',
+    'new', 'old', 'young', 'good', 'bad', 'great', 'small', 'big', 'large',
+    'long', 'short', 'high', 'low', 'dark', 'light', 'bright', 'dim',
+    'hot', 'cold', 'warm', 'cool', 'wet', 'dry', 'soft', 'hard',
+    'right', 'wrong', 'true', 'false', 'real', 'sure', 'ready', 'able',
+    'own', 'full', 'empty', 'free', 'clear', 'close',
+    'early', 'late', 'fast', 'slow', 'deep', 'wide', 'thin', 'thick',
+    'heavy', 'tough', 'rough', 'smooth', 'sharp', 'flat', 'round',
+    'best', 'worst', 'better', 'worse', 'least', 'less',
+    'main', 'major', 'minor', 'single', 'double', 'final',
+    'likely', 'unlikely', 'necessary', 'important', 'special', 'particular',
+
+    // ── Common RP/story nouns that are NOT names ──
+    'door', 'room', 'floor', 'wall', 'window', 'table', 'chair', 'bed',
+    'hand', 'hands', 'eyes', 'face', 'head', 'voice', 'words', 'body',
+    'arms', 'legs', 'feet', 'foot', 'finger', 'fingers', 'lips', 'mouth',
+    'heart', 'mind', 'soul', 'chest', 'back', 'shoulder', 'shoulders',
+    'hair', 'skin', 'blood', 'breath', 'tears', 'teeth', 'tongue',
+    'moment', 'time', 'day', 'night', 'morning', 'evening', 'afternoon',
+    'way', 'thing', 'things', 'place', 'world', 'life', 'death',
+    'house', 'houses', 'home', 'street', 'road', 'path', 'ground',
+    'water', 'fire', 'air', 'earth', 'sky', 'sun', 'moon', 'star', 'stars',
+    'tree', 'trees', 'grass', 'stone', 'rock', 'dirt', 'dust', 'sand',
+    'light', 'shadow', 'shadows', 'darkness', 'silence',
+    'sound', 'noise', 'music', 'song', 'word',
+    'food', 'drink', 'coffee', 'tea', 'beer', 'wine', 'bottle',
+    'car', 'bus', 'train', 'boat', 'ship', 'plane',
+    'book', 'paper', 'letter', 'note', 'card', 'page', 'sign',
+    'phone', 'screen', 'glass', 'mirror', 'clock', 'key', 'keys',
+    'knife', 'gun', 'weapon', 'sword', 'shield', 'blade',
+    'money', 'bag', 'box', 'case', 'coat', 'dress', 'shirt', 'shoes',
+    'hat', 'ring', 'chain', 'rope', 'wire', 'thread',
+    'corner', 'edge', 'end', 'side', 'top', 'bottom', 'center', 'middle',
+    'city', 'town', 'village', 'country', 'state', 'building',
+    'office', 'school', 'church', 'store', 'shop', 'bar', 'hotel',
+    'hospital', 'station', 'park', 'bridge', 'tower', 'castle',
+    'man', 'men', 'woman', 'women', 'child', 'children', 'girl', 'boy',
+    'people', 'person', 'friend', 'friends', 'family', 'mother', 'father',
+    'brother', 'sister', 'son', 'daughter', 'husband', 'wife',
+    'creature', 'creatures', 'monster', 'monsters', 'beast', 'beasts',
+    'animal', 'animals', 'bird', 'birds', 'birdie', 'dog', 'cat', 'horse',
+    'god', 'gods', 'king', 'queen', 'lord', 'prince', 'princess',
+    'captain', 'officer', 'soldier', 'guard', 'doctor', 'nurse',
+    'master', 'sir', 'madam', 'miss', 'mister',
+    'group', 'team', 'crowd', 'army', 'force', 'power', 'energy',
+    'game', 'games', 'show', 'shows', 'part', 'parts',
+    'idea', 'plan', 'reason', 'question', 'answer', 'problem', 'issue',
+    'fact', 'truth', 'lie', 'lies', 'secret', 'secrets', 'mystery',
+    'fear', 'hope', 'love', 'hate', 'pain', 'joy', 'anger', 'rage',
+    'horror', 'terror', 'scare', 'panic', 'shock', 'surprise',
+    'rest', 'sleep', 'dream', 'dreams', 'memory', 'memories',
+    'war', 'fight', 'battle', 'attack', 'defense',
+    'zone', 'zones', 'area', 'areas', 'spot', 'point',
+    'story', 'stories', 'history', 'news', 'report',
+    'test', 'trial', 'chance', 'risk', 'danger', 'threat',
+    'control', 'order', 'rule', 'rules', 'law', 'laws',
+    'sense', 'touch', 'smell', 'taste', 'sight',
+    'color', 'shape', 'size', 'type', 'kind', 'sort',
+    'number', 'half', 'third', 'quarter',
+    'north', 'south', 'east', 'west',
+    'inside', 'outside', 'ahead',
 ]);
 
 /**
+ * Words that commonly start article+noun phrases (never start real NPC names)
+ */
+const ARTICLE_PREFIXES = new Set(['the', 'a', 'an', 'some', 'any', 'no', 'every', 'each', 'this', 'that']);
+
+/**
+ * Validate that a detected string actually looks like a proper character name
+ * Rejects common English words, article phrases, verb phrases, etc.
+ * This is the PRIMARY quality gate for NPC detection.
+ * @param {string} name - Detected name to validate
+ * @returns {boolean} True if it looks like a real character name
+ */
+function looksLikeName(name) {
+    if (!name || name.length < 2) return false;
+    
+    const words = name.trim().split(/\s+/);
+    const lowerName = name.toLowerCase().trim();
+    
+    // Single word names
+    if (words.length === 1) {
+        // Must not be in common words
+        if (COMMON_WORDS.has(lowerName)) return false;
+        // Reject words ending in common non-name suffixes
+        if (/(?:ing|tion|sion|ment|ness|ful|less|ous|ive|able|ible|ally|edly|erly|enly|ily|ity|ance|ence|ure|ism|ist|ery|ary|ory|ical|ious|eous|uous|ular|ular)$/i.test(name)) return false;
+        // Reject common plurals of non-name words (words ending in -es, -ies but check it's not a name)
+        if (/(?:houses|creatures|zones|shows|games|places|spaces|voices|faces|forces|pieces|sources)$/i.test(lowerName)) return false;
+        // Must be at least 3 characters
+        if (name.length < 3) return false;
+        return true;
+    }
+    
+    // Multi-word: first word must NOT be article/determiner
+    // Rejects: "The Horror", "The Food", "The Scare", "The Games"
+    if (ARTICLE_PREFIXES.has(words[0].toLowerCase())) return false;
+    
+    // Multi-word: reject if ALL words are common (not names)
+    // Rejects: "Be At", "Be Here", "Be Out", "Bring To"
+    const allCommon = words.every(w => COMMON_WORDS.has(w.toLowerCase()));
+    if (allCommon) return false;
+    
+    // Multi-word: reject if first word is a common verb
+    // Rejects: "Crumple The", "Bring To", "Agree With"
+    const firstLower = words[0].toLowerCase();
+    if (COMMON_WORDS.has(firstLower) && words.length === 2) {
+        // First word is common AND it's only 2 words - likely verb+prep not a name
+        return false;
+    }
+    
+    return true;
+}
+
+/**
  * Dialogue patterns that indicate NPC names (high confidence)
+ * These are the MOST reliable signals: "X said", "asked X", etc.
  */
 const DIALOGUE_PATTERNS = [
-    /[""]([^""]+)[""]\s*(?:said|asked|replied|muttered|whispered|shouted|exclaimed|answered)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/gi,
-    /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:said|asked|replied|muttered|whispered|shouted|exclaimed|answered)\s*[,:]?\s*[""]([^""]+)[""]/gi,
+    /[""\u201C]([^""\u201D]+)[""\u201D]\s*(?:said|asked|replied|muttered|whispered|shouted|exclaimed|answered)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/gi,
+    /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:said|asked|replied|muttered|whispered|shouted|exclaimed|answered)\s*[,:]?\s*[""\u201C]([^""\u201D]+)[""\u201D]/gi,
     /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:says|asks|replies|mutters|whispers|shouts|exclaims|answers)/gi
 ];
 
 /**
  * Action patterns that suggest names (medium confidence)
+ * FIXED: Removed the over-broad preposition pattern that caught "to Houses", "at Creatures"
+ * Now only matches possessive patterns (Elena's eyes) and action-start patterns
  */
 const NAME_PATTERNS = [
-    /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:looks|watches|stares|glances|turns|walks|moves|steps|reaches|grabs|takes)/gim,
-    /(?:to|at|with|from|for)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/gi,
-    /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)'s\s+(?:eyes|face|voice|hand|hands|expression|tone)/gi
+    // "Elena looks at the door" - Name at start of action sentence
+    /^([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:looks|watches|stares|glances|turns|walks|moves|steps|reaches|grabs|takes|pulls|pushes|opens|closes|picks|drops|lifts|throws|catches|sits|stands|leans|nods|shakes|smiles|frowns|sighs|laughs|cries)/gim,
+    // "Elena's eyes narrow" - Possessive (very reliable)
+    /([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)'s\s+(?:eyes|face|voice|hand|hands|expression|tone|gaze|lips|mouth|smile|frown|grip|arm|arms|body|head|hair)/gi
 ];
 
 /**
@@ -225,7 +491,6 @@ export function detectPotentialNPCs(messageText, excludeNames = []) {
     for (const name of excludeNames) {
         if (!name) continue;
         excluded.add(name.toLowerCase().trim());
-        // Also exclude first name only (e.g. "Harry" from "Harry Du Bois")
         const firstName = name.trim().split(/\s+/)[0];
         if (firstName && firstName.length > 1) {
             excluded.add(firstName.toLowerCase());
@@ -237,13 +502,17 @@ export function detectPotentialNPCs(messageText, excludeNames = []) {
     const addDetection = (name, confidence, context) => {
         const normalized = name?.trim();
         if (!normalized || normalized.length < 2) return;
+        
+        // Check common words
         if (COMMON_WORDS.has(normalized.toLowerCase())) return;
         
         // FIX (Bug 4): Skip player character and AI character names
         if (excluded.has(normalized.toLowerCase())) return;
-        // Also check first name of detected multi-word names
         const detectedFirst = normalized.split(/\s+/)[0];
         if (detectedFirst && excluded.has(detectedFirst.toLowerCase())) return;
+        
+        // QUALITY GATE: Must actually look like a name
+        if (!looksLikeName(normalized)) return;
         
         // Skip single short words
         const words = normalized.split(/\s+/);
@@ -269,7 +538,7 @@ export function detectPotentialNPCs(messageText, excludeNames = []) {
             while ((match = regex.exec(messageText)) !== null) {
                 const potentialNames = match.slice(1).filter(m => m && /^[A-Z]/.test(m));
                 for (const name of potentialNames) {
-                    if (!name.startsWith('"') && !name.startsWith('"')) {
+                    if (!name.startsWith('"') && !name.startsWith('\u201C')) {
                         addDetection(name, 0.9, match[0]);
                     }
                 }
@@ -286,7 +555,7 @@ export function detectPotentialNPCs(messageText, excludeNames = []) {
             let match;
             while ((match = regex.exec(messageText)) !== null) {
                 if (match[1]) {
-                    addDetection(match[1], 0.6, match[0]);
+                    addDetection(match[1], 0.7, match[0]);
                 }
             }
         } catch (e) {
@@ -294,17 +563,12 @@ export function detectPotentialNPCs(messageText, excludeNames = []) {
         }
     }
     
-    // Simple capitalized word detection (low confidence)
-    try {
-        const simpleCapitalized = messageText.match(/\b([A-Z][a-z]{2,}(?:\s+[A-Z][a-z]+)?)\b/g) || [];
-        for (const name of simpleCapitalized) {
-            if (!COMMON_WORDS.has(name.toLowerCase())) {
-                addDetection(name, 0.3, null);
-            }
-        }
-    } catch (e) {
-        // Regex failed
-    }
+    // ═══════════════════════════════════════════════════════════════
+    // REMOVED: Simple capitalized word detection (was confidence 0.3)
+    // This was the #1 source of garbage contacts - it caught every
+    // capitalized word at the start of every sentence.
+    // Now we rely ONLY on dialogue patterns and action patterns.
+    // ═══════════════════════════════════════════════════════════════
     
     return detected;
 }
@@ -959,4 +1223,4 @@ export async function updateContactIntelligence(voiceResults, context) {
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════
 
-export { CONFIG };
+export { CONFIG, looksLikeName };
