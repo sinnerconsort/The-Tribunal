@@ -2,7 +2,10 @@
  * The Tribunal - Event Handlers
  * Hooks into SillyTavern's event system
  * 
- * @version 4.3.0 - Added cases handlers initialization
+ * @version 4.4.0 - BUG FIXES:
+ *   - Added settings.enabled gate to ALL event handlers (Bug 3)
+ *   - Fixed contacts regex fallback stub to actually promote pending→confirmed (Bug 2)
+ *   - Added trackThemes setting check before theme tracking (Bug 1)
  */
 
 import { eventSource, event_types, chat } from '../../../../../../script.js';
@@ -175,6 +178,25 @@ export function triggerRefresh() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// HELPER: Check if extension is enabled
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Check if the extension is currently enabled
+ * Used as a gate at the top of every event handler
+ * @returns {boolean}
+ */
+function isEnabled() {
+    try {
+        const settings = getSettings();
+        return settings?.enabled !== false;
+    } catch (e) {
+        // If we can't even read settings, don't run
+        return false;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // LEDGER INITIALIZATION (Cases + Contacts)
 // ═══════════════════════════════════════════════════════════════
 
@@ -240,8 +262,17 @@ export async function refreshLedger() {
  * Handle chat switch
  * Loads per-chat state for the new chat
  * FIX: Reset ALL module states BEFORE loading to prevent cross-chat bleeding
+ * FIX v4.4.0: Gate behind settings.enabled
  */
 async function onChatChanged() {
+    // ═══════════════════════════════════════════════════════════════
+    // FIX (Bug 3): Skip ALL processing if extension is disabled
+    // ═══════════════════════════════════════════════════════════════
+    if (!isEnabled()) {
+        console.log('[Tribunal] Chat changed but extension is disabled - skipping');
+        return;
+    }
+    
     console.log('[Tribunal] Chat changed - resetting and loading state');
     
     // ═══════════════════════════════════════════════════════════════
@@ -332,6 +363,7 @@ async function onChatChanged() {
  * Handle message sent by user
  */
 function onMessageSent() {
+    if (!isEnabled()) return;
     console.log('[Tribunal] Message sent');
     // Could set flags here for generation
 }
@@ -341,6 +373,14 @@ function onMessageSent() {
  * @param {number} messageId - The message index
  */
 async function onMessageReceived(messageId) {
+    // ═══════════════════════════════════════════════════════════════
+    // FIX (Bug 3): Skip ALL processing if extension is disabled
+    // This was the #1 cause of systems firing when "disabled"
+    // ═══════════════════════════════════════════════════════════════
+    if (!isEnabled()) {
+        return;
+    }
+    
     console.log('[Tribunal] Message received:', messageId);
     
     incrementMessageCount();
@@ -382,9 +422,16 @@ async function onMessageReceived(messageId) {
         console.log('[Tribunal] Vitals extraction skipped:', error.message);
     }
     
+    // ═══════════════════════════════════════════════════════════════
+    // FIX (Bug 1): Respect trackThemes setting before tracking
+    // ═══════════════════════════════════════════════════════════════
+    const settings = getSettings();
+    
     // Track themes in message (fills theme meters)
     try {
-        trackThemesInMessage(messageText);
+        if (settings?.thoughts?.trackThemes !== false) {
+            trackThemesInMessage(messageText);
+        }
     } catch (error) {
         console.error('[Tribunal] Failed to track themes:', error);
     }
@@ -404,6 +451,7 @@ async function onMessageReceived(messageId) {
     // ═══════════════════════════════════════════════════════════════
     // CONTACT INTELLIGENCE - Basic NPC tracking (optional feature)
     // Full analysis happens after voice generation via analyzeVoiceSentimentForNPCs()
+    // FIX (Bug 2): Now promotes pending contacts when threshold is met
     // ═══════════════════════════════════════════════════════════════
     try {
         const contactIntel = await getContactIntelligence();
@@ -416,6 +464,14 @@ async function onMessageReceived(messageId) {
                     contactIntel.trackPendingContact(name, messageText);
                 }
                 console.log('[Tribunal] Tracking NPCs:', Array.from(detected.keys()));
+                
+                // ═══════════════════════════════════════════════════════════
+                // FIX (Bug 2): Check for contacts ready to promote
+                // Previously this was a dead end - suggestions were logged but never acted on
+                // ═══════════════════════════════════════════════════════════
+                if (settings?.contacts?.autoDetect) {
+                    await promoteReadyContacts(contactIntel);
+                }
             }
         }
     } catch (error) {
@@ -428,8 +484,6 @@ async function onMessageReceived(messageId) {
     // Now handles: cases, contacts, locations, equipment, inventory, vitals
     // ═══════════════════════════════════════════════════════════════
     try {
-        const settings = getSettings();
-        
         // Check individual extraction toggles
         const extractCases = settings.cases?.autoDetect;
         const extractContacts = settings.contacts?.autoDetect;
@@ -550,7 +604,6 @@ async function onMessageReceived(messageId) {
     // THOUGHT CABINET - Check for theme spikes and auto-suggest/generate
     // ═══════════════════════════════════════════════════════════════
     try {
-        const settings = getSettings();
         const thoughtSettings = settings?.thoughts || {};
         
         if (thoughtSettings.autoSuggest || thoughtSettings.autoGenerate) {
@@ -606,6 +659,89 @@ async function onMessageReceived(messageId) {
     triggerRefresh();
 }
 
+// ═══════════════════════════════════════════════════════════════
+// FIX (Bug 2): Promote pending contacts that have hit threshold
+// Previously getContactSuggestions() results were logged and thrown away
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Check for pending contacts ready to be promoted to real contacts
+ * Creates them in state.relationships so they appear in the UI
+ * @param {object} contactIntel - Contact intelligence module
+ */
+async function promoteReadyContacts(contactIntel) {
+    try {
+        const suggestions = contactIntel.getContactSuggestions?.();
+        if (!suggestions || suggestions.length === 0) return;
+        
+        const contactsData = await getContactsData();
+        if (!contactsData?.createContact) return;
+        
+        const state = getChatState();
+        if (!state) return;
+        if (!state.relationships) state.relationships = {};
+        
+        let promoted = 0;
+        
+        for (const suggestion of suggestions) {
+            // Don't duplicate - check if already in relationships
+            const alreadyExists = Object.values(state.relationships).some(
+                c => c.name?.toLowerCase() === suggestion.name?.toLowerCase()
+            );
+            if (alreadyExists) {
+                // Clear from pending since they're already a contact
+                contactIntel.clearPendingContact?.(suggestion.name);
+                continue;
+            }
+            
+            // Create the contact
+            const contact = contactsData.createContact({
+                name: suggestion.name,
+                context: suggestion.contexts?.[0] || '',
+                disposition: 'neutral',
+                manuallyEdited: false
+            });
+            
+            state.relationships[contact.id] = contact;
+            promoted++;
+            
+            // Clear from pending
+            contactIntel.clearPendingContact?.(suggestion.name);
+            
+            // Seed voice opinions from context if available
+            if (contactIntel.seedContactOpinions) {
+                const contextText = suggestion.contexts?.join(' ') || '';
+                if (contextText) {
+                    await contactIntel.seedContactOpinions(contact.id, contextText);
+                }
+            }
+            
+            console.log(`[Tribunal] Auto-promoted contact: ${suggestion.name} (mentioned ${suggestion.mentionCount}x)`);
+            
+            // Toast notification
+            if (typeof toastr !== 'undefined') {
+                toastr.info(
+                    `${suggestion.name} added to contacts`,
+                    'New Contact',
+                    { timeOut: 3000 }
+                );
+            }
+        }
+        
+        if (promoted > 0) {
+            saveChatState();
+            
+            // Refresh contacts UI
+            const contactsHandlers = await getContactsHandlers();
+            if (contactsHandlers?.renderContactsList) {
+                await contactsHandlers.renderContactsList();
+            }
+        }
+    } catch (error) {
+        console.log('[Tribunal] Contact promotion skipped:', error.message);
+    }
+}
+
 /**
  * Fallback to regex-based extraction when AI extractor is not available
  */
@@ -636,13 +772,26 @@ async function fallbackRegexExtraction(messageText, settings) {
         }
     }
     
-    // Contact intelligence (regex)
+    // ═══════════════════════════════════════════════════════════════
+    // FIX (Bug 2): Contact regex fallback was a stub - now functional
+    // Previously this detected contacts then threw away the results
+    // Now it uses the same pending→promotion pipeline
+    // ═══════════════════════════════════════════════════════════════
     if (settings.contacts?.autoDetect) {
         try {
             const contactIntel = await getContactIntelligence();
-            if (contactIntel?.detectNPCs) {
-                const detected = contactIntel.detectNPCs(messageText);
-                // Process detected contacts...
+            if (contactIntel?.detectPotentialNPCs) {
+                const detected = contactIntel.detectPotentialNPCs(messageText);
+                
+                if (detected && detected.size > 0) {
+                    // Track all detected names as pending
+                    for (const [name, data] of detected) {
+                        contactIntel.trackPendingContact(name, data.contexts?.[0] || messageText);
+                    }
+                    
+                    // Promote any that have reached the mention threshold
+                    await promoteReadyContacts(contactIntel);
+                }
             }
         } catch (e) {
             console.log('[Tribunal] Regex contact detection failed:', e.message);
@@ -658,6 +807,9 @@ async function fallbackRegexExtraction(messageText, settings) {
  * @param {object} data - Swipe event data
  */
 function onMessageSwiped(data) {
+    // FIX (Bug 3): Gate behind enabled check
+    if (!isEnabled()) return;
+    
     console.log('[Tribunal] Message swiped');
     
     // Update scene context when swiping to a different AI response
@@ -694,6 +846,9 @@ function onGenerationStarted() {
  * Handle generation ending
  */
 function onGenerationEnded() {
+    // FIX (Bug 3): Gate behind enabled check
+    if (!isEnabled()) return;
+    
     console.log('[Tribunal] Generation ended');
 }
 
@@ -709,6 +864,9 @@ function onGenerationEnded() {
  * @param {string} messageText - The message that triggered generation
  */
 export async function analyzeVoiceSentimentForNPCs(voiceResults, messageText) {
+    // FIX (Bug 3): Gate behind enabled check
+    if (!isEnabled()) return;
+    
     try {
         const contactIntel = await getContactIntelligence();
         if (!contactIntel) return;
