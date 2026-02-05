@@ -2,7 +2,11 @@
  * The Tribunal - PÉRIPHÉRIQUE Newspaper Component
  * Full newspaper display matching Disco Elysium's aesthetic
  * 
- * @version 1.0.0
+ * @version 1.1.0
+ * CHANGES v1.1.0:
+ * - Shivers now generates investigation seeds alongside quips
+ * - Seeds are stored in currentState.investigationSeed for Perception to use
+ * - Export getInvestigationSeed() and clearInvestigationSeed() for investigation.js
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -54,6 +58,52 @@ const FALLBACK_QUIPS = {
     }
 };
 
+// Fallback seeds when AI generation fails
+const FALLBACK_SEEDS = {
+    rain: [
+        "water pooling in an unusual spot",
+        "something washed up against the curb",
+        "tracks visible in the wet pavement",
+        "a reflection that doesn't match its source"
+    ],
+    storm: [
+        "something displaced by the wind",
+        "a flash of metal in the lightning",
+        "debris that wasn't there before",
+        "a sound that wasn't thunder"
+    ],
+    snow: [
+        "disturbed snow near the wall",
+        "footprints that stop abruptly",
+        "something dark beneath the white",
+        "warmth where there shouldn't be any"
+    ],
+    fog: [
+        "a shape at the edge of visibility",
+        "a sound with no clear source",
+        "something that smells out of place",
+        "movement in the peripheral"
+    ],
+    clear: [
+        "a shadow that doesn't belong",
+        "something catching the light",
+        "a stain that tells a story",
+        "marks on the wall at eye level"
+    ],
+    overcast: [
+        "something half-hidden in the grey",
+        "a detail that wants to be overlooked",
+        "dust disturbed recently",
+        "an object out of its context"
+    ],
+    wind: [
+        "something that blew in from elsewhere",
+        "papers scattered in a pattern",
+        "a door that won't stay closed",
+        "a sound carried from far away"
+    ]
+};
+
 function getShiversQuip(weather, period) {
     let weatherKey = (weather || 'overcast').toLowerCase()
         .replace('-day', '').replace('-night', '')
@@ -70,6 +120,18 @@ function getShiversQuip(weather, period) {
     
     const weatherQuips = FALLBACK_QUIPS[weatherKey] || FALLBACK_QUIPS.overcast;
     return weatherQuips[periodKey] || weatherQuips.afternoon;
+}
+
+function getFallbackSeed(weather) {
+    let weatherKey = (weather || 'overcast').toLowerCase()
+        .replace('-day', '').replace('-night', '')
+        .replace('rainy', 'rain').replace('stormy', 'storm')
+        .replace('snowy', 'snow').replace('foggy', 'fog')
+        .replace('windy', 'wind').replace('cloudy', 'overcast')
+        .replace('mist', 'fog');
+    
+    const seeds = FALLBACK_SEEDS[weatherKey] || FALLBACK_SEEDS.overcast;
+    return seeds[Math.floor(Math.random() * seeds.length)];
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -398,51 +460,51 @@ export const NEWSPAPER_STRIP_CSS = `
 .peripherique-paper.weather-fog,
 .peripherique-paper.weather-mist {
     background-color: #282828;
+    border-color: #484848;
 }
 
 .peripherique-paper.weather-fog .shivers-quip,
 .peripherique-paper.weather-mist .shivers-quip {
-    color: #a8a8a0;
-}
-
-/* Clear weather - slightly warmer */
-.peripherique-paper.weather-clear {
-    border-color: #5a4a35;
-}
-
-.peripherique-paper.weather-clear .masthead-title {
-    color: #e0d0b8;
+    color: #b8b8b8;
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MOBILE RESPONSIVE
+   PERIOD-SPECIFIC STYLING
+   ═══════════════════════════════════════════════════════════════ */
+
+.peripherique-paper.period-night,
+.peripherique-paper.period-late-night {
+    background-color: #1a1815;
+    border-color: #3a3530;
+}
+
+.peripherique-paper.period-night .peripherique-header,
+.peripherique-paper.period-late-night .peripherique-header {
+    background: #252220;
+}
+
+.peripherique-paper.period-dawn,
+.peripherique-paper.period-morning {
+    border-color: #5a5550;
+}
+
+.peripherique-paper.period-dawn .masthead-title,
+.peripherique-paper.period-morning .masthead-title {
+    color: #e0d8c8;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE ADJUSTMENTS
    ═══════════════════════════════════════════════════════════════ */
 
 @media (max-width: 480px) {
-    .peripherique-masthead {
-        padding: 0 8px;
+    .peripherique-paper {
+        margin: -8px -10px 10px -10px;
     }
     
     .masthead-title {
         font-size: 14px;
         letter-spacing: 2px;
-    }
-    
-    .masthead-bracket {
-        font-size: 10px;
-    }
-    
-    .peripherique-weather-box {
-        padding: 4px 6px;
-        font-size: 9px;
-    }
-    
-    .peripherique-weather-box .weather-icon {
-        font-size: 14px;
-    }
-    
-    .peripherique-pub-info {
-        display: none;
     }
     
     .shivers-quip {
@@ -534,7 +596,8 @@ const PERIOD_EDITIONS = {
 let currentState = {
     weather: 'overcast',
     period: 'afternoon',
-    location: null
+    location: null,
+    investigationSeed: null  // NEW: Hidden seed for Perception to use
 };
 
 let weatherSubscription = null;
@@ -542,6 +605,35 @@ let issueNumber = Math.floor(Math.random() * 9000) + 1000;
 let shiversGenerating = false;
 let shiversDebounceTimer = null;
 let lastShiversKey = null;  // Tracks weather+period+location to avoid regenerating same combo
+
+// ═══════════════════════════════════════════════════════════════
+// INVESTIGATION SEED ACCESS (for investigation.js)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get the current investigation seed (what Shivers noticed)
+ * Called by investigation.js before running Perception scan
+ * @returns {string|null} The seed, or null if none
+ */
+export function getInvestigationSeed() {
+    return currentState.investigationSeed;
+}
+
+/**
+ * Clear the investigation seed after Perception uses it
+ * Called by investigation.js after building the Perception prompt
+ */
+export function clearInvestigationSeed() {
+    console.log('[Périphérique] Investigation seed consumed');
+    currentState.investigationSeed = null;
+}
+
+/**
+ * Get current newspaper state (for debugging/external access)
+ */
+export function getNewspaperState() {
+    return { ...currentState };
+}
 
 // ═══════════════════════════════════════════════════════════════
 // SHIVERS AI GENERATION
@@ -610,22 +702,28 @@ function getSceneContext() {
  * Build a Shivers-flavored prompt based on weather, period, location, and scene context.
  * Shivers is the city/world itself speaking — it feels streets, weather, architecture.
  * The voice adapts to the SETTING: acid rain in cyberpunk, enchanted frost in fantasy, etc.
+ * 
+ * NEW v1.1: Also requests an "investigation seed" — a subtle environmental detail
+ * that Perception might notice when the player investigates.
  */
 function buildShiversPrompt(weather, period, location, sceneContext = {}) {
     const system = `You are SHIVERS — the psychic voice of the environment itself. You feel every raindrop on every rooftop, every crack in every wall, every footstep on every street. You speak in short, evocative, melancholic prose. You are the SETTING made conscious.
 
 CRITICAL RULES:
-- Write EXACTLY 2-3 sentences. No more.
-- Speak as the PLACE, not a person. You ARE the streets, the weather, the walls, the ground, the air.
 - ABSORB the scene context below. If the setting is an underground snow town full of monsters, you are THAT place — not a generic city. If it's a neon-drenched megacity, you are acid rain on chrome. If it's a medieval village, you are hearthsmoke and cobblestone.
 - Your tone is always: observant, melancholic, poetic, slightly ominous.
 - Never use "I" — you are "the district", "the cavern", "the streets", "the walls", "the air", "the path", whatever fits the ACTUAL setting.
 - Never address the reader as "you" — describe what the world FEELS, not what the character experiences.
 - Do NOT repeat the weather condition literally. Don't say "it's snowing." SHOW it through sensory detail specific to THIS place.
 - Reference textures that belong to THIS world. A cave has crystal and stone. A ship has hull and bulkhead. A forest has bark and loam.
-- Each response must be UNIQUE — never generic. Ground it in the specific location and scene.
 
-Output ONLY the Shivers observation. No labels, no attribution, no formatting.`;
+OUTPUT FORMAT - Respond with ONLY valid JSON:
+{
+  "quip": "2-3 sentences of atmospheric Shivers prose. No more.",
+  "seed": "A brief environmental detail that could be investigated — something Shivers noticed that might be a clue, an anomaly, or simply interesting. 5-15 words. Examples: 'disturbed snow near the lamp post', 'a door left slightly ajar', 'scratch marks on the stone floor', 'something metallic glinting in the gutter'. Make it specific to THIS scene and weather."
+}
+
+The "quip" is what the user sees. The "seed" is hidden metadata for the investigation system — it should be a concrete, discoverable detail that fits naturally with what Shivers is describing.`;
 
     const weatherDesc = weather || 'overcast';
     const periodDesc = period || 'afternoon';
@@ -659,15 +757,64 @@ Output ONLY the Shivers observation. No labels, no attribution, no formatting.`;
         userParts.push(`\nRecent scene:\n${sceneContext.sceneExcerpt}`);
     }
     
-    userParts.push('\nWhat does the environment feel right now?');
+    userParts.push('\nGenerate the Shivers observation as JSON with "quip" and "seed" fields.');
 
     return { system, user: userParts.join('\n') };
 }
 
 /**
- * Generate an AI Shivers quip, falling back to static quips on failure.
- * Uses callAPIWithTokens with a small budget (150 tokens).
+ * Extract JSON from AI response, handling various edge cases
+ */
+function extractShiversJSON(response) {
+    if (!response || typeof response !== 'string') return null;
+    
+    // Try direct parse first
+    try {
+        const parsed = JSON.parse(response.trim());
+        if (parsed.quip) return parsed;
+    } catch (e) {
+        // Continue to extraction methods
+    }
+    
+    // Try to find JSON object in response
+    const jsonMatch = response.match(/\{[\s\S]*?"quip"[\s\S]*?\}/);
+    if (jsonMatch) {
+        try {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed.quip) return parsed;
+        } catch (e) {
+            // Try to repair common issues
+            let repaired = jsonMatch[0];
+            // Fix trailing commas
+            repaired = repaired.replace(/,(\s*[}\]])/g, '$1');
+            // Fix unquoted keys
+            repaired = repaired.replace(/(\{|\,)\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":');
+            try {
+                const parsed = JSON.parse(repaired);
+                if (parsed.quip) return parsed;
+            } catch (e2) {
+                // Give up on JSON
+            }
+        }
+    }
+    
+    // Fallback: treat entire response as quip (old format compatibility)
+    if (response.trim().length > 10 && response.trim().length < 500) {
+        return {
+            quip: response.trim(),
+            seed: null  // No seed from old-format response
+        };
+    }
+    
+    return null;
+}
+
+/**
+ * Generate an AI Shivers quip + investigation seed, falling back to static on failure.
+ * Uses callAPIWithTokens with a small budget (200 tokens for JSON response).
  * Pulls scene context directly from SillyTavern chat for world-accurate prose.
+ * 
+ * NEW v1.1: Returns { quip, seed } and stores seed in currentState
  */
 async function generateShiversQuip(weather, period, location) {
     if (shiversGenerating) return null;
@@ -689,17 +836,33 @@ async function generateShiversQuip(weather, period, location) {
         });
         
         const prompt = buildShiversPrompt(weather, period, location, sceneContext);
-        const response = await callAPIWithTokens(prompt.system, prompt.user, 150);
+        const response = await callAPIWithTokens(prompt.system, prompt.user, 200);
         
-        if (response && response.trim().length > 10) {
-            console.log('[Périphérique] ✓ Shivers AI quip generated:', response.substring(0, 60) + '...');
-            return response.trim();
+        const parsed = extractShiversJSON(response);
+        
+        if (parsed && parsed.quip && parsed.quip.trim().length > 10) {
+            console.log('[Périphérique] ✓ Shivers AI generated:', {
+                quip: parsed.quip.substring(0, 60) + '...',
+                seed: parsed.seed || 'none'
+            });
+            
+            // Store the investigation seed for Perception to use later
+            if (parsed.seed) {
+                currentState.investigationSeed = parsed.seed;
+                console.log('[Périphérique] Investigation seed stored:', parsed.seed);
+            }
+            
+            return parsed.quip.trim();
         }
     } catch (e) {
         console.warn('[Périphérique] Shivers AI generation failed, using fallback:', e.message);
     } finally {
         shiversGenerating = false;
     }
+    
+    // Fallback: use static quip AND generate a fallback seed
+    currentState.investigationSeed = getFallbackSeed(weather);
+    console.log('[Périphérique] Using fallback seed:', currentState.investigationSeed);
     
     return null;
 }
@@ -808,6 +971,9 @@ function updateShiversQuip(weather, period) {
     // Step 1: Show fallback quip immediately (no loading delay for user)
     const fallbackQuip = getShiversQuip(effectiveWeather, effectivePeriod);
     quipEl.textContent = fallbackQuip;
+    
+    // Also set a fallback seed immediately
+    currentState.investigationSeed = getFallbackSeed(effectiveWeather);
     
     // Step 2: Debounce AI generation (weather can change rapidly during scan)
     if (shiversDebounceTimer) clearTimeout(shiversDebounceTimer);
@@ -943,7 +1109,7 @@ export function initNewspaperStrip() {
         updateNewspaperFromWatch();
     }, 50);
     
-    console.log('[Périphérique] ✓ Newspaper initialized');
+    console.log('[Périphérique] ✓ Newspaper initialized (v1.1 with investigation seeds)');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -957,7 +1123,8 @@ export function debugNewspaper() {
         element: !!document.getElementById('newspaper-strip'),
         quipElement: !!document.getElementById('shivers-quip'),
         shiversGenerating,
-        lastShiversKey
+        lastShiversKey,
+        investigationSeed: currentState.investigationSeed
     };
 }
 
