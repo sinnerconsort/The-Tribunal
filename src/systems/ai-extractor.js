@@ -733,41 +733,18 @@ export async function processExtractionResults(results, options = {}) {
     // ─────────────────────────────────────────────────────────────
     // Process Vitals Changes
     // ─────────────────────────────────────────────────────────────
+    // VITALS: Handled exclusively by vitals-extraction.js (regex system)
+    // to prevent double-processing. AI extractor still EXTRACTS vitals
+    // data (for logging/debugging) but does NOT apply it to state.
+    // ─────────────────────────────────────────────────────────────
     if (results.vitals) {
-        if (!state.vitals) state.vitals = { health: 10, maxHealth: 10, morale: 10, maxMorale: 10 };
-        
-        // Health change
         if (results.vitals.health?.change && results.vitals.health.change !== 0) {
-            const change = parseInt(results.vitals.health.change, 10);
-            if (!isNaN(change)) {
-                const oldHealth = state.vitals.health;
-                state.vitals.health = Math.max(0, Math.min(state.vitals.maxHealth, state.vitals.health + change));
-                processed.healthChange = state.vitals.health - oldHealth;
-                
-                if (notifyCallback && processed.healthChange !== 0) {
-                    const sign = processed.healthChange > 0 ? '+' : '';
-                    const reason = results.vitals.health.reason ? `: ${results.vitals.health.reason}` : '';
-                    notifyCallback(`Health ${sign}${processed.healthChange}${reason}`, 
-                        processed.healthChange > 0 ? 'health-gain' : 'health-loss');
-                }
-            }
+            processed.healthChange = parseInt(results.vitals.health.change, 10) || 0;
+            console.log(`[AI Extractor] Vitals suggestion (not applied): Health ${processed.healthChange > 0 ? '+' : ''}${processed.healthChange} - ${results.vitals.health.reason || 'no reason'}`);
         }
-        
-        // Morale change
         if (results.vitals.morale?.change && results.vitals.morale.change !== 0) {
-            const change = parseInt(results.vitals.morale.change, 10);
-            if (!isNaN(change)) {
-                const oldMorale = state.vitals.morale;
-                state.vitals.morale = Math.max(0, Math.min(state.vitals.maxMorale, state.vitals.morale + change));
-                processed.moraleChange = state.vitals.morale - oldMorale;
-                
-                if (notifyCallback && processed.moraleChange !== 0) {
-                    const sign = processed.moraleChange > 0 ? '+' : '';
-                    const reason = results.vitals.morale.reason ? `: ${results.vitals.morale.reason}` : '';
-                    notifyCallback(`Morale ${sign}${processed.moraleChange}${reason}`, 
-                        processed.moraleChange > 0 ? 'morale-gain' : 'morale-loss');
-                }
-            }
+            processed.moraleChange = parseInt(results.vitals.morale.change, 10) || 0;
+            console.log(`[AI Extractor] Vitals suggestion (not applied): Morale ${processed.moraleChange > 0 ? '+' : ''}${processed.moraleChange} - ${results.vitals.morale.reason || 'no reason'}`);
         }
     }
     
