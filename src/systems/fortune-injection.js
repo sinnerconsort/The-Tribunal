@@ -8,10 +8,11 @@
  * The fortune "comes true" not because we force it, but because
  * we plant the seed and let the AI grow it naturally.
  * 
- * @version 1.0.0
+ * @version 1.1.0 - Fixed: Use proper ST imports instead of fragile window lookup
  */
 
 import { getContext } from '../../../../../extensions.js';
+import { eventSource, event_types } from '../../../../../../script.js';
 import { 
     getPendingInjection, 
     hasPendingInjection,
@@ -378,11 +379,8 @@ function onNewMessage(messageId) {
  * Hooks into SillyTavern events
  */
 export function initFortuneInjection() {
-    // Try to hook into ST events
+    // Hook into ST events using proper imports
     try {
-        // These are the standard ST event names
-        const { eventSource, event_types } = window.SillyTavern?.getContext?.() || {};
-        
         if (eventSource && event_types) {
             // Before generation starts
             eventSource.on(event_types.GENERATION_STARTED, onGenerationStart);
@@ -395,7 +393,7 @@ export function initFortuneInjection() {
             
             console.log('[Fortune Injection] Hooked into ST events');
         } else {
-            console.warn('[Fortune Injection] Could not find ST events, using manual mode');
+            console.warn('[Fortune Injection] eventSource or event_types not available');
         }
     } catch (e) {
         console.warn('[Fortune Injection] Event hook failed:', e);
