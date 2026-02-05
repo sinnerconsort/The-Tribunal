@@ -508,23 +508,82 @@ let lastShiversKey = null;  // Tracks weather+period+location to avoid regenerat
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Build a Shivers-flavored prompt based on weather, period, and scene context.
- * Shivers is the city itself speaking — it feels streets, weather, architecture.
+ * Grab scene context directly from SillyTavern:
+ * - Last AI message (trimmed excerpt for scene grounding)
+ * - Character card name + scenario (for setting flavor)
+ * - World info / lorebook name if available
+ */
+function getSceneContext() {
+    try {
+        const ctx = window.SillyTavern?.getContext?.() ||
+                     (typeof getContext === 'function' ? getContext() : null);
+        if (!ctx) return {};
+        
+        const result = {};
+        
+        // Last AI message — grab just the last ~300 chars for scene grounding
+        // We want the MOOD not the full text
+        const chat = ctx.chat;
+        if (chat && chat.length > 0) {
+            // Walk backwards to find last AI message
+            for (let i = chat.length - 1; i >= Math.max(0, chat.length - 5); i--) {
+                const msg = chat[i];
+                if (msg && !msg.is_user && msg.mes) {
+                    // Strip HTML tags, trim to last ~300 chars (the freshest scene detail)
+                    const clean = msg.mes.replace(/<[^>]*>/g, '').trim();
+                    result.sceneExcerpt = clean.length > 300 
+                        ? '...' + clean.slice(-300) 
+                        : clean;
+                    break;
+                }
+            }
+        }
+        
+        // Character card info — tells Shivers WHAT WORLD this is
+        const charData = ctx.characters?.[ctx.characterId];
+        if (charData) {
+            result.characterName = charData.name || '';
+            // Scenario field often has the best setting description
+            if (charData.scenario) {
+                result.scenario = charData.scenario.substring(0, 200);
+            }
+            // Description can hint at genre/world
+            if (charData.description) {
+                result.worldHint = charData.description.substring(0, 150);
+            }
+        }
+        
+        // Group chat? Grab the group name for additional context
+        if (ctx.groupId && ctx.groups) {
+            const group = ctx.groups.find(g => g.id === ctx.groupId);
+            if (group?.name) result.groupName = group.name;
+        }
+        
+        return result;
+    } catch (e) {
+        console.warn('[Périphérique] Failed to get scene context:', e.message);
+        return {};
+    }
+}
+
+/**
+ * Build a Shivers-flavored prompt based on weather, period, location, and scene context.
+ * Shivers is the city/world itself speaking — it feels streets, weather, architecture.
  * The voice adapts to the SETTING: acid rain in cyberpunk, enchanted frost in fantasy, etc.
  */
-function buildShiversPrompt(weather, period, location) {
-    const system = `You are SHIVERS — the psychic voice of the city itself. You feel every raindrop on every rooftop, every crack in every wall, every footstep on every street. You speak in short, evocative, melancholic prose. You are the SETTING made conscious.
+function buildShiversPrompt(weather, period, location, sceneContext = {}) {
+    const system = `You are SHIVERS — the psychic voice of the environment itself. You feel every raindrop on every rooftop, every crack in every wall, every footstep on every street. You speak in short, evocative, melancholic prose. You are the SETTING made conscious.
 
 CRITICAL RULES:
 - Write EXACTLY 2-3 sentences. No more.
-- Speak as the PLACE, not a person. You ARE the streets, the weather, the walls.
-- Adapt your imagery to the SETTING. A cyberpunk city has acid rain and neon reflections. A medieval town has cobblestones and hearth-smoke. A frozen tundra has permafrost memories. A space station has recycled air and hull vibrations.
+- Speak as the PLACE, not a person. You ARE the streets, the weather, the walls, the ground, the air.
+- ABSORB the scene context below. If the setting is an underground snow town full of monsters, you are THAT place — not a generic city. If it's a neon-drenched megacity, you are acid rain on chrome. If it's a medieval village, you are hearthsmoke and cobblestone.
 - Your tone is always: observant, melancholic, poetic, slightly ominous.
-- Never use "I" — you are "the city", "the streets", "the walls", "the air", "the district".
+- Never use "I" — you are "the district", "the cavern", "the streets", "the walls", "the air", "the path", whatever fits the ACTUAL setting.
 - Never address the reader as "you" — describe what the world FEELS, not what the character experiences.
-- Do NOT repeat the weather condition literally. Don't say "it's snowing." SHOW it through sensory detail.
-- Reference specific textures: pavement, glass, rust, moss, neon, stone, bark, steel, dust.
-- Each response must be UNIQUE — never generic. Ground it in the specific location if known.
+- Do NOT repeat the weather condition literally. Don't say "it's snowing." SHOW it through sensory detail specific to THIS place.
+- Reference textures that belong to THIS world. A cave has crystal and stone. A ship has hull and bulkhead. A forest has bark and loam.
+- Each response must be UNIQUE — never generic. Ground it in the specific location and scene.
 
 Output ONLY the Shivers observation. No labels, no attribution, no formatting.`;
 
@@ -532,18 +591,43 @@ Output ONLY the Shivers observation. No labels, no attribution, no formatting.`;
     const periodDesc = period || 'afternoon';
     const locationDesc = location || 'the district';
 
-    const user = `Weather: ${weatherDesc}
-Time: ${periodDesc}
-Location: ${locationDesc}
+    // Build a rich user prompt with all available context
+    let userParts = [
+        `Weather: ${weatherDesc}`,
+        `Time: ${periodDesc}`,
+        `Location: ${locationDesc}`
+    ];
+    
+    // Add setting/world context if we have it
+    if (sceneContext.scenario) {
+        userParts.push(`Setting: ${sceneContext.scenario}`);
+    } else if (sceneContext.worldHint) {
+        userParts.push(`World: ${sceneContext.worldHint}`);
+    }
+    
+    if (sceneContext.characterName) {
+        userParts.push(`Characters present: ${sceneContext.characterName}`);
+    }
+    
+    if (sceneContext.groupName) {
+        userParts.push(`Group: ${sceneContext.groupName}`);
+    }
+    
+    // The scene excerpt is the most important context — it tells Shivers
+    // what's ACTUALLY happening right now in this world
+    if (sceneContext.sceneExcerpt) {
+        userParts.push(`\nRecent scene:\n${sceneContext.sceneExcerpt}`);
+    }
+    
+    userParts.push('\nWhat does the environment feel right now?');
 
-What does the city feel right now?`;
-
-    return { system, user };
+    return { system, user: userParts.join('\n') };
 }
 
 /**
  * Generate an AI Shivers quip, falling back to static quips on failure.
  * Uses callAPIWithTokens with a small budget (150 tokens).
+ * Pulls scene context directly from SillyTavern chat for world-accurate prose.
  */
 async function generateShiversQuip(weather, period, location) {
     if (shiversGenerating) return null;
@@ -552,9 +636,19 @@ async function generateShiversQuip(weather, period, location) {
     
     try {
         // Dynamic import to avoid circular dependency and only load when needed
-        const { callAPIWithTokens } = await import('../generation/api-helpers.js');
+        const { callAPIWithTokens } = await import('../voice/api-helpers.js');
         
-        const prompt = buildShiversPrompt(weather, period, location);
+        // Pull live scene context from SillyTavern
+        const sceneContext = getSceneContext();
+        
+        console.log('[Périphérique] Shivers context:', {
+            weather, period, location,
+            hasScene: !!sceneContext.sceneExcerpt,
+            character: sceneContext.characterName || 'none',
+            scenario: sceneContext.scenario ? 'yes' : 'no'
+        });
+        
+        const prompt = buildShiversPrompt(weather, period, location, sceneContext);
         const response = await callAPIWithTokens(prompt.system, prompt.user, 150);
         
         if (response && response.trim().length > 10) {
