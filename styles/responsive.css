@@ -14,11 +14,23 @@
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
+    height: 100vh;
+    max-height: 100vh;
+}
+
+/* Header stays at top */
+.ie-panel-header {
+    flex: 0 0 auto !important;
+}
+
+/* Tabs stay below header */
+.ie-tabs {
+    flex: 0 0 auto !important;
 }
 
 /* Content area should scroll, not the whole panel */
 .ie-panel-content {
-    flex: 1 !important;
+    flex: 1 1 0 !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     min-height: 0 !important; /* Critical for flex scroll */
@@ -26,10 +38,9 @@
 
 /* Footer must stay at bottom, never scroll away */
 .ie-bottom-buttons {
-    flex-shrink: 0 !important;
+    flex: 0 0 auto !important;
     position: relative !important;
     z-index: 100 !important;
-    margin-top: auto !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -43,17 +54,95 @@
         width: 420px;
         right: 0;
         display: none !important; /* Force hidden */
+        height: 100vh !important;
+        max-height: 100vh !important;
     }
     
     /* When opened via FAB click, show it */
     .inland-empire-panel.ie-panel-open {
         display: flex !important; /* Force visible as flex column */
         flex-direction: column !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        overflow: hidden !important;
     }
     
     /* FAB visible on desktop */
     .ie-fab {
         display: flex;
+    }
+    
+    /* CRITICAL: Constrain content height on desktop */
+    .ie-panel-content {
+        flex: 1 1 0 !important; /* Allow shrinking AND growing */
+        min-height: 0 !important; /* Critical for flex scroll */
+        max-height: calc(100vh - 200px) !important; /* Leave room for header + tabs + footer */
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Tab content pages must also be constrained */
+    .voices-page,
+    .cabinet-page,
+    .profiles-page,
+    .ie-tab-content[data-tab-content="status"],
+    .ledger-page,
+    .radio-page {
+        max-height: 100% !important;
+        overflow-y: auto !important;
+    }
+    
+    /* Napkin needs proper constraints */
+    .voices-napkin {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+    }
+    
+    /* Cabinet corkboard */
+    .cabinet-corkboard {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+    }
+    
+    /* Profiles wallet */
+    .tribunal-wallet {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+    }
+    
+    /* Footer must ALWAYS be visible */
+    .ie-bottom-buttons {
+        flex: 0 0 auto !important;
+        position: relative !important;
+        z-index: 100 !important;
+        margin-top: 0 !important;
+    }
+    
+    /* Compact attributes on desktop - less vertical padding */
+    .napkin-calc-block {
+        margin-bottom: 4px !important;
+        padding: 4px 10px !important;
+    }
+    
+    .napkin-attr-main {
+        margin-bottom: 3px !important;
+    }
+    
+    .napkin-plus {
+        margin: 2px 0 !important;
+    }
+    
+    /* Voices container - compact on desktop */
+    .napkin-voices-container {
+        min-height: 120px !important;
+        max-height: 140px !important;
+    }
+    
+    /* Inner voices section takes remaining space */
+    .napkin-voices-section {
+        margin-top: 8px !important;
+        padding-top: 8px !important;
     }
 }
 

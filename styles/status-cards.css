@@ -9,7 +9,6 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-tab-content[data-tab-content="status"] {
-    max-height: calc(100vh - 200px);
     overflow-y: auto;
     overflow-x: hidden;
     padding-bottom: 20px;
