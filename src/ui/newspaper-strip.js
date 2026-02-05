@@ -499,6 +499,76 @@ let currentState = {
 
 let weatherSubscription = null;
 let issueNumber = Math.floor(Math.random() * 9000) + 1000;
+let shiversGenerating = false;
+let shiversDebounceTimer = null;
+let lastShiversKey = null;  // Tracks weather+period+location to avoid regenerating same combo
+
+// ═══════════════════════════════════════════════════════════════
+// SHIVERS AI GENERATION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Build a Shivers-flavored prompt based on weather, period, and scene context.
+ * Shivers is the city itself speaking — it feels streets, weather, architecture.
+ * The voice adapts to the SETTING: acid rain in cyberpunk, enchanted frost in fantasy, etc.
+ */
+function buildShiversPrompt(weather, period, location) {
+    const system = `You are SHIVERS — the psychic voice of the city itself. You feel every raindrop on every rooftop, every crack in every wall, every footstep on every street. You speak in short, evocative, melancholic prose. You are the SETTING made conscious.
+
+CRITICAL RULES:
+- Write EXACTLY 2-3 sentences. No more.
+- Speak as the PLACE, not a person. You ARE the streets, the weather, the walls.
+- Adapt your imagery to the SETTING. A cyberpunk city has acid rain and neon reflections. A medieval town has cobblestones and hearth-smoke. A frozen tundra has permafrost memories. A space station has recycled air and hull vibrations.
+- Your tone is always: observant, melancholic, poetic, slightly ominous.
+- Never use "I" — you are "the city", "the streets", "the walls", "the air", "the district".
+- Never address the reader as "you" — describe what the world FEELS, not what the character experiences.
+- Do NOT repeat the weather condition literally. Don't say "it's snowing." SHOW it through sensory detail.
+- Reference specific textures: pavement, glass, rust, moss, neon, stone, bark, steel, dust.
+- Each response must be UNIQUE — never generic. Ground it in the specific location if known.
+
+Output ONLY the Shivers observation. No labels, no attribution, no formatting.`;
+
+    const weatherDesc = weather || 'overcast';
+    const periodDesc = period || 'afternoon';
+    const locationDesc = location || 'the district';
+
+    const user = `Weather: ${weatherDesc}
+Time: ${periodDesc}
+Location: ${locationDesc}
+
+What does the city feel right now?`;
+
+    return { system, user };
+}
+
+/**
+ * Generate an AI Shivers quip, falling back to static quips on failure.
+ * Uses callAPIWithTokens with a small budget (150 tokens).
+ */
+async function generateShiversQuip(weather, period, location) {
+    if (shiversGenerating) return null;
+    
+    shiversGenerating = true;
+    
+    try {
+        // Dynamic import to avoid circular dependency and only load when needed
+        const { callAPIWithTokens } = await import('../generation/api-helpers.js');
+        
+        const prompt = buildShiversPrompt(weather, period, location);
+        const response = await callAPIWithTokens(prompt.system, prompt.user, 150);
+        
+        if (response && response.trim().length > 10) {
+            console.log('[Périphérique] ✓ Shivers AI quip generated:', response.substring(0, 60) + '...');
+            return response.trim();
+        }
+    } catch (e) {
+        console.warn('[Périphérique] Shivers AI generation failed, using fallback:', e.message);
+    } finally {
+        shiversGenerating = false;
+    }
+    
+    return null;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // UPDATE FUNCTIONS
@@ -585,19 +655,47 @@ export function updateNewspaperStrip(data) {
 
 /**
  * Update the Shivers quip based on weather/period
+ * Shows fallback quip immediately, then replaces with AI-generated version.
+ * Debounces rapid weather changes (500ms) to avoid spamming API.
  */
 function updateShiversQuip(weather, period) {
     const quipEl = document.getElementById('shivers-quip');
     if (!quipEl) return;
     
-    const quip = getShiversQuip(weather || currentState.weather, period || currentState.period);
+    const effectiveWeather = weather || currentState.weather;
+    const effectivePeriod = period || currentState.period;
+    const effectiveLocation = currentState.location;
     
-    quipEl.classList.add('shivers-loading');
+    // Dedup: don't regenerate for the same weather+period+location combo
+    const shiversKey = `${effectiveWeather}|${effectivePeriod}|${effectiveLocation}`;
+    if (shiversKey === lastShiversKey) return;
+    lastShiversKey = shiversKey;
     
-    setTimeout(() => {
-        quipEl.textContent = quip;
-        quipEl.classList.remove('shivers-loading');
-    }, 300);
+    // Step 1: Show fallback quip immediately (no loading delay for user)
+    const fallbackQuip = getShiversQuip(effectiveWeather, effectivePeriod);
+    quipEl.textContent = fallbackQuip;
+    
+    // Step 2: Debounce AI generation (weather can change rapidly during scan)
+    if (shiversDebounceTimer) clearTimeout(shiversDebounceTimer);
+    
+    shiversDebounceTimer = setTimeout(async () => {
+        // Show subtle loading state
+        quipEl.classList.add('shivers-loading');
+        
+        const aiQuip = await generateShiversQuip(effectiveWeather, effectivePeriod, effectiveLocation);
+        
+        if (aiQuip) {
+            // Smooth transition to AI quip
+            quipEl.classList.add('shivers-loading');
+            setTimeout(() => {
+                quipEl.textContent = aiQuip;
+                quipEl.classList.remove('shivers-loading');
+            }, 300);
+        } else {
+            // AI failed, fallback already showing — just remove loading state
+            quipEl.classList.remove('shivers-loading');
+        }
+    }, 500);
 }
 
 /**
@@ -710,8 +808,18 @@ export function debugNewspaper() {
         currentState,
         subscribed: !!weatherSubscription,
         element: !!document.getElementById('newspaper-strip'),
-        quipElement: !!document.getElementById('shivers-quip')
+        quipElement: !!document.getElementById('shivers-quip'),
+        shiversGenerating,
+        lastShiversKey
     };
+}
+
+/**
+ * Force regenerate Shivers quip (for testing or manual refresh)
+ */
+export function regenerateShiversQuip() {
+    lastShiversKey = null;  // Clear dedup key
+    updateShiversQuip(currentState.weather, currentState.period);
 }
 
 export function testWeather(weather, period = 'afternoon') {
