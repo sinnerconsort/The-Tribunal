@@ -541,10 +541,10 @@ function normalizeWeatherFromJSON(weatherStr) {
 
 const WEATHER_PATTERNS = {
     storm: /\b(storm|stormy|thunder|thunderstorm|lightning|tempest|gale|downpour|torrential)\b/i,
-    rain: /\b(rain|raining|rainy|drizzle|drizzling|shower|showers|wet|damp|precipitation)\b/i,
-    snow: /\b(snow|snowing|snowy|blizzard|flurries|frost|frosted|freezing|ice|icy|sleet|frozen|cold)\b/i,
-    fog: /\b(fog|foggy|mist|misty|haze|hazy|murky|smog|overcast)\b/i,
-    wind: /\b(wind|windy|gust|gusty|breezy|breeze)\b/i,
+    rain: /\b(rain\w*|drizzl\w*|shower\w*|wet|damp\w*|precipitation)\b/i,
+    snow: /\b(snow\w*|blizzard|flurries|frost\w*|freez\w*|ice|icy|sleet|frozen|cold(?:er|est|ly|ness)?)\b/i,
+    fog: /\b(fog\w*|mist\w*|haz[ey]\w*|murky|smog\w*|overcast)\b/i,
+    wind: /\b(wind\w*|gust\w*|breez\w*)\b/i,
     waves: /\b(wave|waves|ocean|sea|harbor|harbour|dock|pier|beach|shore|coastal|tide)\b/i,
     smoke: /\b(smoke|smoking|cigarette|cigar|exhale|ash|ashtray)\b/i,
     clear: /\b(clear|sunny|bright|cloudless|fair|beautiful day)\b/i
@@ -558,7 +558,7 @@ const PERIOD_PATTERNS = {
 };
 
 const SPECIAL_PATTERNS = {
-    pale: /\b(pale|void|unconscious|dreaming|limbo|between|threshold|nowhere|dissociat)\b/i,
+    pale: /\b(pale|void|unconscious|dreaming|limbo|threshold|dissociat|the\s+pale|pale\s+wall|nothingness)\b/i,
     // Horror has two tiers - intense words trigger immediately, mild words need 3+ matches
     horror: null  // Handled specially in scanForKeywords()
 };
