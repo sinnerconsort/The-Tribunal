@@ -254,7 +254,10 @@ TASK: Generate a single fortune/prophecy/observation in the voice described abov
 
 Do NOT use generic wisdom. Do NOT be vague. Be specific. Be cruel. Be tender. Be true.
 
-Respond with ONLY the fortune text, nothing else.`;
+CRITICAL: Output ONLY the fortune itself. No analysis, no markdown, no explanation, no thinking, no asterisks, no bullet points. Just the raw fortune text as if it were written on aged paper.
+
+Example good output: The drawer remembers your name. It wishes it didn't.
+Example bad output: **Analysis:** The tone should be... (NO! Just the fortune!)`;
     
     return prompt;
 }
@@ -289,12 +292,63 @@ async function generateFortune(voice, context) {
                 );
                 
                 if (response?.content) {
-                    // Clean up the response
+                    // Clean up the response - models sometimes dump their thinking
                     let fortune = response.content.trim();
+                    
+                    // If the response contains markdown analysis, try to extract the actual fortune
+                    // Look for patterns that indicate the model dumped its thinking
+                    if (fortune.includes('**') || fortune.includes('1.') || fortune.includes('Analyze')) {
+                        console.log('[Fortune Generator] Detected analysis dump, extracting fortune...');
+                        
+                        // Strategy 1: Look for a clean final line (no markdown, no numbering)
+                        const lines = fortune.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+                        for (let i = lines.length - 1; i >= 0; i--) {
+                            const line = lines[i];
+                            // Skip lines that look like analysis
+                            if (line.includes('**') || line.match(/^\d+\./) || line.includes('Analyze') || 
+                                line.includes('Context') || line.includes('Persona') || line.includes('Focus:') ||
+                                line.includes('Time:') || line.includes('Period:') || line.includes('Character:')) {
+                                continue;
+                            }
+                            // Found a clean line - use it
+                            if (line.length > 10 && line.length < 200) {
+                                fortune = line;
+                                break;
+                            }
+                        }
+                        
+                        // Strategy 2: If still has markdown, strip it all and take last sentence
+                        if (fortune.includes('**')) {
+                            // Remove all markdown
+                            fortune = fortune.replace(/\*\*[^*]+\*\*/g, '');
+                            fortune = fortune.replace(/\*[^*]+\*/g, '');
+                            fortune = fortune.replace(/^\d+\.\s*/gm, '');
+                            fortune = fortune.replace(/^[-•]\s*/gm, '');
+                            
+                            // Get sentences and take the last meaningful one
+                            const sentences = fortune.split(/[.!?]/).map(s => s.trim()).filter(s => s.length > 10);
+                            if (sentences.length > 0) {
+                                fortune = sentences[sentences.length - 1];
+                                // Add back punctuation
+                                if (!fortune.match(/[.!?]$/)) fortune += '.';
+                            }
+                        }
+                    }
+                    
+                    // Final cleanup
+                    fortune = fortune.trim();
                     // Remove any quotes that might wrap it
                     fortune = fortune.replace(/^["']|["']$/g, '');
                     // Remove any "Fortune:" or similar prefixes
                     fortune = fortune.replace(/^(fortune|prophecy|observation):\s*/i, '');
+                    // Remove leading/trailing asterisks
+                    fortune = fortune.replace(/^\*+|\*+$/g, '').trim();
+                    
+                    // Validate - if still looks broken, return null to use fallback
+                    if (fortune.includes('**') || fortune.length < 10 || fortune.length > 300) {
+                        console.warn('[Fortune Generator] AI response too messy, using fallback');
+                        return null;
+                    }
                     
                     console.log('[Fortune Generator] AI generated:', fortune.substring(0, 50) + '...');
                     return fortune;
