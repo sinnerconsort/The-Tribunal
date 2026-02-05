@@ -112,7 +112,10 @@ export const NEWSPAPER_STRIP_HTML = `
     <!-- Shivers Section -->
     <div class="peripherique-shivers">
         <p class="shivers-quip" id="shivers-quip">The city watches. It always watches. Even now, it feels your footsteps on its skin.</p>
-        <div class="shivers-attribution">— THE CITY SPEAKS</div>
+        <div class="shivers-attribution">
+            <span>— THE CITY SPEAKS</span>
+            <button class="shivers-refresh-btn" id="shivers-refresh" title="The city speaks again...">↻</button>
+        </div>
     </div>
     
     <!-- Period Tag -->
@@ -299,6 +302,43 @@ export const NEWSPAPER_STRIP_CSS = `
     letter-spacing: 3px;
     color: #6a5a48;
     text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.shivers-refresh-btn {
+    background: none;
+    border: 1px solid transparent;
+    color: #5a4a38;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 2px 5px;
+    line-height: 1;
+    border-radius: 2px;
+    transition: color 0.2s, border-color 0.2s;
+    font-family: 'Times New Roman', Georgia, serif;
+}
+
+.shivers-refresh-btn:hover {
+    color: #c8b8a0;
+    border-color: #5a5045;
+}
+
+.shivers-refresh-btn:active {
+    color: #e0d0b8;
+}
+
+.shivers-refresh-btn.refreshing {
+    animation: shivers-spin 1s linear infinite;
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+@keyframes shivers-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 /* Loading state */
@@ -883,6 +923,19 @@ export function initNewspaperStrip() {
     }
     
     mapContent.insertAdjacentHTML('afterbegin', NEWSPAPER_STRIP_HTML);
+    
+    // Wire refresh button
+    const refreshBtn = document.getElementById('shivers-refresh');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            refreshBtn.classList.add('refreshing');
+            lastShiversKey = null;  // Clear dedup key
+            updateShiversQuip(currentState.weather, currentState.period);
+            // Remove spin after generation settles (debounce is 500ms + generation time)
+            setTimeout(() => refreshBtn.classList.remove('refreshing'), 2000);
+        });
+    }
     
     // Small delay to ensure DOM is ready
     setTimeout(() => {
