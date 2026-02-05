@@ -22,15 +22,16 @@ const HEALTH_DAMAGE_PATTERNS = [
     /(?:you\s+)?(?:take|receive|suffer)\s+(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?(?:damage|injury|harm)/gi,
     /(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?(?:damage|injury|harm)\s+(?:to\s+you|dealt)/gi,
     
-    // Physical harm descriptions (estimate 1-3 damage)
-    /(?:you\s+(?:are|get)\s+)?(?:shot|stabbed|slashed|cut|burned|punched|kicked|hit|struck|wounded)/gi,
-    /(?:bullet|knife|blade|fist)\s+(?:hits?|strikes?|pierces?)\s+(?:you|your)/gi,
+    // Physical harm descriptions - REQUIRES "you" context to avoid false positives
+    // "He cut through the crowd" should NOT trigger, "you get cut" SHOULD
+    /you\s+(?:are|get|were)\s+(?:shot|stabbed|slashed|cut|burned|punched|kicked|hit|struck|wounded)/gi,
+    /(?:bullet|knife|blade|fist)\s+(?:hits?|strikes?|pierces?)\s+(?:you|your\s+(?:body|chest|arm|leg|head|face|shoulder|side|stomach|back))/gi,
     
-    // Health critical
-    /(?:you\s+)?(?:collapse|fall\s+unconscious|black\s*out|pass\s*out)/gi,
-    /(?:your\s+)?health\s+(?:drops?|falls?|plummets?)/gi,
+    // Health critical - requires "you" context
+    /you\s+(?:collapse|fall\s+unconscious|black\s*out|pass\s*out)/gi,
+    /your\s+health\s+(?:drops?|falls?|plummets?)/gi,
     
-    // Disco Elysium style
+    // Disco Elysium style tags (explicit, always safe)
     /\[HEALTH\s*[-–]\s*(\d+)\]/gi,
     /HEALTH:\s*[-–]\s*(\d+)/gi,
     /-(\d+)\s+HEALTH/gi,
@@ -73,19 +74,20 @@ const MORALE_DAMAGE_PATTERNS = [
     /(?:you\s+)?(?:take|receive|suffer)\s+(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?(?:morale|psychic|mental)\s+(?:damage|harm)/gi,
     /(\d+)\s+(?:point(?:s)?\s+(?:of\s+)?)?morale\s+(?:damage|lost)/gi,
     
-    // Emotional harm descriptions (estimate 1-3 damage)
-    /(?:you\s+(?:are|feel)\s+)?(?:devastated|crushed|humiliated|ashamed|horrified|traumatized)/gi,
-    /(?:your\s+)?(?:spirit|will|resolve|confidence)\s+(?:breaks?|shatters?|crumbles?)/gi,
+    // Emotional harm descriptions - REQUIRES "you" context
+    /you\s+(?:are|feel)\s+(?:devastated|crushed|humiliated|ashamed|horrified|traumatized)/gi,
+    /your\s+(?:spirit|will|resolve|confidence)\s+(?:breaks?|shatters?|crumbles?)/gi,
     /(?:waves?\s+of\s+)?(?:shame|guilt|despair|horror|dread)\s+(?:wash(?:es)?|crashes?)\s+over\s+you/gi,
     
-    // Failed checks (Disco Elysium style)
+    // Failed checks (Disco Elysium style) - already specific enough
     /(?:you\s+)?fail(?:ed)?\s+(?:the\s+)?(?:composure|volition|authority|empathy)\s+check/gi,
     
-    // Morale critical
-    /(?:you\s+)?(?:break\s+down|lose\s+it|snap|crack)/gi,
-    /(?:your\s+)?morale\s+(?:drops?|falls?|plummets?)/gi,
+    // Morale critical - REQUIRES "you" context
+    // "snap" and "crack" alone are way too common in narrative text
+    /you\s+(?:break\s+down|lose\s+it|snap|crack)/gi,
+    /your\s+morale\s+(?:drops?|falls?|plummets?)/gi,
     
-    // Disco Elysium style tags
+    // Disco Elysium style tags (explicit, always safe)
     /\[MORALE\s*[-–]\s*(\d+)\]/gi,
     /MORALE:\s*[-–]\s*(\d+)/gi,
     /-(\d+)\s+MORALE/gi,
@@ -156,6 +158,25 @@ const MORALE_HEAL_PATTERNS = [
 // ═══════════════════════════════════════════════════════════════
 // EXTRACTION FUNCTION
 // ═══════════════════════════════════════════════════════════════
+
+/**
+ * Track processed messages to prevent double-processing on refresh/chat switch.
+ * Uses a simple hash of the first 100 chars + length as a fingerprint.
+ * Cleared on chat switch via resetVitalsTracking().
+ */
+const processedMessages = new Set();
+
+function messageFingerprint(text) {
+    return `${text.length}:${text.substring(0, 100)}`;
+}
+
+/**
+ * Reset tracking (call on CHAT_CHANGED)
+ */
+export function resetVitalsTracking() {
+    processedMessages.clear();
+    console.log('[Vitals] Tracking reset for new chat');
+}
 
 /**
  * Extract vital changes from message text
@@ -275,6 +296,14 @@ function estimateHealSeverity(text) {
  * v2.0: Integrates with death-handler.js for skill checks
  */
 export function processMessageVitals(messageText) {
+    // Dedup: skip if this exact message was already processed
+    const fingerprint = messageFingerprint(messageText || '');
+    if (processedMessages.has(fingerprint)) {
+        console.log('[Vitals] Skipping already-processed message');
+        return { applied: false, healthDelta: 0, moraleDelta: 0, events: [], death: null };
+    }
+    processedMessages.add(fingerprint);
+    
     const { healthDelta, moraleDelta, events } = extractVitalsFromMessage(messageText);
     
     if (healthDelta === 0 && moraleDelta === 0) {
@@ -288,7 +317,7 @@ export function processMessageVitals(messageText) {
     }
     
     const state = getChatState();
-    if (!state.vitals) state.vitals = { health: 10, maxHealth: 13, morale: 10, maxMorale: 13 };
+    if (!state.vitals) state.vitals = { health: 13, maxHealth: 13, morale: 13, maxMorale: 13 };
     
     const vitals = state.vitals;
     let deathResult = null;
@@ -437,5 +466,6 @@ export default {
     extractVitalsFromMessage,
     processMessageVitals,
     adjustVitals,
-    getVitalsPromptInjection
+    getVitalsPromptInjection,
+    resetVitalsTracking
 };
