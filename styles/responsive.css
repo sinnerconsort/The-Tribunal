@@ -1,11 +1,30 @@
 /**
  * The Tribunal - Responsive / Mobile
- * DESKTOP FIX v4: Nuclear option - absolute positioned footer
+ * DESKTOP FIX v7: Add missing base styles for .ie-bottom-buttons
+ * NOTE: panel.css has .ie-panel-footer but HTML uses .ie-bottom-buttons!
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   CRITICAL: PANEL LAYOUT - NUCLEAR OPTION
-   Use absolute positioning to GUARANTEE footer visibility
+   CRITICAL: BASE STYLES FOR .ie-bottom-buttons
+   This class was missing from panel.css!
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-bottom-buttons {
+    display: flex !important;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--ie-border, #333);
+    background: var(--ie-bg-secondary, #1a1a22);
+    margin-left: 32px;
+    margin-right: 30px;
+    flex-shrink: 0;
+    /* Ensure it's always visible */
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PANEL LAYOUT FIX
    ═══════════════════════════════════════════════════════════════ */
 
 .inland-empire-panel {
@@ -13,8 +32,9 @@
     flex-direction: column !important;
     overflow: hidden !important;
     height: 100vh;
+    height: 100dvh;
     max-height: 100vh;
-    position: fixed !important;
+    max-height: 100dvh;
 }
 
 .ie-panel-header {
@@ -30,20 +50,10 @@
     overflow-y: auto !important;
     overflow-x: hidden !important;
     min-height: 0 !important;
-    /* Leave room for footer */
-    padding-bottom: 60px !important;
 }
 
-/* Footer - absolute positioned at bottom */
 .ie-bottom-buttons {
-    position: absolute !important;
-    bottom: 0 !important;
-    left: 32px !important;
-    right: 30px !important;
-    z-index: 1000 !important;
-    background: #1a1a22 !important;
-    border-top: 1px solid var(--ie-border, #333) !important;
-    padding: 8px 12px !important;
+    flex: 0 0 auto !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -56,14 +66,18 @@
         right: 0;
         display: none !important;
         height: 100vh !important;
+        height: 100dvh !important;
         max-height: 100vh !important;
+        max-height: 100dvh !important;
     }
     
     .inland-empire-panel.ie-panel-open {
         display: flex !important;
         flex-direction: column !important;
         height: 100vh !important;
+        height: 100dvh !important;
         max-height: 100vh !important;
+        max-height: 100dvh !important;
         overflow: hidden !important;
     }
     
@@ -71,16 +85,15 @@
         display: flex;
     }
     
-    /* Content - scrollable, with room for absolute footer */
+    /* Content area constrained */
     .ie-panel-content {
         flex: 1 1 0 !important;
         min-height: 0 !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
-        padding-bottom: 70px !important; /* Room for footer */
     }
     
-    /* Tab pages - prevent height: 100% from breaking layout */
+    /* Tab pages */
     .ie-tab-content,
     .voices-page,
     .cabinet-page,
@@ -90,46 +103,32 @@
     .inventory-page {
         height: auto !important;
         max-height: none !important;
-        min-height: 0 !important;
-        overflow-y: visible !important; /* Let parent scroll */
     }
     
-    /* Active tab */
-    .ie-tab-content.ie-tab-content-active,
-    .voices-page.ie-tab-content-active,
-    .cabinet-page.ie-tab-content-active,
-    .profiles-page.ie-tab-content-active,
-    .settings-page.ie-tab-content-active,
-    .ledger-page.ie-tab-content-active,
-    .inventory-page.ie-tab-content-active {
+    .ie-tab-content.ie-tab-content-active {
         display: flex !important;
         flex-direction: column !important;
     }
     
-    /* Inner content - just flow naturally */
+    /* Inner containers */
     .voices-napkin,
     .cabinet-corkboard,
     .tribunal-wallet {
         flex: 1 1 auto !important;
         min-height: 0 !important;
-        overflow-y: visible !important; /* Let parent scroll */
+        overflow-y: auto !important;
     }
     
-    /* FOOTER - Absolute positioned, always visible */
+    /* Footer MUST be visible */
     .ie-bottom-buttons {
-        position: absolute !important;
-        bottom: 0 !important;
-        left: 32px !important;
-        right: 30px !important;
-        z-index: 1000 !important;
-        background: #1a1a22 !important;
-        border-top: 1px solid var(--ie-border, #333) !important;
-        padding: 10px 12px !important;
+        flex: 0 0 auto !important;
+        flex-shrink: 0 !important;
+        min-height: 50px !important;
         display: flex !important;
-        gap: 8px !important;
+        background: #1a1a22 !important;
     }
     
-    /* Compact attributes on desktop */
+    /* Compact attributes */
     .napkin-calc-block {
         margin-bottom: 4px !important;
         padding: 4px 10px !important;
@@ -184,17 +183,8 @@
         max-height: 85vh;
     }
     
-    /* Mobile footer - also absolute */
     .ie-bottom-buttons {
-        position: absolute !important;
-        bottom: 0 !important;
-        left: 32px !important;
-        right: 30px !important;
-        padding: 8px 12px 10px !important;
-    }
-    
-    .ie-panel-content {
-        padding-bottom: 60px !important;
+        padding: 8px 12px 10px;
     }
 }
 
