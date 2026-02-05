@@ -10,7 +10,7 @@
  *          Fortunes now know the character, time, themes, and emotional state
  */
 
-Import existing dice system for integration
+// Import existing dice system for integration
 // Uncomment when in actual extension:
 // import { rollSkillCheck, formatCheckResult } from './dice.js';
 
@@ -21,7 +21,7 @@ import {
 } from './fortune-generator.js';
 
 // Debounce flag for mobile double-click prevention
-let envelopeClickCooldown_NEW = false;
+let envelopeClickCooldown = false;
 
 // ═══════════════════════════════════════════════════════════════
 // LEDGER VOICE DEFINITIONS
@@ -558,8 +558,6 @@ async function handleFortuneDraw(e) {
         : '';
     console.log(`[Ledger Voices] Fortune drawn${contextInfo} - open envelope to seal fate`);
 }
-/**
- *
 
 /**
  * Handle envelope click - opening seals your fate
