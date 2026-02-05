@@ -11,7 +11,12 @@
  * This module TRACKS state and EMITS events.
  * Batch 2 will add the actual commentary.
  * 
- * @version 1.0.0
+ * @version 1.1.0
+ * FIXES:
+ * - Compartment tab selector now tries multiple selectors (Bug 1)
+ * - Fidget emit now includes `intensity` field (Bug 2)
+ * - Per-event cooldown tuning (Bug 4)
+ * - Emits window event alongside internal events for cross-module use
  */
 
 import { getChatState, saveChatState } from '../core/persistence.js';
@@ -47,7 +52,22 @@ let awarenessState = {
     
     // Reaction cooldowns (prevent spam)
     lastReactionTime: {},   // { eventType: timestamp }
-    reactionCooldown: 30000 // 30 seconds between same reaction type
+};
+
+// ═══════════════════════════════════════════════════════════════
+// FIX (Bug 4): Per-event cooldown tuning
+// Different events need different cooldown windows
+// ═══════════════════════════════════════════════════════════════
+
+const EVENT_COOLDOWNS = {
+    timeShift: 60000,        // 1 minute (these are already rare)
+    absence: 60000,          // 1 minute
+    vitalsChange: 15000,     // 15 seconds (these matter)
+    locationChange: 10000,   // 10 seconds (can move fast)
+    caseChange: 10000,       // 10 seconds
+    fidgetPattern: 20000,    // 20 seconds (was 30, too aggressive)
+    compartmentOpen: 10000,  // 10 seconds (was 30! way too long)
+    fortuneReady: 5000       // 5 seconds (these are user-initiated)
 };
 
 // Event listeners
@@ -133,20 +153,23 @@ export function onAwarenessEvent(event, callback) {
 
 /**
  * Emit an awareness event
+ * FIX (Bug 4): Uses per-event cooldowns instead of blanket 30s
  */
 function emit(event, data) {
-    // Check cooldown
     const now = Date.now();
     const lastReaction = awarenessState.lastReactionTime[event] || 0;
+    const cooldown = EVENT_COOLDOWNS[event] || 15000; // Default 15s
     
-    if (now - lastReaction < awarenessState.reactionCooldown) {
-        console.log(`[Ledger Awareness] ${event} on cooldown, skipping`);
+    if (now - lastReaction < cooldown) {
+        console.log(`[Ledger Awareness] ${event} on cooldown (${cooldown}ms), skipping`);
         return;
     }
     
     awarenessState.lastReactionTime[event] = now;
     
     console.log(`[Ledger Awareness] Emitting ${event}:`, data);
+    
+    // Fire internal listeners
     listeners[event]?.forEach(cb => {
         try {
             cb(data);
@@ -154,6 +177,17 @@ function emit(event, data) {
             console.error(`[Ledger Awareness] Listener error for ${event}:`, e);
         }
     });
+    
+    // FIX: Also dispatch as window event for cross-module use
+    // This lets fidget-commentary.js and other modules listen without
+    // needing a direct import of the awareness system
+    try {
+        window.dispatchEvent(new CustomEvent(`tribunal:awareness:${event}`, {
+            detail: data
+        }));
+    } catch (e) {
+        // Non-critical, swallow
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -295,6 +329,7 @@ export function recordDiceRoll(rollResult) {
 
 /**
  * Analyze recent rolls for patterns
+ * FIX (Bug 2): Now includes `intensity` field alongside `streak`
  */
 function detectFidgetPattern() {
     const rolls = awarenessState.recentRolls;
@@ -305,6 +340,8 @@ function detectFidgetPattern() {
         return {
             type: 'rapid',
             streak,
+            // FIX: Include intensity field that commentary expects
+            intensity: streak,
             message: streak >= 5 ? 'compulsive' : 'nervous'
         };
     }
@@ -317,6 +354,7 @@ function detectFidgetPattern() {
             return {
                 type: 'unlucky_streak',
                 count: 3,
+                intensity: 6,
                 message: 'bad_luck'
             };
         }
@@ -328,6 +366,7 @@ function detectFidgetPattern() {
         return {
             type: 'cursed',
             snakeEyesCount: recentSnakeEyes,
+            intensity: 10,
             message: 'the_dice_remember'
         };
     }
@@ -540,6 +579,8 @@ function loadAwarenessState() {
 /**
  * Initialize the awareness system
  * Call this once when the extension loads
+ * 
+ * FIX (Bug 1): Multiple selector fallbacks for compartment tab
  */
 export function initAwareness() {
     // Load persisted state
@@ -581,21 +622,42 @@ export function initAwareness() {
         updateLocation(e.detail);
     });
     
-    // Compartment tab opened (custom event if dispatched)
+    // Compartment tab opened (custom event from compartment-unlock.js)
     window.addEventListener('tribunal:compartmentOpened', (e) => {
         onCompartmentOpen();
     });
     
-    // FALLBACK: Direct click listener on compartment tab
-    // This way we don't need to modify the subtab handler
+    // ═══════════════════════════════════════════════════════════════
+    // FIX (Bug 1): Try MULTIPLE selectors for compartment tab
+    // The tab may use different class names in different contexts
+    // ═══════════════════════════════════════════════════════════════
     setTimeout(() => {
-        const compartmentTab = document.querySelector('.ledger-subtab[data-ledger-tab="compartment"]');
-        if (compartmentTab) {
-            compartmentTab.addEventListener('click', () => {
-                console.log('[Ledger Awareness] Compartment tab clicked');
-                onCompartmentOpen();
-            });
-            console.log('[Ledger Awareness] Compartment tab listener attached');
+        const selectors = [
+            '.ledger-subtab[data-ledger-tab="compartment"]',
+            '.ledger-subtab-secret',
+            '.ledger-subtab[data-ledger-tab="secret"]',
+            '[data-subtab="compartment"]',
+            '[data-subtab="secret"]'
+        ];
+        
+        let attached = false;
+        for (const selector of selectors) {
+            const tab = document.querySelector(selector);
+            if (tab) {
+                tab.addEventListener('click', () => {
+                    console.log(`[Ledger Awareness] Compartment tab clicked (${selector})`);
+                    onCompartmentOpen();
+                });
+                console.log(`[Ledger Awareness] Compartment tab listener attached via: ${selector}`);
+                attached = true;
+                break;
+            }
+        }
+        
+        if (!attached) {
+            console.warn('[Ledger Awareness] Could not find compartment tab with any known selector');
+            console.warn('[Ledger Awareness] Tried:', selectors.join(', '));
+            console.warn('[Ledger Awareness] Falling back to tribunal:compartmentOpened event only');
         }
     }, 1000); // Delay to ensure DOM is ready
     
@@ -624,7 +686,8 @@ export function debugAwareness() {
         state,
         listeners: Object.fromEntries(
             Object.entries(listeners).map(([k, v]) => [k, v.length])
-        )
+        ),
+        cooldowns: EVENT_COOLDOWNS
     });
     return state;
 }

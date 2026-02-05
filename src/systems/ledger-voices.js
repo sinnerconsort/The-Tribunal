@@ -6,7 +6,8 @@
  * THE LEDGER OF OBLIVION - Prophetic, inevitable, fate-speaking  
  * THE LEDGER OF FAILURE AND HATRED - Mocking, 4th-wall, nihilistic-caring
  * 
- * v1.2.0 - Option B: Open envelope to seal your fate (mobile fix)
+ * v1.3.0 - FIX: Dice results now target #compartment-dice-result (Bug 3)
+ *           Falls back to #compartment-commentary for backwards compat
  */
 
 // Import existing dice system for integration
@@ -556,8 +557,15 @@ function updateDiceVisuals(dieElement, value) {
     setTimeout(() => dieElement.classList.remove('die-result'), 1000);
 }
 
+/**
+ * Display dice result
+ * FIX (Bug 3): Now targets #compartment-dice-result first to avoid
+ * overwriting contextual commentary in #compartment-voice / #compartment-commentary
+ */
 function displayDiceResult(result) {
-    const commentary = document.getElementById('compartment-commentary');
+    // Prefer dedicated dice result element, fall back to commentary
+    const commentary = document.getElementById('compartment-dice-result') 
+                    || document.getElementById('compartment-commentary');
     if (!commentary) return;
     
     const diceDisplay = `[${result.die1}][${result.die2}] = ${result.total}`;

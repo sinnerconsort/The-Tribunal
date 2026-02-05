@@ -8,7 +8,13 @@
  * - Fidget patterns (nervous rolling)
  * - RP events (vitals, location)
  * 
- * @version 1.0.0
+ * @version 1.1.0
+ * FIXES:
+ * - showCommentary exposed as `display` on window export (Bug 5)
+ * - Fidget handler reads `intensity` correctly (Bug 2)
+ * - Commentary writes to #compartment-voice instead of #compartment-commentary
+ *   to avoid collision with dice results (Bug 3)
+ * - Falls back to #compartment-commentary if #compartment-voice doesn't exist
  */
 
 import { 
@@ -378,12 +384,17 @@ function showCommentaryToast(text, voiceKey, duration = CONFIG.toastDuration) {
 
 /**
  * Update the compartment commentary text
+ * FIX (Bug 3): Prefers #compartment-voice to avoid collision with dice results
+ * Falls back to #compartment-commentary if the dedicated element doesn't exist
  */
 function updateCompartmentCommentary(text, voiceKey) {
     if (!CONFIG.updateCompartment) return;
     
     const voice = getVoice(voiceKey);
-    const el = document.getElementById('compartment-commentary');
+    
+    // Prefer dedicated voice element to avoid dice result collision
+    const el = document.getElementById('compartment-voice') 
+            || document.getElementById('compartment-commentary');
     
     if (el) {
         el.innerHTML = `<span style="color: ${voice.color}">"${text}"</span>`;
@@ -392,8 +403,9 @@ function updateCompartmentCommentary(text, voiceKey) {
 
 /**
  * Show commentary (both toast and compartment)
+ * This is the main display function, also exposed as window.TribunalCommentary.display
  */
-function showCommentary(text, voiceKey, options = {}) {
+export function showCommentary(text, voiceKey, options = {}) {
     const finalText = fillTemplate(text, options.data || {});
     const duration = options.duration || CONFIG.toastDuration;
     
@@ -460,13 +472,17 @@ function handleAbsence(absence) {
 
 /**
  * Handle fidget pattern detection
+ * FIX (Bug 2): Reads `intensity` field (now provided by awareness.js)
+ * Also accepts `streak` as fallback for backwards compatibility
  */
 function onFidgetPattern(data) {
     let reactions;
+    // FIX: Read intensity, fall back to streak for backwards compat
+    const intensity = data.intensity ?? data.streak ?? 0;
     
     switch (data.type) {
         case 'rapid':
-            reactions = data.intensity >= 5 
+            reactions = intensity >= 5 
                 ? FIDGET_REACTIONS.compulsive 
                 : FIDGET_REACTIONS.rapid;
             break;
@@ -617,6 +633,9 @@ if (typeof window !== 'undefined') {
     window.TribunalCommentary = {
         init: initCommentary,
         trigger: triggerCommentary,
+        
+        // FIX (Bug 5): Expose showCommentary as `display` for fidget-commentary.js
+        display: showCommentary,
         
         // Test specific scenarios
         testGreeting: () => triggerCommentary('greeting'),
