@@ -1,10 +1,10 @@
 /**
  * The Tribunal - Responsive / Mobile
- * DESKTOP FIX v8: Footer visible + content fills space
+ * DESKTOP FIX v9: Panel scales to content height (not forced 100vh)
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   BASE STYLES FOR .ie-bottom-buttons (was missing from panel.css!)
+   BASE STYLES FOR .ie-bottom-buttons
    ═══════════════════════════════════════════════════════════════ */
 
 .ie-bottom-buttons {
@@ -19,15 +19,15 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   PANEL LAYOUT
+   PANEL LAYOUT - Natural content height
    ═══════════════════════════════════════════════════════════════ */
 
 .inland-empire-panel {
     display: flex !important;
     flex-direction: column !important;
     overflow: hidden !important;
-    height: 100vh;
-    height: 100dvh;
+    /* Don't force 100vh - let content determine height */
+    height: auto;
     max-height: 100vh;
     max-height: 100dvh;
 }
@@ -41,12 +41,10 @@
 }
 
 .ie-panel-content {
-    flex: 1 1 0 !important;
+    flex: 1 1 auto !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     min-height: 0 !important;
-    display: flex !important;
-    flex-direction: column !important;
 }
 
 .ie-bottom-buttons {
@@ -54,7 +52,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DESKTOP BREAKPOINT (>768px) - Content fills space
+   DESKTOP BREAKPOINT (>768px) - Content-driven height
    ═══════════════════════════════════════════════════════════════ */
 
 @media (min-width: 769px) {
@@ -62,8 +60,13 @@
         width: 420px;
         right: 0;
         display: none !important;
-        height: 100vh !important;
-        height: 100dvh !important;
+        /* Key change: height auto, max-height limits it */
+        height: auto !important;
+        max-height: 100vh !important;
+        max-height: 100dvh !important;
+        /* Anchor to top so it grows downward */
+        top: 0 !important;
+        bottom: auto !important;
     }
     
     .inland-empire-panel.ie-panel-open {
@@ -76,22 +79,26 @@
         display: flex;
     }
     
-    /* Content wrapper fills available space */
+    /* Content area - scrolls if needed */
     .ie-panel-content {
-        flex: 1 1 0 !important;
+        flex: 1 1 auto !important;
         min-height: 0 !important;
+        max-height: none !important;
         overflow-y: auto !important;
         overflow-x: hidden !important;
-        display: flex !important;
-        flex-direction: column !important;
     }
     
-    /* Tab pages fill content area */
-    .ie-tab-content {
-        flex: 1 1 0 !important;
-        min-height: 0 !important;
-        display: none;
-        flex-direction: column !important;
+    /* Tab pages - natural height */
+    .ie-tab-content,
+    .voices-page,
+    .cabinet-page,
+    .profiles-page,
+    .settings-page,
+    .ledger-page,
+    .inventory-page {
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
     }
     
     .ie-tab-content.ie-tab-content-active {
@@ -99,136 +106,25 @@
         flex-direction: column !important;
     }
     
-    /* ═══════════════════════════════════════════════════════════════
-       VOICES TAB - Napkin fills space
-       ═══════════════════════════════════════════════════════════════ */
-    .voices-page {
-        flex: 1 1 0 !important;
-        display: none;
-        flex-direction: column !important;
-    }
-    
-    .voices-page.ie-tab-content-active {
-        display: flex !important;
-    }
-    
-    .voices-napkin {
-        flex: 1 1 0 !important;
-        min-height: 0 !important;
-        overflow-y: auto !important;
-    }
-    
-    /* ═══════════════════════════════════════════════════════════════
-       CABINET TAB - Corkboard fills space
-       ═══════════════════════════════════════════════════════════════ */
-    .cabinet-page {
-        flex: 1 1 0 !important;
-        display: none;
-        flex-direction: column !important;
-    }
-    
-    .cabinet-page.ie-tab-content-active {
-        display: flex !important;
-    }
-    
-    .cabinet-corkboard {
-        flex: 1 1 0 !important;
-        min-height: 0 !important;
-        overflow-y: auto !important;
-    }
-    
-    /* ═══════════════════════════════════════════════════════════════
-       STATUS TAB - Medical form fills space
-       ═══════════════════════════════════════════════════════════════ */
-    .ie-tab-content[data-tab-content="status"] {
-        flex: 1 1 0 !important;
-        display: none;
-        flex-direction: column !important;
-    }
-    
-    .ie-tab-content[data-tab-content="status"].ie-tab-content-active {
-        display: flex !important;
-    }
-    
-    .rcm-medical-form {
-        flex: 1 1 0 !important;
-        min-height: 0 !important;
-        overflow-y: auto !important;
-    }
-    
-    /* ═══════════════════════════════════════════════════════════════
-       LEDGER TAB - Field notebook fills space
-       ═══════════════════════════════════════════════════════════════ */
-    .ledger-page {
-        flex: 1 1 0 !important;
-        display: none;
-        flex-direction: column !important;
-    }
-    
-    .ledger-page.ie-tab-content-active {
-        display: flex !important;
-    }
-    
-    .field-notebook {
-        flex: 1 1 0 !important;
-        min-height: 0 !important;
-        overflow-y: auto !important;
-    }
-    
-    /* ═══════════════════════════════════════════════════════════════
-       INVENTORY TAB - Fills space
-       ═══════════════════════════════════════════════════════════════ */
-    .inventory-page {
-        flex: 1 1 0 !important;
-        display: none;
-        flex-direction: column !important;
-    }
-    
-    .inventory-page.ie-tab-content-active {
-        display: flex !important;
-    }
-    
+    /* Inner containers - natural height */
+    .voices-napkin,
+    .cabinet-corkboard,
+    .tribunal-wallet,
+    .field-notebook,
+    .rcm-medical-form,
     .inventory-panel {
-        flex: 1 1 0 !important;
-        min-height: 0 !important;
-        overflow-y: auto !important;
+        height: auto !important;
+        min-height: auto !important;
+        flex: 0 0 auto !important;
     }
     
-    /* ═══════════════════════════════════════════════════════════════
-       SETTINGS TAB - Fills space
-       ═══════════════════════════════════════════════════════════════ */
-    .settings-page {
-        flex: 1 1 0 !important;
-        display: none;
-        flex-direction: column !important;
+    /* Footer always visible */
+    .ie-bottom-buttons {
+        flex: 0 0 auto !important;
+        min-height: 50px !important;
     }
     
-    .settings-page.ie-tab-content-active {
-        display: flex !important;
-    }
-    
-    /* ═══════════════════════════════════════════════════════════════
-       PROFILES TAB - Wallet fills space
-       ═══════════════════════════════════════════════════════════════ */
-    .profiles-page {
-        flex: 1 1 0 !important;
-        display: none;
-        flex-direction: column !important;
-    }
-    
-    .profiles-page.ie-tab-content-active {
-        display: flex !important;
-    }
-    
-    .tribunal-wallet {
-        flex: 1 1 0 !important;
-        min-height: 0 !important;
-        overflow-y: auto !important;
-    }
-    
-    /* ═══════════════════════════════════════════════════════════════
-       COMPACT ATTRIBUTES ON DESKTOP
-       ═══════════════════════════════════════════════════════════════ */
+    /* Compact attributes on desktop */
     .napkin-calc-block {
         margin-bottom: 4px !important;
         padding: 4px 10px !important;
@@ -244,7 +140,7 @@
     
     .napkin-voices-container {
         min-height: 100px !important;
-        max-height: 140px !important;
+        max-height: 200px !important;
     }
     
     .napkin-voices-section {
@@ -254,7 +150,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MOBILE BREAKPOINT (768px and below)
+   MOBILE BREAKPOINT (768px and below) - Full height on mobile
    ═══════════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
@@ -262,6 +158,7 @@
         width: 100%;
         right: 0;
         transform: translateX(100%);
+        /* Mobile stays full height */
         height: calc(100vh - 56px);
         height: 100dvh;
     }
