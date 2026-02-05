@@ -30,6 +30,11 @@ import {
     getObjectIcon,
     getNarratorDifficulty
 } from '../data/discovery-contexts.js';
+import { 
+    renderCaseLinkButton, 
+    initCaseLinkHandlers, 
+    processDiscoveriesForAutoLink 
+} from './investigation-case-link.js';
 
 // ═══════════════════════════════════════════════════════════════
 // SHIVERS SEED INTEGRATION
@@ -1200,9 +1205,10 @@ function showDiscoveryResults(investigation) {
                     </div>
                     <div style="${STYLES.discoveryPeek}">${disc.peek}</div>
                     <div style="${STYLES.discoveryActions}">
-                        <button class="discovery-examine-btn" data-id="${disc.id}" style="${STYLES.discoveryBtn}">EXAMINE</button>
-                        ${disc.canCollect ? `<button class="discovery-collect-btn" data-id="${disc.id}" style="${STYLES.discoveryBtnSecondary}">COLLECT</button>` : ''}
-                    </div>
+                    <button class="discovery-examine-btn" data-id="${disc.id}" style="${STYLES.discoveryBtn}">EXAMINE</button>
+        ${disc.canCollect ? `<button class="discovery-collect-btn" data-id="${disc.id}" style="${STYLES.discoveryBtnSecondary}">COLLECT</button>` : ''}
+        ${renderCaseLinkButton(disc)}
+    </div>
                     <div class="discovery-reactions" data-id="${disc.id}"></div>
                 </div>
             `;
@@ -1219,6 +1225,15 @@ function showDiscoveryResults(investigation) {
     resultsEl.querySelectorAll('.discovery-collect-btn').forEach(btn => {
         btn.addEventListener('click', () => handleCollect(btn.dataset.id));
     });
+
+    // Wire up case linking handlers
+initCaseLinkHandlers(resultsEl, investigation.discoveries);
+
+// Process discoveries for auto-linking to cases
+const autoLinkResults = processDiscoveriesForAutoLink(investigation.discoveries, {
+    autoLink: true  // Set to false to disable auto-linking
+});
+console.log('[Investigation] Case linking results:', autoLinkResults);
     
     // Ticker
     if (tickerEl && investigation.ticker.length > 0) {
