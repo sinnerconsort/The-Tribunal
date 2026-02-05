@@ -44,14 +44,13 @@ import { initCabinetHandlers, refreshCabinet } from './src/ui/cabinet-handler.js
 import { initNewspaperStrip, updateNewspaperStrip } from './src/ui/newspaper-strip.js';
 import { initLocationHandlers, refreshLocations } from './src/ui/location-handlers.js';
 import { initAwareness } from './src/systems/ledger-awareness.js';
-import { initCommentary } from './src/systems/ledger-commentary.js';
 import { initFortuneInjection } from './src/systems/fortune-injection.js';
 import { initFidgetPatterns } from './src/systems/fidget-patterns.js';
-import { initFidgetCommentary } from './src/systems/fidget-commentary.js';
 import { initInventoryTemplateHandlers } from './src/ui/inventory-template.js';
 import { initAutoConsume } from './src/systems/auto-consume.js';
 import './src/ui/contextual-animations.js';
 import { initDeathHandler } from './src/systems/death-handler.js';
+import { initVoiceEngine } from './src/systems/ledger-voice-engine.js';
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Weather System (lazy loaded - see init())
 // ═══════════════════════════════════════════════════════════════
@@ -837,12 +836,11 @@ async function init() {
     initCabinetHandlers();
     initNewspaperStrip();
     initAwareness();
-    initCommentary();
     initFortuneInjection();
     initFidgetPatterns();
-    initFidgetCommentary();
     initInventoryTemplateHandlers();
     initAutoConsume();
+    initVoiceEngine();
     initDeathHandler(getContext);  //
 
     // Lazy load extractor
@@ -1106,6 +1104,7 @@ eventSource.on(event_types.CHAT_CHANGED, () => {
     window.tribunalUpdateCharacter = updateCharacterInfo;
     window.tribunalRefreshCabinet = refreshCabinet;
     window.tribunalUpdateNewspaper = updateNewspaperStrip;  // Debug helper for newspaper
+    window.tribunalVoiceEngine = window.TribunalVoiceEngine;
     
     // Weather effects debug helpers
     window.tribunalWeatherDebug = debugWeather;
