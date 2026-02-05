@@ -532,18 +532,21 @@ export function updateNewspaperStrip(data) {
         dateEl.textContent = `${month} ${day}, '51`;
     }
     
-    // Update weather icon
+    // Update weather icon (only if weather data present)
     const iconEl = document.getElementById('newspaper-weather-icon');
     if (iconEl && data.weather) {
         const iconClass = WEATHER_ICONS[data.weather] || 'fa-cloud';
         iconEl.className = 'weather-icon fa-solid ' + iconClass;
     }
     
-    // Update weather text
+    // Update weather text (preserve previous if no new weather data)
     const textEl = document.getElementById('newspaper-weather-text');
     if (textEl) {
-        const weatherText = data.weatherText || data.weather || 'Overcast';
-        textEl.textContent = weatherText.charAt(0).toUpperCase() + weatherText.slice(1);
+        if (data.weatherText || data.weather) {
+            const weatherText = data.weatherText || data.weather;
+            textEl.textContent = weatherText.charAt(0).toUpperCase() + weatherText.slice(1);
+        }
+        // If neither weatherText nor weather provided, leave text as-is
     }
     
     // Update temperature
@@ -564,18 +567,20 @@ export function updateNewspaperStrip(data) {
         periodEl.textContent = PERIOD_EDITIONS[data.period] || 'EDITION';
     }
     
-    // Update weather class for styling
+    // Update weather class for styling (preserve previous weather class if no new weather)
     strip.className = 'peripherique-paper';
-    if (data.weather) {
-        const weatherClass = data.weather.replace('-day', '').replace('-night', '');
+    const activeWeather = data.weather || currentState.weather;
+    if (activeWeather) {
+        const weatherClass = activeWeather.replace('-day', '').replace('-night', '');
         strip.classList.add('weather-' + weatherClass);
     }
-    if (data.period) {
-        strip.classList.add('period-' + data.period.toLowerCase().replace('_', '-'));
+    const activePeriod = data.period || currentState.period;
+    if (activePeriod) {
+        strip.classList.add('period-' + activePeriod.toLowerCase().replace('_', '-'));
     }
     
-    // Update Shivers quip
-    updateShiversQuip(data.weather, data.period);
+    // Update Shivers quip (use stored state as fallback)
+    updateShiversQuip(data.weather || currentState.weather, data.period || currentState.period);
 }
 
 /**
