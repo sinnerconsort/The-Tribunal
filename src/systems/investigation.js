@@ -1338,6 +1338,10 @@ async function generateSkillReactions(discovery, sceneText) {
     const relevantSkills = skillMapping[discovery.type] || skillMapping.misc;
     const selectedSkillIds = relevantSkills.slice(0, 2);
     
+    // Get weather effects for difficulty modifiers
+    const weather = getCurrentWeather();
+    const weatherEffects = getWeatherEffects(weather);
+    
     const reactions = [];
     
     for (const skillId of selectedSkillIds) {
@@ -1345,7 +1349,15 @@ async function generateSkillReactions(discovery, sceneText) {
         if (!skill) continue;
         
         const level = getSkillLevel(skillId);
-        const difficulty = getNarratorDifficulty('secondary');
+        
+        // Base difficulty with weather adjustment
+        let difficulty = getNarratorDifficulty('secondary');
+        if (weatherEffects.boostSkills.includes(skillId)) {
+            difficulty -= 2;  // Weather favors this skill
+        } else if (weatherEffects.hinderSkills.includes(skillId)) {
+            difficulty += 2;  // Weather opposes this skill
+        }
+        
         const checkResult = rollSkillCheck(level, difficulty);
         
         // Generate reaction via API
@@ -1403,6 +1415,10 @@ async function handleDigDeeper(discoveryId) {
     digBtn.disabled = true;
     digBtn.textContent = '...';
     
+    // Get weather effects for difficulty modifiers
+    const weather = getCurrentWeather();
+    const weatherEffects = getWeatherEffects(weather);
+    
     try {
         // Get 2 different skills
         const usedSkills = discovery.skillReactions.map(r => r.skillId);
@@ -1414,7 +1430,15 @@ async function handleDigDeeper(discoveryId) {
             if (!skill) continue;
             
             const level = getSkillLevel(skillId);
-            const difficulty = getNarratorDifficulty('tertiary');
+            
+            // Base difficulty with weather adjustment
+            let difficulty = getNarratorDifficulty('tertiary');
+            if (weatherEffects.boostSkills.includes(skillId)) {
+                difficulty -= 2;  // Weather favors this skill
+            } else if (weatherEffects.hinderSkills.includes(skillId)) {
+                difficulty += 2;  // Weather opposes this skill
+            }
+            
             const checkResult = rollSkillCheck(level, difficulty);
             
             const systemPrompt = `You are ${skill.signature} from Disco Elysium. React to a discovered object with fresh perspective.
