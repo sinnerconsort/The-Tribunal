@@ -31,7 +31,7 @@ export { getSettings, saveSettings, getChatState, saveChatState } from './persis
  */
 export function getVitals() {
     const state = getChatState();
-    return state?.vitals || { health: 100, maxHealth: 100, morale: 100, maxMorale: 100, status: 'stable' };
+    return state?.vitals || { health: 13, maxHealth: 13, morale: 13, maxMorale: 13, status: 'stable' };
 }
 
 /**
