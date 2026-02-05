@@ -1227,13 +1227,13 @@ function showDiscoveryResults(investigation) {
     });
 
     // Wire up case linking handlers
-initCaseLinkHandlers(resultsEl, investigation.discoveries);
+    initCaseLinkHandlers(resultsEl, investigation.discoveries);
 
-// Process discoveries for auto-linking to cases
-const autoLinkResults = processDiscoveriesForAutoLink(investigation.discoveries, {
-    autoLink: true  // Set to false to disable auto-linking
-});
-console.log('[Investigation] Case linking results:', autoLinkResults);
+    // Process discoveries for auto-linking to cases
+    const autoLinkResults = processDiscoveriesForAutoLink(investigation.discoveries, {
+        autoLink: true
+    });
+    console.log('[Investigation] Case linking results:', autoLinkResults);
     
     // Ticker
     if (tickerEl && investigation.ticker.length > 0) {
