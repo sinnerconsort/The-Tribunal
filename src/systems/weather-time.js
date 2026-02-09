@@ -5,10 +5,10 @@
  * META MODE: Real IRL time + Open-Meteo weather API
  * AUTO MODE: Story-extracted time + weather transitions
  * 
- * @version 1.0.0
+ * @version 1.0.1 - Removed unused getSettings/saveSettings imports
  */
 
-import { getSettings, saveSettings, getSetting, setSetting } from '../core/persistence.js';
+import { getSetting, setSetting } from '../core/persistence.js';
 import { getChatState, saveChatState } from '../core/persistence.js';
 import { eventSource, event_types, getContext } from '../../../../../script.js';
 
