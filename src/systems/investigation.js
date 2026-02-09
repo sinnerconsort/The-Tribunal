@@ -15,14 +15,14 @@
  * 3. Discoveries appear as tappable cards
  * 4. User taps EXAMINE → Relevant skills react to that specific discovery
  * 
- * @version 7.0.0
+ * @version 7.0.1 - Removed unused getDifficultyName import
  */
 
 import { SKILLS } from '../data/skills.js';
 import { getSettings, getSkillLevel } from '../core/state.js';
 import { getChatState, saveChatState } from '../core/persistence.js';
 import { callAPI } from '../voice/api-helpers.js';
-import { rollSkillCheck, getDifficultyName } from './dice.js';
+import { rollSkillCheck } from './dice.js';
 import { getResearchPenalties } from './cabinet.js';
 import { 
     NARRATOR_CONTEXTS, 
