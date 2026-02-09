@@ -2,6 +2,8 @@
  * The Tribunal - Default State Structures
  * Reference: tribunal-state-design.md
  * 
+ * v1.1.0 - Added worldState defaults
+ * 
  * Three-layer persistence model:
  * - Per-Chat: chat_metadata.tribunal
  * - Global Settings: extension_settings.tribunal
@@ -74,15 +76,26 @@ export const DEFAULT_CHAT_STATE = {
     // INVENTORY
     // ───────────────────────────────────────────────────────────
     inventory: {
-        carried: [],    // Items in hand/pockets
+        carried: [],    // Items in hand/pockets (active inventory)
         worn: [],       // Equipped clothing/accessories
         stored: [],     // Stashed items (hotel room, car, etc.)
+        stash: {},      // Item data cache (generated descriptions, quips)
+        addictions: {}, // Addiction tracking { type: { level, lastFix } }
         money: 0,
         moneyUnit: 'Réal'
     },
     
     // ───────────────────────────────────────────────────────────
-    // LEDGER (Cases, Notes, Weather)
+    // EQUIPMENT (Martinaise Cleaners - Clothing & Accessories)
+    // ───────────────────────────────────────────────────────────
+    equipment: {
+        items: [],          // Equipment items with bonuses
+        ticketNumber: null, // Generated on first use
+        lastUpdated: null
+    },
+    
+    // ───────────────────────────────────────────────────────────
+    // LEDGER (Cases, Notes, Weather, Locations)
     // ───────────────────────────────────────────────────────────
     ledger: {
         cases: [],
@@ -99,7 +112,8 @@ export const DEFAULT_CHAT_STATE = {
             period: 'morning'  // morning, afternoon, evening, night, witching
         },
         
-        locations: []  // Discovered points of interest
+        locations: [],          // Discovered points of interest
+        currentLocation: null   // Current location object (from WORLD tag)
     },
     
     // ───────────────────────────────────────────────────────────
@@ -247,6 +261,23 @@ export const DEFAULT_GLOBAL_SETTINGS = {
         criticalFailThreshold: 2,
         showModifiers: true,
         animateDice: true
+    },
+    
+    // ───────────────────────────────────────────────────────────
+    // WORLD STATE SETTINGS
+    // ───────────────────────────────────────────────────────────
+    worldState: {
+        // WORLD tag parsing (passive, no API cost)
+        parseWorldTags: true,       // Parse <!--- WORLD{} ---> from messages
+        syncWeather: true,          // Update watch weather from WORLD tag
+        syncTime: true,             // Update watch time from WORLD tag
+        showNotifications: true,    // Toast on location change
+        
+        // AI extraction (active, uses API)
+        useAIExtractor: false,      // Use AI to detect locations (costs API)
+        
+        // World tag injection
+        injectWorldTag: false       // Show injection prompt in settings
     },
     
     // ───────────────────────────────────────────────────────────
