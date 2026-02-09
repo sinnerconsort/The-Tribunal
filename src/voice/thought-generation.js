@@ -4,12 +4,12 @@
  * Handles AI-powered generation of Disco Elysium-style thoughts.
  * Called from cabinet-handler.js when user clicks Generate.
  * 
- * @version 4.1.1 - Fixed API check
+ * @version 4.1.2 - Removed unused getThemeCounters import
  */
 
 import { callAPI } from './api-helpers.js';
 import { buildThoughtPrompt, buildQuickThoughtPrompt, parseThoughtResponse } from '../systems/thought-prompt-builder.js';
-import { addGeneratedThought, getThemeCounters, getSpikingTheme } from '../systems/cabinet.js';
+import { addGeneratedThought, getSpikingTheme } from '../systems/cabinet.js';
 // FIX: Import from state.js (same as generation.js uses) - persistence.js has different structure
 import { getSettings } from '../core/state.js';
 

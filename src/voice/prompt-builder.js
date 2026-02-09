@@ -5,6 +5,7 @@
  * REBUILD VERSION: Uses per-chat state accessors instead of global settings
  * This fixes the POV bug where pronouns weren't persisting per-chat!
  * 
+ * @version 1.0.1 - Removed unused getChatState import
  * COMPATIBILITY: Also checks old extensionSettings location as fallback
  */
 
@@ -14,7 +15,6 @@ import { getReactionLine, getSkillDynamics } from '../data/relationships.js';
 
 // Import from rebuild's state management
 import { getPersona, getVitals, getSettings } from '../core/state.js';
-import { getChatState } from '../core/persistence.js';
 
 // ═══════════════════════════════════════════════════════════════
 // COPOTYPE DETECTION
