@@ -1,9 +1,10 @@
 /**
  * The Tribunal - Equipment Handlers
  * Clean inline UI - no modals, no duplicate buttons
+ * 
+ * @version 1.0.1 - Removed unused getContext import
  */
 
-import { getContext } from '../../../../../extensions.js';
 import { eventSource, event_types } from '../../../../../../script.js';
 
 import {
