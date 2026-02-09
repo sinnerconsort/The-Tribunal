@@ -2,7 +2,7 @@
  * The Tribunal - Status Handlers
  * Wires the RCM Medical Form (Status tab) to state persistence
  * 
- * FIXED: Added resetStatusState() and onChatChanged() for proper chat switching
+ * @version 1.0.1 - Removed 5 unused imports (COPOTYPE_IDS, DUAL_ANCIENT_TRIGGERS, SPINAL_CORD_COMBO, getStatusDisplayName, setRCMCopotype)
  */
 
 import { 
@@ -15,18 +15,13 @@ import {
 } from '../core/state.js';
 
 import { 
-    STATUS_EFFECTS, 
-    COPOTYPE_IDS,
-    DUAL_ANCIENT_TRIGGERS,
-    SPINAL_CORD_COMBO,
-    getStatusDisplayName 
+    STATUS_EFFECTS
 } from '../data/statuses.js';
 
 import { 
     updateCRTVitals,
     updateRCMFormVitals,
-    setRCMStatus,
-    setRCMCopotype 
+    setRCMStatus
 } from './crt-vitals.js';
 
 // ═══════════════════════════════════════════════════════════════
