@@ -2,6 +2,8 @@
  * The Tribunal - AI Extractor
  * Uses AI to extract game state from chat messages
  * 
+ * @version 1.0.1 - Removed unused getSettings import
+ * 
  * EXPANDED: Now extracts:
  * - Quests/Cases (existing)
  * - Contacts/NPCs (existing)
@@ -13,7 +15,7 @@
  * This is more accurate than regex patterns because the AI understands context.
  */
 
-import { getSettings, getChatState, saveChatState } from '../core/state.js';
+import { getChatState, saveChatState } from '../core/state.js';
 
 // Lazy-loaded API helpers - try both function names
 let apiModule = null;

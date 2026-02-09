@@ -8,10 +8,10 @@
  * 2. Discovery matching - links investigation finds to active cases
  * 3. (Future) AI extraction - asks model to identify objectives
  * 
- * @version 2.0.0 - Added discovery-to-case matching
+ * @version 2.0.1 - Removed unused addHint import
  */
 
-import { createCase, createHint, addHint, CASE_PRIORITY } from '../data/cases.js';
+import { createCase, createHint, CASE_PRIORITY } from '../data/cases.js';
 import { getChatState, saveChatState } from '../core/persistence.js';
 
 // ═══════════════════════════════════════════════════════════════

@@ -4,6 +4,7 @@
  * Bridge module: re-exports functions from state.js and thoughts.js
  * with the names that cabinet-handler.js expects.
  * 
+ * @version 4.4.1 - Removed unused imports (progressResearch, incrementThemes, decrementTheme)
  * @version 4.4.0 - BUG FIXES:
  *   - trackThemesInMessage() now respects settings.thoughts.trackThemes (Bug 1)
  *   - resetCabinetState() now actually clears transient theme data (Bug 1)
@@ -36,7 +37,6 @@ import {
 import {
     getThoughtCabinet,
     startResearch as _startResearch,
-    progressResearch,
     internalizeThought as _internalizeThought,
     forgetThought as _forgetThought,
     getPersona,
@@ -46,9 +46,7 @@ import {
 import { 
     THEMES, 
     getTopThemes as _getTopThemes,
-    detectThemes,
-    incrementThemes,
-    decrementTheme
+    detectThemes
 } from '../data/thoughts.js';
 
 // ═══════════════════════════════════════════════════════════════
