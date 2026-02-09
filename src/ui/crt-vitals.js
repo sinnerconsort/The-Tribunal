@@ -3,6 +3,8 @@
  * Header CRT monitor display + Status tab medical form
  * Extracted from rebuild v0.3.0
  * UPDATED: Added ST context fallback for character name
+ * 
+ * v0.3.1 - Fixed vitalsChanged event dispatch (was nested in wrong block)
  */
 
 import { getContext } from '../../../../../extensions.js';
@@ -71,6 +73,11 @@ export function updateCRTVitals(health, maxHealth, morale, maxMorale, characterN
     if (nameEl) {
         nameEl.textContent = resolvedName;
     }
+    
+    // Dispatch event for ledger awareness
+    window.dispatchEvent(new CustomEvent('tribunal:vitalsChanged', { 
+        detail: { health, maxHealth, morale, maxMorale } 
+    }));
     
     // Calculate percentages
     const healthPercent = maxHealth > 0 ? (health / maxHealth) * 100 : 0;

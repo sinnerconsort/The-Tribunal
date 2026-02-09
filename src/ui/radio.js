@@ -1,8 +1,9 @@
 /**
- * The Tribunal - FELD MREF Plus+ Radio
- * Ambient soundscape player synced with weather effects
+ * The Tribunal - Slipstream SCA Radio
+ * Tricentennial Electrics ambient soundscape player
+ * Synced with weather effects system + condition effects (horror/pale)
  * 
- * @version 1.0.0
+ * @version 1.1.0 - Added condition effects integration
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -133,8 +134,11 @@ let eqAnimationFrame = null;
 let weatherUnsubscribe = null;
 let initialized = false;
 
-// Base path for audio files (relative to extension root)
-const AUDIO_BASE_PATH = './assets/audio/';
+// Store previous station when horror/pale takes over
+let preConditionStation = null;
+
+// Base path for audio files (absolute from ST webserver root)
+const AUDIO_BASE_PATH = '/scripts/extensions/third-party/The-Tribunal/assets/audio/';
 
 // ═══════════════════════════════════════════════════════════════
 // INITIALIZATION
@@ -173,8 +177,11 @@ export function initRadio() {
     // Bind UI handlers
     bindRadioHandlers();
     
-    // Connect to weather system
+    // Connect to weather system (for normal weather)
     connectToWeather();
+    
+    // Connect to condition effects (for horror/pale)
+    connectToConditionEffects();
     
     // Set initial station (daybreak default)
     currentStation = STATIONS.find(s => s.id === 'day') || STATIONS[0];
@@ -219,7 +226,7 @@ function rebuildStationList() {
  */
 async function connectToWeather() {
     try {
-        const weatherModule = await import('./weather-integration.js');
+        const weatherModule = await import('../systems/weather-integration.js');
         
         if (weatherModule.subscribe) {
             weatherUnsubscribe = weatherModule.subscribe((data) => {
@@ -243,15 +250,92 @@ async function connectToWeather() {
 }
 
 /**
+ * Connect to condition effects events (horror, pale)
+ * These now come from condition-effects.js instead of weather
+ */
+function connectToConditionEffects() {
+    // ═══════════════════════════════════════════════════════════
+    // HORROR - Heartbeat sound
+    // ═══════════════════════════════════════════════════════════
+    window.addEventListener('tribunal:horrorStart', () => {
+        console.log('[Radio] Horror triggered - tuning to DREAD');
+        
+        // Store previous station to restore later
+        if (currentStation?.id !== 'horror') {
+            preConditionStation = currentStation?.id;
+        }
+        
+        tuneToStation('horror');
+        startPlayback();
+    });
+    
+    window.addEventListener('tribunal:horrorEnd', () => {
+        console.log('[Radio] Horror ended');
+        
+        // Restore previous station if we have one
+        if (preConditionStation) {
+            tuneToStation(preConditionStation);
+            preConditionStation = null;
+            
+            // Continue playing if autoTune is on
+            if (autoTune && isPlaying) {
+                startPlayback();
+            }
+        } else {
+            stopPlayback();
+        }
+    });
+    
+    // ═══════════════════════════════════════════════════════════
+    // THE PALE - Static/void sound  
+    // ═══════════════════════════════════════════════════════════
+    window.addEventListener('tribunal:paleStart', () => {
+        console.log('[Radio] The Pale triggered - tuning to THE PALE');
+        
+        // Store previous station
+        if (currentStation?.id !== 'static') {
+            preConditionStation = currentStation?.id;
+        }
+        
+        tuneToStation('static');
+        startPlayback();
+    });
+    
+    window.addEventListener('tribunal:paleEnd', () => {
+        console.log('[Radio] The Pale ended');
+        
+        // Restore previous station
+        if (preConditionStation) {
+            tuneToStation(preConditionStation);
+            preConditionStation = null;
+            
+            if (autoTune && isPlaying) {
+                startPlayback();
+            }
+        } else {
+            stopPlayback();
+        }
+    });
+    
+    console.log('[Radio] Connected to condition effects (horror/pale)');
+}
+
+/**
  * Handle weather changes - auto-tune to matching station
  */
 function onWeatherChange(data) {
     if (!autoTune) return;
     
+    // Don't change station if we're in a condition effect (horror/pale)
+    if (currentStation?.id === 'horror' || currentStation?.id === 'static') {
+        return;
+    }
+    
     // Priority: special > weather > period
     let targetWeather = null;
     
-    if (data.special) {
+    // Skip horror/pale from weather - now handled by condition-effects
+    if (data.special && data.special !== 'horror' && data.special !== 'pale') {
         targetWeather = data.special;
     } else if (data.weather && data.weather !== 'clear') {
         targetWeather = data.weather;
@@ -415,24 +499,47 @@ export function tuneToStation(stationId) {
  * Start audio playback
  */
 export function startPlayback() {
-    if (!currentStation || !audioElement) return;
-    
-    // Ensure source is set
-    const expectedSrc = AUDIO_BASE_PATH + currentStation.file;
-    if (!audioElement.src.endsWith(currentStation.file)) {
-        audioElement.src = expectedSrc;
+    if (!currentStation) {
+        console.warn('[Radio] No station selected');
+        if (typeof toastr !== 'undefined') {
+            toastr.warning('No station selected', 'Radio');
+        }
+        return;
     }
+    
+    if (!audioElement) {
+        console.error('[Radio] Audio element not initialized');
+        return;
+    }
+    
+    // Build full audio path
+    const audioSrc = AUDIO_BASE_PATH + currentStation.file;
+    console.log('[Radio] Loading audio:', audioSrc);
+    
+    // Always set source (in case it changed)
+    audioElement.src = audioSrc;
+    audioElement.load(); // Force reload
     
     audioElement.play().then(() => {
         isPlaying = true;
         updatePlayingState(true);
         startEQAnimation();
         console.log('[Radio] Playing:', currentStation.name);
+        if (typeof toastr !== 'undefined') {
+            toastr.success(`Now playing: ${currentStation.name}`, 'Radio', { timeOut: 2000 });
+        }
     }).catch(e => {
         console.error('[Radio] Playback failed:', e.message);
-        if (e.name === 'NotAllowedError') {
-            if (typeof toastr !== 'undefined') {
-                toastr.warning('Click to enable audio', 'Radio', { timeOut: 2000 });
+        isPlaying = false;
+        updatePlayingState(false);
+        
+        if (typeof toastr !== 'undefined') {
+            if (e.name === 'NotAllowedError') {
+                toastr.warning('Click again to play (browser blocked autoplay)', 'Radio', { timeOut: 3000 });
+            } else if (e.name === 'NotSupportedError') {
+                toastr.error(`Audio file not found: ${currentStation.file}`, 'Radio', { timeOut: 5000 });
+            } else {
+                toastr.error(`Playback error: ${e.message}`, 'Radio', { timeOut: 3000 });
             }
         }
     });
@@ -456,8 +563,12 @@ export function stopPlayback() {
  * Toggle playback on/off
  */
 export function togglePlayback() {
+    console.log('[Radio] Toggle called, isPlaying:', isPlaying);
     if (isPlaying) {
         stopPlayback();
+        if (typeof toastr !== 'undefined') {
+            toastr.info('Radio OFF', 'Radio', { timeOut: 1000 });
+        }
     } else {
         startPlayback();
     }

@@ -8,25 +8,6 @@
 export const CABINET_TAB_HTML = `
 <div class="ie-tab-content cabinet-page" data-tab-content="cabinet">
     <div class="cabinet-corkboard">
-        <!-- Decorations -->
-        <div class="cabinet-decor-fingerprint"></div>
-        
-        <div class="cabinet-decor-businesscard">
-            <div class="cabinet-decor-businesscard-name">EVRART CLAIRE</div>
-            <div class="cabinet-decor-businesscard-title">President, Dockworkers' Union</div>
-            <div class="cabinet-decor-businesscard-logo"></div>
-        </div>
-        
-        <div class="cabinet-decor-faln">
-            <div class="cabinet-decor-faln-logo">FALN</div>
-            <div class="cabinet-decor-faln-text">20% off</div>
-        </div>
-        
-        <div class="cabinet-decor-matchbook">
-            <div class="cabinet-decor-matchbook-title">WHIRLING<br>IN RAGS</div>
-            <div class="cabinet-decor-matchbook-sub">Martinaise</div>
-        </div>
-        
         <!-- THEMES -->
         <div class="cabinet-themes-section">
             <div class="cabinet-header">// THEMES</div>

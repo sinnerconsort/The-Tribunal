@@ -36,6 +36,7 @@ export function initProfiles() {
     bindProfileInputs();
     bindStatButtons();
     bindActionButtons();
+    bindCardSlots();  // NEW: Bind card slot actions
     
     console.log('[Tribunal] Profiles handlers initialized');
 }
@@ -232,25 +233,65 @@ function bindActionButtons() {
     if (deleteBtn) {
         deleteBtn.addEventListener('click', () => {
             if (confirm('Reset persona to defaults?')) {
-                // Reset to defaults
-                setPersona({
-                    name: '',
-                    pronouns: 'they',
-                    povStyle: 'second',
-                    context: ''
-                });
-                setAttribute('intellect', 3);
-                setAttribute('psyche', 3);
-                setAttribute('physique', 3);
-                setAttribute('motorics', 3);
-                
-                refreshProfilesFromState();
-                flipCard(false);
-                
+                resetPersonaToDefaults();
                 console.log('[Tribunal] Persona reset to defaults');
             }
         });
     }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CARD SLOTS - New Identity
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Bind card slot click handlers
+ */
+function bindCardSlots() {
+    // "+ New Identity" button - reset and start fresh
+    const newIdentitySlots = document.querySelectorAll('.slot-empty[data-action="create-persona"]');
+    
+    newIdentitySlots.forEach(slot => {
+        slot.addEventListener('click', () => {
+            // Reset to blank defaults
+            resetPersonaToDefaults();
+            
+            // Flip to edit mode so user can start filling in
+            flipCard(true);
+            
+            // Focus the name field
+            setTimeout(() => {
+                const nameInput = document.getElementById('tribunal-card-name');
+                if (nameInput) nameInput.focus();
+            }, 400); // Wait for flip animation
+            
+            console.log('[Tribunal] New identity started');
+        });
+    });
+}
+
+/**
+ * Reset persona to blank defaults
+ */
+function resetPersonaToDefaults() {
+    // Clear persona info
+    setPersona({
+        name: '',
+        pronouns: 'they',
+        povStyle: 'second',
+        context: '',
+        sceneNotes: ''
+    });
+    
+    // Reset attributes to balanced 3s
+    setAttribute('intellect', 3);
+    setAttribute('psyche', 3);
+    setAttribute('physique', 3);
+    setAttribute('motorics', 3);
+    
+    // Refresh UI
+    refreshProfilesFromState();
+    flipCard(false);
 }
 
 // ═══════════════════════════════════════════════════════════════
