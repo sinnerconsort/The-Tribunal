@@ -4,12 +4,18 @@
  * Bridge module: re-exports functions from state.js and thoughts.js
  * with the names that cabinet-handler.js expects.
  * 
- * @version 4.2.0 - Option C themes + bonus/effect system
+ * @version 4.4.1 - Removed unused imports (progressResearch, incrementThemes, decrementTheme)
+ * @version 4.4.0 - BUG FIXES:
+ *   - trackThemesInMessage() now respects settings.thoughts.trackThemes (Bug 1)
+ *   - resetCabinetState() now actually clears transient theme data (Bug 1)
+ *   - Added freshness guard to prevent spike checks on brand-new chats
  * 
  * THEME SYSTEM (Option C):
  * - Themes increment from message scanning (via trackThemesInMessage)
  * - When a theme hits threshold (default 8), it can trigger auto-suggest
  * - When a thought is generated FROM a theme, that theme decrements
+ * - When a thought is INTERNALIZED, its theme is discharged
+ * - Themes that weren't hit in a message passively decay
  * - This creates a cycle: fill → discharge → refill
  * 
  * BONUS SYSTEM:
@@ -31,7 +37,6 @@ import {
 import {
     getThoughtCabinet,
     startResearch as _startResearch,
-    progressResearch,
     internalizeThought as _internalizeThought,
     forgetThought as _forgetThought,
     getPersona,
@@ -41,9 +46,7 @@ import {
 import { 
     THEMES, 
     getTopThemes as _getTopThemes,
-    detectThemes,
-    incrementThemes,
-    decrementTheme
+    detectThemes
 } from '../data/thoughts.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -54,6 +57,8 @@ export const MAX_RESEARCH_SLOTS = 4;
 export const MAX_INTERNALIZED = 5;
 export const THEME_CAP = 10;           // Max theme counter value
 export const THEME_SPIKE_THRESHOLD = 8; // When to suggest auto-generation
+export const THEME_DECAY_AMOUNT = 1;   // How much themes decay per message
+export const THEME_INTERNALIZE_DISCHARGE = 5; // How much theme drops on internalize
 
 // ═══════════════════════════════════════════════════════════════
 // SPECIAL EFFECT TYPES
@@ -89,7 +94,7 @@ export const SPECIAL_EFFECTS = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// THEME FUNCTIONS (Option C)
+// THEME FUNCTIONS (Option C) - WITH DECAY
 // ═══════════════════════════════════════════════════════════════
 
 /**
@@ -113,33 +118,70 @@ export function getTopThemes(limit = 3) {
 
 /**
  * Track themes in a message and update counters
+ * Also applies passive decay to themes NOT detected in this message
  * Called on MESSAGE_RECEIVED to build up theme meters
+ * 
+ * FIX v4.4.0: Now respects settings.thoughts.trackThemes
+ * 
  * @param {string} text - Message text to analyze
+ * @returns {string[]} Detected theme IDs
  */
 export function trackThemesInMessage(text) {
-    // Settings check bypassed - always track themes
-    // const settings = getSettings();
-    // if (!settings?.thoughts?.trackThemes) return;
+    // ═══════════════════════════════════════════════════════════
+    // FIX (Bug 1): Check trackThemes setting
+    // Previously this always ran regardless of the setting
+    // ═══════════════════════════════════════════════════════════
+    const settings = getSettings();
+    if (settings?.thoughts?.trackThemes === false) {
+        return [];
+    }
     
     const state = getChatState();
-    if (!state) return;
+    if (!state) return [];
     
     // Initialize themes if needed
+    if (!state.thoughtCabinet) state.thoughtCabinet = {};
     if (!state.thoughtCabinet.themes) {
         state.thoughtCabinet.themes = {};
     }
     
     const detected = detectThemes(text);
+    const themes = state.thoughtCabinet.themes;
+    
+    // Check settings for decay
+    // FIX: Use themeDecayRate from settings, default to 0 (disabled)
+    const decayRate = settings?.thoughts?.themeDecayRate ?? 0;
+    const decayEnabled = decayRate > 0;
+    
+    // Apply decay to themes NOT detected in this message
+    if (decayEnabled) {
+        for (const themeId of Object.keys(themes)) {
+            if (!detected.includes(themeId) && themes[themeId] > 0) {
+                themes[themeId] = Math.max(0, themes[themeId] - decayRate);
+            }
+        }
+    }
+    
+    // Increment detected themes
+    // Only increment if we found themes (skip generic messages)
     if (detected.length > 0) {
-        // Increment each detected theme, respecting cap
         for (const themeId of detected) {
-            const current = state.thoughtCabinet.themes[themeId] || 0;
-            state.thoughtCabinet.themes[themeId] = Math.min(THEME_CAP, current + 1);
+            const current = themes[themeId] || 0;
+            themes[themeId] = Math.min(THEME_CAP, current + 1);
         }
         
-        console.log('[Tribunal] Themes tracked:', detected, '→', state.thoughtCabinet.themes);
-        saveChatState();
+        console.log('[Tribunal] Themes tracked:', detected, '→', themes);
     }
+    
+    // Clean up themes at 0
+    for (const themeId of Object.keys(themes)) {
+        if (themes[themeId] <= 0) {
+            delete themes[themeId];
+        }
+    }
+    
+    saveChatState();
+    return detected;
 }
 
 /**
@@ -163,6 +205,22 @@ export function dischargeTheme(themeId, amount = null) {
     
     console.log('[Tribunal] Theme discharged:', themeId, '→', state.thoughtCabinet.themes[themeId]);
     saveChatState();
+}
+
+/**
+ * Discharge theme associated with a thought
+ * Called when a thought is internalized
+ * @param {Object} thought - The thought object (should have .theme property)
+ */
+function dischargeThoughtTheme(thought) {
+    if (!thought?.theme) return;
+    
+    const settings = getSettings();
+    // FIX: Use internalizeDischarge from settings (matching the defaults name)
+    const dischargeAmount = settings?.thoughts?.internalizeDischarge ?? THEME_INTERNALIZE_DISCHARGE;
+    
+    console.log('[Tribunal] Discharging theme for internalized thought:', thought.name, '→', thought.theme);
+    dischargeTheme(thought.theme, dischargeAmount);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -349,32 +407,34 @@ export function advanceResearch(messageText = '') {
         if (!thought) continue;
         
         // Base progress
-        let gain = 1;
+        let progressGain = 1;
         
-        // Bonus for relevant keywords in message
-        if (thought.theme && THEMES[thought.theme]) {
-            const keywords = THEMES[thought.theme].keywords || [];
-            const matches = keywords.filter(kw => 
-                messageText.toLowerCase().includes(kw.toLowerCase())
-            ).length;
-            gain += Math.min(matches * 0.5, 1); // Max +1 bonus from keywords
+        // Bonus for theme keywords in message
+        if (thought.theme && messageText) {
+            const theme = THEMES[thought.theme];
+            if (theme?.keywords) {
+                const lowerText = messageText.toLowerCase();
+                const keywordHits = theme.keywords.filter(kw => 
+                    lowerText.includes(kw.toLowerCase())
+                ).length;
+                
+                if (keywordHits > 0) {
+                    progressGain += Math.min(keywordHits, 2); // Max +2 bonus
+                }
+            }
         }
         
-        // Apply research speed multiplier
-        gain *= getResearchSpeedMultiplier();
+        research.progress = (research.progress || 0) + progressGain;
         
-        research.progress = (research.progress || 0) + gain;
-        
-        // Check for completion
+        // Check completion
         const maxProgress = research.maxProgress || thought.researchTime || 10;
         if (research.progress >= maxProgress) {
-            completed.push(thoughtId);
+            // Auto-internalize (calls our enhanced version)
+            const internalized = internalizeThought(thoughtId);
+            if (internalized) {
+                completed.push(thoughtId);
+            }
         }
-    }
-    
-    // Auto-internalize completed thoughts
-    for (const thoughtId of completed) {
-        internalizeThought(thoughtId);
     }
     
     if (completed.length > 0 || Object.keys(cabinet.researching).length > 0) {
@@ -408,12 +468,12 @@ export function dismissThought(thoughtId) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// INTERNALIZATION
+// INTERNALIZATION - NOW WITH THEME DISCHARGE
 // ═══════════════════════════════════════════════════════════════
 
 /**
  * Internalize a thought (complete research)
- * Applies permanent bonuses and special effects
+ * Applies permanent bonuses, special effects, AND discharges theme
  * @param {string} thoughtId 
  * @returns {Object|null} The internalized thought, or null on failure
  */
@@ -451,6 +511,9 @@ export function internalizeThought(thoughtId) {
     console.log('[Tribunal] Bonuses:', thought.internalizedBonus);
     console.log('[Tribunal] Special effect:', thought.specialEffect);
     
+    // DISCHARGE THE THOUGHT'S THEME
+    dischargeThoughtTheme(thought);
+    
     saveChatState();
     return thought;
 }
@@ -484,118 +547,121 @@ export function forgetThought(thoughtId) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PLAYER CONTEXT (wraps persona)
+// THOUGHT GENERATION
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Get player context for thought generation
- * @returns {Object} { identity, perspective }
- */
-export function getPlayerContext() {
-    const persona = getPersona();
-    const cabinet = getThoughtCabinet();
-    
-    return {
-        identity: persona?.context || '',
-        perspective: cabinet?.perspective || persona?.povStyle || 'observer'
-    };
-}
-
-/**
- * Set player identity context
- * @param {string} identity - Who the player is in this story
- */
-export function setPlayerContext(identity) {
-    setPersona({ context: identity });
-}
-
-// ═══════════════════════════════════════════════════════════════
-// GENERATED THOUGHTS
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Add a newly generated thought to the cabinet
- * Also handles theme discharge (Option C)
+ * Add a generated thought to the cabinet
  * @param {Object} thought - Generated thought data
- * @returns {Object} The thought with assigned ID
+ * @returns {Object|null} The saved thought, or null on failure
  */
 export function addGeneratedThought(thought) {
     const state = getChatState();
     if (!state) return null;
     
-    const cabinet = state.thoughtCabinet;
-    
-    // Initialize if needed
-    if (!cabinet.customThoughts) cabinet.customThoughts = {};
-    if (!cabinet.discovered) cabinet.discovered = [];
-    if (!cabinet.themes) cabinet.themes = {};
-    
-    // Generate unique ID
-    const id = `thought_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    const fullThought = {
-        ...thought,
-        id,
-        generatedAt: Date.now()
-    };
-    
-    // Store and add to discovered
-    cabinet.customThoughts[id] = fullThought;
-    cabinet.discovered.push(id);
-    
-    // ═══ OPTION C: Discharge the theme when thought is generated ═══
-    if (thought.theme) {
-        const themeId = thought.theme.toLowerCase().replace(/\s+/g, '_');
-        
-        // Discharge the theme (reset to 0 so it can build up again)
-        if (cabinet.themes[themeId]) {
-            console.log('[Tribunal] Discharging theme:', themeId, 'was:', cabinet.themes[themeId]);
-            cabinet.themes[themeId] = 0;
-        }
+    if (!state.thoughtCabinet) {
+        state.thoughtCabinet = {};
     }
     
+    const cabinet = state.thoughtCabinet;
+    
+    // Generate ID if not present
+    if (!thought.id) {
+        thought.id = 'thought_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+    }
+    
+    // Initialize storage
+    if (!cabinet.customThoughts) cabinet.customThoughts = {};
+    if (!cabinet.discovered) cabinet.discovered = [];
+    
+    // Store the thought
+    cabinet.customThoughts[thought.id] = thought;
+    
+    // Add to discovered
+    cabinet.discovered.push(thought.id);
+    
+    console.log('[Tribunal] Thought added:', thought.name, '(', thought.id, ')');
+    
     saveChatState();
-    return fullThought;
+    return thought;
 }
 
 // ═══════════════════════════════════════════════════════════════
-// STATUS & SUMMARY
+// PLAYER CONTEXT
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Get cabinet summary for display
- * @returns {Object} Summary stats
+ * Get player context for thought generation
+ * @returns {Object} { perspective, identity }
+ */
+export function getPlayerContext() {
+    const state = getChatState();
+    return state?.thoughtCabinet?.playerContext || {
+        perspective: 'observer',
+        identity: ''
+    };
+}
+
+/**
+ * Set player context
+ * @param {Object} context - { perspective?, identity? }
+ */
+export function setPlayerContext(context) {
+    const state = getChatState();
+    if (!state) return;
+    
+    if (!state.thoughtCabinet) state.thoughtCabinet = {};
+    if (!state.thoughtCabinet.playerContext) {
+        state.thoughtCabinet.playerContext = { perspective: 'observer', identity: '' };
+    }
+    
+    Object.assign(state.thoughtCabinet.playerContext, context);
+    saveChatState();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CABINET STATE MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Reset cabinet state (for chat changes)
+ * 
+ * FIX v4.4.0: Now actually clears transient theme data
+ * Previously this was a complete no-op that just logged a message.
+ * Thoughts (discovered/researching/internalized) are per-chat and 
+ * correctly isolated by loadChatState(), but theme counters need 
+ * explicit clearing to prevent any stale in-flight data from the 
+ * previous chat's processing.
+ */
+export function resetCabinetState() {
+    const state = getChatState();
+    if (!state) return;
+    
+    // Clear theme counters - these are transient accumulators
+    // The new chat's themes will be loaded fresh by loadChatState()
+    if (state.thoughtCabinet?.themes) {
+        state.thoughtCabinet.themes = {};
+        console.log('[Tribunal] Cabinet themes cleared for chat change');
+    }
+    
+    // Thoughts, research, and internalized are per-chat persistent data
+    // They get loaded correctly by loadChatState() - don't touch them here
+    console.log('[Tribunal] Cabinet state reset for chat change');
+}
+
+/**
+ * Get cabinet summary for UI
+ * @returns {Object} { discovered, researching, internalized, maxInternalized }
  */
 export function getCabinetSummary() {
     const cabinet = getThoughtCabinet();
     
-    const researchingCount = Object.keys(cabinet?.researching || {}).length;
-    const internalizedCount = (cabinet?.internalized || []).length;
-    const maxInternalized = getMaxInternalizedSlots();
-    
     return {
         discovered: (cabinet?.discovered || []).length,
-        researching: researchingCount,
-        internalized: internalizedCount,
-        dismissed: (cabinet?.dismissed || []).length,
-        forgotten: (cabinet?.forgotten || []).length,
-        
-        researchSlots: MAX_RESEARCH_SLOTS,
-        researchSlotsAvailable: MAX_RESEARCH_SLOTS - researchingCount,
-        
-        maxInternalized,
-        internalizedSlotsAvailable: maxInternalized - internalizedCount,
-        
-        canResearch: researchingCount < MAX_RESEARCH_SLOTS,
-        canInternalize: internalizedCount < maxInternalized
+        researching: Object.keys(cabinet?.researching || {}).length,
+        internalized: (cabinet?.internalized || []).length,
+        maxInternalized: getMaxInternalizedSlots()
     };
-}
-
-/**
- * Alias for getCabinetSummary (for compatibility)
- */
-export function getCabinetStatus() {
-    return getCabinetSummary();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -811,10 +877,23 @@ export function getResearchSpeedMultiplier() {
 
 /**
  * Check if a theme is "spiking" (high enough to suggest thought generation)
+ * 
+ * FIX v4.4.0: Added freshness guard - won't report spikes on brand-new chats
+ * (within first 3 messages) to prevent cascade on chat open
+ * 
  * @param {number} threshold - Count threshold (default: THEME_SPIKE_THRESHOLD)
  * @returns {Object|null} Spiking theme or null
  */
 export function getSpikingTheme(threshold = THEME_SPIKE_THRESHOLD) {
+    // ═══════════════════════════════════════════════════════════
+    // FIX (Bug 1): Don't spike on very fresh chats
+    // Prevents cascade generation when opening a new/recently-switched chat
+    // ═══════════════════════════════════════════════════════════
+    const state = getChatState();
+    if (state?.meta?.messageCount < 3) {
+        return null;
+    }
+    
     const themes = getThemeCounters();
     
     for (const [id, count] of Object.entries(themes)) {
