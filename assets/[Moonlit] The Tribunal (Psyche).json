@@ -1,0 +1,33 @@
+{
+  "moonlitEchoesPreset": true,
+  "presetVersion": "3.0.0",
+  "presetName": "The Tribunal (Psyche)",
+  "settings": {
+    "customThemeColor": "rgba(100, 73, 175, 1)",
+    "customThemeColor2": "rgba(245, 240, 225, 1)",
+    "customBgColor1": "rgba(100, 73, 175, 0.12)",
+    "customBgColor2": "rgba(100, 73, 175, 0.06)",
+    "customTopBarColor": "rgba(45, 40, 55, 1)",
+    "Drawer-iconColor": "rgba(180, 170, 195, 1)",
+    "sheldBackgroundColor": "rgba(35, 32, 45, 0.88)",
+    "customScrollbarColor": "rgba(100, 73, 175, 0.5)",
+    "customCSS-bg-blur": "5",
+    "sheldBlurStrength": "7",
+    "customCSS-bg-opacity": "1",
+    "customCSS-ChatGradientBlur": "linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(35, 32, 45, 1) 2%, rgba(35, 32, 45, 1) 98%, rgba(0, 0, 0, 0) 100%)",
+    "custom-ChatAvatar": "44px",
+    "customlastInContext": "2px solid var(--customThemeColor)",
+    "custom-EchoAvatarWidth": "20%",
+    "custom-EchoAvatarHeight": "320px",
+    "customWhisperAvatarWidth": "45%",
+    "customWhisperAvatarAlign": "center",
+    "customRippleAvatarWidth": "180px",
+    "customRippleAvatarMobileWidth": "100px",
+    "messageDetailsAnimationDuration": "0.6s",
+    "VN-sheld-height": "42dvh",
+    "VN-expression-holder": "linear-gradient(to bottom, rgba(35, 32, 45, 1) 0%, rgba(35, 32, 45, 1) 90%, rgba(0, 0, 0, 0) 100%)",
+    "enableMobile-send_form": true,
+    "enableMessageDetails": false,
+    "justifyParagraphText": false
+  }
+}
