@@ -2,6 +2,8 @@
  * The Tribunal - Contacts Handlers
  * UI logic for the contacts section in the Ledger
  * 
+ * v1.0.1 - Added name validation to prevent garbage contacts
+ * 
  * INLINE FORM VERSION: 
  * - No modals - forms expand inline in the ledger
  * - Add contact = just Name + optional Context
@@ -59,6 +61,67 @@ async function getContactDossier() {
         }
     }
     return _contactDossier;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NAME VALIDATION - Prevent garbage contacts
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Common words that should never be contact names
+ * Subset of the full list in contact-intelligence.js
+ */
+const INVALID_CONTACT_NAMES = new Set([
+    // Pronouns
+    'i', 'you', 'he', 'she', 'it', 'we', 'they', 'me', 'him', 'her', 'us', 'them',
+    'someone', 'anyone', 'everyone', 'nobody', 'somebody', 'anybody', 'everybody',
+    // Common verbs
+    'is', 'are', 'was', 'were', 'be', 'been', 'being', 'am',
+    'have', 'has', 'had', 'do', 'does', 'did', 'doing', 'done',
+    'go', 'goes', 'went', 'going', 'come', 'came', 'coming',
+    'say', 'said', 'says', 'saying', 'tell', 'told', 'telling',
+    'look', 'looked', 'looking', 'see', 'saw', 'seeing', 'seen',
+    'think', 'thought', 'thinking', 'know', 'knew', 'knowing',
+    'get', 'got', 'getting', 'make', 'made', 'making',
+    'take', 'took', 'taking', 'give', 'gave', 'giving',
+    // Determiners
+    'the', 'a', 'an', 'this', 'that', 'these', 'those',
+    // Other common words
+    'here', 'there', 'where', 'when', 'what', 'who', 'why', 'how',
+    'yes', 'no', 'not', 'just', 'only', 'also', 'very', 'really',
+    'now', 'then', 'still', 'already', 'always', 'never', 'sometimes',
+    'unknown', 'none', 'nothing', 'something', 'everything'
+]);
+
+/**
+ * Validate that a name looks like a real contact name
+ * @param {string} name - Name to validate
+ * @returns {{valid: boolean, reason?: string}}
+ */
+function validateContactName(name) {
+    if (!name || name.length < 2) {
+        return { valid: false, reason: 'Name is too short' };
+    }
+    
+    const trimmed = name.trim();
+    const lower = trimmed.toLowerCase();
+    
+    // Check against common words
+    if (INVALID_CONTACT_NAMES.has(lower)) {
+        return { valid: false, reason: `"${trimmed}" is a common word, not a name` };
+    }
+    
+    // Reject words ending in common non-name suffixes
+    if (/(?:ing|tion|sion|ment|ness|ful|less|ous|ive|able|ible|ity|ance|ence)$/i.test(trimmed)) {
+        return { valid: false, reason: `"${trimmed}" doesn't look like a name` };
+    }
+    
+    // Must start with a letter
+    if (!/^[A-Za-z]/.test(trimmed)) {
+        return { valid: false, reason: 'Name should start with a letter' };
+    }
+    
+    return { valid: true };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -321,6 +384,17 @@ async function handleInlineAddSave() {
         return;
     }
     
+    // Validate the name isn't garbage
+    const validation = validateContactName(name);
+    if (!validation.valid) {
+        nameInput?.classList.add('contact-input-error');
+        nameInput?.focus();
+        if (typeof toastr !== 'undefined') {
+            toastr.warning(validation.reason, 'Invalid Name', { timeOut: 3000 });
+        }
+        return;
+    }
+    
     const contactsData = await getContactsData();
     const contact = contactsData.createContact({
         name,
@@ -445,6 +519,17 @@ async function handleInlineEditSave(contactId) {
     if (!name) {
         nameInput?.classList.add('contact-input-error');
         nameInput?.focus();
+        return;
+    }
+    
+    // Validate the name isn't garbage
+    const validation = validateContactName(name);
+    if (!validation.valid) {
+        nameInput?.classList.add('contact-input-error');
+        nameInput?.focus();
+        if (typeof toastr !== 'undefined') {
+            toastr.warning(validation.reason, 'Invalid Name', { timeOut: 3000 });
+        }
         return;
     }
     
