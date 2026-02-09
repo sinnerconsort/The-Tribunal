@@ -8,15 +8,14 @@
  * 
  * Three voices, one engine, one escalating obsession.
  * 
- * @version 1.0.0
+ * @version 1.0.1 - Removed unused getAwarenessState import
  */
 
 import { 
     onAwarenessEvent, 
     getTimePeriod, 
     isDeepNight, 
-    isLateNight,
-    getAwarenessState 
+    isLateNight
 } from './ledger-awareness.js';
 
 import { callAPIWithTokens } from '../voice/api-helpers.js';
