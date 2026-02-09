@@ -1,39 +1,187 @@
 /**
  * The Tribunal - Responsive / Mobile
- * Mobile breakpoints and adaptations
- * REBUILD: Clean mobile support
+ * DESKTOP FIX v9: Panel scales to content height (not forced 100vh)
  */
 
 /* ═══════════════════════════════════════════════════════════════
-   MOBILE BREAKPOINT (768px)
+   BASE STYLES FOR .ie-bottom-buttons
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-bottom-buttons {
+    display: flex !important;
+    gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--ie-border, #333);
+    background: var(--ie-bg-secondary, #1a1a22);
+    margin-left: 32px;
+    margin-right: 30px;
+    flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PANEL LAYOUT - Natural content height
+   ═══════════════════════════════════════════════════════════════ */
+
+.inland-empire-panel {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    /* Don't force 100vh - let content determine height */
+    height: auto;
+    max-height: 100vh;
+    max-height: 100dvh;
+}
+
+.ie-panel-header {
+    flex: 0 0 auto !important;
+}
+
+.ie-tabs {
+    flex: 0 0 auto !important;
+}
+
+.ie-panel-content {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    min-height: 0 !important;
+}
+
+.ie-bottom-buttons {
+    flex: 0 0 auto !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DESKTOP BREAKPOINT (>768px) - Content-driven height
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (min-width: 769px) {
+    .inland-empire-panel {
+        width: 420px;
+        right: 0;
+        display: none !important;
+        /* Key change: height auto, max-height limits it */
+        height: auto !important;
+        max-height: 100vh !important;
+        max-height: 100dvh !important;
+        /* Anchor to top so it grows downward */
+        top: 0 !important;
+        bottom: auto !important;
+    }
+    
+    .inland-empire-panel.ie-panel-open {
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+    }
+    
+    .ie-fab {
+        display: flex;
+    }
+    
+    /* Content area - scrolls if needed */
+    .ie-panel-content {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+    }
+    
+    /* Tab pages - natural height */
+    .ie-tab-content,
+    .voices-page,
+    .cabinet-page,
+    .profiles-page,
+    .settings-page,
+    .ledger-page,
+    .inventory-page {
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+    }
+    
+    .ie-tab-content.ie-tab-content-active {
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    /* Inner containers - natural height */
+    .voices-napkin,
+    .cabinet-corkboard,
+    .tribunal-wallet,
+    .field-notebook,
+    .rcm-medical-form,
+    .inventory-panel {
+        height: auto !important;
+        min-height: auto !important;
+        flex: 0 0 auto !important;
+    }
+    
+    /* Footer always visible */
+    .ie-bottom-buttons {
+        flex: 0 0 auto !important;
+        min-height: 50px !important;
+    }
+    
+    /* Compact attributes on desktop */
+    .napkin-calc-block {
+        margin-bottom: 4px !important;
+        padding: 4px 10px !important;
+    }
+    
+    .napkin-attr-main {
+        margin-bottom: 3px !important;
+    }
+    
+    .napkin-plus {
+        margin: 2px 0 !important;
+    }
+    
+    .napkin-voices-container {
+        min-height: 100px !important;
+        max-height: 200px !important;
+    }
+    
+    .napkin-voices-section {
+        margin-top: 8px !important;
+        padding-top: 8px !important;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE BREAKPOINT (768px and below) - Full height on mobile
    ═══════════════════════════════════════════════════════════════ */
 
 @media (max-width: 768px) {
-    /* Full width panel on mobile */
     .inland-empire-panel {
         width: 100%;
         right: 0;
         transform: translateX(100%);
+        /* Mobile stays full height */
+        height: calc(100vh - 56px);
+        height: 100dvh;
     }
 
     .ie-panel-open {
         transform: translateX(0);
     }
 
-    /* Single column attributes */
     .ie-attributes-grid {
         grid-template-columns: 1fr;
     }
 
-    /* 2-column status grid */
     .ie-status-grid {
         grid-template-columns: repeat(2, 1fr);
     }
     
-    /* Discovery modal sizing */
     .ie-discovery-modal {
         width: 95%;
         max-height: 85vh;
+    }
+    
+    .ie-bottom-buttons {
+        padding: 8px 12px 10px;
     }
 }
 
@@ -76,10 +224,6 @@
     
     .ie-vital-label {
         width: 60px;
-    }
-    
-    .ie-bottom-buttons {
-        padding: 8px 12px 10px 24px;
     }
     
     .ie-bottom-btn {
