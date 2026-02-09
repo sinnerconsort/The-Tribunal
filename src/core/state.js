@@ -4,14 +4,17 @@
  * 
  * This is the main API for accessing/modifying state.
  * All state changes go through these functions.
+ * 
+ * v1.0.1 - Cleanup:
+ *   - Removed unused getProgression import
+ *   - Fixed indentation in getSkillLevel()
  */
 
 import { 
     getChatState, 
     saveChatState, 
     getSettings as _getSettings, 
-    saveSettings as _saveSettings,
-    getProgression 
+    saveSettings as _saveSettings
 } from './persistence.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -19,7 +22,7 @@ import {
 // So other modules can import everything from state.js
 // ═══════════════════════════════════════════════════════════════
 
-export { getSettings, saveSettings, getChatState } from './persistence.js';
+export { getSettings, saveSettings, getChatState, saveChatState } from './persistence.js';
 
 // ═══════════════════════════════════════════════════════════════
 // VITALS
@@ -31,7 +34,7 @@ export { getSettings, saveSettings, getChatState } from './persistence.js';
  */
 export function getVitals() {
     const state = getChatState();
-    return state?.vitals || { health: 100, maxHealth: 100, morale: 100, maxMorale: 100, status: 'stable' };
+    return state?.vitals || { health: 13, maxHealth: 13, morale: 13, maxMorale: 13, status: 'stable' };
 }
 
 /**
@@ -146,7 +149,6 @@ export function removeActiveEffect(effectId) {
     saveChatState();
 }
 
-
 // ═══════════════════════════════════════════════════════════════
 // ATTRIBUTES & SKILLS
 // ═══════════════════════════════════════════════════════════════
@@ -184,8 +186,9 @@ export function getSkillLevel(skillId) {
     
     const base = state.skillLevels?.[skillId] || getBaseSkillLevel(skillId);
     const bonus = state.skillBonuses?.[skillId] || 0;
-    
-    return base + bonus;
+    const equipmentBonus = getEquipmentSkillModifier(skillId);
+
+    return base + bonus + equipmentBonus;
 }
 
 /**
@@ -456,6 +459,210 @@ export function setMoneyUnit(unit) {
 
 
 // ═══════════════════════════════════════════════════════════════
+// EQUIPMENT (Martinaise Cleaners - Clothing & Accessories)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get equipment state
+ * @returns {object} Equipment data
+ */
+export function getEquipment() {
+    const state = getChatState();
+    if (!state?.equipment) {
+        return { items: [], ticketNumber: null, lastUpdated: null };
+    }
+    return state.equipment;
+}
+
+/**
+ * Set entire equipment state
+ * @param {object} equipment - Equipment state object
+ */
+export function setEquipment(equipment) {
+    const state = getChatState();
+    if (!state) return;
+    
+    state.equipment = equipment;
+    saveChatState();
+}
+
+/**
+ * Initialize equipment if not present
+ * Call this on chat load to ensure equipment exists
+ */
+export function initializeEquipment() {
+    const state = getChatState();
+    if (!state) return;
+    
+    if (!state.equipment) {
+        state.equipment = {
+            items: [],
+            ticketNumber: Math.floor(1000 + Math.random() * 9000),
+            lastUpdated: null
+        };
+        saveChatState();
+    } else if (!state.equipment.ticketNumber) {
+        state.equipment.ticketNumber = Math.floor(1000 + Math.random() * 9000);
+        saveChatState();
+    }
+}
+
+/**
+ * Add an equipment item
+ * @param {object} item - Equipment item object
+ * @returns {object} The added item with generated ID
+ */
+export function addEquipment(item) {
+    const state = getChatState();
+    if (!state) return null;
+    
+    initializeEquipment();
+    
+    // Generate ID if not present
+    if (!item.id) {
+        item.id = `equip_${item.type || 'other'}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+    }
+    
+    // Set defaults
+    const newItem = {
+        name: item.name || 'Unknown Item',
+        type: item.type || 'other',
+        description: item.description || '',
+        bonuses: item.bonuses || {},
+        voiceQuips: item.voiceQuips || [],
+        equipped: item.equipped !== false,
+        source: item.source || 'manual',
+        createdAt: Date.now(),
+        ...item
+    };
+    
+    state.equipment.items.push(newItem);
+    state.equipment.lastUpdated = Date.now();
+    saveChatState();
+    
+    return newItem;
+}
+
+/**
+ * Remove an equipment item by ID
+ * @param {string} itemId - Item ID to remove
+ * @returns {object|null} Removed item or null
+ */
+export function removeEquipment(itemId) {
+    const state = getChatState();
+    if (!state?.equipment?.items) return null;
+    
+    const idx = state.equipment.items.findIndex(i => i.id === itemId);
+    if (idx === -1) return null;
+    
+    const [removed] = state.equipment.items.splice(idx, 1);
+    state.equipment.lastUpdated = Date.now();
+    saveChatState();
+    
+    return removed;
+}
+
+/**
+ * Update an equipment item
+ * @param {string} itemId - Item ID to update
+ * @param {object} updates - Properties to update
+ * @returns {object|null} Updated item or null
+ */
+export function updateEquipment(itemId, updates) {
+    const state = getChatState();
+    if (!state?.equipment?.items) return null;
+    
+    const item = state.equipment.items.find(i => i.id === itemId);
+    if (!item) return null;
+    
+    Object.assign(item, updates);
+    state.equipment.lastUpdated = Date.now();
+    saveChatState();
+    
+    return item;
+}
+
+/**
+ * Toggle equipment equipped state
+ * @param {string} itemId - Item ID to toggle
+ * @returns {boolean} New equipped state
+ */
+export function toggleEquipment(itemId) {
+    const state = getChatState();
+    if (!state?.equipment?.items) return false;
+    
+    const item = state.equipment.items.find(i => i.id === itemId);
+    if (!item) return false;
+    
+    item.equipped = !item.equipped;
+    state.equipment.lastUpdated = Date.now();
+    saveChatState();
+    
+    return item.equipped;
+}
+
+/**
+ * Get all equipment items
+ * @param {boolean} equippedOnly - Only return equipped items
+ * @returns {array} Equipment items
+ */
+export function getEquipmentItems(equippedOnly = false) {
+    const equipment = getEquipment();
+    if (!equipment?.items) return [];
+    
+    if (equippedOnly) {
+        return equipment.items.filter(i => i.equipped);
+    }
+    return equipment.items;
+}
+
+/**
+ * Get total stat modifiers from all equipped items
+ * @returns {object} { skillId: totalModifier }
+ */
+export function getEquipmentBonuses() {
+    const equipped = getEquipmentItems(true);
+    const totals = {};
+    
+    for (const item of equipped) {
+        if (item.bonuses) {
+            for (const [skill, mod] of Object.entries(item.bonuses)) {
+                totals[skill] = (totals[skill] || 0) + mod;
+            }
+        }
+    }
+    
+    return totals;
+}
+
+/**
+ * Get equipment modifier for a specific skill
+ * @param {string} skillId - Skill to get modifier for
+ * @returns {number} Total modifier from equipment
+ */
+export function getEquipmentSkillModifier(skillId) {
+    const bonuses = getEquipmentBonuses();
+    return bonuses[skillId] || 0;
+}
+
+/**
+ * Clear all equipment
+ */
+export function clearEquipment() {
+    const state = getChatState();
+    if (!state) return;
+    
+    const ticketNumber = state.equipment?.ticketNumber || Math.floor(1000 + Math.random() * 9000);
+    state.equipment = {
+        items: [],
+        ticketNumber,
+        lastUpdated: Date.now()
+    };
+    saveChatState();
+}
+
+
+// ═══════════════════════════════════════════════════════════════
 // LEDGER (Cases, Notes, Weather, Time)
 // ═══════════════════════════════════════════════════════════════
 
@@ -547,9 +754,34 @@ export function setTime(time) {
     saveChatState();
 }
 
+// ═══════════════════════════════════════════════════════════════
+// LOCATIONS
+// ═══════════════════════════════════════════════════════════════
+
 /**
- * Add a location
- * @param {object} location - { id, name, description, discovered }
+ * Get current location
+ * @returns {object|null} Current location object
+ */
+export function getCurrentLocation() {
+    const state = getChatState();
+    return state?.ledger?.currentLocation || null;
+}
+
+/**
+ * Set current location
+ * @param {object|null} location - Location object or null
+ */
+export function setCurrentLocation(location) {
+    const state = getChatState();
+    if (!state) return;
+    
+    state.ledger.currentLocation = location ? { ...location } : null;
+    saveChatState();
+}
+
+/**
+ * Add a new location to discovered locations
+ * @param {object} location - Location object
  */
 export function addLocation(location) {
     const state = getChatState();
@@ -560,10 +792,113 @@ export function addLocation(location) {
     }
     
     // Don't add duplicates
-    if (!state.ledger.locations.find(l => l.id === location.id)) {
-        state.ledger.locations.push(location);
-        saveChatState();
+    if (state.ledger.locations.find(l => l.id === location.id)) {
+        return;
     }
+    
+    state.ledger.locations.push({
+        id: location.id,
+        name: location.name,
+        district: location.district || null,
+        description: location.description || null,
+        visited: location.visited ?? false,
+        events: location.events || [],
+        discovered: location.discovered || new Date().toISOString()
+    });
+    
+    saveChatState();
+}
+
+/**
+ * Update a location
+ * @param {string} id - Location ID
+ * @param {object} updates - Fields to update
+ */
+export function updateLocation(id, updates) {
+    const state = getChatState();
+    if (!state?.ledger?.locations) return;
+    
+    const loc = state.ledger.locations.find(l => l.id === id);
+    if (loc) {
+        Object.assign(loc, updates);
+    }
+    
+    // Also update currentLocation if it matches
+    if (state.ledger.currentLocation?.id === id) {
+        Object.assign(state.ledger.currentLocation, updates);
+    }
+    
+    saveChatState();
+}
+
+/**
+ * Remove a location
+ * @param {string} id - Location ID
+ */
+export function removeLocation(id) {
+    const state = getChatState();
+    if (!state?.ledger?.locations) return;
+    
+    state.ledger.locations = state.ledger.locations.filter(l => l.id !== id);
+    
+    // Clear currentLocation if it was the removed one
+    if (state.ledger.currentLocation?.id === id) {
+        state.ledger.currentLocation = null;
+    }
+    
+    saveChatState();
+}
+
+/**
+ * Add an event to a location
+ * @param {string} locationId - Location ID
+ * @param {object} event - Event object { text, timestamp }
+ */
+export function addLocationEvent(locationId, event) {
+    const state = getChatState();
+    if (!state?.ledger?.locations) return;
+    
+    const loc = state.ledger.locations.find(l => l.id === locationId);
+    if (loc) {
+        if (!loc.events) loc.events = [];
+        loc.events.push({
+            text: event.text,
+            timestamp: event.timestamp || new Date().toISOString()
+        });
+    }
+    
+    // Also update currentLocation if it matches
+    if (state.ledger.currentLocation?.id === locationId) {
+        if (!state.ledger.currentLocation.events) state.ledger.currentLocation.events = [];
+        state.ledger.currentLocation.events.push({
+            text: event.text,
+            timestamp: event.timestamp || new Date().toISOString()
+        });
+    }
+    
+    saveChatState();
+}
+
+/**
+ * Remove an event from a location
+ * @param {string} locationId - Location ID
+ * @param {number} eventIndex - Index of event to remove
+ */
+export function removeLocationEvent(locationId, eventIndex) {
+    const state = getChatState();
+    if (!state?.ledger?.locations) return;
+    
+    const loc = state.ledger.locations.find(l => l.id === locationId);
+    if (loc?.events) {
+        loc.events.splice(eventIndex, 1);
+    }
+    
+    // Also update currentLocation if it matches
+    if (state.ledger.currentLocation?.id === locationId) {
+        state.ledger.currentLocation.events?.splice(eventIndex, 1);
+    }
+    
+    saveChatState();
 }
 
 

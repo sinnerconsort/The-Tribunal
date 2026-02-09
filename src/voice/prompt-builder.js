@@ -5,6 +5,7 @@
  * REBUILD VERSION: Uses per-chat state accessors instead of global settings
  * This fixes the POV bug where pronouns weren't persisting per-chat!
  * 
+ * @version 1.0.1 - Removed unused getChatState import
  * COMPATIBILITY: Also checks old extensionSettings location as fallback
  */
 
@@ -14,7 +15,6 @@ import { getReactionLine, getSkillDynamics } from '../data/relationships.js';
 
 // Import from rebuild's state management
 import { getPersona, getVitals, getSettings } from '../core/state.js';
-import { getChatState } from '../core/persistence.js';
 
 // ═══════════════════════════════════════════════════════════════
 // COPOTYPE DETECTION
@@ -380,7 +380,8 @@ RULES
 4. Failed checks = uncertain/wrong/bad advice
 5. Critical success = profound insight. Critical failure = hilariously wrong
 6. OBSERVE NPCs from the outside - what you SEE them do, not what they feel
-7. Total: 4-12 voice lines with back-and-forth exchanges
+7. Total: EXACTLY ${voiceData.length} voice lines (one per voice listed above)
+8. ONLY use the voices listed above - do NOT add any other skills
 ${statusContext}${copotypeSection}
 
 Output ONLY voice dialogue. No narration or explanation.`;

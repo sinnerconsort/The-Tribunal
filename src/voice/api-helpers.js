@@ -2,7 +2,7 @@
  * The Tribunal - API Helpers
  * Connection management, response extraction, and API calls
  * 
- * REBUILD v0.1.3 - Fixed first-call race condition
+ * REBUILD v0.1.5 - Added callAPIWithTokens for equipment generation
  */
 
 import { getSettings, saveSettings } from '../core/persistence.js';
@@ -57,9 +57,10 @@ export function getAvailableProfiles() {
 }
 
 /**
- * Get profile ID by name from connection manager
+ * Get profile ID by name OR ID from connection manager
+ * FIXED: Dropdown stores ID but old code searched by name - now handles both!
  */
-function getProfileIdByName(profileName) {
+function getProfileIdByName(profileNameOrId) {
     const ctx = getContext();
     if (!ctx?.extensionSettings?.connectionManager) {
         console.log('[Tribunal] No connection manager found');
@@ -67,22 +68,53 @@ function getProfileIdByName(profileName) {
     }
     
     const connectionManager = ctx.extensionSettings.connectionManager;
+    const profiles = connectionManager.profiles || [];
     
     // "current" or empty = currently active profile
-    if (profileName === 'current' || !profileName) {
+    if (profileNameOrId === 'current' || !profileNameOrId) {
         console.log('[Tribunal] Using current profile:', connectionManager.selectedProfile);
         return connectionManager.selectedProfile;
     }
     
-    // Find by name
-    const profile = connectionManager.profiles?.find(p => p.name === profileName);
-    if (profile) {
-        console.log('[Tribunal] Found profile by name:', profile.name, profile.id);
-        return profile.id;
+    // "default" = use ST default (same as current for our purposes)
+    if (profileNameOrId === 'default') {
+        console.log('[Tribunal] Using default profile:', connectionManager.selectedProfile);
+        return connectionManager.selectedProfile;
+    }
+    
+    const searchTerm = profileNameOrId.trim();
+    const searchLower = searchTerm.toLowerCase();
+    
+    // First: Try exact ID match (dropdown stores IDs!)
+    const byId = profiles.find(p => p.id === searchTerm);
+    if (byId) {
+        console.log('[Tribunal] Found profile by ID:', byId.name, '→', byId.id);
+        return byId.id;
+    }
+    
+    // Second: Try name match (case-insensitive)
+    const byName = profiles.find(p => 
+        p.name?.trim().toLowerCase() === searchLower
+    );
+    if (byName) {
+        console.log('[Tribunal] Found profile by name:', byName.name, '→', byName.id);
+        return byName.id;
+    }
+    
+    // Third: Try partial name match
+    const byPartial = profiles.find(p => 
+        p.name?.toLowerCase().includes(searchLower) ||
+        searchLower.includes(p.name?.toLowerCase())
+    );
+    if (byPartial) {
+        console.log('[Tribunal] Found profile by partial match:', byPartial.name, '→', byPartial.id);
+        return byPartial.id;
     }
     
     // Fallback to current
-    console.log('[Tribunal] Profile not found, using current:', connectionManager.selectedProfile);
+    console.log('[Tribunal] Profile "' + profileNameOrId + '" not found.');
+    console.log('[Tribunal] Available profiles:', profiles.map(p => `${p.name} (${p.id})`).join(', '));
+    console.log('[Tribunal] Falling back to current:', connectionManager.selectedProfile);
     return connectionManager.selectedProfile;
 }
 
@@ -112,50 +144,85 @@ function stripThinkingTags(text) {
 /**
  * Extract text content from various response formats
  * Handles thinking model output by stripping <think> tags
+ * 
+ * IMPROVED: More aggressive extraction, handles more edge cases
  */
 export function extractResponseContent(response) {
-    if (!response) return null;
+    if (!response) {
+        console.warn('[Tribunal] extractResponseContent: response is null/undefined');
+        return null;
+    }
     
     // If it's already a string, strip thinking tags and return
     if (typeof response === 'string') {
-        return stripThinkingTags(response);
+        const cleaned = stripThinkingTags(response);
+        if (cleaned) return cleaned;
+        console.warn('[Tribunal] extractResponseContent: string response was empty after cleaning');
+        return null;
     }
     
-    // Try various known response formats
-    if (response.content && typeof response.content === 'string') {
-        return stripThinkingTags(response.content);
-    }
+    // Log what we're working with
+    console.log('[Tribunal] extractResponseContent: type=' + typeof response + ', keys=' + Object.keys(response).join(','));
     
-    if (response.text && typeof response.text === 'string') {
-        return stripThinkingTags(response.text);
-    }
+    // Try various known response formats in order of likelihood
+    const extractors = [
+        // Direct content fields
+        () => response.content,
+        () => response.text,
+        () => response.message,
+        () => response.response,
+        
+        // Nested content
+        () => response.message?.content,
+        () => response.data?.content,
+        () => response.data?.text,
+        () => response.result?.content,
+        () => response.result?.text,
+        () => response.output?.content,
+        () => response.output?.text,
+        
+        // OpenAI-style
+        () => response.choices?.[0]?.message?.content,
+        () => response.choices?.[0]?.text,
+        () => response.choices?.[0]?.delta?.content,
+        
+        // Anthropic-style
+        () => response.content?.[0]?.text,
+        
+        // Generic array handling
+        () => Array.isArray(response.content) ? response.content.map(c => c.text || c).join('') : null,
+        
+        // Last resort: stringify if it's an object with content-like structure
+        () => {
+            if (typeof response === 'object') {
+                // Look for any string property that looks like content
+                for (const key of Object.keys(response)) {
+                    const val = response[key];
+                    if (typeof val === 'string' && val.length > 20) {
+                        console.log('[Tribunal] Found content in field:', key);
+                        return val;
+                    }
+                }
+            }
+            return null;
+        }
+    ];
     
-    if (response.message && typeof response.message === 'string') {
-        return stripThinkingTags(response.message);
-    }
-    
-    if (response.message?.content) {
-        return stripThinkingTags(response.message.content);
-    }
-    
-    // OpenAI-style
-    if (response.choices?.[0]?.message?.content) {
-        return stripThinkingTags(response.choices[0].message.content);
-    }
-    
-    if (response.choices?.[0]?.text) {
-        return stripThinkingTags(response.choices[0].text);
+    for (const extractor of extractors) {
+        try {
+            const result = extractor();
+            if (result && typeof result === 'string') {
+                const cleaned = stripThinkingTags(result);
+                if (cleaned && cleaned.length > 0) {
+                    return cleaned;
+                }
+            }
+        } catch (e) {
+            // Ignore extraction errors, try next method
+        }
     }
 
-    if (response.data?.content) {
-        return stripThinkingTags(response.data.content);
-    }
-
-    if (response.response && typeof response.response === 'string') {
-        return stripThinkingTags(response.response);
-    }
-
-    console.warn('[Tribunal] Unknown response format:', JSON.stringify(response).substring(0, 500));
+    console.warn('[Tribunal] Could not extract content. Full response:', JSON.stringify(response).substring(0, 1000));
     return null;
 }
 
@@ -164,11 +231,33 @@ export function extractResponseContent(response) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Main API call function - tries multiple methods
- * Now with retry logic for first-call race condition
+ * Main API call function - uses settings for maxTokens
+ * (Voices use this - 600 tokens default)
  */
 export async function callAPI(systemPrompt, userPrompt) {
     const settings = getSettings();
+    const maxTokens = settings?.api?.maxTokens || 600;
+    return await callAPIWithTokens(systemPrompt, userPrompt, maxTokens);
+}
+
+/**
+ * API call with CUSTOM token limit
+ * Use this for equipment generation (needs 3000+)
+ * 
+ * @param {string} systemPrompt - System message
+ * @param {string} userPrompt - User message
+ * @param {number} maxTokens - Maximum tokens for response
+ * @returns {Promise<string>} Response text
+ */
+export async function callAPIWithTokens(systemPrompt, userPrompt, maxTokens = 600) {
+    const settings = getSettings();
+    
+    // Defensive: ensure settings exists
+    if (!settings) {
+        console.error('[Tribunal] getSettings() returned null!');
+        throw new Error('Settings not loaded. Try refreshing the page.');
+    }
+    
     const apiSettings = settings.api || {};
     
     const connectionProfile = apiSettings.connectionProfile || 'current';
@@ -185,13 +274,16 @@ export async function callAPI(systemPrompt, userPrompt) {
     console.log('[Tribunal] API call config:', {
         connectionProfile,
         useSTConnection,
-        hasConnectionManager: !!ctx?.ConnectionManagerRequestService
+        maxTokens,  // Log the token limit being used
+        hasConnectionManager: !!ctx?.ConnectionManagerRequestService,
+        systemPromptLength: systemPrompt?.length || 0,
+        userPromptLength: userPrompt?.length || 0
     });
     
     // Method 1: Use ST Connection Manager if configured AND available
     if (useSTConnection && ctx?.ConnectionManagerRequestService) {
         try {
-            return await callAPIViaConnectionManager(ctx, systemPrompt, userPrompt);
+            return await callAPIViaConnectionManagerWithTokens(ctx, systemPrompt, userPrompt, maxTokens);
         } catch (err) {
             console.error('[Tribunal] ConnectionManager failed:', err);
             // Fall through to direct fetch only if we have direct API settings
@@ -200,17 +292,19 @@ export async function callAPI(systemPrompt, userPrompt) {
                 // Re-throw with clearer message
                 throw new Error(`Connection Manager error: ${err.message}. Configure a connection profile in settings.`);
             }
+            console.log('[Tribunal] Falling back to direct fetch...');
         }
     }
     
     // Method 2: Direct fetch with extension's own API settings
-    return await callAPIDirectFetch(systemPrompt, userPrompt);
+    return await callAPIDirectFetchWithTokens(systemPrompt, userPrompt, maxTokens);
 }
 
 /**
  * Call API via SillyTavern's ConnectionManagerRequestService
+ * With custom token limit
  */
-async function callAPIViaConnectionManager(ctx, systemPrompt, userPrompt) {
+async function callAPIViaConnectionManagerWithTokens(ctx, systemPrompt, userPrompt, maxTokens) {
     const settings = getSettings();
     const apiSettings = settings.api || {};
     
@@ -218,50 +312,68 @@ async function callAPIViaConnectionManager(ctx, systemPrompt, userPrompt) {
     const profileId = getProfileIdByName(profileName);
     
     if (!profileId) {
-        throw new Error('No connection profile found');
+        throw new Error('No connection profile found. Check that Connection Manager extension is enabled.');
     }
     
-    console.log('[Tribunal] Calling via ConnectionManager, profile:', profileName, 'id:', profileId);
+    console.log('[Tribunal] Calling via ConnectionManager, profile:', profileName, '→ id:', profileId, 'maxTokens:', maxTokens);
     
-    const response = await ctx.ConnectionManagerRequestService.sendRequest(
-        profileId,
-        [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-        ],
-        apiSettings.maxTokens || 500,
-        {
-            extractData: true,
-            includePreset: false,
-            includeInstruct: false
-        },
-        {
-            temperature: apiSettings.temperature || 0.9
-        }
-    );
+    let response;
+    try {
+        response = await ctx.ConnectionManagerRequestService.sendRequest(
+            profileId,
+            [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+            ],
+            maxTokens,  // Use the passed maxTokens instead of settings
+            {
+                extractData: true,
+                includePreset: false,
+                includeInstruct: false
+            },
+            {
+                temperature: apiSettings.temperature || 0.8
+            }
+        );
+    } catch (sendError) {
+        console.error('[Tribunal] sendRequest threw:', sendError);
+        throw new Error(`API request failed: ${sendError.message || sendError}`);
+    }
     
-    console.log('[Tribunal] Raw response type:', typeof response);
-    console.log('[Tribunal] Raw response keys:', response ? Object.keys(response) : 'null');
+    // Detailed response logging
+    console.log('[Tribunal] Raw response:', {
+        type: typeof response,
+        isNull: response === null,
+        isUndefined: response === undefined,
+        keys: response ? Object.keys(response) : 'N/A',
+        preview: typeof response === 'string' 
+            ? response.substring(0, 100) 
+            : JSON.stringify(response)?.substring(0, 200)
+    });
     
     const content = extractResponseContent(response);
     
     if (!content) {
-        console.error('[Tribunal] Could not extract content from response:', response);
-        throw new Error('Empty response from ConnectionManagerRequestService');
+        // More detailed error
+        const responseInfo = response 
+            ? `Got ${typeof response} with keys: ${Object.keys(response).join(', ')}`
+            : 'Response was null/undefined';
+        console.error('[Tribunal] Empty content extracted.', responseInfo);
+        throw new Error(`Empty response from API. ${responseInfo}`);
     }
     
-    console.log('[Tribunal] Extracted content length:', content.length);
+    console.log('[Tribunal] Extracted content length:', content.length, 'preview:', content.substring(0, 80));
     return content;
 }
 
 /**
- * Direct fetch to external API
+ * Direct fetch to external API with custom token limit
  */
-async function callAPIDirectFetch(systemPrompt, userPrompt) {
+async function callAPIDirectFetchWithTokens(systemPrompt, userPrompt, maxTokens) {
     const settings = getSettings();
     const apiSettings = settings.api || {};
     
-    let { apiEndpoint, apiKey, model, maxTokens, temperature } = apiSettings;
+    let { apiEndpoint, apiKey, model, temperature } = apiSettings;
 
     if (!apiEndpoint || !apiKey) {
         throw new Error('API not configured. Set API endpoint and key in settings, or select a ST connection profile.');
@@ -275,7 +387,7 @@ async function callAPIDirectFetch(systemPrompt, userPrompt) {
         ? apiEndpoint 
         : apiEndpoint + '/chat/completions';
 
-    console.log('[Tribunal] Direct fetch to:', fullUrl, 'Model:', model);
+    console.log('[Tribunal] Direct fetch to:', fullUrl, 'Model:', model, 'maxTokens:', maxTokens);
 
     let response;
     try {
@@ -291,8 +403,8 @@ async function callAPIDirectFetch(systemPrompt, userPrompt) {
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt }
                 ],
-                max_tokens: maxTokens || 500,
-                temperature: temperature || 0.9
+                max_tokens: maxTokens,  // Use the passed maxTokens
+                temperature: temperature || 0.8
             })
         });
     } catch (fetchError) {
@@ -328,7 +440,7 @@ async function callAPIDirectFetch(systemPrompt, userPrompt) {
  */
 export function getAPISettings() {
     const settings = getSettings();
-    return settings.api || {};
+    return settings?.api || {};
 }
 
 /**
@@ -339,4 +451,29 @@ export function updateAPISettings(updates) {
     if (!settings.api) settings.api = {};
     Object.assign(settings.api, updates);
     saveSettings();
+}
+
+/**
+ * Test the current API configuration
+ * Returns { success: boolean, message: string, responseTime?: number }
+ */
+export async function testAPIConnection() {
+    const startTime = Date.now();
+    try {
+        const result = await callAPI(
+            'You are a connection test. Respond with exactly: "OK"',
+            'Test. Reply only: "OK"'
+        );
+        const responseTime = Date.now() - startTime;
+        return {
+            success: true,
+            message: `Connected! Response: "${result.substring(0, 50)}"`,
+            responseTime
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error.message
+        };
+    }
 }
