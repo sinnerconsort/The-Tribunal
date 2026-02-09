@@ -2,37 +2,32 @@
  * The Tribunal - Cabinet Handler
  * Wires the cabinet template UI to the cabinet.js logic
  * 
- * @version 5.0.0 - Redesigned for tabbed stack UI
+ * @version 5.0.1 - Removed 6 unused imports (THEMES, getThemeCounters, internalizeThought, MAX_INTERNALIZED, MAX_RESEARCH_SLOTS, refreshStatusFromState)
  */
 
 import { getChatState, saveChatState } from '../core/persistence.js';
 import { SKILLS } from '../data/skills.js';
-import { THEMES } from '../data/thoughts.js';
+import { FALLBACK_ICON } from '../data/thoughts.js';
 import { THEME_COLORS, DEFAULT_CARD_COLOR } from './cabinet-template.js';
 import {
     getTopThemes,
-    getThemeCounters,
     getThought,
     getDiscoveredThoughts,
     getInternalizedThoughts,
     startResearch,
     abandonResearch,
     getResearchProgress,
-    internalizeThought,
     forgetThought,
     dismissThought,
     getPlayerContext,
     setPlayerContext,
-    getCabinetSummary,
-    MAX_INTERNALIZED,
-    MAX_RESEARCH_SLOTS
+    getCabinetSummary
 } from '../systems/cabinet.js';
 import { handleGenerateThought } from '../voice/thought-generation.js';
 import { showToast } from './toasts.js';
-import { FALLBACK_ICON } from '../data/thoughts.js';
 
 // Import status system for special effect application
-import { setStatusByUIName, refreshStatusFromState } from './status-handlers.js';
+import { setStatusByUIName } from './status-handlers.js';
 
 // ═══════════════════════════════════════════════════════════════
 // TAB SELECTION STATE
