@@ -4,14 +4,17 @@
  * 
  * This is the main API for accessing/modifying state.
  * All state changes go through these functions.
+ * 
+ * v1.0.1 - Cleanup:
+ *   - Removed unused getProgression import
+ *   - Fixed indentation in getSkillLevel()
  */
 
 import { 
     getChatState, 
     saveChatState, 
     getSettings as _getSettings, 
-    saveSettings as _saveSettings,
-    getProgression 
+    saveSettings as _saveSettings
 } from './persistence.js';
 
 // ═══════════════════════════════════════════════════════════════
@@ -146,7 +149,6 @@ export function removeActiveEffect(effectId) {
     saveChatState();
 }
 
-
 // ═══════════════════════════════════════════════════════════════
 // ATTRIBUTES & SKILLS
 // ═══════════════════════════════════════════════════════════════
@@ -183,8 +185,8 @@ export function getSkillLevel(skillId) {
     if (!state) return 1;
     
     const base = state.skillLevels?.[skillId] || getBaseSkillLevel(skillId);
-const bonus = state.skillBonuses?.[skillId] || 0;
-const equipmentBonus = getEquipmentSkillModifier(skillId);
+    const bonus = state.skillBonuses?.[skillId] || 0;
+    const equipmentBonus = getEquipmentSkillModifier(skillId);
 
     return base + bonus + equipmentBonus;
 }
