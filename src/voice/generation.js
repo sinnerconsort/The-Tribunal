@@ -3,7 +3,7 @@
  * Context analysis, voice selection, API calls, and prompt building
  * 
  * Now with CASCADE SYSTEM - skills react to each other!
- * v0.3.2 - FIXED: Voice count now properly enforces maxVoices setting
+ * v0.3.3 - Removed unused imports (getVoiceState, getActiveCopotype)
  * 
  * REBUILD VERSION: Uses per-chat state accessors and new API helpers
  * 
@@ -18,14 +18,14 @@ import { rollSkillCheck, rollSkillCheckWithStatuses, determineCheckDifficulty, c
 import { getResearchPenalties, recordCriticalSuccess, recordCriticalFailure, recordAncientVoiceTriggered } from '../systems/cabinet.js';
 
 // Import from rebuild's state management
-import { getSkillLevel, getVoiceState, setLastGeneratedVoices, awakenVoice, getSettings, getVitals } from '../core/state.js';
+import { getSkillLevel, setLastGeneratedVoices, awakenVoice, getSettings, getVitals } from '../core/state.js';
 
 // Import status handlers for active effects
 import { getActiveStatuses } from '../ui/status-handlers.js';
 
 // Import API helpers and prompt builder
 import { callAPI, getAvailableProfiles } from './api-helpers.js';
-import { analyzeContext, buildChorusPrompt, getActiveCopotype } from './prompt-builder.js';
+import { analyzeContext, buildChorusPrompt } from './prompt-builder.js';
 
 // Re-export for external use
 export { callAPI, getAvailableProfiles, analyzeContext };

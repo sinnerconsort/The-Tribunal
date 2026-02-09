@@ -8,6 +8,7 @@
  * - First generation: API call, save to stash
  * - Re-add same item: Instant from cache, no API
  * 
+ * v1.0.1 - Removed unused createInventoryItem import
  * FIXED: parseItems() now handles parentheses correctly
  * "Pack of Astras (3x)" stays as ONE item
  */
@@ -18,8 +19,7 @@ import {
     inferInventoryType, 
     isConsumable, 
     isAddictive, 
-    getAddictionData,
-    createInventoryItem 
+    getAddictionData 
 } from '../data/inventory.js';
 
 // ═══════════════════════════════════════════════════════════════
