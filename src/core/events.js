@@ -2,10 +2,9 @@
  * The Tribunal - Event Handlers
  * Hooks into SillyTavern's event system
  * 
- * @version 4.4.0 - BUG FIXES:
- *   - Added settings.enabled gate to ALL event handlers (Bug 3)
- *   - Fixed contacts regex fallback stub to actually promote pending→confirmed (Bug 2)
- *   - Added trackThemes setting check before theme tracking (Bug 1)
+ * @version 4.4.1 - Cleanup:
+ *   - Fixed wrong import path for contact-intelligence.js
+ *   - Removed unused imports (initSettings, getVitals)
  */
 
 import { eventSource, event_types, chat } from '../../../../../../script.js';
@@ -14,10 +13,9 @@ import {
     saveChatState, 
     getChatState,
     hasActiveChat,
-    initSettings,
     getSettings
 } from './persistence.js';
-import { incrementMessageCount, getVitals } from './state.js';
+import { incrementMessageCount } from './state.js';
 
 // Import vitals extraction for HP/Morale parsing from AI messages
 import { processMessageVitals } from '../systems/vitals-extraction.js';
@@ -226,7 +224,8 @@ let _looksLikeName = null;
 async function getLooksLikeName() {
     if (_looksLikeName) return _looksLikeName;
     try {
-        const mod = await import('./contact-intelligence.js');
+        // FIX: Corrected import path (was './contact-intelligence.js')
+        const mod = await import('../systems/contact-intelligence.js');
         _looksLikeName = mod.looksLikeName || (() => true);
     } catch (e) {
         _looksLikeName = () => true; // Fallback: allow all
@@ -299,13 +298,10 @@ export async function refreshLedger() {
 /**
  * Handle chat switch
  * Loads per-chat state for the new chat
- * FIX: Reset ALL module states BEFORE loading to prevent cross-chat bleeding
- * FIX v4.4.0: Gate behind settings.enabled
+ * Resets ALL module states BEFORE loading to prevent cross-chat bleeding
  */
 async function onChatChanged() {
-    // ═══════════════════════════════════════════════════════════════
-    // FIX (Bug 3): Skip ALL processing if extension is disabled
-    // ═══════════════════════════════════════════════════════════════
+    // Skip ALL processing if extension is disabled
     if (!isEnabled()) {
         console.log('[Tribunal] Chat changed but extension is disabled - skipping');
         return;
@@ -411,10 +407,7 @@ function onMessageSent() {
  * @param {number} messageId - The message index
  */
 async function onMessageReceived(messageId) {
-    // ═══════════════════════════════════════════════════════════════
-    // FIX (Bug 3): Skip ALL processing if extension is disabled
-    // This was the #1 cause of systems firing when "disabled"
-    // ═══════════════════════════════════════════════════════════════
+    // Skip ALL processing if extension is disabled
     if (!isEnabled()) {
         return;
     }
@@ -461,7 +454,7 @@ async function onMessageReceived(messageId) {
     }
     
     // ═══════════════════════════════════════════════════════════════
-    // FIX (Bug 1): Respect trackThemes setting before tracking
+    // THOUGHT CABINET - Theme tracking and research advancement
     // ═══════════════════════════════════════════════════════════════
     const settings = getSettings();
     
@@ -489,12 +482,11 @@ async function onMessageReceived(messageId) {
     // ═══════════════════════════════════════════════════════════════
     // CONTACT INTELLIGENCE - Basic NPC tracking (optional feature)
     // Full analysis happens after voice generation via analyzeVoiceSentimentForNPCs()
-    // FIX (Bug 2): Now promotes pending contacts when threshold is met
     // ═══════════════════════════════════════════════════════════════
     try {
         const contactIntel = await getContactIntelligence();
         if (contactIntel && messageText) {
-            // FIX (Bug 4): Exclude player + AI character from NPC detection
+            // Exclude player + AI character from NPC detection
             const excludeNames = getCharacterNames();
             
             // Just track mentions - voice sentiment analysis happens separately
@@ -506,10 +498,7 @@ async function onMessageReceived(messageId) {
                 }
                 console.log('[Tribunal] Tracking NPCs:', Array.from(detected.keys()));
                 
-                // ═══════════════════════════════════════════════════════════
-                // FIX (Bug 2): Check for contacts ready to promote
-                // Previously this was a dead end - suggestions were logged but never acted on
-                // ═══════════════════════════════════════════════════════════
+                // Check for contacts ready to promote
                 if (settings?.contacts?.autoDetect) {
                     await promoteReadyContacts(contactIntel);
                 }
@@ -522,14 +511,14 @@ async function onMessageReceived(messageId) {
     
     // ═══════════════════════════════════════════════════════════════
     // AI EXTRACTION - Extract ALL game state using AI
-    // Now handles: cases, contacts, locations, equipment, inventory, vitals
+    // Handles: cases, contacts, locations, equipment, inventory, vitals
     // ═══════════════════════════════════════════════════════════════
     try {
         // Check individual extraction toggles
         const extractCases = settings.cases?.autoDetect;
         const extractContacts = settings.contacts?.autoDetect;
-        const extractEquipment = settings.extraction?.autoEquipment ?? false;  // Default OFF
-        const extractInventory = settings.extraction?.autoInventory ?? false;  // Default OFF
+        const extractEquipment = settings.extraction?.autoEquipment ?? false;
+        const extractInventory = settings.extraction?.autoInventory ?? false;
         
         const aiExtractionEnabled = extractCases || extractContacts || extractEquipment || extractInventory;
         
@@ -703,8 +692,8 @@ async function onMessageReceived(messageId) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FIX (Bug 2): Promote pending contacts that have hit threshold
-// Previously getContactSuggestions() results were logged and thrown away
+// CONTACT PROMOTION
+// Promotes pending contacts that have hit the mention threshold
 // ═══════════════════════════════════════════════════════════════
 
 /**
@@ -726,7 +715,7 @@ async function promoteReadyContacts(contactIntel) {
         
         let promoted = 0;
         
-        // FIX (Bug 4): Get character names to exclude
+        // Get character names to exclude
         const charNames = getCharacterNames();
         const excludedLower = new Set();
         for (const n of charNames) {
@@ -740,7 +729,7 @@ async function promoteReadyContacts(contactIntel) {
         const validateName = await getLooksLikeName();
         
         for (const suggestion of suggestions) {
-            // FIX (Bug 4): Skip player/AI character names
+            // Skip player/AI character names
             const nameLower = suggestion.name?.toLowerCase()?.trim();
             if (excludedLower.has(nameLower)) {
                 contactIntel.clearPendingContact?.(suggestion.name);
@@ -842,16 +831,12 @@ async function fallbackRegexExtraction(messageText, settings) {
         }
     }
     
-    // ═══════════════════════════════════════════════════════════════
-    // FIX (Bug 2): Contact regex fallback was a stub - now functional
-    // Previously this detected contacts then threw away the results
-    // Now it uses the same pending→promotion pipeline
-    // ═══════════════════════════════════════════════════════════════
+    // Contact regex fallback - uses pending→promotion pipeline
     if (settings.contacts?.autoDetect) {
         try {
             const contactIntel = await getContactIntelligence();
             if (contactIntel?.detectPotentialNPCs) {
-                // FIX (Bug 4): Exclude player + AI character from NPC detection
+                // Exclude player + AI character from NPC detection
                 const excludeNames = getCharacterNames();
                 const detected = contactIntel.detectPotentialNPCs(messageText, excludeNames);
                 
@@ -879,7 +864,6 @@ async function fallbackRegexExtraction(messageText, settings) {
  * @param {object} data - Swipe event data
  */
 function onMessageSwiped(data) {
-    // FIX (Bug 3): Gate behind enabled check
     if (!isEnabled()) return;
     
     console.log('[Tribunal] Message swiped');
@@ -918,7 +902,6 @@ function onGenerationStarted() {
  * Handle generation ending
  */
 function onGenerationEnded() {
-    // FIX (Bug 3): Gate behind enabled check
     if (!isEnabled()) return;
     
     console.log('[Tribunal] Generation ended');
@@ -936,7 +919,6 @@ function onGenerationEnded() {
  * @param {string} messageText - The message that triggered generation
  */
 export async function analyzeVoiceSentimentForNPCs(voiceResults, messageText) {
-    // FIX (Bug 3): Gate behind enabled check
     if (!isEnabled()) return;
     
     try {
