@@ -2,6 +2,8 @@
  * The Tribunal - Persistence Layer
  * Handles save/load to SillyTavern's storage systems
  * 
+ * v1.0.1 - Minor formatting cleanup
+ * 
  * FIXED: Use namespace import for script.js so chat_metadata stays live
  * When you destructure import { chat_metadata }, you get a snapshot.
  * When you import * as script, script.chat_metadata always reads current value.
@@ -220,7 +222,6 @@ export function setSetting(path, value) {
     current[parts[parts.length - 1]] = value;
     saveSettings();
 }
-
 
 // ═══════════════════════════════════════════════════════════════
 // PER-CHAT STATE
@@ -457,7 +458,6 @@ function migrateChatState(state) {
     }
 }
 
-
 // ═══════════════════════════════════════════════════════════════
 // PROGRESSION (Permanent, survives everything)
 // ═══════════════════════════════════════════════════════════════
@@ -493,7 +493,6 @@ export function incrementTotalStat(statName, amount = 1) {
         saveSettings();
     }
 }
-
 
 // ═══════════════════════════════════════════════════════════════
 // UTILITY
