@@ -2,6 +2,7 @@
  * The Tribunal - Persistence Layer
  * Handles save/load to SillyTavern's storage systems
  * 
+ * v1.0.2 - Removed "State Fixed" toast (silent background cleanup)
  * v1.0.1 - Minor formatting cleanup
  * 
  * FIXED: Use namespace import for script.js so chat_metadata stays live
@@ -91,14 +92,7 @@ export function initSettings() {
     if (contaminationFixed) {
         console.log('[Tribunal] 🔧 Cleaned contaminated global settings. Per-chat data removed.');
         console.log('[Tribunal] Items/effects may need to be re-added to each chat individually.');
-        // Show toast if available
-        if (typeof toastr !== 'undefined') {
-            toastr.warning(
-                'Found and removed per-chat data from global settings. This fixes cross-chat bleeding.',
-                'Tribunal: State Fixed',
-                { timeOut: 6000 }
-            );
-        }
+        // Silent cleanup - no toast needed, just log it
     }
     
     // ═══════════════════════════════════════════════════════════════
