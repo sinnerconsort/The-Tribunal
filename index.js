@@ -2,7 +2,7 @@
  * The Tribunal - SillyTavern Extension
  * A standalone text based Disco Elysium system
  * 
- * v0.12.0 - World State Parser integration
+ * v0.12.1 - Codebase cleanup
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -27,8 +27,8 @@ import {
 import { EQUIPMENT_TYPES } from './src/data/equipment.js';
 
 import { registerEvents, onStateRefresh } from './src/core/events.js';
-// FIX: Added getVoiceState and setLastGeneratedVoices for voice persistence
 import { getSettings, saveSettings, setPersona, getVoiceState, setLastGeneratedVoices, getEquipmentItems, addEquipment } from './src/core/state.js';
+
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - UI Components
 // ═══════════════════════════════════════════════════════════════
@@ -51,6 +51,7 @@ import { initAutoConsume } from './src/systems/auto-consume.js';
 import './src/ui/contextual-animations.js';
 import { initDeathHandler } from './src/systems/death-handler.js';
 import { initVoiceEngine } from './src/systems/ledger-voice-engine.js';
+
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Weather System (lazy loaded - see init())
 // ═══════════════════════════════════════════════════════════════
@@ -73,6 +74,7 @@ let debugWeather = () => console.log('[Tribunal] Weather not loaded');
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - Voice Generation & Extraction (lazy loaded)
 // ═══════════════════════════════════════════════════════════════
+
 let extractFromMessage = async () => ({ error: 'not loaded' });
 let processExtractionResults = async () => ({});
 let generateEquipmentFromMessage = async () => ({ equipment: [], removed: [] });
@@ -128,20 +130,21 @@ export { generateVoicesForMessage, renderVoices, appendVoicesToChat };
 // Investigation functions
 export { initInvestigation, updateSceneContext, openInvestigation, closeInvestigation } from './src/systems/investigation.js';
 
-// Condition Effects
-import('./ui/condition-effects.js').then(module => {
+// Condition Effects (lazy loaded at module level)
+import('./src/ui/condition-effects.js').then(module => {
     module.initConditionEffects();
-    module.startHealthMonitor();  // Auto-monitor health for visual effects
+    module.startHealthMonitor();
     console.log('[Tribunal] Condition effects initialized');
 }).catch(err => {
     console.warn('[Tribunal] Condition effects not loaded:', err);
 });
+
 // ═══════════════════════════════════════════════════════════════
 // EXTENSION METADATA
 // ═══════════════════════════════════════════════════════════════
 
 const extensionName = 'the-tribunal';
-const extensionVersion = '0.12.0';
+const extensionVersion = '0.12.1';
 
 // ═══════════════════════════════════════════════════════════════
 // CHAT-ONLY FAB VISIBILITY
@@ -333,7 +336,7 @@ async function triggerVoiceGeneration(messageText = null, manualTrigger = false)
                 }
             }
             
-            // FIX: Save generated voices to state for persistence
+            // Save generated voices to state for persistence
             setLastGeneratedVoices(voices);
             
             console.log(`[Tribunal] Generated ${voices.length} voices`);
@@ -360,11 +363,8 @@ async function triggerVoiceGeneration(messageText = null, manualTrigger = false)
 
 /**
  * Handler for new AI messages
+ * Processes WORLD tags, weather keywords, voice generation, and equipment extraction
  */
-/**
- * NEW onNewAIMessage function with WORLD tag parsing + extraction support:
- */
-
 function onNewAIMessage(messageIndex) {
     const ctx = getContext();
     const chat = ctx?.chat;
@@ -410,8 +410,6 @@ function onNewAIMessage(messageIndex) {
         triggerVoiceGeneration(message.mes, false);
     }, 500);
 
-
-    
     // ═══════════════════════════════════════════════════════════════
     // EQUIPMENT EXTRACTION - Extract clothing/accessories from message
     // ═══════════════════════════════════════════════════════════════
@@ -441,7 +439,7 @@ function onNewAIMessage(messageIndex) {
         } catch (e) {
             console.warn('[Tribunal] Equipment extraction failed:', e.message);
         }
-    }, 1000);  // Slight delay after voice gen
+    }, 1000);
     
     // ═══════════════════════════════════════════════════════════════
     // AI EXTRACTION - Extract quests, contacts, locations from message
@@ -479,8 +477,6 @@ async function runExtraction(messageText) {
         }
         
         // Process results and update state
-        // Note: casesModule and contactsModule need to be imported if you want 
-        // those to auto-track too. For now, just locations:
         const processed = await processExtractionResults(results, {
             notifyCallback: (msg, type) => {
                 console.log(`[Tribunal] ${type}: ${msg}`);
@@ -490,9 +486,7 @@ async function runExtraction(messageText) {
                     }
                 }
             },
-            locationsModule: true  // Enable location processing
-            // casesModule: casesModule,     // Uncomment if you have cases module
-            // contactsModule: contactsModule // Uncomment if you have contacts module
+            locationsModule: true
         });
         
         // Refresh UI if anything was extracted
@@ -507,7 +501,6 @@ async function runExtraction(messageText) {
         console.warn('[Tribunal] Extraction failed:', e.message);
     }
 }
-
 
 /**
  * Manual rescan of last message
@@ -615,7 +608,7 @@ function updateBadgeDisplay(badgeNumber) {
  */
 function updateCharacterInfo() {
     const ctx = getContext();
-    const charName = ctx?.name1 || 'UNKNOWN';  // Use persona name, not AI character
+    const charName = ctx?.name1 || 'UNKNOWN';
     const charId = ctx?.characterId || '';
     
     // Update CRT header
@@ -628,6 +621,9 @@ function updateCharacterInfo() {
     console.log(`[Tribunal] Character info: ${charName} (${badge})`);
 }
 
+/**
+ * Refresh all UI panels from current state
+ */
 function refreshAllPanels() {
     const state = getChatState();
     if (!state) return;
@@ -698,7 +694,7 @@ function refreshAllPanels() {
         module.refreshContacts();
     }).catch(() => {});
     
-    // FIX: Restore last generated voices from state (persistence!)
+    // Restore last generated voices from state (persistence)
     const voiceState = getVoiceState();
     if (voiceState?.lastGenerated?.length > 0) {
         const voicesContainer = document.getElementById('tribunal-voices-output');
@@ -716,7 +712,6 @@ function refreshAllPanels() {
     console.log('[Tribunal] UI refreshed from state');
 }
 
-refreshLocations();
 // ═══════════════════════════════════════════════════════════════
 // EXTENSION SETTINGS PANEL
 // ═══════════════════════════════════════════════════════════════
@@ -829,6 +824,11 @@ async function init() {
 
     setupFABVisibilityWatchers();
 
+    // ═══════════════════════════════════════════════════════════════
+    // SYNCHRONOUS INITIALIZATIONS
+    // These run immediately and don't depend on dynamic imports
+    // ═══════════════════════════════════════════════════════════════
+    
     bindEvents();
     initProfiles();
     initStatus();
@@ -841,34 +841,36 @@ async function init() {
     initInventoryTemplateHandlers();
     initAutoConsume();
     initVoiceEngine();
-    initDeathHandler(getContext);  //
-
-    // Lazy load extractor
-try {
-    const extractor = await import('./src/systems/ai-extractor.js');
-    extractFromMessage = extractor.extractFromMessage;
-    processExtractionResults = extractor.processExtractionResults;
-    console.log('[Tribunal] AI Extractor loaded');
-} catch (e) {
-    console.warn('[Tribunal] AI Extractor not loaded:', e.message);
-}
+    initDeathHandler(getContext);
+    initLocationHandlers();
+    startWatch();
 
     // ═══════════════════════════════════════════════════════════════
-    // WORLD STATE PARSER - Lazy load
+    // LAZY-LOADED MODULES (await - sequential for dependency order)
     // ═══════════════════════════════════════════════════════════════
+    
+    // AI Extractor
+    try {
+        const extractor = await import('./src/systems/ai-extractor.js');
+        extractFromMessage = extractor.extractFromMessage;
+        processExtractionResults = extractor.processExtractionResults;
+        console.log('[Tribunal] AI Extractor loaded');
+    } catch (e) {
+        console.warn('[Tribunal] AI Extractor not loaded:', e.message);
+    }
+
+    // World State Parser
     try {
         const worldParser = await import('./src/systems/world-parser.js');
         processWorldTag = worldParser.processWorldTag;
         worldParserLoaded = true;
         console.log('[Tribunal] World Parser loaded');
-        
-        // Expose debug helper
         window.tribunalWorldParser = worldParser.debugWorldParser;
     } catch (e) {
         console.warn('[Tribunal] World Parser not loaded:', e.message);
     }
     
-    // Initialize weather effects system (lazy loaded)
+    // Weather Effects System
     try {
         const weatherModule = await import('./src/systems/weather-integration.js');
         initWeatherSystem = weatherModule.initWeatherSystem;
@@ -895,14 +897,26 @@ try {
         console.log('[Tribunal] Weather effects system initialized');
     } catch (e) {
         console.warn('[Tribunal] Weather system not loaded:', e.message);
-        // Store error for display in settings panel
         window.tribunalWeatherError = e.message || String(e);
         if (typeof toastr !== 'undefined') {
             toastr.warning(`Weather: ${e.message}`, 'The Tribunal', { timeOut: 5000 });
         }
     }
     
-    // Initialize contacts handlers (lazy import to be safe)
+    // Equipment Generation
+    try {
+        const equipGen = await import('./src/voice/equipment-generation.js');
+        generateEquipmentFromMessage = equipGen.generateEquipmentFromMessage;
+        console.log('[Tribunal] Equipment generation loaded');
+    } catch (e) {
+        console.warn('[Tribunal] Equipment generation not loaded:', e.message);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // LAZY-LOADED MODULES (fire-and-forget - independent, no order needed)
+    // ═══════════════════════════════════════════════════════════════
+    
+    // Contacts handlers
     import('./src/ui/contacts-handlers.js').then(module => {
         module.initContactsHandlers();
         console.log('[Tribunal] Contacts handlers initialized');
@@ -910,31 +924,15 @@ try {
         console.warn('[Tribunal] Contacts handlers not loaded:', err.message);
     });
 
-    // Initialize equipment handlers
-import('./src/ui/equipment-handlers.js').then(module => {
-    module.initEquipmentHandlers();
-    console.log('[Tribunal] Equipment handlers initialized');
-}).catch(err => {
-    console.warn('[Tribunal] Equipment handlers not loaded:', err.message);
-});
-
-    // Initialize inventory subtabs
-initInventoryTemplateHandlers();
-console.log('[Tribunal] Inventory template handlers initialized');
-
-    initLocationHandlers();
-    console.log('[Tribunal] Location handlers initialized');
-
-    startWatch();
-
-    import('./src/voice/equipment-generation.js').then(module => {
-    generateEquipmentFromMessage = module.generateEquipmentFromMessage;
-    console.log('[Tribunal] Equipment generation loaded');
-}).catch(err => {
-    console.warn('[Tribunal] Equipment generation not loaded:', err.message);
-});
+    // Equipment handlers
+    import('./src/ui/equipment-handlers.js').then(module => {
+        module.initEquipmentHandlers();
+        console.log('[Tribunal] Equipment handlers initialized');
+    }).catch(err => {
+        console.warn('[Tribunal] Equipment handlers not loaded:', err.message);
+    });
     
-    // Initialize radio
+    // Radio
     import('./src/ui/radio.js').then(module => {
         module.initRadio();
         console.log('[Tribunal] Radio initialized');
@@ -942,86 +940,12 @@ console.log('[Tribunal] Inventory template handlers initialized');
         console.warn('[Tribunal] Radio not loaded:', err.message);
     });
     
-    // Initialize ledger voices (drawer dice + fortunes in secret compartment)
+    // Ledger voices (drawer dice + fortunes)
     import('./src/systems/ledger-voices.js').then(module => {
-        // Delay init slightly to ensure compartment DOM exists
         setTimeout(() => {
             module.initLedgerVoices();
             console.log('[Tribunal] Ledger voices initialized');
         }, 1000);
-
-        // Initialize inventory system (handlers first, then link generation)
-import('./src/ui/inventory-handlers.js').then(handlersModule => {
-    handlersModule.initInventoryHandlers();
-    console.log('[Tribunal] Inventory handlers initialized');
-    
-    // Expose for debugging and template access
-    window.TribunalInventoryHandlers = handlersModule;
-    
-    // Now link generation module to template
-    import('./src/voice/inventory-generation.js').then(genModule => {
-        import('./src/ui/inventory-template.js').then(templateModule => {
-            templateModule.setInventoryModules(genModule, handlersModule);
-            console.log('[Tribunal] Inventory modules linked');
-        });
-    });
-}).catch(err => {
-    console.warn('[Tribunal] Inventory handlers not loaded:', err.message);
-});
-
-        // Initialize inventory effects system
-import('./src/systems/inventory-effects.js').then(effectsModule => {
-    // Expose globally for handlers to use
-    window.TribunalEffects = effectsModule;
-
-    // Initialize timers from saved state
-    effectsModule.initEffectTimers();
-
-        // Initialize timed effects display
-import('./src/ui/timed-effects-display.js').then(module => {
-    // Delay to ensure DOM is ready
-    setTimeout(() => {
-        module.initTimedEffectsDisplay();
-        console.log('[Tribunal] Timed effects display initialized');
-    }, 500);
-}).catch(err => {
-    console.warn('[Tribunal] Timed effects display not loaded:', err.message);
-});
-    
-    
-    console.log('[Tribunal] Inventory effects system initialized');
-    
-    // Listen for effect events
-    window.addEventListener('tribunal:effectApplied', (e) => {
-        console.log('[Tribunal] Effect applied:', e.detail.statusId);
-        // Could trigger UI updates here
-    });
-    
-    window.addEventListener('tribunal:effectRemoved', (e) => {
-        console.log('[Tribunal] Effect expired:', e.detail.statusId);
-        // Could trigger UI updates here
-    });
-    
-}).catch(err => {
-    console.warn('[Tribunal] Effects system not loaded:', err.message);
-});
-
-// Also expose state module globally for effects to access
-import('./src/core/state.js').then(stateModule => {
-    window.TribunalState = stateModule;
-}).catch(err => {
-    console.warn('[Tribunal] State module not exposed:', err.message);
-});
-
-        // Reinitialize effect timers when chat changes
-eventSource.on(event_types.CHAT_CHANGED, () => {
-    setTimeout(() => {
-        if (window.TribunalEffects?.initEffectTimers) {
-            window.TribunalEffects.initEffectTimers();
-            console.log('[Tribunal] Effect timers reinitialized for new chat');
-        }
-    }, 300);
-});
         
         // Expose debug helpers
         window.TribunalLedger = {
@@ -1037,23 +961,70 @@ eventSource.on(event_types.CHAT_CHANGED, () => {
         console.warn('[Tribunal] Ledger voices not loaded:', err.message);
     });
     
-    // Initialize compartment unlock system (secret tab revelation)
+    // Inventory handlers
+    import('./src/ui/inventory-handlers.js').then(async handlersModule => {
+        handlersModule.initInventoryHandlers();
+        console.log('[Tribunal] Inventory handlers initialized');
+        window.TribunalInventoryHandlers = handlersModule;
+        
+        // Link generation module to template
+        try {
+            const [genModule, templateModule] = await Promise.all([
+                import('./src/voice/inventory-generation.js'),
+                import('./src/ui/inventory-template.js')
+            ]);
+            templateModule.setInventoryModules(genModule, handlersModule);
+            console.log('[Tribunal] Inventory modules linked');
+        } catch (e) {
+            console.warn('[Tribunal] Inventory module linking failed:', e.message);
+        }
+    }).catch(err => {
+        console.warn('[Tribunal] Inventory handlers not loaded:', err.message);
+    });
+    
+    // Inventory effects system
+    import('./src/systems/inventory-effects.js').then(effectsModule => {
+        window.TribunalEffects = effectsModule;
+        effectsModule.initEffectTimers();
+        console.log('[Tribunal] Inventory effects system initialized');
+        
+        // Listen for effect events
+        window.addEventListener('tribunal:effectApplied', (e) => {
+            console.log('[Tribunal] Effect applied:', e.detail.statusId);
+        });
+        
+        window.addEventListener('tribunal:effectRemoved', (e) => {
+            console.log('[Tribunal] Effect expired:', e.detail.statusId);
+        });
+    }).catch(err => {
+        console.warn('[Tribunal] Effects system not loaded:', err.message);
+    });
+    
+    // Timed effects display
+    import('./src/ui/timed-effects-display.js').then(module => {
+        setTimeout(() => {
+            module.initTimedEffectsDisplay();
+            console.log('[Tribunal] Timed effects display initialized');
+        }, 500);
+    }).catch(err => {
+        console.warn('[Tribunal] Timed effects display not loaded:', err.message);
+    });
+    
+    // Compartment unlock system
     import('./src/systems/compartment-unlock.js').then(module => {
         setTimeout(() => {
             module.initCompartmentUnlock();
             
-            // Check for unlock progression when panel opens
-            // Also check periodically in case user leaves panel open past midnight
+            // Check periodically for unlock progression
             setInterval(() => {
                 if (document.querySelector('.ledger-subtab-secret')) {
                     module.checkCompartmentProgression();
                 }
-            }, 60000); // Check every minute
+            }, 60000);
             
             console.log('[Tribunal] Compartment unlock system initialized');
         }, 1500);
         
-        // Expose debug helpers
         window.TribunalCompartment = {
             check: module.checkCompartmentProgression,
             getStage: module.getCrackStage,
@@ -1065,48 +1036,81 @@ eventSource.on(event_types.CHAT_CHANGED, () => {
     }).catch(err => {
         console.warn('[Tribunal] Compartment unlock not loaded:', err.message);
     });
+
+    // Expose state module globally
+    import('./src/core/state.js').then(stateModule => {
+        window.TribunalState = stateModule;
+    }).catch(err => {
+        console.warn('[Tribunal] State module not exposed:', err.message);
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // EVENT REGISTRATION
+    // ═══════════════════════════════════════════════════════════════
     
     registerEvents();
     
     eventSource.on(event_types.MESSAGE_RECEIVED, onNewAIMessage);
+    console.log('[Tribunal] Voice trigger registered for MESSAGE_RECEIVED');
+    
+    // Reinitialize effect timers when chat changes
+    eventSource.on(event_types.CHAT_CHANGED, () => {
+        setTimeout(() => {
+            if (window.TribunalEffects?.initEffectTimers) {
+                window.TribunalEffects.initEffectTimers();
+                console.log('[Tribunal] Effect timers reinitialized for new chat');
+            }
+        }, 300);
+    });
+    
+    // Check for effect tick on message received
     if (window.TribunalEffects?.onMessageTick) {
         const tickResult = window.TribunalEffects.onMessageTick();
         window.dispatchEvent(new CustomEvent('tribunal:messageTick', { detail: tickResult }));
         if (tickResult.expired.length > 0) {
             console.log('[Tribunal] Effects expired:', tickResult.expired.map(e => e.statusId));
         }
-    }  //
-    console.log('[Tribunal] Voice trigger registered for MESSAGE_RECEIVED');
+    }
     
+    // Wire up rescan button
     const rescanBtn = document.getElementById('tribunal-rescan-btn');
     if (rescanBtn) {
         rescanBtn.addEventListener('click', rescanLastMessage);
         console.log('[Tribunal] Rescan button wired');
     }
     
+    // Register refresh callback
     onStateRefresh(refreshAllPanels);
 
+    // Initial state load if chat exists
     const ctx = getContext();
     if (ctx?.chat?.length > 0) {
         loadChatState();
         refreshAllPanels();
     }
 
-    // Debug helpers
+    // ═══════════════════════════════════════════════════════════════
+    // DEBUG HELPERS
+    // ═══════════════════════════════════════════════════════════════
+    
+    // Core debug functions
     window.tribunalDebug = exportDebugState;
     window.tribunalRefresh = refreshAllPanels;
     window.tribunalRescan = rescanLastMessage;
     window.tribunalGenerate = triggerVoiceGeneration;
+    
+    // FAB/UI helpers
     window.tribunalUpdateFabVisibility = updateFABVisibility;
     window.tribunalIsInChatView = isInChatView;
-    window.tribunalOpenInv = openInvestigation;
-    window.tribunalCloseInv = closeInvestigation;
     window.tribunalUpdateCharacter = updateCharacterInfo;
     window.tribunalRefreshCabinet = refreshCabinet;
-    window.tribunalUpdateNewspaper = updateNewspaperStrip;  // Debug helper for newspaper
-    window.tribunalVoiceEngine = window.TribunalVoiceEngine;
+    window.tribunalUpdateNewspaper = updateNewspaperStrip;
     
-    // Weather effects debug helpers
+    // Investigation helpers
+    window.tribunalOpenInv = openInvestigation;
+    window.tribunalCloseInv = closeInvestigation;
+    
+    // Weather effects helpers
     window.tribunalWeatherDebug = debugWeather;
     window.tribunalSetWeather = setWeatherState;
     window.tribunalTriggerHorror = triggerHorror;
@@ -1115,11 +1119,15 @@ eventSource.on(event_types.CHAT_CHANGED, () => {
     window.tribunalSetEffectsIntensity = setEffectsIntensity;
     window.tribunalSetEffectsEnabled = setEffectsEnabled;
     
-    // Contacts debug helper
+    // Voice engine reference
+    window.tribunalVoiceEngine = window.TribunalVoiceEngine;
+    
+    // Contacts refresh (lazy loaded)
     import('./src/ui/contacts-handlers.js').then(module => {
         window.tribunalRefreshContacts = module.refreshContacts;
     }).catch(() => {});
     
+    // API test helper
     import('./src/voice/api-helpers.js').then(api => {
         window.tribunalTestAPI = async () => {
             try {
