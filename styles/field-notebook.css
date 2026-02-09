@@ -1,0 +1,418 @@
+/**
+ * Field Notebook - Location Styles
+ * Leather-bound spiral notebook with lined paper
+ * 
+ * Goes in: src/styles/field-notebook.css
+ * 
+ * STEP 1: Added .notebook-investigate-btn styles (lines 116-130)
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTEBOOK CONTAINER - Leather binding
+   ═══════════════════════════════════════════════════════════════ */
+
+#field-notebook-container {
+    background: rgba(60, 50, 40, 0.15);
+    border-radius: 3px;
+    padding: 2px;
+    margin-top: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTEBOOK INNER - Lined paper
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-inner {
+    background: var(--paper-cream, #f4ede4);
+    border-radius: 2px;
+    position: relative;
+    min-height: 200px;
+    display: flex;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SPIRAL BINDING
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-spiral {
+    width: 20px;
+    flex-shrink: 0;
+    background: transparent;
+    border-right: 1px solid rgba(220, 80, 80, 0.2);
+    position: relative;
+}
+
+/* Remove the hole punches, keep it minimal */
+.notebook-spiral::before {
+    display: none;
+}
+
+.notebook-spiral::after {
+    display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTEBOOK CONTENT
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-content {
+    flex: 1;
+    padding: 16px 16px 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-section {
+    position: relative;
+}
+
+.notebook-label {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.7rem;
+    color: #888;
+    margin-bottom: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CURRENT LOCATION
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-location {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--paper-ink, #2c2416);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.notebook-district {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.notebook-edit-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: all 0.15s;
+    margin-left: auto;
+}
+
+.notebook-edit-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--paper-ink, #2c2416);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INVESTIGATE BUTTON (NEW - Step 1)
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-investigate-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 3px;
+    transition: all 0.15s;
+    /* No margin-left: auto - edit button handles alignment */
+}
+
+.notebook-investigate-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--paper-ink, #2c2416);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NOTES (events)
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-note {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.8rem;
+    color: #333;
+    padding: 4px 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    border-bottom: 1px dashed rgba(0, 0, 0, 0.08);
+}
+
+.notebook-note::before {
+    content: '•';
+    color: var(--paper-ink, #2c2416);
+    flex-shrink: 0;
+}
+
+.notebook-note-text {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.notebook-note-delete {
+    background: transparent;
+    border: none;
+    color: #c88;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0 4px;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+}
+
+.notebook-note-delete:hover {
+    opacity: 1;
+    color: #a44;
+}
+
+.notebook-empty {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.8rem;
+    color: #999;
+    font-style: italic;
+    padding: 4px 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PLACES (locations list)
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-places {
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.notebook-place {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.8rem;
+    color: #555;
+    padding: 6px 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: background 0.15s;
+}
+
+.notebook-place:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.notebook-place.current {
+    color: var(--paper-ink, #2c2416);
+    font-weight: 600;
+    background: rgba(44, 82, 130, 0.08);
+}
+
+.notebook-place.unvisited {
+    color: #999;
+}
+
+.notebook-place-icon {
+    font-size: 0.7rem;
+    width: 16px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.notebook-place-name {
+    flex: 1;
+}
+
+.notebook-place-here {
+    font-size: 0.65rem;
+    color: var(--paper-ink, #2c2416);
+    opacity: 0.7;
+}
+
+.notebook-place-count {
+    font-size: 0.65rem;
+    color: #888;
+}
+
+.notebook-place-delete {
+    background: transparent;
+    border: none;
+    color: #c88;
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0 4px;
+    opacity: 0;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+}
+
+.notebook-place:hover .notebook-place-delete {
+    opacity: 0.5;
+}
+
+.notebook-place-delete:hover {
+    opacity: 1 !important;
+    color: #a44;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ADD LINKS
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-add-link {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.75rem;
+    color: #888;
+    background: transparent;
+    border: none;
+    padding: 6px 0;
+    cursor: pointer;
+    text-align: left;
+    transition: color 0.15s;
+}
+
+.notebook-add-link:hover:not(:disabled) {
+    color: var(--paper-ink, #2c2416);
+}
+
+.notebook-add-link:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INLINE FORMS
+   ═══════════════════════════════════════════════════════════════ */
+
+.notebook-form {
+    background: rgba(255, 255, 255, 0.5);
+    border: 1px dashed rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    padding: 10px;
+    margin-top: 6px;
+}
+
+.notebook-form-inline {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.notebook-form-inline .notebook-input {
+    flex: 1;
+    min-width: 150px;
+}
+
+.notebook-form-inline .notebook-form-actions {
+    margin-top: 0;
+}
+
+.notebook-input {
+    width: 100%;
+    padding: 8px 10px;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.8rem;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 3px;
+    background: #fff;
+    color: #333;
+    margin-bottom: 8px;
+    box-sizing: border-box;
+}
+
+.notebook-input:focus {
+    outline: none;
+    border-color: var(--paper-ink, #2c2416);
+}
+
+.notebook-input::placeholder {
+    color: #aaa;
+    font-style: italic;
+}
+
+.notebook-input-small {
+    font-size: 0.75rem;
+    padding: 6px 8px;
+}
+
+select.notebook-input {
+    cursor: pointer;
+}
+
+.notebook-form-divider {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.7rem;
+    color: #999;
+    text-align: center;
+    margin: 6px 0;
+}
+
+.notebook-form-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+.notebook-checkbox {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.75rem;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.notebook-checkbox input {
+    accent-color: var(--paper-ink, #2c2416);
+}
+
+.notebook-form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.notebook-btn {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 0.7rem;
+    padding: 6px 12px;
+    border: 1px dashed;
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.notebook-btn-cancel {
+    border-color: rgba(0, 0, 0, 0.2);
+    color: #888;
+}
+
+.notebook-btn-cancel:hover {
+    background: rgba(0, 0, 0, 0.03);
+}
+
+.notebook-btn-save {
+    border-color: var(--paper-ink, #2c2416);
+    color: var(--paper-ink, #2c2416);
+}
+
+.notebook-btn-save:hover {
+    background: rgba(44, 82, 130, 0.1);
+}
+
+/* No decorative stains - kept clean */

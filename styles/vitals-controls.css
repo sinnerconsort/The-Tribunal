@@ -1,0 +1,376 @@
+/**
+ * The Tribunal - Vitals Controls
+ * Health/Morale bars, detail view, +/- controls, animations
+ * REBUILD: Clean vitals system
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER VITALS ROW
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-vitals-row {
+    display: flex;
+    gap: 16px;
+}
+
+.ie-vital-bar {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ie-vital-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    min-width: 50px;
+}
+
+.ie-vital-health .ie-vital-label {
+    color: #f3650b;
+}
+
+.ie-vital-morale .ie-vital-label {
+    color: #0e7989;
+}
+
+.ie-vital-track {
+    flex: 1;
+    height: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    position: relative;
+}
+
+.ie-vital-fill {
+    height: 100%;
+    border-radius: 1px;
+    transition: width 0.4s ease, background-color 0.3s ease;
+    position: relative;
+}
+
+/* Health bar gradient */
+.ie-vital-health .ie-vital-fill {
+    background: linear-gradient(90deg, #f3650b 0%, #ff8c40 100%);
+    box-shadow: 0 0 6px rgba(243, 101, 11, 0.4);
+}
+
+/* Morale bar gradient */
+.ie-vital-morale .ie-vital-fill {
+    background: linear-gradient(90deg, #0e7989 0%, #15b0c5 100%);
+    box-shadow: 0 0 6px rgba(14, 121, 137, 0.4);
+}
+
+.ie-vital-value {
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 28px;
+    text-align: right;
+    font-family: 'Courier New', monospace;
+}
+
+.ie-vital-health .ie-vital-value {
+    color: #f3650b;
+}
+
+.ie-vital-morale .ie-vital-value {
+    color: #0e7989;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOW/CRITICAL STATES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Low health (< 30%) */
+.ie-vital-health.ie-vital-low .ie-vital-fill {
+    background: linear-gradient(90deg, #cc4400 0%, #f3650b 100%);
+    animation: ie-vital-pulse 1.5s ease-in-out infinite;
+}
+
+.ie-vital-health.ie-vital-low .ie-vital-label,
+.ie-vital-health.ie-vital-low .ie-vital-value {
+    animation: ie-vital-text-pulse 1.5s ease-in-out infinite;
+}
+
+/* Critical health (< 15%) */
+.ie-vital-health.ie-vital-critical .ie-vital-fill {
+    background: linear-gradient(90deg, #991100 0%, #cc3300 100%);
+    animation: ie-vital-pulse-fast 0.8s ease-in-out infinite;
+}
+
+/* Low morale (< 30%) */
+.ie-vital-morale.ie-vital-low .ie-vital-fill {
+    background: linear-gradient(90deg, #085a66 0%, #0e7989 100%);
+    animation: ie-vital-pulse 1.5s ease-in-out infinite;
+}
+
+.ie-vital-morale.ie-vital-low .ie-vital-label,
+.ie-vital-morale.ie-vital-low .ie-vital-value {
+    animation: ie-vital-text-pulse 1.5s ease-in-out infinite;
+}
+
+/* Critical morale (< 15%) */
+.ie-vital-morale.ie-vital-critical .ie-vital-fill {
+    background: linear-gradient(90deg, #043a42 0%, #085a66 100%);
+    animation: ie-vital-pulse-fast 0.8s ease-in-out infinite;
+}
+
+@keyframes ie-vital-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+@keyframes ie-vital-pulse-fast {
+    0%, 100% { opacity: 1; box-shadow: 0 0 8px rgba(200, 50, 0, 0.6); }
+    50% { opacity: 0.5; box-shadow: 0 0 4px rgba(200, 50, 0, 0.3); }
+}
+
+@keyframes ie-vital-text-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DAMAGE/HEAL FLASH ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-vital-bar.ie-vital-damage .ie-vital-fill {
+    animation: ie-vital-damage-flash 0.4s ease-out;
+}
+
+.ie-vital-bar.ie-vital-heal .ie-vital-fill {
+    animation: ie-vital-heal-flash 0.4s ease-out;
+}
+
+@keyframes ie-vital-damage-flash {
+    0% { filter: brightness(2) saturate(1.5); }
+    100% { filter: brightness(1) saturate(1); }
+}
+
+@keyframes ie-vital-heal-flash {
+    0% { filter: brightness(1.8) saturate(1.2); box-shadow: 0 0 12px currentColor; }
+    100% { filter: brightness(1) saturate(1); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LABEL GLOW (subtle pulse)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-vital-health .ie-vital-label {
+    animation: ie-health-glow 4s ease-in-out infinite;
+}
+
+@keyframes ie-health-glow {
+    0%, 100% { text-shadow: 0 0 0 transparent; }
+    50% { text-shadow: 0 0 6px rgba(243, 101, 11, 0.4); }
+}
+
+.ie-vital-morale .ie-vital-label {
+    animation: ie-morale-glow 4s ease-in-out infinite;
+    animation-delay: 2s;
+}
+
+@keyframes ie-morale-glow {
+    0%, 100% { text-shadow: 0 0 0 transparent; }
+    50% { text-shadow: 0 0 6px rgba(14, 121, 137, 0.4); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VITALS DETAIL VIEW
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-vitals-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+    background: var(--ie-bg-tertiary);
+    border-radius: 4px;
+}
+
+.ie-vital-detail-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ie-vital-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.ie-vital-detail-label {
+    font-family: var(--ie-font-header);
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ie-vital-detail-value {
+    font-family: var(--ie-font-mono, 'Courier New', monospace);
+    font-size: 12px;
+    min-width: 60px;
+    text-align: center;
+}
+
+.ie-vital-detail-row.ie-health .ie-vital-detail-label,
+.ie-vital-detail-row.ie-health .ie-vital-detail-value {
+    color: #f3650b;
+}
+
+.ie-vital-detail-row.ie-morale .ie-vital-detail-label,
+.ie-vital-detail-row.ie-morale .ie-vital-detail-value {
+    color: #0e7989;
+}
+
+/* Detail track & fill */
+.ie-vital-detail-track {
+    height: 8px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ie-vital-detail-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease-out;
+    position: relative;
+}
+
+.ie-vital-detail-row.ie-health .ie-vital-detail-fill {
+    background: linear-gradient(180deg, #f3650b 0%, #d45509 100%);
+    box-shadow: 0 0 6px rgba(243, 101, 11, 0.4);
+}
+
+.ie-vital-detail-row.ie-morale .ie-vital-detail-fill {
+    background: linear-gradient(180deg, #0e7989 0%, #0a5d6a 100%);
+    box-shadow: 0 0 6px rgba(14, 121, 137, 0.4);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VITALS CONTROLS (+/- Buttons)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-vital-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ie-vital-btn {
+    width: 20px;
+    height: 20px;
+    border: none;
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    font-size: 10px;
+    padding: 0;
+}
+
+.ie-vital-btn:active {
+    transform: scale(0.85);
+}
+
+.ie-vital-btn-minus {
+    color: #c44;
+}
+
+.ie-vital-btn-minus:hover {
+    color: #ff5555;
+    text-shadow: 0 0 6px rgba(255, 85, 85, 0.5);
+}
+
+.ie-vital-btn-plus {
+    color: #4a4;
+}
+
+.ie-vital-btn-plus:hover {
+    color: #55ff55;
+    text-shadow: 0 0 6px rgba(85, 255, 85, 0.5);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DETAIL VIEW FLASH ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+@keyframes ie-detail-damage-flash {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: inset 0 0 20px rgba(255, 50, 50, 0.5); }
+}
+
+@keyframes ie-detail-heal-flash {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: inset 0 0 20px rgba(50, 255, 50, 0.5); }
+}
+
+.ie-vital-detail-row.ie-vital-damage {
+    animation: ie-detail-damage-flash 0.4s ease-out;
+}
+
+.ie-vital-detail-row.ie-vital-heal {
+    animation: ie-detail-heal-flash 0.4s ease-out;
+}
+
+/* Detail low/critical states */
+@keyframes ie-detail-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+@keyframes ie-detail-pulse-critical {
+    0%, 100% { opacity: 1; box-shadow: 0 0 8px currentColor; }
+    50% { opacity: 0.5; box-shadow: 0 0 4px currentColor; }
+}
+
+.ie-vital-detail-row.ie-vital-low .ie-vital-detail-fill {
+    animation: ie-detail-pulse 1.5s ease-in-out infinite;
+}
+
+.ie-vital-detail-row.ie-vital-critical .ie-vital-detail-fill {
+    animation: ie-detail-pulse-critical 0.8s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECONDARY BUTTON & SETTINGS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--ie-border);
+    color: var(--ie-text-muted);
+}
+
+.ie-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--ie-text-primary);
+    border-color: var(--ie-text-muted);
+}
+
+#ie-test-vitals-btn {
+    margin-top: 8px;
+}
+
+#ie-test-vitals-btn i {
+    color: var(--ie-morale, #0e7989);
+}
+
+.ie-settings-actions {
+    padding-top: 16px;
+    border-top: 1px solid var(--ie-border);
+    margin-top: 8px;
+}
