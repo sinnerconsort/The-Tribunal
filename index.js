@@ -2,7 +2,7 @@
  * The Tribunal - SillyTavern Extension
  * A standalone text based Disco Elysium system
  * 
- * v0.12.1 - Codebase cleanup
+ * v0.12.2 - Fixed enabled check, removed startup toast
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -290,7 +290,7 @@ async function triggerVoiceGeneration(messageText = null, manualTrigger = false)
     const settings = getSettings();
     
     // Check if extension is enabled
-    if (settings.enabled === false) {
+    if (!settings?.enabled) {
         console.log('[Tribunal] Extension disabled, skipping voice generation');
         return;
     }
@@ -1151,9 +1151,6 @@ async function init() {
     });
 
     console.log('[The Tribunal] UI ready!');
-    if (typeof toastr !== 'undefined') {
-        toastr.success('The Tribunal loaded!', 'Extension', { timeOut: 2000 });
-    }
 }
 
 // ═══════════════════════════════════════════════════════════════
