@@ -2,7 +2,7 @@
  * The Tribunal - Default State Structures
  * Reference: tribunal-state-design.md
  * 
- * v1.1.0 - Added worldState defaults
+ * v1.1.1 - Added explicit showFab defaults
  * 
  * Three-layer persistence model:
  * - Per-Chat: chat_metadata.tribunal
@@ -201,6 +201,9 @@ export const DEFAULT_GLOBAL_SETTINGS = {
         defaultTab: 'status',
         panelPosition: 'right',
         fabPosition: { x: null, y: null },  // Remembers drag position
+        
+        showFab: true,              // Main panel FAB visibility
+        showInvestigationFab: true, // Investigation FAB visibility
         
         showToasts: true,
         toastDuration: 3000,
