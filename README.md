@@ -3,7 +3,7 @@
 > *"You're a disgrace to the uniform." — AUTHORITY*  
 > *"But the uniform... it's seen things." — INLAND EMPIRE*
 
-A **Disco Elysium-inspired internal voice system** for SillyTavern. Your skills have opinions. They interrupt each other. They judge you. They care about you in ways that hurt.
+A **Disco Elysium-inspired internal voice system** for SillyTavern and heavily inspired by Marinara's RPG Companion. Your skills have opinions. They interrupt each other. They judge you. They care about you in ways that hurt.
 
 ---
 
@@ -171,7 +171,9 @@ This extension is a love letter to that game's brilliant skill system and intern
 
 ## License
 
-MIT — Do what you want, but maybe credit the source.
+ZA/UM - Disco Elysium
+Marinara for RPG Companion, particularly inspo for my inventory system
+SillyTavern
 
 ---
 
