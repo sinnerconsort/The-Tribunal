@@ -3,7 +3,7 @@
  * Creates the main psyche panel and floating action button
  * Extracted from rebuild v0.3.0
  * UPDATED: Radio tab → Inventory tab with subtabs
- * v0.3.1 - Added position lock support
+ * v0.3.2 - Fixed FAB position overlap with investigation FAB
  */
 
 import {
@@ -65,8 +65,9 @@ export function createToggleFAB() {
     fab.title = 'Toggle Psyche Panel';
     fab.innerHTML = '<span class="ie-fab-icon"><i class="fa-solid fa-address-card"></i></span>';
     fab.style.display = 'flex';
-    fab.style.top = '140px';
+    fab.style.top = '100px';
     fab.style.left = '10px';
+    fab.style.zIndex = '9999';  // Ensure visibility above other elements
 
     // Draggable FAB implementation
     let isDragging = false;
