@@ -15,7 +15,7 @@
  * 3. Discoveries appear as tappable cards
  * 4. User taps EXAMINE → Relevant skills react to that specific discovery
  * 
- * @version 7.0.1 - Removed unused getDifficultyName import
+ * @version 7.0.2 - Fixed FAB position overlap with main FAB
  */
 
 import { SKILLS } from '../data/skills.js';
@@ -650,8 +650,9 @@ function createFAB() {
     fab.innerHTML = '<span class="ie-fab-icon"><i class="fa-solid fa-magnifying-glass"></i></span>';
     
     fab.style.display = 'flex';
-    fab.style.top = '135px';
+    fab.style.top = '155px';
     fab.style.left = '10px';
+    fab.style.zIndex = '9998';  // Below main FAB (9999)
     
     let isDragging = false;
     let dragStartX, dragStartY, fabStartX, fabStartY;
