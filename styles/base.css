@@ -1,7 +1,7 @@
 /**
  * The Tribunal - Base Styles
  * CSS Variables & Resets
- * REBUILD v0.1.0
+ * REBUILD v0.1.1 - Added desktop scaling
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -47,4 +47,102 @@
     /* Typography */
     --ie-font-header: 'Segoe UI', 'Arial Narrow', sans-serif;
     --ie-font-body: 'Segoe UI', Tahoma, sans-serif;
+    
+    /* UI Scale (can be overridden via JS for user preference) */
+    --ie-scale: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DESKTOP SCALING - Larger screens get bigger UI
+   Increases font sizes and panel width for readability on 2K+ screens
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Desktop screens (1800px+ viewport width) */
+@media (min-width: 1800px) {
+    :root {
+        --ie-scale: 1.2;
+    }
+    
+    /* Wider panel */
+    .inland-empire-panel {
+        width: 480px;
+    }
+    
+    /* Bigger FABs */
+    .ie-fab {
+        width: 52px;
+        height: 52px;
+    }
+    
+    .ie-fab-icon {
+        font-size: 22px;
+    }
+    
+    /* Header text */
+    .ie-panel-title {
+        font-size: 17px;
+    }
+    
+    /* Section headers */
+    .ie-section h3 {
+        font-size: 14px;
+    }
+    
+    /* Body text */
+    .ie-empty-state,
+    .ie-btn,
+    .ie-bottom-btn {
+        font-size: 14px;
+    }
+    
+    .ie-btn-small {
+        font-size: 13px;
+    }
+    
+    /* Vital labels */
+    .ie-vital-label {
+        font-size: 12px;
+    }
+    
+    .ie-vital-value {
+        font-size: 13px;
+    }
+}
+
+/* Large desktop / 4K screens */
+@media (min-width: 2800px) {
+    .inland-empire-panel {
+        width: 560px;
+    }
+    
+    .ie-fab {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .ie-fab-icon {
+        font-size: 26px;
+    }
+    
+    .ie-panel-title {
+        font-size: 20px;
+    }
+    
+    .ie-section h3 {
+        font-size: 16px;
+    }
+    
+    .ie-empty-state,
+    .ie-btn,
+    .ie-bottom-btn {
+        font-size: 16px;
+    }
+    
+    .ie-vital-label {
+        font-size: 14px;
+    }
+    
+    .ie-vital-value {
+        font-size: 15px;
+    }
 }
