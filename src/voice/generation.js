@@ -3,7 +3,7 @@
  * Context analysis, voice selection, API calls, and prompt building
  * 
  * Now with CASCADE SYSTEM - skills react to each other!
- * v0.3.3 - Removed unused imports (getVoiceState, getActiveCopotype)
+ * v0.3.4 - Added enabled check to prevent API calls when extension is disabled
  * 
  * REBUILD VERSION: Uses per-chat state accessors and new API helpers
  * 
@@ -527,6 +527,13 @@ export async function generateVoices(selectedSkills, context) {
  * @returns {Promise<array>} Generated voice results
  */
 export async function generateVoicesForMessage(messageText, options = {}) {
+    // Safety check: Don't generate if extension is disabled
+    const settings = getSettings();
+    if (!settings?.enabled) {
+        console.log('[The Tribunal] Extension disabled, skipping voice generation');
+        return [];
+    }
+    
     // 1. Analyze the context
     const context = analyzeContext(messageText);
     
