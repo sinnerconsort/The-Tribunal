@@ -2,12 +2,16 @@
  * The Tribunal - PÉRIPHÉRIQUE Newspaper Component
  * Full newspaper display matching Disco Elysium's aesthetic
  * 
- * @version 1.1.0
+ * @version 1.1.1
+ * CHANGES v1.1.1:
+ * - Added enabled check to prevent API calls when extension is disabled
  * CHANGES v1.1.0:
  * - Shivers now generates investigation seeds alongside quips
  * - Seeds are stored in currentState.investigationSeed for Perception to use
  * - Export getInvestigationSeed() and clearInvestigationSeed() for investigation.js
  */
+
+import { getSettings } from '../core/persistence.js';
 
 // ═══════════════════════════════════════════════════════════════
 // SHIVERS FALLBACK QUIPS
@@ -818,6 +822,12 @@ function extractShiversJSON(response) {
  */
 async function generateShiversQuip(weather, period, location) {
     if (shiversGenerating) return null;
+    
+    // Don't make API calls if extension is disabled
+    const settings = getSettings();
+    if (!settings?.enabled) {
+        return null;
+    }
     
     shiversGenerating = true;
     
