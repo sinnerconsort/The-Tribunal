@@ -9,11 +9,12 @@
  * 
  * The fortune stops being a cookie and becomes a wound.
  * 
- * @version 1.0.0
+ * @version 1.0.1 - Added enabled check to prevent API calls when extension is disabled
  */
 
 import { getContext } from '../../../../../extensions.js';
 import { chat } from '../../../../../../script.js';
+import { getSettings } from '../core/persistence.js';
 
 // Try to import from existing Tribunal modules
 // These paths may need adjustment based on actual file locations
@@ -269,6 +270,12 @@ Example bad output: **Analysis:** The tone should be... (NO! Just the fortune!)`
  * @returns {Promise<string|null>} Generated fortune or null if failed
  */
 async function generateFortune(voice, context) {
+    // Don't make API calls if extension is disabled
+    const settings = getSettings();
+    if (!settings?.enabled) {
+        return null;
+    }
+    
     try {
         const stContext = getContext();
         
