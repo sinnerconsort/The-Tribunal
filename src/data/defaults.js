@@ -2,7 +2,6 @@
  * The Tribunal - Default State Structures
  * Reference: tribunal-state-design.md
  * 
- * v1.2.0 - Added activeProfile to global settings (agnosticism refactor)
  * v1.1.1 - Added explicit showFab defaults
  * 
  * Three-layer persistence model:
@@ -40,7 +39,7 @@ export const DEFAULT_CHAT_STATE = {
     },
     
     // ───────────────────────────────────────────────────────────
-    // VITALS (CRT Display) - uses 1-13 scale
+    // VITALS (CRT Display) - DE uses 1-13 scale
     // ───────────────────────────────────────────────────────────
     vitals: {
         health: 13,
@@ -49,10 +48,10 @@ export const DEFAULT_CHAT_STATE = {
         maxMorale: 13,
         
         status: 'stable',   // 'stable', 'critical', 'compromised', 'thriving'
-        copotype: null,     // Archetype ID (copotype for DE, persona for noir, etc.)
+        copotype: null,     // 'MORALIST', 'SORRY COP', 'APOCALYPSE COP', etc.
         
         activeEffects: [],  // Temporary status effects
-        ancientVoices: []   // Cryptic messages from the liminal/beyond
+        ancientVoices: []   // Cryptic messages from the Pale/beyond
     },
     
     // ───────────────────────────────────────────────────────────
@@ -83,11 +82,11 @@ export const DEFAULT_CHAT_STATE = {
         stash: {},      // Item data cache (generated descriptions, quips)
         addictions: {}, // Addiction tracking { type: { level, lastFix } }
         money: 0,
-        moneyUnit: null // Reads from active profile at runtime (e.g., 'Réal', 'dollar')
+        moneyUnit: 'Réal'
     },
     
     // ───────────────────────────────────────────────────────────
-    // EQUIPMENT (Clothing & Accessories)
+    // EQUIPMENT (Martinaise Cleaners - Clothing & Accessories)
     // ───────────────────────────────────────────────────────────
     equipment: {
         items: [],          // Equipment items with bonuses
@@ -169,7 +168,6 @@ export const DEFAULT_GLOBAL_SETTINGS = {
     // EXTENSION STATE
     // ───────────────────────────────────────────────────────────
     enabled: true,
-    activeProfile: 'disco_elysium',   // Setting profile ID — see setting-profiles.js
     
     // ───────────────────────────────────────────────────────────
     // API CONFIGURATION
@@ -261,7 +259,7 @@ export const DEFAULT_GLOBAL_SETTINGS = {
     // DICE/SKILL CHECK SETTINGS
     // ───────────────────────────────────────────────────────────
     dice: {
-        diceType: '2d6',            // Classic 2d6 style
+        diceType: '2d6',            // Classic DE style
         criticalSuccessThreshold: 12,
         criticalFailThreshold: 2,
         showModifiers: true,
@@ -282,7 +280,7 @@ export const DEFAULT_GLOBAL_SETTINGS = {
         useAIExtractor: false,      // Use AI to detect locations (costs API)
         
         // World tag injection
-        injectWorldTag: false       // Show injection prompt in settings
+        injectWorldTag: true        // Inject WORLD tag instruction into prompts (on by default)
     },
     
     // ───────────────────────────────────────────────────────────
