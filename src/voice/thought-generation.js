@@ -1,10 +1,11 @@
 /**
  * The Tribunal - Thought Generation
  * 
- * Handles AI-powered generation of Disco Elysium-style thoughts.
+ * Handles AI-powered generation of thoughts for the Thought Cabinet.
  * Called from cabinet-handler.js when user clicks Generate.
  * 
- * @version 4.1.2 - Removed unused getThemeCounters import
+ * @version 4.2.0 - Improved error surfacing with classified error messages
+ *                  instead of raw error.message dumps
  */
 
 import { callAPI } from './api-helpers.js';
@@ -12,6 +13,9 @@ import { buildThoughtPrompt, buildQuickThoughtPrompt, parseThoughtResponse } fro
 import { addGeneratedThought, getSpikingTheme } from '../systems/cabinet.js';
 // FIX: Import from state.js (same as generation.js uses) - persistence.js has different structure
 import { getSettings } from '../core/state.js';
+
+// Error classification — shared with voice generation
+import { classifyError } from '../utils/notification-helpers.js';
 
 // ═══════════════════════════════════════════════════════════════
 // MAIN GENERATION FUNCTION
@@ -93,7 +97,7 @@ export async function handleGenerateThought(options, refreshCallback, toastCallb
         const response = await callAPI(prompt.system, prompt.user);
         
         if (!response) {
-            toast('No response from API', 'error');
+            toast('API returned an empty response. The model may be overloaded — try again.', 'error');
             return null;
         }
         
@@ -101,8 +105,8 @@ export async function handleGenerateThought(options, refreshCallback, toastCallb
         const thought = parseThoughtResponse(response);
         
         if (!thought) {
-            toast('Failed to parse thought response', 'error');
-            console.error('[Tribunal] Raw response:', response);
+            toast('Got a response but couldn\'t parse it into a thought. Try generating again.', 'error');
+            console.error('[Tribunal] Raw response that failed to parse:', response.substring(0, 500));
             return null;
         }
         
@@ -114,13 +118,20 @@ export async function handleGenerateThought(options, refreshCallback, toastCallb
             refresh();
             return savedThought;
         } else {
-            toast('Failed to save thought', 'error');
+            toast('Generated a thought but failed to save it to the cabinet.', 'error');
             return null;
         }
         
     } catch (error) {
         console.error('[Tribunal] Thought generation failed:', error);
-        toast(`Generation failed: ${error.message}`, 'error');
+        
+        // ═══════════════════════════════════════════════════════════
+        // IMPROVED: Use classifyError for user-friendly messages
+        // instead of dumping raw error.message
+        // ═══════════════════════════════════════════════════════════
+        const classified = classifyError(error);
+        toast(`${classified.title}: ${classified.detail}`, classified.level);
+        
         return null;
     }
 }
