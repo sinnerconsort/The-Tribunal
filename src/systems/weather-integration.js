@@ -553,12 +553,52 @@ const WEATHER_PATTERNS = {
     clear: /\b(clear|sunny|bright|cloudless|fair|beautiful day)\b/i
 };
 
+// Period detection: explicit time-of-day words + numeric time strings (e.g. "6:45 PM")
+// NO ambient words like "dark", "neon", "starry", "room", "house" — those are vibes, not time
 const PERIOD_PATTERNS = {
-    'city-night': /\b(city night|urban night|neon|streetlight|downtown at night)\b/i,
-    'quiet-night': /\b(night|nighttime|evening|dusk|dark|moonlight|moonlit|starry|midnight)\b/i,
-    'day': /\b(day|daytime|morning|afternoon|noon|daylight|dawn|sunrise|sunset)\b/i,
-    'indoor': /\b(inside|indoor|indoors|room|office|apartment|house|home|building|interior|cave)\b/i
+    'quiet-night': /\b(nighttime|night\s+time|at\s+night|midnight|late\s+at\s+night|dead\s+of\s+night)\b/i,
+    'city-night': /\b(nightlife|nightclub|evening|dusk|sunset|twilight)\b/i,
+    'day': /\b(morning|midday|mid-day|noon|afternoon|dawn|daybreak|sunrise)\b/i
 };
+
+// Match explicit time strings: "6:45 PM", "3:00 AM", "23:30", "11pm"
+const NUMERIC_TIME_PATTERN = /\b(\d{1,2}):(\d{2})\s*(AM|PM|am|pm)\b|\b(\d{1,2})\s*(AM|PM|am|pm)\b|\b(\d{1,2}):(\d{2})\b/;
+
+/**
+ * Try to extract a period from a numeric time string in the message
+ * "6:45 PM" → evening, "3:00 AM" → quiet-night, "11:30" → day, etc.
+ */
+function detectPeriodFromTime(message) {
+    const match = message.match(NUMERIC_TIME_PATTERN);
+    if (!match) return null;
+    
+    let hours;
+    if (match[1] !== undefined) {
+        // "6:45 PM" format
+        hours = parseInt(match[1], 10);
+        const isPM = match[3].toUpperCase() === 'PM';
+        if (isPM && hours !== 12) hours += 12;
+        if (!isPM && hours === 12) hours = 0;
+    } else if (match[4] !== undefined) {
+        // "11pm" format
+        hours = parseInt(match[4], 10);
+        const isPM = match[5].toUpperCase() === 'PM';
+        if (isPM && hours !== 12) hours += 12;
+        if (!isPM && hours === 12) hours = 0;
+    } else if (match[6] !== undefined) {
+        // "23:30" 24-hour format
+        hours = parseInt(match[6], 10);
+    } else {
+        return null;
+    }
+    
+    if (isNaN(hours) || hours < 0 || hours > 23) return null;
+    
+    // Map hour to period
+    if (hours >= 6 && hours < 18) return 'day';
+    if (hours >= 18 && hours < 22) return 'city-night';
+    return 'quiet-night'; // 22-5
+}
 
 const SPECIAL_PATTERNS = {
     // Special effects ONLY trigger from USER messages (not AI narration)
@@ -599,11 +639,18 @@ function scanForKeywords(message, isUser = false) {
         }
     }
     
-    // Period patterns — scan ALL messages
+    // Period patterns — scan ALL messages (explicit time words)
     for (const [period, pattern] of Object.entries(PERIOD_PATTERNS)) {
         if (pattern.test(message)) {
             return { type: 'period', value: period };
         }
+    }
+    
+    // Numeric time detection — "6:45 PM", "3am", "23:30" → derive period
+    const numericPeriod = detectPeriodFromTime(message);
+    if (numericPeriod) {
+        console.log('[Weather] Period from numeric time:', numericPeriod);
+        return { type: 'period', value: numericPeriod };
     }
     
     return null;
