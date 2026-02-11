@@ -256,6 +256,197 @@ function getPersonaWithFallback() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// CRITICAL STATE OVERRIDES
+// These are NOT optional context — they're mandatory directives
+// that go at the TOP of the prompt so voices CAN'T ignore them
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Check for extreme physical/mental states that MUST override normal voice behavior.
+ * Returns a prominent directive block or empty string if everything's fine.
+ * 
+ * These states fundamentally change what the voices should be doing:
+ * - Unconscious/dead: voices are fading, fragmented, desperate
+ * - Dying: voices are panicked, focused on survival
+ * - Mental breakdown: voices are chaotic, grief-stricken, spiraling
+ * - Dissociated (The Pale): voices are dreamlike, reality-breaking
+ * - Severely intoxicated: voices are slurred, confused, disinhibited
+ */
+function buildCriticalStateOverride() {
+    const vitals = getVitals();
+    if (!vitals) return '';
+    
+    const health = vitals.health ?? 13;
+    const maxHealth = vitals.maxHealth ?? 13;
+    const morale = vitals.morale ?? 13;
+    const maxMorale = vitals.maxMorale ?? 13;
+    const activeEffects = vitals.activeEffects || [];
+    
+    const healthPercent = maxHealth > 0 ? health / maxHealth : 1;
+    const moralePercent = maxMorale > 0 ? morale / maxMorale : 1;
+    
+    // Get active effect IDs for status checks
+    const activeIds = activeEffects.map(e => typeof e === 'string' ? e : e.id).filter(Boolean);
+    
+    const overrides = [];
+    
+    // ── HEALTH ZERO: Unconscious / Dead ──
+    if (health <= 0) {
+        overrides.push({
+            priority: 0,
+            text: `⚠️ CRITICAL OVERRIDE — THE CHARACTER IS UNCONSCIOUS / DYING (Health: 0/${maxHealth})
+The body has failed. Voices should be:
+- Fading, fragmented, desperate — like thoughts slipping away
+- Focused on survival or acceptance of death
+- Some voices may go silent, others may SCREAM
+- Physical skills (Endurance, Pain Threshold) are panicking
+- Cerebral skills are dimming, losing coherence
+- This is NOT normal conversation. The character may be on the ground, bleeding out, or passed out.`
+        });
+    }
+    // ── HEALTH CRITICAL: Dying ──
+    else if (healthPercent <= 0.15) {
+        overrides.push({
+            priority: 1,
+            text: `⚠️ CRITICAL STATE — NEAR DEATH (Health: ${health}/${maxHealth})
+The body is failing. Every voice should acknowledge this:
+- Physical voices are screaming warnings or going numb
+- Pain is overwhelming — it colors EVERYTHING
+- Even cerebral skills are distracted by the body's distress
+- Survival instinct overrides normal analysis
+- Half Light sees threats everywhere. Pain Threshold is barely holding.`
+        });
+    }
+    
+    // ── MORALE ZERO: Mental Breakdown ──
+    if (morale <= 0) {
+        overrides.push({
+            priority: 0,
+            text: `⚠️ CRITICAL OVERRIDE — MENTAL BREAKDOWN (Morale: 0/${maxMorale})
+The mind has shattered. Voices should be:
+- Chaotic, contradictory, spiraling — the internal chorus is BREAKING
+- Volition has collapsed — no willpower remains
+- Emotional skills are in agony or denial
+- Logic and Rhetoric may try to rationalize but fail
+- Some voices may turn against each other or against the character
+- This is a psychological crisis. The character cannot function normally.`
+        });
+    }
+    // ── MORALE CRITICAL: Breaking ──
+    else if (moralePercent <= 0.15) {
+        overrides.push({
+            priority: 1,
+            text: `⚠️ CRITICAL STATE — WILL BREAKING (Morale: ${morale}/${maxMorale})
+The mind is fracturing. Every voice should reflect this:
+- Emotional instability — voices waver, contradict themselves
+- Volition is barely holding the line
+- Empathy and Suggestion are raw and oversensitive
+- Even logical voices have a desperate edge
+- Small setbacks feel catastrophic. Small kindnesses feel overwhelming.`
+        });
+    }
+    
+    // ── THE PALE: Dissociated / Unconscious ──
+    if (activeIds.includes('the_pale')) {
+        overrides.push({
+            priority: 1,
+            text: `⚠️ THE PALE IS ACTIVE — REALITY IS DISSOLVING
+The character is dissociated from reality. Voices should be:
+- Dreamlike, fragmented, reality-breaking
+- Normal skills speak as if from far away, muffled, uncertain
+- Inland Empire and Shivers are AMPLIFIED — speaking in visions and symbols
+- Ancient voices (if present) dominate — primal, pre-language awareness
+- Time and space are unreliable. Memories bleed into the present.
+- The character may be unconscious, in a coma, or experiencing ego death.`
+        });
+    }
+    
+    // ── WHITE MOURNING: Dying status active ──
+    if (activeIds.includes('white_mourning')) {
+        overrides.push({
+            priority: 1,
+            text: `⚠️ WHITE MOURNING — DEATH APPROACHES
+Something is ending. The voices know it:
+- Inland Empire speaks in omens and final truths
+- Shivers feels the city/world mourning
+- Pain Threshold narrates the body's shutdown clinically
+- Other voices make peace, rage, or deny
+- There is a solemnity to everything. Even arguments feel like eulogies.`
+        });
+    }
+    
+    // ── WASTE LAND: Exhausted ──
+    if (activeIds.includes('waste_land')) {
+        overrides.push({
+            priority: 3,
+            text: `STATE: EXHAUSTED (Waste Land active)
+The body demands rest. Voices should reflect bone-deep fatigue:
+- Thoughts trail off, lose focus, circle back
+- Physical skills are sluggish and unreliable
+- Inland Empire drifts toward sleep and dreams
+- Volition is the only thing keeping the character upright`
+        });
+    }
+    
+    // ── SEVERELY DRUNK: Multiple alcohol stacks ──
+    const drunkEffect = activeEffects.find(e => 
+        (typeof e === 'string' ? e : e.id) === 'revacholian_courage' && 
+        (typeof e !== 'string' && e.stacks >= 2)
+    );
+    if (drunkEffect) {
+        const stacks = drunkEffect.stacks || 2;
+        overrides.push({
+            priority: 2,
+            text: `STATE: SEVERELY INTOXICATED (${stacks} drinks deep)
+Voices should reflect heavy intoxication:
+- Logic and coordination skills are impaired, making errors
+- Electrochemistry is THRIVING, encouraging more
+- Emotional skills are disinhibited — saying things sober-you wouldn't
+- Words should occasionally slur or lose track mid-thought
+- Drama and Suggestion get louder. Composure gets quieter.`
+        });
+    }
+    
+    // ── FINGER ON THE EJECT BUTTON: Wounded ──
+    if (activeIds.includes('finger_on_the_eject_button')) {
+        overrides.push({
+            priority: 3,
+            text: `STATE: SERIOUSLY WOUNDED (Finger on the Eject Button)
+Pain is a constant companion. Voices should:
+- Acknowledge the injury — it's always there, nagging
+- Pain Threshold speaks with grim authority
+- Half Light sees every shadow as a threat to the wounded body
+- Volition debates whether it's worth getting back up`
+        });
+    }
+    
+    // ── SPINAL CORD TERRITORY: Party combo ──
+    const partyIds = ['revacholian_courage', 'pyrholidon', 'tequila_sunset'];
+    const activeParty = partyIds.filter(id => activeIds.includes(id));
+    if (activeParty.length >= 2) {
+        overrides.push({
+            priority: 2,
+            text: `STATE: PARTY MODE — SPINAL CORD AWAKENED
+Multiple substances are active. The body has taken over:
+- Rational voices are DROWNED OUT by sensation
+- Everything is electric, manic, unstoppable
+- Bad decisions feel like great ideas
+- The beat continues. DISCO.`
+        });
+    }
+    
+    if (overrides.length === 0) return '';
+    
+    // Sort by priority (0 = most critical) and build the block
+    overrides.sort((a, b) => a.priority - b.priority);
+    
+    return '\n╔══════════════════════════════════════════════════════════════╗\n' +
+           '║  CRITICAL STATE — VOICES MUST ACKNOWLEDGE THIS              ║\n' +
+           '╚══════════════════════════════════════════════════════════════╝\n' +
+           overrides.map(o => o.text).join('\n\n') + '\n';
+}
+
+// ═══════════════════════════════════════════════════════════════
 // CONTEXT ENRICHMENT
 // Assembles awareness context from all Tribunal systems
 // so voices have actual knowledge of the character's state
@@ -568,6 +759,11 @@ All skills should lean into this vibe while keeping their individual personaliti
         return `${v.skill.signature}${checkInfo}: ${v.skill.personality}`;
     }).join('\n\n');
 
+    // ═══════════════════════════════════════════════════════
+    // CRITICAL STATE: Must-acknowledge overrides
+    // ═══════════════════════════════════════════════════════
+    const criticalOverride = buildCriticalStateOverride();
+
     // Build system prompt
     const systemPrompt = `You generate internal mental voices for a roleplayer, inspired by Disco Elysium's skill system.
 
@@ -588,7 +784,7 @@ If the scene describes an NPC's feelings, sensations, or internal state - those 
 
 Example: If scene says "Gortash felt the impact" - voices should say "Look at him flinch" NOT "You felt the impact"
 Example: If scene says "his back hit the wall" (about an NPC) - voices say "He hit that wall hard" NOT "Your back hit the wall"
-
+${criticalOverride}
 ═══════════════════════════════════════════════════════════════
 THE VOICES SPEAKING THIS ROUND
 ═══════════════════════════════════════════════════════════════
