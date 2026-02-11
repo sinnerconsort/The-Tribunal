@@ -1,7 +1,7 @@
 /**
  * The Tribunal - Settings Tab Template
  * RC-41-CFG Configuration Form
- * v1.1.0 - Added Section I: Setting Profile selector
+ * v1.0.0 - Release version (debug sections removed)
  */
 
 export const SETTINGS_TAB_HTML = `
@@ -10,22 +10,6 @@ export const SETTINGS_TAB_HTML = `
         <!-- Header -->
         <div class="rcm-form-header">
             <div class="rcm-form-title">R.C.M. EQUIPMENT REQUISITION<br>CONFIGURATION FORM</div>
-        </div>
-        
-        <!-- Section I: Setting Profile -->
-        <div class="rcm-section">
-            <div class="rcm-section-header">I. SETTING PROFILE</div>
-            <div class="rcm-section-content">
-                <div class="rcm-field-note" style="margin-bottom: 10px;">
-                    <em>Controls voice personalities, prompt flavor, and thematic styling</em>
-                </div>
-                <div class="rcm-field-row">
-                    <label class="rcm-field-label">ACTIVE PROFILE:</label>
-                    <select id="cfg-setting-profile" class="rcm-select">
-                        <!-- Populated dynamically by settings-handlers.js -->
-                    </select>
-                </div>
-            </div>
         </div>
         
         <!-- Section II: Connection -->
@@ -158,7 +142,7 @@ export const SETTINGS_TAB_HTML = `
                 
                 <div style="border-top: 1px dashed rgba(255,255,255,0.2); margin: 12px 0; padding-top: 12px;">
                     <label class="rcm-checkbox-row">
-                        <input type="checkbox" id="cfg-inject-world-tag">
+                        <input type="checkbox" id="cfg-inject-world-tag" checked>
                         <span>Show injection prompt</span>
                     </label>
                     <div id="world-tag-inject-preview" style="display: none; margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; font-size: 10px;">
