@@ -54,74 +54,85 @@
 
 /* ═══════════════════════════════════════════════════════════════
    DESKTOP SCALING - Larger screens get bigger UI
-   Increases font sizes and panel width for readability on 2K+ screens
+   Panel extends wider and content scales proportionally
    ═══════════════════════════════════════════════════════════════ */
 
-/* Desktop screens (1800px+ viewport width) */
-@media (min-width: 1800px) {
-    :root {
-        --ie-scale: 1.2;
-    }
-    
-    /* Wider panel */
+/* Desktop screens (1200px+ viewport width) */
+@media (min-width: 1200px) {
     .inland-empire-panel {
         width: 480px;
+        font-size: 15px;
     }
     
-    /* Bigger FABs */
+    /* Scale up FABs */
     .ie-fab {
-        width: 52px;
-        height: 52px;
+        width: 50px;
+        height: 50px;
+    }
+    
+    .ie-fab-icon {
+        font-size: 20px;
+    }
+}
+
+/* Larger desktop screens (1600px+) */
+@media (min-width: 1600px) {
+    .inland-empire-panel {
+        width: 540px;
+        font-size: 16px;
+    }
+    
+    .ie-fab {
+        width: 54px;
+        height: 54px;
     }
     
     .ie-fab-icon {
         font-size: 22px;
     }
     
-    /* Header text */
+    /* Bump up key text sizes */
     .ie-panel-title {
-        font-size: 17px;
+        font-size: 18px;
     }
     
-    /* Section headers */
     .ie-section h3 {
-        font-size: 14px;
+        font-size: 15px;
     }
     
-    /* Body text */
-    .ie-empty-state,
-    .ie-btn,
-    .ie-bottom-btn {
-        font-size: 14px;
-    }
-    
-    .ie-btn-small {
-        font-size: 13px;
-    }
-    
-    /* Vital labels */
     .ie-vital-label {
         font-size: 12px;
     }
     
     .ie-vital-value {
-        font-size: 13px;
+        font-size: 14px;
+    }
+    
+    .ie-btn,
+    .ie-bottom-btn {
+        font-size: 14px;
+        padding: 12px 16px;
+    }
+    
+    .ie-empty-state {
+        font-size: 15px;
     }
 }
 
-/* Large desktop / 4K screens */
-@media (min-width: 2800px) {
+/* 2K+ screens */
+@media (min-width: 2000px) {
     .inland-empire-panel {
-        width: 560px;
+        width: 600px;
+        font-size: 17px;
     }
     
     .ie-fab {
-        width: 60px;
-        height: 60px;
+        width: 58px;
+        height: 58px;
     }
     
     .ie-fab-icon {
-        font-size: 26px;
+        font-size: 24px;
     }
     
     .ie-panel-title {
@@ -132,17 +143,48 @@
         font-size: 16px;
     }
     
-    .ie-empty-state,
-    .ie-btn,
-    .ie-bottom-btn {
-        font-size: 16px;
-    }
-    
     .ie-vital-label {
-        font-size: 14px;
+        font-size: 13px;
     }
     
     .ie-vital-value {
         font-size: 15px;
+    }
+    
+    .ie-btn,
+    .ie-bottom-btn {
+        font-size: 15px;
+        padding: 14px 18px;
+    }
+}
+
+/* 4K screens */
+@media (min-width: 3000px) {
+    .inland-empire-panel {
+        width: 720px;
+        font-size: 20px;
+    }
+    
+    .ie-fab {
+        width: 68px;
+        height: 68px;
+    }
+    
+    .ie-fab-icon {
+        font-size: 28px;
+    }
+    
+    .ie-panel-title {
+        font-size: 24px;
+    }
+    
+    .ie-section h3 {
+        font-size: 18px;
+    }
+    
+    .ie-btn,
+    .ie-bottom-btn {
+        font-size: 17px;
+        padding: 16px 20px;
     }
 }
