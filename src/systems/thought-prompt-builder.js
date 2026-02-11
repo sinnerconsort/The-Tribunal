@@ -1,15 +1,20 @@
 /**
  * The Tribunal - Thought Prompt Builder
  * 
- * Builds prompts for AI to generate Disco Elysium-style thoughts
- * dynamically based on persona, themes, and chat context.
+ * Builds prompts for AI to generate thoughts dynamically
+ * based on persona, themes, and chat context.
  * 
- * @version 4.3.0 - Theme-based Lucide icons instead of AI emojis
+ * @version 4.4.0 - Setting Profile integration (agnosticism refactor)
+ *                  All "Disco Elysium" string references now come from
+ *                  the active setting profile via getProfileValue()
  */
 
 import { THEMES, getTopThemes, THEME_ICONS, FALLBACK_ICON } from '../data/thoughts.js';
 import { getPersona, getThoughtCabinet } from '../core/state.js';
 import { getContext } from '../../../../../extensions.js';
+
+// Setting profile system — prompt flavor text
+import { getProfileValue } from '../data/setting-profiles.js';
 
 // ═══════════════════════════════════════════════════════════════
 // STATUS TYPES (matches status-template.js / statuses.js)
@@ -210,12 +215,17 @@ function buildSystemPrompt(perspective, themes, personaContext, existingThoughts
         : '';
     
     const formattedPronouns = formatPronounGuidance(playerPronouns);
+
+    // Profile-driven flavor text
+    const systemName = getProfileValue('thoughtSystemName');
+    const styleName = getProfileValue('thoughtStyleName');
+    const styleDesc = getProfileValue('thoughtStyleDescription');
     
     // NOTE: We no longer ask for "icon" in the JSON since we derive it from theme
-    return `You are the internal voice generator for The Tribunal, a Disco Elysium-inspired system.
+    return `You are the internal voice generator for ${systemName}.
 
 ## YOUR TASK
-Generate ONE introspective thought in the style of Disco Elysium's Thought Cabinet.
+Generate ONE ${styleDesc} in the style of ${styleName}.
 
 ## THE USER'S PERSPECTIVE
 ${perspective.description}
@@ -402,9 +412,11 @@ export function buildQuickThoughtPrompt(concept) {
     const existingNote = existingThoughts.length > 0
         ? `\nExisting thoughts (don't duplicate): ${existingThoughts.join(', ')}`
         : '';
+
+    const styleDesc = getProfileValue('thoughtStyleDescription');
     
     // NOTE: No "icon" field requested - we derive it from theme
-    const system = `You generate Disco Elysium-style thoughts. The user is a ${perspective.type} (${perspective.description}).
+    const system = `You generate ${styleDesc}s. The user is a ${perspective.type} (${perspective.description}).
 
 **CRITICAL - PLAYER PRONOUNS: Use ${playerPronouns} when addressing the player. Do not infer pronouns from narrative context.**
 ${existingNote}
@@ -454,9 +466,11 @@ export function buildThemeTriggeredPrompt(spikingTheme) {
     const recentMessages = getRecentMessages(10);
     const characterName = getCharacterName();
     const existingThoughts = [...getInternalizedThoughtNames(), ...getResearchingThoughtNames()];
+
+    const styleDesc = getProfileValue('thoughtStyleDescription');
     
     // NOTE: No "icon" field requested - theme is pre-determined
-    const system = `You generate Disco Elysium-style thoughts. The user is a ${perspective.type}.
+    const system = `You generate ${styleDesc}s. The user is a ${perspective.type}.
 
 ## CRITICAL: THEME SPIKE
 The theme "${spikingTheme.name}" has reached critical mass in this story.
