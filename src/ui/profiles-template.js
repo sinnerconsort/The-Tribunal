@@ -4,10 +4,25 @@
  */
 
 // ═══════════════════════════════════════════════════════════════
-// COPOTYPE ID TO DISPLAY NAME MAP
+// COPOTYPE DISPLAY NAMES (Profile-Aware)
 // ═══════════════════════════════════════════════════════════════
 
-const COPOTYPE_DISPLAY_NAMES = {
+// Simple/generic names (default for all non-DE profiles)
+const COPOTYPE_SIMPLE_NAMES = {
+    'apocalypse_cop': 'Nihilist',
+    'sorry_cop': 'Apologetic',
+    'boring_cop': 'Professional',
+    'honour_cop': 'Honourable',
+    'art_cop': 'Artistic',
+    'hobocop': 'Vagrant',
+    'superstar_cop': 'Showoff',
+    'dick_mullen': 'Detective',
+    'human_can_opener': 'Charming',
+    'innocence': 'Innocent'
+};
+
+// DE-specific names (only when Disco Elysium profile active)
+const COPOTYPE_DE_NAMES = {
     'apocalypse_cop': 'Apocalypse Cop',
     'sorry_cop': 'Sorry Cop',
     'boring_cop': 'Boring Cop',
@@ -322,20 +337,23 @@ export function generateBadgeNumber(personaId) {
 /**
  * Get copotype display name from ID or scores
  * @param {string|object|null} copotype - Either a copotype ID string or score object
+ * @param {boolean} useDE - Whether to use DE-specific names (default: false)
  * @returns {string} Display name
  */
-export function getCopotypeDisplayName(copotype) {
+export function getCopotypeDisplayName(copotype, useDE = false) {
     // If null/undefined
     if (!copotype) return 'Unknown';
     
+    const nameMap = useDE ? COPOTYPE_DE_NAMES : COPOTYPE_SIMPLE_NAMES;
+    
     // If it's a direct ID string (from vitals.copotype)
     if (typeof copotype === 'string') {
-        return COPOTYPE_DISPLAY_NAMES[copotype] || formatCopotypeId(copotype);
+        return nameMap[copotype] || COPOTYPE_SIMPLE_NAMES[copotype] || formatCopotypeId(copotype);
     }
     
     // If it's a scores object (legacy/fallback)
     if (typeof copotype === 'object') {
-        return determineCopotypeFromScores(copotype);
+        return determineCopotypeFromScores(copotype, useDE);
     }
     
     return 'Unknown';
@@ -358,7 +376,7 @@ function formatCopotypeId(id) {
  * Determine copotype from scores (legacy)
  * @deprecated Use direct copotype ID instead
  */
-function determineCopotypeFromScores(scores) {
+function determineCopotypeFromScores(scores, useDE = false) {
     if (!scores) return 'Unknown';
     
     const { superstar = 0, sorry = 0, hobo = 0, apocalypse = 0 } = scores;
@@ -366,10 +384,12 @@ function determineCopotypeFromScores(scores) {
     
     if (max === 0) return 'Unknown';
     
-    if (superstar === max) return 'Superstar Cop';
-    if (sorry === max) return 'Sorry Cop';
-    if (hobo === max) return 'Hobocop';
-    if (apocalypse === max) return 'Apocalypse Cop';
+    const nameMap = useDE ? COPOTYPE_DE_NAMES : COPOTYPE_SIMPLE_NAMES;
+    
+    if (superstar === max) return nameMap['superstar_cop'];
+    if (sorry === max) return nameMap['sorry_cop'];
+    if (hobo === max) return nameMap['hobocop'];
+    if (apocalypse === max) return nameMap['apocalypse_cop'];
     
     return 'Unknown';
 }
@@ -506,4 +526,35 @@ export function updateMoneyDisplay(amount = 0) {
     if (amount >= 70 && bill2) bill2.textContent = '20';
     else if (amount >= 50 && bill2) bill2.textContent = amount - 50;
     else if (bill2) bill2.textContent = Math.max(0, amount - 20);
+}
+
+/**
+ * Update MEF form labels based on active profile
+ * Swaps copotype names and status effect names between DE and generic
+ * @param {boolean} useDE - Whether to use Disco Elysium-specific names
+ */
+export function updateMEFLabelsForProfile(useDE = false) {
+    // Update copotype labels
+    const copotypes = document.querySelectorAll('.rcm-copotype-item[data-label-off][data-label-on]');
+    copotypes.forEach(item => {
+        const label = item.querySelector('.rcm-copotype-label');
+        if (label) {
+            label.textContent = useDE ? item.dataset.labelOn : item.dataset.labelOff;
+        }
+    });
+    
+    // Update status effect labels (when unchecked, show simple; when checked, show DE or simple)
+    const statuses = document.querySelectorAll('.rcm-checkbox[data-label-off][data-label-on]');
+    statuses.forEach(item => {
+        const label = item.querySelector('.rcm-checkbox-label');
+        if (!label) return;
+        const isActive = item.classList.contains('rcm-checkbox-checked');
+        if (useDE && isActive) {
+            label.textContent = item.dataset.labelOn;
+        } else {
+            label.textContent = item.dataset.labelOff;
+        }
+    });
+    
+    console.log('[Profiles] MEF labels updated, useDE:', useDE);
 }
