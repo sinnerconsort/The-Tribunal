@@ -5,7 +5,7 @@
  * REBUILD VERSION: Uses per-chat state accessors instead of global settings
  * This fixes the POV bug where pronouns weren't persisting per-chat!
  * 
- * @version 1.1.0 - Setting Profile integration (agnosticism refactor)
+ * @version 1.0.1 - Removed unused getChatState import
  * COMPATIBILITY: Also checks old extensionSettings location as fallback
  */
 
@@ -15,9 +15,6 @@ import { getReactionLine, getSkillDynamics } from '../data/relationships.js';
 
 // Import from rebuild's state management
 import { getPersona, getVitals, getSettings } from '../core/state.js';
-
-// Setting profile system — personality text & prompt flavor
-import { getSkillPersonality, getAncientPersonality, getProfileValue } from '../data/setting-profiles.js';
 
 // ═══════════════════════════════════════════════════════════════
 // COPOTYPE DETECTION
@@ -259,6 +256,214 @@ function getPersonaWithFallback() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// CONTEXT ENRICHMENT
+// Assembles awareness context from all Tribunal systems
+// so voices have actual knowledge of the character's state
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Build vitals context string for voice prompt
+ * Gives voices awareness of character's physical/mental state
+ */
+function buildVitalsContext() {
+    const vitals = getVitals();
+    if (!vitals) return '';
+    
+    const health = vitals.health ?? 13;
+    const maxHealth = vitals.maxHealth ?? 13;
+    const morale = vitals.morale ?? 13;
+    const maxMorale = vitals.maxMorale ?? 13;
+    
+    const healthPercent = maxHealth > 0 ? health / maxHealth : 1;
+    const moralePercent = maxMorale > 0 ? morale / maxMorale : 1;
+    
+    // Only include if something interesting is happening
+    if (healthPercent > 0.7 && moralePercent > 0.7) return '';
+    
+    const parts = [];
+    
+    if (healthPercent <= 0.15) {
+        parts.push(`HEALTH: ${health}/${maxHealth} — CRITICAL. Body is failing, pain overwhelming.`);
+    } else if (healthPercent <= 0.3) {
+        parts.push(`HEALTH: ${health}/${maxHealth} — Low. Injuries taking their toll.`);
+    } else if (healthPercent <= 0.7) {
+        parts.push(`HEALTH: ${health}/${maxHealth} — Battered but standing.`);
+    }
+    
+    if (moralePercent <= 0.15) {
+        parts.push(`MORALE: ${morale}/${maxMorale} — BREAKING. Will to continue nearly gone.`);
+    } else if (moralePercent <= 0.3) {
+        parts.push(`MORALE: ${morale}/${maxMorale} — Shaken. Resolve wavering.`);
+    } else if (moralePercent <= 0.7) {
+        parts.push(`MORALE: ${morale}/${maxMorale} — Strained but holding.`);
+    }
+    
+    if (parts.length === 0) return '';
+    return '\nCHARACTER CONDITION:\n' + parts.join('\n');
+}
+
+/**
+ * Build active effects context for voice prompt
+ * Tells voices what substances/conditions are affecting the character
+ */
+function buildActiveEffectsContext() {
+    const vitals = getVitals();
+    const activeEffects = vitals?.activeEffects || [];
+    if (activeEffects.length === 0) return '';
+    
+    const effectDescriptions = [];
+    for (const effect of activeEffects) {
+        const effectId = typeof effect === 'string' ? effect : effect.id;
+        if (!effectId) continue;
+        
+        const statusData = STATUS_EFFECTS[effectId];
+        if (statusData) {
+            const name = statusData.simpleName || statusData.name || effectId;
+            // Include boost/debuff info so voices know what's affected
+            const boosts = statusData.boosts?.length ? `boosts ${statusData.boosts.join(', ')}` : '';
+            const debuffs = statusData.debuffs?.length ? `impairs ${statusData.debuffs.join(', ')}` : '';
+            const mods = [boosts, debuffs].filter(Boolean).join('; ');
+            effectDescriptions.push(`• ${name}${mods ? ` (${mods})` : ''}`);
+        }
+    }
+    
+    if (effectDescriptions.length === 0) return '';
+    return '\nACTIVE EFFECTS:\n' + effectDescriptions.join('\n');
+}
+
+/**
+ * Build contact/NPC awareness context from relationships state
+ * Lets voices reference known NPCs with their actual opinions
+ * 
+ * @param {string} sceneText - Current message to check for mentioned NPCs
+ */
+function buildContactContext(sceneText) {
+    try {
+        const { getChatState } = window.TribunalState || {};
+        if (!getChatState) return '';
+        
+        const state = getChatState();
+        const relationships = state?.relationships;
+        if (!relationships || Object.keys(relationships).length === 0) return '';
+        
+        const lowerScene = (sceneText || '').toLowerCase();
+        const mentionedContacts = [];
+        
+        for (const contact of Object.values(relationships)) {
+            if (!contact?.name) continue;
+            
+            // Check if this NPC is mentioned in the current scene
+            const lowerName = contact.name.toLowerCase();
+            const firstName = lowerName.split(' ')[0];
+            
+            if (lowerScene.includes(lowerName) || lowerScene.includes(firstName)) {
+                const disposition = contact.disposition || 'unknown';
+                const traits = (contact.detectedTraits || []).slice(0, 3).join(', ');
+                
+                // Get top voice opinions for this contact
+                let opinionStr = '';
+                if (contact.voiceOpinions) {
+                    const opinions = Object.entries(contact.voiceOpinions)
+                        .filter(([, op]) => op.score !== 0)
+                        .sort((a, b) => Math.abs(b[1].score) - Math.abs(a[1].score))
+                        .slice(0, 2);
+                    
+                    if (opinions.length > 0) {
+                        opinionStr = ' Voices: ' + opinions.map(([skillId, op]) => {
+                            const skill = SKILLS[skillId];
+                            const name = skill?.signature || skillId;
+                            return `${name} ${op.score > 0 ? 'trusts' : 'distrusts'} (${op.score > 0 ? '+' : ''}${op.score})`;
+                        }).join(', ');
+                    }
+                }
+                
+                mentionedContacts.push(
+                    `• ${contact.name} — ${disposition}${traits ? `, ${traits}` : ''}${opinionStr}`
+                );
+            }
+        }
+        
+        if (mentionedContacts.length === 0) return '';
+        return '\nKNOWN NPCs IN THIS SCENE:\n' + mentionedContacts.join('\n');
+    } catch (e) {
+        return '';
+    }
+}
+
+/**
+ * Build world state context (weather, time, location)
+ */
+function buildWorldContext() {
+    try {
+        const { getChatState } = window.TribunalState || {};
+        if (!getChatState) return '';
+        
+        const state = getChatState();
+        const ledger = state?.ledger;
+        if (!ledger) return '';
+        
+        const parts = [];
+        
+        if (ledger.time?.display) {
+            parts.push(ledger.time.display + (ledger.time.period ? ` (${ledger.time.period})` : ''));
+        }
+        if (ledger.weather?.condition && ledger.weather.condition !== 'overcast') {
+            parts.push(ledger.weather.condition);
+        }
+        if (ledger.currentLocation?.name) {
+            parts.push(`at ${ledger.currentLocation.name}`);
+        }
+        
+        if (parts.length === 0) return '';
+        return '\nSetting: ' + parts.join(', ');
+    } catch (e) {
+        return '';
+    }
+}
+
+/**
+ * Get user persona description from SillyTavern if available
+ * Falls back gracefully if persona not set
+ */
+function getSTPersonaDescription() {
+    try {
+        const ctx = window.SillyTavern?.getContext?.() ||
+                     (typeof getContext === 'function' ? getContext() : null);
+        if (!ctx) return '';
+        
+        // Get persona description if available
+        const personaDesc = ctx.persona?.description || ctx.personaDescription || '';
+        if (personaDesc && personaDesc.length > 10) {
+            // Truncate to keep prompt manageable
+            return personaDesc.substring(0, 400);
+        }
+        return '';
+    } catch (e) {
+        return '';
+    }
+}
+
+/**
+ * Assemble the full enrichment context block
+ * Returns a single string to inject into the voice prompt
+ */
+function buildEnrichmentContext(sceneText) {
+    const sections = [
+        buildVitalsContext(),
+        buildActiveEffectsContext(),
+        buildContactContext(sceneText),
+        buildWorldContext()
+    ].filter(s => s.length > 0);
+    
+    if (sections.length === 0) return '';
+    
+    return '\n═══════════════════════════════════════════════════════════════\n' +
+           'SITUATION AWARENESS (use to inform voice reactions)\n' +
+           '═══════════════════════════════════════════════════════════════' +
+           sections.join('') + '\n';
+}
+
+// ═══════════════════════════════════════════════════════════════
 // MAIN PROMPT BUILDER
 // ═══════════════════════════════════════════════════════════════
 
@@ -283,6 +488,22 @@ export function buildChorusPrompt(voiceData, context) {
     
     const povInstruction = buildPOVInstruction(povStyle, charIdentity, charPronouns);
 
+    // ═══════════════════════════════════════════════════════
+    // PERSONA ENRICHMENT: Pull from ST persona if local is empty
+    // ═══════════════════════════════════════════════════════
+    let enrichedCharContext = characterContext;
+    if (!enrichedCharContext || enrichedCharContext.trim().length < 10) {
+        const stPersona = getSTPersonaDescription();
+        if (stPersona) {
+            enrichedCharContext = stPersona;
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // SITUATION AWARENESS: Vitals, effects, contacts, world
+    // ═══════════════════════════════════════════════════════
+    const enrichmentContext = buildEnrichmentContext(context.message);
+
     // Status context - now reads from per-chat vitals
     let statusContext = '';
     const activeStatuses = getActiveStatusIds();
@@ -294,14 +515,13 @@ export function buildChorusPrompt(voiceData, context) {
         statusContext = `\nCurrent state: ${statusNames}.`;
     }
 
-    // Copotype section — uses profile's archetype label
+    // Copotype section
     let copotypeSection = '';
     const activeCopotype = getActiveCopotype();
     if (activeCopotype) {
-        const archetypeLabel = getProfileValue('archetypeLabel', 'Copotype');
         copotypeSection = `
 
-${archetypeLabel.toUpperCase()} ACTIVE: ${activeCopotype.name}
+COPOTYPE ACTIVE: ${activeCopotype.name}
 This colors HOW all voices speak. Voice style flavor: ${activeCopotype.voiceStyle}
 All skills should lean into this vibe while keeping their individual personalities.`;
     }
@@ -329,7 +549,7 @@ All skills should lean into this vibe while keeping their individual personaliti
         }
     }
 
-    // Voice descriptions — now pulls personality from setting profile
+    // Voice descriptions
     const voiceDescriptions = voiceData.map(v => {
         let checkInfo = '';
         if (v.checkResult) {
@@ -345,21 +565,17 @@ All skills should lean into this vibe while keeping their individual personaliti
             checkInfo = ' [Passive]';
         }
 
-        // Profile personality → skill.personality fallback
-        const personality = v.isAncient
-            ? (getAncientPersonality(v.skillId) || v.skill.personality)
-            : (getSkillPersonality(v.skillId) || v.skill.personality);
-        return `${v.skill.signature}${checkInfo}: ${personality}`;
+        return `${v.skill.signature}${checkInfo}: ${v.skill.personality}`;
     }).join('\n\n');
 
-    // Build system prompt — uses profile's system intro
-    const systemPrompt = `${getProfileValue('systemIntro')}
+    // Build system prompt
+    const systemPrompt = `You generate internal mental voices for a roleplayer, inspired by Disco Elysium's skill system.
 
 ═══════════════════════════════════════════════════════════════
 CRITICAL IDENTITY - READ THIS FIRST
 ═══════════════════════════════════════════════════════════════
-${characterContext.trim() ? `THE PLAYER CHARACTER (whose head these voices are in):
-${characterContext}
+${enrichedCharContext.trim() ? `THE PLAYER CHARACTER (whose head these voices are in):
+${enrichedCharContext}
 
 ` : ''}${scenePerspective.trim() ? `SCENE PERSPECTIVE WARNING:
 ${scenePerspective}
@@ -378,7 +594,7 @@ THE VOICES SPEAKING THIS ROUND
 ═══════════════════════════════════════════════════════════════
 ${voiceDescriptions}
 ${relationshipSection}${reactionExamples}
-
+${enrichmentContext}
 ═══════════════════════════════════════════════════════════════
 RULES
 ═══════════════════════════════════════════════════════════════
@@ -396,7 +612,7 @@ Output ONLY voice dialogue. No narration or explanation.`;
 
     return {
         system: systemPrompt,
-        user: `Scene to react to: "${context.message.substring(0, 800)}"
+        user: `Scene to react to: "${context.message.substring(0, 1500)}"
 
 REMEMBER: You are voices in ${charIdentity}'s head. If this scene is written from someone else's POV, translate it to what ${charIdentity} OBSERVES from the outside.
 
