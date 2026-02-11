@@ -1,7 +1,7 @@
 /**
  * The Tribunal - Settings Tab Template
  * RC-41-CFG Configuration Form
- * v1.0.0 - Release version (debug sections removed)
+ * v1.1.0 - Added Section I: Setting Profile selector
  */
 
 export const SETTINGS_TAB_HTML = `
@@ -10,6 +10,22 @@ export const SETTINGS_TAB_HTML = `
         <!-- Header -->
         <div class="rcm-form-header">
             <div class="rcm-form-title">R.C.M. EQUIPMENT REQUISITION<br>CONFIGURATION FORM</div>
+        </div>
+        
+        <!-- Section I: Setting Profile -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">I. SETTING PROFILE</div>
+            <div class="rcm-section-content">
+                <div class="rcm-field-note" style="margin-bottom: 10px;">
+                    <em>Controls voice personalities, prompt flavor, and thematic styling</em>
+                </div>
+                <div class="rcm-field-row">
+                    <label class="rcm-field-label">ACTIVE PROFILE:</label>
+                    <select id="cfg-setting-profile" class="rcm-select">
+                        <!-- Populated dynamically by settings-handlers.js -->
+                    </select>
+                </div>
+            </div>
         </div>
         
         <!-- Section II: Connection -->

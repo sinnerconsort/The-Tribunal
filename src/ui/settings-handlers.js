@@ -2,17 +2,22 @@
  * The Tribunal - Settings Handlers
  * Wires the Settings tab inputs to state persistence
  * 
- * @version 5.1.1 - Fixed indentation in saveAllSettings
+ * @version 5.2.0 - Added Setting Profile selector (agnosticism refactor)
+ *                  Profiles control voice personalities, prompt flavor, and theme styling
  */
 
 import { getSettings, saveSettings } from '../core/state.js';
 import { getAvailableProfiles } from '../voice/api-helpers.js';
+import { getAvailableProfiles as getSettingProfiles } from '../data/setting-profiles.js';
 
 // ═══════════════════════════════════════════════════════════════
 // ELEMENT IDS
 // ═══════════════════════════════════════════════════════════════
 
 const SETTINGS_IDS = {
+    // Setting Profile (Section I)
+    settingProfile: 'cfg-setting-profile',
+    
     // Connection (Section II)
     connectionProfile: 'cfg-connection-profile',
     temperature: 'cfg-temperature',
@@ -122,6 +127,9 @@ export function initSettingsTab() {
     // Populate connection profiles dropdown
     populateConnectionProfiles();
     
+    // Populate setting profile dropdown (DE, Noir, Generic, etc.)
+    populateSettingProfiles();
+    
     // Load current settings into UI
     refreshSettingsFromState();
     
@@ -160,6 +168,78 @@ export function initSettingsTab() {
     bindCompartmentSettingsHandlers();
     
     console.log('[Tribunal] Settings handlers initialized');
+}
+
+/**
+ * Populate the setting profile dropdown with available profiles
+ * These control the flavor/personality of the entire extension
+ */
+export function populateSettingProfiles() {
+    const select = document.getElementById(SETTINGS_IDS.settingProfile);
+    if (!select) {
+        console.warn('[Tribunal] Setting profile select not found');
+        return;
+    }
+    
+    // Clear existing options
+    select.innerHTML = '';
+    
+    // Get available profiles from setting-profiles.js
+    try {
+        const profiles = getSettingProfiles();
+        
+        if (profiles && profiles.length > 0) {
+            profiles.forEach(profile => {
+                const option = document.createElement('option');
+                option.value = profile.id;
+                option.textContent = profile.name;
+                if (profile.description) {
+                    option.title = profile.description;
+                }
+                select.appendChild(option);
+            });
+            
+            console.log(`[Tribunal] Populated ${profiles.length} setting profiles`);
+        } else {
+            // Fallback if no profiles found
+            const fallback = document.createElement('option');
+            fallback.value = 'disco_elysium';
+            fallback.textContent = 'Disco Elysium (Default)';
+            select.appendChild(fallback);
+            console.warn('[Tribunal] No setting profiles found, using fallback');
+        }
+    } catch (err) {
+        console.error('[Tribunal] Error loading setting profiles:', err);
+        // Add fallback option
+        const fallback = document.createElement('option');
+        fallback.value = 'disco_elysium';
+        fallback.textContent = 'Disco Elysium (Default)';
+        select.appendChild(fallback);
+    }
+    
+    // Set current value from settings
+    const settings = getSettings();
+    if (settings?.activeProfile) {
+        select.value = settings.activeProfile;
+    }
+    
+    // Bind immediate change handler — switching profiles takes effect live
+    select.addEventListener('change', () => {
+        const settings = getSettings();
+        settings.activeProfile = select.value;
+        saveSettings();
+        
+        if (typeof toastr !== 'undefined') {
+            const selectedOption = select.options[select.selectedIndex];
+            toastr.success(
+                `Profile: ${selectedOption?.textContent || select.value}`,
+                'Setting Changed',
+                { timeOut: 2000 }
+            );
+        }
+        
+        console.log('[Tribunal] Active profile changed to:', select.value);
+    });
 }
 
 /**
@@ -232,6 +312,9 @@ export function populateConnectionProfiles() {
 export function refreshSettingsFromState() {
     const settings = getSettings();
     if (!settings) return;
+    
+    // Setting Profile
+    setSelectValue(SETTINGS_IDS.settingProfile, settings.activeProfile || 'disco_elysium');
     
     // API / Connection settings
     const apiSettings = settings.api || {};
@@ -376,6 +459,9 @@ export function saveAllSettings() {
     if (!settings.weather) settings.weather = {};
     
     // FIX: Mutate the existing object instead of creating a new one
+    // Setting Profile
+    settings.activeProfile = getInputValue(SETTINGS_IDS.settingProfile, 'disco_elysium');
+    
     // Connection settings
     settings.api.connectionProfile = getInputValue(SETTINGS_IDS.connectionProfile, 'current');
     settings.api.temperature = getInputFloat(SETTINGS_IDS.temperature, 0.8);
