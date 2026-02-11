@@ -5,7 +5,7 @@
  * REBUILD VERSION: Uses per-chat state accessors instead of global settings
  * This fixes the POV bug where pronouns weren't persisting per-chat!
  * 
- * @version 1.0.1 - Removed unused getChatState import
+ * @version 1.1.0 - Setting Profile integration (agnosticism refactor)
  * COMPATIBILITY: Also checks old extensionSettings location as fallback
  */
 
@@ -15,6 +15,9 @@ import { getReactionLine, getSkillDynamics } from '../data/relationships.js';
 
 // Import from rebuild's state management
 import { getPersona, getVitals, getSettings } from '../core/state.js';
+
+// Setting profile system — personality text & prompt flavor
+import { getSkillPersonality, getAncientPersonality, getProfileValue } from '../data/setting-profiles.js';
 
 // ═══════════════════════════════════════════════════════════════
 // COPOTYPE DETECTION
@@ -291,13 +294,14 @@ export function buildChorusPrompt(voiceData, context) {
         statusContext = `\nCurrent state: ${statusNames}.`;
     }
 
-    // Copotype section
+    // Copotype section — uses profile's archetype label
     let copotypeSection = '';
     const activeCopotype = getActiveCopotype();
     if (activeCopotype) {
+        const archetypeLabel = getProfileValue('archetypeLabel', 'Copotype');
         copotypeSection = `
 
-COPOTYPE ACTIVE: ${activeCopotype.name}
+${archetypeLabel.toUpperCase()} ACTIVE: ${activeCopotype.name}
 This colors HOW all voices speak. Voice style flavor: ${activeCopotype.voiceStyle}
 All skills should lean into this vibe while keeping their individual personalities.`;
     }
@@ -325,7 +329,7 @@ All skills should lean into this vibe while keeping their individual personaliti
         }
     }
 
-    // Voice descriptions
+    // Voice descriptions — now pulls personality from setting profile
     const voiceDescriptions = voiceData.map(v => {
         let checkInfo = '';
         if (v.checkResult) {
@@ -341,11 +345,15 @@ All skills should lean into this vibe while keeping their individual personaliti
             checkInfo = ' [Passive]';
         }
 
-        return `${v.skill.signature}${checkInfo}: ${v.skill.personality}`;
+        // Profile personality → skill.personality fallback
+        const personality = v.isAncient
+            ? (getAncientPersonality(v.skillId) || v.skill.personality)
+            : (getSkillPersonality(v.skillId) || v.skill.personality);
+        return `${v.skill.signature}${checkInfo}: ${personality}`;
     }).join('\n\n');
 
-    // Build system prompt
-    const systemPrompt = `You generate internal mental voices for a roleplayer, inspired by Disco Elysium's skill system.
+    // Build system prompt — uses profile's system intro
+    const systemPrompt = `${getProfileValue('systemIntro')}
 
 ═══════════════════════════════════════════════════════════════
 CRITICAL IDENTITY - READ THIS FIRST
