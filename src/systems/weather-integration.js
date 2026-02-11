@@ -1,9 +1,12 @@
 /**
  * Weather Integration Module - The Tribunal
  * ALL-IN-ONE: Effects + Integration + Event Emitter
- * v3.2.0 - HTML comment world state parsing (invisible to user!)
- *        - Format: <!--WORLD{"weather":"Snow","time":"3:45 PM"}-->
- *        - Falls back to visible JSON for backwards compatibility
+ * v3.3.0 - Special effects (Pale/Horror) now only trigger from USER messages, not AI narration
+ *        - AI saying "blood" or "void" is storytelling; USER saying "I black out" is a state change
+ *        - Weather/period patterns still scan all messages (AI describes the weather)
+ *        - Special effects cleared when normal weather detected (no more sticky Pale)
+ *        - Chat change resets all state before rescanning (no bleed between chats)
+ *        - HTML comment world state parsing (invisible to user!)
  */
 
 import { getContext } from '../../../../../extensions.js';
@@ -542,7 +545,7 @@ function normalizeWeatherFromJSON(weatherStr) {
 const WEATHER_PATTERNS = {
     storm: /\b(storm|stormy|thunder|thunderstorm|lightning|tempest|gale|downpour|torrential)\b/i,
     rain: /\b(rain\w*|drizzl\w*|shower\w*|wet|damp\w*|precipitation)\b/i,
-    snow: /\b(snow\w*|blizzard|flurries|frost\w*|freez\w*|ice|icy|sleet|frozen|cold(?:er|est|ly|ness)?)\b/i,
+    snow: /\b(snow\w*|blizzard|flurries|frost\w*|freez\w*|ice|icy|sleet|frozen)\b/i,
     fog: /\b(fog\w*|mist\w*|haz[ey]\w*|murky|smog\w*|overcast)\b/i,
     wind: /\b(wind\w*|gust\w*|breez\w*)\b/i,
     waves: /\b(wave|waves|ocean|sea|harbor|harbour|dock|pier|beach|shore|coastal|tide)\b/i,
@@ -558,48 +561,45 @@ const PERIOD_PATTERNS = {
 };
 
 const SPECIAL_PATTERNS = {
-    pale: /\b(pale|void|unconscious|dreaming|limbo|threshold|dissociat|the\s+pale|pale\s+wall|nothingness)\b/i,
-    // Horror has two tiers - intense words trigger immediately, mild words need 3+ matches
-    horror: null  // Handled specially in scanForKeywords()
+    // Special effects ONLY trigger from USER messages (not AI narration)
+    // Pale: user is describing their character losing consciousness or entering a dream state
+    pale: /\b(unconscious|faint(?:s|ed|ing)?|blacks?\s*out|blacked?\s*out|dozing\s+off|falls?\s+asleep|asleep|dreaming|pass(?:es|ed)?\s+out|losing\s+consciousness)\b/i,
+    // Horror: user is describing their character's fear/terror state
+    horror: /\b(terrified|afraid|scared|horrified|panicking|panic(?:s|ked)?|petrified|paralyzed\s+with\s+fear|shaking\s+with\s+fear|trembling\s+in\s+fear)\b/i
 };
 
 // Horror detection - split into intense (instant trigger) vs mild (need multiple)
-const HORROR_INTENSE = /\b(corpse|murder|mutilat|dismember|gore|entrails|viscera|eviscerat)\b/i;
-const HORROR_MILD = /\b(horror|dread|terror|fear|blood|bloody|death|dead|scream|knife|stab|kill|killer)\b/gi;
-
 /**
- * Scan message for weather keywords (fallback when no JSON found)
+ * Scan message for weather/period keywords (works on ANY message)
+ * Special effects (pale, horror) ONLY trigger from user messages
+ * @param {string} message - Message text
+ * @param {boolean} isUser - Whether the message is from the user
  */
-function scanForKeywords(message) {
+function scanForKeywords(message, isUser = false) {
     if (!message || typeof message !== 'string') return null;
     
-    // Check pale first (highest priority)
-    if (SPECIAL_PATTERNS.pale?.test(message)) {
-        return { type: 'special', value: 'pale' };
+    // Special effects — USER MESSAGES ONLY
+    // AI narration naturally contains "blood", "void", "death" — that's storytelling, not state
+    if (isUser) {
+        if (SPECIAL_PATTERNS.horror?.test(message)) {
+            console.log('[Weather] Horror triggered by user message');
+            return { type: 'special', value: 'horror' };
+        }
+        
+        if (SPECIAL_PATTERNS.pale?.test(message)) {
+            console.log('[Weather] Pale triggered by user message');
+            return { type: 'special', value: 'pale' };
+        }
     }
     
-    // Check horror with tiered detection:
-    // - Intense words trigger immediately
-    // - Mild words need 3+ matches to trigger
-    if (HORROR_INTENSE.test(message)) {
-        console.log('[Weather] Horror triggered by intense keyword');
-        return { type: 'special', value: 'horror' };
-    }
-    
-    const mildMatches = message.match(HORROR_MILD);
-    if (mildMatches && mildMatches.length >= 3) {
-        console.log('[Weather] Horror triggered by', mildMatches.length, 'mild keywords:', mildMatches);
-        return { type: 'special', value: 'horror' };
-    }
-    
-    // Check weather patterns (now gets priority over weak horror signals)
+    // Weather patterns — scan ALL messages (AI describes the weather)
     for (const [weather, pattern] of Object.entries(WEATHER_PATTERNS)) {
         if (pattern.test(message)) {
             return { type: 'weather', value: weather };
         }
     }
     
-    // Check period patterns
+    // Period patterns — scan ALL messages
     for (const [period, pattern] of Object.entries(PERIOD_PATTERNS)) {
         if (pattern.test(message)) {
             return { type: 'period', value: period };
@@ -615,14 +615,15 @@ function scanForKeywords(message) {
 
 /**
  * Process a message for weather data
- * 1. First tries JSON world state extraction
- * 2. Falls back to keyword scanning
- * 3. Updates state and emits events
+ * 1. First tries JSON world state extraction (any message)
+ * 2. Falls back to keyword scanning (special effects = user only)
+ * @param {string} message - Message text
+ * @param {boolean} isUser - Whether this is a user message
  */
-function processMessageForWeather(message) {
+function processMessageForWeather(message, isUser = false) {
     if (!message || typeof message !== 'string') return null;
     
-    console.log('[Weather] Processing message (length:', message.length, ')');
+    console.log('[Weather] Processing message (length:', message.length, ', isUser:', isUser, ')');
     
     // Try JSON first
     const worldState = extractWorldState(message);
@@ -630,6 +631,13 @@ function processMessageForWeather(message) {
         const weather = normalizeWeatherFromJSON(worldState.weather);
         if (weather) {
             console.log('[Weather] ✓ Using JSON weather:', weather);
+            
+            // Clear any lingering special effect - explicit JSON weather overrides Pale/horror
+            if (currentSpecial) {
+                console.log('[Weather] Clearing special effect', currentSpecial, '- JSON weather found');
+                currentSpecial = null;
+            }
+            
             setWeather(weather);
             
             // Also extract temperature if available
@@ -653,7 +661,7 @@ function processMessageForWeather(message) {
     
     // Fallback to keyword scanning
     console.log('[Weather] No JSON found, scanning keywords...');
-    const keywordResult = scanForKeywords(message);
+    const keywordResult = scanForKeywords(message, isUser);
     
     if (keywordResult) {
         console.log('[Weather] ✓ Keyword detected:', keywordResult);
@@ -661,8 +669,18 @@ function processMessageForWeather(message) {
         if (keywordResult.type === 'special') {
             setSpecialEffect(keywordResult.value);
         } else if (keywordResult.type === 'weather') {
+            // Clear any lingering special effect when real weather is detected
+            if (currentSpecial) {
+                console.log('[Weather] Clearing special effect', currentSpecial, '- normal weather detected');
+                currentSpecial = null;
+            }
             setWeather(keywordResult.value);
         } else if (keywordResult.type === 'period') {
+            // Clear any lingering special effect when period changes
+            if (currentSpecial) {
+                console.log('[Weather] Clearing special effect', currentSpecial, '- period change detected');
+                currentSpecial = null;
+            }
             setPeriod(keywordResult.value);
         }
         
@@ -793,7 +811,7 @@ function scanChatForWeather(messageCount = 5) {
         const messages = ctx.chat.slice(-messageCount).reverse();
         for (const msg of messages) {
             if (msg?.mes) {
-                const result = processMessageForWeather(msg.mes);
+                const result = processMessageForWeather(msg.mes, !!msg.is_user);
                 if (result) {
                     console.log('[Weather] ✓ Found weather in chat:', result);
                     return; // Stop after first match
@@ -808,7 +826,16 @@ function scanChatForWeather(messageCount = 5) {
 }
 
 function onChatChanged() { 
-    console.log('[Weather] Chat changed event'); 
+    console.log('[Weather] Chat changed event');
+    
+    // Reset state so effects from previous chat don't bleed over
+    currentWeather = null;
+    currentPeriod = null;
+    currentSpecial = null;
+    currentTemp = null;
+    currentLocation = null;
+    clearEffects();
+    
     setTimeout(() => scanChatForWeather(10), 500); 
 }
 
@@ -819,7 +846,7 @@ function onMessageReceived() {
             const lastMessage = ctx.chat[ctx.chat.length - 1];
             if (lastMessage?.mes) {
                 console.log('[Weather] New message received, processing...');
-                processMessageForWeather(lastMessage.mes);
+                processMessageForWeather(lastMessage.mes, !!lastMessage.is_user);
             }
         }
     } catch (e) {
