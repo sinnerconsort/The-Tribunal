@@ -800,7 +800,14 @@ THE VOICES SPEAKING THIS ROUND
 ${voiceDescriptions}
 ${relationshipSection}${reactionExamples}
 ${enrichmentContext}
+${(() => {
+    const tg = getProfileValue('toneGuide', '');
+    return tg ? `═══════════════════════════════════════════════════════════════
+WRITING STYLE & TONE
 ═══════════════════════════════════════════════════════════════
+${tg}
+` : '';
+})()}═══════════════════════════════════════════════════════════════
 RULES
 ═══════════════════════════════════════════════════════════════
 1. Format EXACTLY as: SKILL_NAME - dialogue
