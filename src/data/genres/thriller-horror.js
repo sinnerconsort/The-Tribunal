@@ -70,6 +70,34 @@ THE GOTHIC [Shivers] - The nursery is cold. It's always cold. Even in August. Th
     archetypeLabel: 'Survival Role',
     archetypeLabelPlural: 'Survival Roles',
 
+
+    skillNames: {
+        logic: 'The Psychological',
+        encyclopedia: 'The Archivist',
+        rhetoric: 'The Cult Leader',
+        drama: 'The Unreliable Narrator',
+        conceptualization: 'The Auteur',
+        visual_calculus: 'The Profiler',
+        volition: 'The Final Voice',
+        inland_empire: 'The Cosmic',
+        empathy: 'The Haunting',
+        authority: 'The Exorcist',
+        suggestion: 'The Siren',
+        esprit_de_corps: 'The Hive',
+        endurance: 'The Survivor',
+        pain_threshold: 'The Cenobite',
+        physical_instrument: 'The Slasher',
+        electrochemistry: 'The Body Horror',
+        half_light: 'The Prey',
+        shivers: 'The Gothic',
+        hand_eye_coordination: 'The Trap',
+        perception: 'The Witness',
+        reaction_speed: 'The Jump Scare',
+        savoir_faire: 'The Scream Queen',
+        interfacing: 'The Signal',
+        composure: 'The Mask',
+    },
+
     skillPersonalities: {
 
         // ═══════════════════════════════════════════

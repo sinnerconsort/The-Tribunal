@@ -65,6 +65,34 @@ THE ACE [Savoir Faire] - Asteroid field. Dense. Uncharted. The computer says don
     archetypeLabel: 'Specialty',
     archetypeLabelPlural: 'Specialties',
 
+
+    skillNames: {
+        logic: 'The Computer',
+        encyclopedia: 'The Xenoarchaeologist',
+        rhetoric: 'The Diplomat',
+        drama: 'The Grifter',
+        conceptualization: 'The Theorist',
+        visual_calculus: 'The Tactician',
+        volition: 'The Captain',
+        inland_empire: 'The Psionic',
+        empathy: 'The Medic',
+        authority: 'The Admiral',
+        suggestion: 'The Operative',
+        esprit_de_corps: 'The Crew',
+        endurance: 'The Spacer',
+        pain_threshold: 'The Veteran',
+        physical_instrument: 'The Marine',
+        electrochemistry: 'The Smuggler',
+        half_light: 'The Bounty Hunter',
+        shivers: 'The Void Speaker',
+        hand_eye_coordination: 'The Gunner',
+        perception: 'The Sensor Officer',
+        reaction_speed: 'The Pilot',
+        savoir_faire: 'The Ace',
+        interfacing: 'The Engineer',
+        composure: 'The Officer',
+    },
+
     skillPersonalities: {
 
         // ═══════════════════════════════════════════

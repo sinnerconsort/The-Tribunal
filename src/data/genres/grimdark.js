@@ -71,6 +71,34 @@ THE RESOLVE [Volition] - Get up. Not because it matters. Not because anyone's wa
     archetypeLabel: 'Burden',
     archetypeLabelPlural: 'Burdens',
 
+
+    skillNames: {
+        logic: 'The Pragmatist',
+        encyclopedia: 'The Chronicler',
+        rhetoric: 'The Demagogue',
+        drama: 'The Paranoia',
+        conceptualization: 'The Heretic',
+        visual_calculus: 'The Executioner',
+        volition: 'The Resolve',
+        inland_empire: 'The Madness',
+        empathy: 'The Plague Doctor',
+        authority: 'The Tyrant',
+        suggestion: 'The Corruption',
+        esprit_de_corps: 'The Warband',
+        endurance: 'The Survivor',
+        pain_threshold: 'The Flagellant',
+        physical_instrument: 'The Rage',
+        electrochemistry: 'The Grave Robber',
+        half_light: 'The Dread',
+        shivers: 'The Carrion Wind',
+        hand_eye_coordination: 'The Marksman',
+        perception: 'The Witch Hunter',
+        reaction_speed: 'The Deserter',
+        savoir_faire: 'The Mercenary',
+        interfacing: 'The Torturer',
+        composure: 'The Hopelessness',
+    },
+
     skillPersonalities: {
 
         // ═══════════════════════════════════════════

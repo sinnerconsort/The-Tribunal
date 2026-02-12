@@ -67,6 +67,34 @@ THE SETTLER [Volition] - The soil is contaminated. The water needs filtering. Th
     archetypeLabel: 'Survivor Role',
     archetypeLabelPlural: 'Survivor Roles',
 
+
+    skillNames: {
+        logic: 'The Rationer',
+        encyclopedia: 'The Historian',
+        rhetoric: 'The Negotiator',
+        drama: 'The Con Artist',
+        conceptualization: 'The Muralist',
+        visual_calculus: 'The Cartographer',
+        volition: 'The Settler',
+        inland_empire: 'The Oracle',
+        empathy: 'The Healer',
+        authority: 'The Warlord',
+        suggestion: 'The Trader',
+        esprit_de_corps: 'The Convoy',
+        endurance: 'The Wanderer',
+        pain_threshold: 'The Scarred',
+        physical_instrument: 'The Raider',
+        electrochemistry: 'The Scavenger',
+        half_light: 'The Feral',
+        shivers: 'The Ruin Speaker',
+        hand_eye_coordination: 'The Sharpshooter',
+        perception: 'The Lookout',
+        reaction_speed: 'The Runner',
+        savoir_faire: 'The Road Warrior',
+        interfacing: 'The Mechanic',
+        composure: 'The Mask',
+    },
+
     skillPersonalities: {
 
         // ═══════════════════════════════════════════

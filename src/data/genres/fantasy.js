@@ -61,6 +61,34 @@ ROGUE [Electrochemistry] - Fox-den two clicks east. Barkeep waters the ale but t
     archetypeLabel: 'Class',
     archetypeLabelPlural: 'Classes',
 
+
+    skillNames: {
+        logic: 'The Wizard',
+        encyclopedia: 'The Sage',
+        rhetoric: 'The Courtier',
+        drama: 'The Bard',
+        conceptualization: 'The Runesmith',
+        visual_calculus: 'The War Mage',
+        volition: 'The Paladin',
+        inland_empire: 'The Oracle',
+        empathy: 'The Cleric',
+        authority: 'The Warlord',
+        suggestion: 'The Enchanter',
+        esprit_de_corps: 'The Sworn Shield',
+        endurance: 'The Barbarian',
+        pain_threshold: 'The Flagellant',
+        physical_instrument: 'The Fighter',
+        electrochemistry: 'The Rogue',
+        half_light: 'The Ranger',
+        shivers: 'The Antiquarian',
+        hand_eye_coordination: 'The Archer',
+        perception: 'The Scout',
+        reaction_speed: 'The Duelist',
+        savoir_faire: 'The Swashbuckler',
+        interfacing: 'The Artificer',
+        composure: 'The Knight',
+    },
+
     skillPersonalities: {
 
         // ═══════════════════════════════════════════

@@ -70,6 +70,34 @@ THE CITY [Shivers] - Rain again. The gutters are full. The neon's bleeding into 
     archetypeLabel: 'Role',
     archetypeLabelPlural: 'Roles',
 
+
+    skillNames: {
+        logic: 'The Detective',
+        encyclopedia: 'The Archivist',
+        rhetoric: 'The Lawyer',
+        drama: 'The Dame',
+        conceptualization: 'The Poet',
+        visual_calculus: 'The Crime Scene',
+        volition: 'The Good Cop',
+        inland_empire: 'The Hunch',
+        empathy: 'The Confessor',
+        authority: 'The Captain',
+        suggestion: 'The Fixer',
+        esprit_de_corps: 'The Precinct',
+        endurance: 'The Stakeout',
+        pain_threshold: 'The Bruiser',
+        physical_instrument: 'The Enforcer',
+        electrochemistry: 'The Vice',
+        half_light: 'The Paranoid',
+        shivers: 'The City',
+        hand_eye_coordination: 'The Trigger',
+        perception: 'The Witness',
+        reaction_speed: 'The Getaway',
+        savoir_faire: 'The Smooth Operator',
+        interfacing: 'The Wiretap',
+        composure: 'The Mask',
+    },
+
     skillPersonalities: {
 
         // ═══════════════════════════════════════════

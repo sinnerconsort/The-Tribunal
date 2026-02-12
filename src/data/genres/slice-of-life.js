@@ -70,6 +70,34 @@ THE HOMEMAKER [Volition] - The house is a mess. The schedule is impossible. Ever
     archetypeLabel: 'Role',
     archetypeLabelPlural: 'Roles',
 
+
+    skillNames: {
+        logic: 'The Accountant',
+        encyclopedia: 'The Recipe Book',
+        rhetoric: 'The PTA Chair',
+        drama: 'The Gossip',
+        conceptualization: 'The Decorator',
+        visual_calculus: 'The Meal Planner',
+        volition: 'The Homemaker',
+        inland_empire: 'The Nester',
+        empathy: 'The Caretaker',
+        authority: 'The Head of Household',
+        suggestion: 'The Neighbor',
+        esprit_de_corps: 'The Family',
+        endurance: 'The Night Shift',
+        pain_threshold: 'The Gardener',
+        physical_instrument: 'The Handyman',
+        electrochemistry: 'The Snack Goblin',
+        half_light: 'The Worrier',
+        shivers: 'The Neighborhood',
+        hand_eye_coordination: 'The Chef',
+        perception: 'The Parent Eye',
+        reaction_speed: 'The Catch',
+        savoir_faire: 'The Host',
+        interfacing: 'The Appliance Whisperer',
+        composure: 'The School Gate Face',
+    },
+
     skillPersonalities: {
 
         // ═══════════════════════════════════════════
