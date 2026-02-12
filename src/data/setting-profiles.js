@@ -139,6 +139,18 @@ export function getSkillPersonality(skillId) {
 }
 
 /**
+ * Get a skill's themed display name, respecting the active profile
+ * Priority: Active Profile skillNames → default skill name from skills.js
+ */
+export function getSkillName(skillId, defaultName) {
+    const profile = getActiveProfile();
+    if (profile.skillNames?.[skillId]) {
+        return profile.skillNames[skillId];
+    }
+    return defaultName || skillId;
+}
+
+/**
  * Get an ancient voice's personality text
  */
 export function getAncientPersonality(voiceId) {
@@ -189,6 +201,7 @@ export default {
     getActiveProfile,
     getActiveProfileId,
     getSkillPersonality,
+    getSkillName,
     getAncientPersonality,
     getProfileValue,
     getAvailableProfiles,
