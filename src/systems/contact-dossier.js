@@ -271,7 +271,8 @@ export async function generateDossier(contact, contactId) {
         
     } catch (error) {
         console.error('[Dossier] Generation failed:', error);
-        return null;
+        // Re-throw so the caller can show the actual error message
+        throw error;
     } finally {
         // Always clear the lock
         _generatingFor.delete(contactId);
