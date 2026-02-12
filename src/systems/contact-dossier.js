@@ -30,6 +30,7 @@ import { callAPI } from '../voice/api-helpers.js';
 import { SKILLS } from '../data/skills.js';
 import { getSkillPersonality, getProfileValue } from '../data/setting-profiles.js';
 import { gatherAndSummarizeIntel } from './context-gatherer.js';
+import { extensionSettings } from '../core/state.js';
 
 let _generatingFor = new Set(); // Prevent duplicate generation
 
@@ -103,6 +104,30 @@ export function selectQuipVoices(voiceOpinions) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// POV HANDLING
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get POV instruction for dossier prompt based on settings
+ * Ensures voices address the protagonist correctly (you/they/I)
+ */
+function getPOVInstruction() {
+    const pov = extensionSettings?.povStyle || 'second';
+    const charName = extensionSettings?.characterName || '';
+    const pronouns = extensionSettings?.characterPronouns || 'they';
+    
+    if (pov === 'second') {
+        return `- PERSPECTIVE: Address the protagonist as "you" — NEVER use their name. The voices speak directly TO the protagonist, not about them. Example: "He dropped his instrument to reach you" not "to reach ${charName || 'the protagonist'}".`;
+    } else if (pov === 'first') {
+        return `- PERSPECTIVE: The protagonist refers to themselves as "I/me/my". Write as the protagonist's own internal monologue.`;
+    } else {
+        // third person
+        const name = charName || 'the protagonist';
+        return `- PERSPECTIVE: Refer to the protagonist as "${name}" (${pronouns}). Third person perspective.`;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // DOSSIER GENERATION
 // ═══════════════════════════════════════════════════════════════
 
@@ -153,6 +178,7 @@ ${voicePersonalities.map(v => `${v.name} (${v.stance}, score: ${v.score}): ${v.p
 - Voice quips should feel like the protagonist's skills arguing about this person.
 - Keep it grounded in what's actually known from context. Don't invent backstory.
 - If there's minimal context, say so — "not enough data" is a valid assessment.
+${getPOVInstruction()}
 
 FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
 CONSENSUS: [2-3 sentence description from the protagonist's perspective]
@@ -203,7 +229,7 @@ DISPOSITION: ${contact.disposition || 'Neutral'}
 KNOWN CONTEXT: ${contextString}
 DETECTED TRAITS: ${(contact.detectedTraits || []).join(', ') || 'None identified yet'}
 
-Remember: Consensus first (from the protagonist's perspective), then one quip per voice (${voicePersonalities.map(v => v.name).join(', ')}).`;
+Remember: Consensus first (from the protagonist's perspective), then one quip per voice (${voicePersonalities.map(v => v.name).join(', ')}).${extensionSettings?.povStyle === 'second' ? ' Use "you" for the protagonist — never their name.' : ''}`;
 
     return { system, user };
 }
