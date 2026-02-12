@@ -2,12 +2,12 @@
  * The Tribunal - Contact Dossier System
  * Generates voice-written dossiers for NPCs
  * 
- * v1.1.0 - Profile-aware dossier generation:
- *   - Pulls systemIntro + thoughtToneGuide from active setting profile
- *   - Uses getSkillPersonality() for genre-correct voice personalities
+ * v1.2.0 - FIXED: Replaced broken lazy dynamic imports with static imports
+ *   - callAPI imported directly from ../voice/api-helpers.js
+ *   - SKILLS imported directly from ../data/skills.js
+ *   - getSkillPersonality + getProfileValue from ../data/setting-profiles.js
+ *   - Profile-aware dossier generation (genre-correct voice personalities)
  *   - Reframed as "protagonist's perception" not neutral character sheet
- *   - Added "not enough data" guidance for low-context contacts
- *   - Lazy import for setting-profiles.js with graceful fallback
  * 
  * ╔══════════════════════════════════════════════════════════════════════════╗
  * ║  Voice-authored NPC descriptions with strongest opinion quips            ║
@@ -16,56 +16,14 @@
  */
 
 // ═══════════════════════════════════════════════════════════════
-// LAZY IMPORTS
+// IMPORTS
 // ═══════════════════════════════════════════════════════════════
 
-let _api = null;
-let _skills = null;
-let _profiles = null;
+import { callAPI } from '../voice/api-helpers.js';
+import { SKILLS } from '../data/skills.js';
+import { getSkillPersonality, getProfileValue } from '../data/setting-profiles.js';
+
 let _generatingFor = new Set(); // Prevent duplicate generation
-
-async function getAPI() {
-    if (!_api) {
-        try {
-            // Try multiple possible paths
-            try {
-                _api = await import('./api-helpers.js');
-            } catch {
-                try {
-                    _api = await import('../voice/api-helpers.js');
-                } catch {
-                    _api = await import('../systems/api-helpers.js');
-                }
-            }
-            console.log('[Dossier] API helpers loaded');
-        } catch (e) {
-            console.warn('[Dossier] API helpers not available:', e.message);
-        }
-    }
-    return _api;
-}
-
-async function getSkills() {
-    if (!_skills) {
-        try {
-            _skills = await import('../data/skills.js');
-        } catch (e) {
-            console.warn('[Dossier] Skills data not available:', e.message);
-        }
-    }
-    return _skills;
-}
-
-async function getProfiles() {
-    if (!_profiles) {
-        try {
-            _profiles = await import('../data/setting-profiles.js');
-        } catch (e) {
-            console.warn('[Dossier] Setting profiles not available:', e.message);
-        }
-    }
-    return _profiles;
-}
 
 // ═══════════════════════════════════════════════════════════════
 // VOICE SELECTION FOR QUIPS
@@ -143,43 +101,29 @@ export function selectQuipVoices(voiceOpinions) {
 /**
  * Build the prompt for dossier generation
  * 
- * v1.1.0: Now profile-aware — pulls tone/style from active setting profile
- *         Uses getSkillPersonality() instead of raw skill.personality
+ * v1.2.0: Static imports — uses getSkillPersonality() and getProfileValue() directly
  * 
  * @param {object} contact - Contact data
  * @param {Array} quipVoices - Selected voices for quips
- * @param {object} skills - Skills data for voice names/signatures
- * @param {object} profiles - Setting profiles module (optional)
  * @returns {object} { system, user }
  */
-function buildDossierPrompt(contact, quipVoices, skills, profiles) {
-    // Get voice personalities — prefer profile-aware version, fall back to raw
-    const getPersonality = (voiceId) => {
-        if (profiles?.getSkillPersonality) {
-            return profiles.getSkillPersonality(voiceId);
-        }
-        const skill = skills?.SKILLS?.[voiceId];
-        return skill?.personality || '';
-    };
-
+function buildDossierPrompt(contact, quipVoices) {
     const voicePersonalities = quipVoices.map(v => {
-        const skill = skills?.SKILLS?.[v.voiceId];
+        const skill = SKILLS?.[v.voiceId];
         return {
             id: v.voiceId,
             name: skill?.signature || skill?.name || v.voiceId.toUpperCase(),
             stance: v.stance,
             score: v.score,
-            personality: getPersonality(v.voiceId)
+            personality: getSkillPersonality(v.voiceId)
         };
     });
 
     // Pull profile-driven flavor
-    const systemIntro = profiles?.getProfileValue?.('systemIntro', 
-        'You generate internal mental voices for a roleplayer.') 
-        || 'You generate internal mental voices for a roleplayer.';
-    const thoughtTone = profiles?.getProfileValue?.('thoughtToneGuide',
-        'Match the tone to the story.')
-        || 'Match the tone to the story.';
+    const systemIntro = getProfileValue('systemIntro', 
+        'You generate internal mental voices for a roleplayer.');
+    const thoughtTone = getProfileValue('thoughtToneGuide',
+        'Match the tone to the story.');
     
     const system = `${systemIntro}
 
@@ -246,7 +190,7 @@ function parseDossierResponse(response, quipVoices) {
         
         // Check for voice quips
         for (const voice of quipVoices) {
-            const skill = _skills?.SKILLS?.[voice.voiceId];
+            const skill = SKILLS?.[voice.voiceId];
             const name = skill?.signature || skill?.name || voice.voiceId.toUpperCase();
             
             // Match "VOICE_NAME: content" or "VOICE_NAME — content"
@@ -300,15 +244,6 @@ export async function generateDossier(contact, contactId) {
     console.log('[Dossier] Generating for:', contact.name);
     
     try {
-        const api = await getAPI();
-        const skills = await getSkills();
-        const profiles = await getProfiles();
-        
-        if (!api?.callAPI) {
-            console.warn('[Dossier] API not available - check import paths');
-            return null;
-        }
-        
         // Select voices for quips
         const quipVoices = selectQuipVoices(contact.voiceOpinions);
         
@@ -322,11 +257,9 @@ export async function generateDossier(contact, contactId) {
             );
         }
         
-        _skills = skills; // Cache for parser
-        
-        // Build and send prompt
-        const prompt = buildDossierPrompt(contact, quipVoices, skills, profiles);
-        const response = await api.callAPI(prompt.system, prompt.user);
+        // Build and send prompt (uses static imports for skills + profiles)
+        const prompt = buildDossierPrompt(contact, quipVoices);
+        const response = await callAPI(prompt.system, prompt.user);
         
         // Parse response
         const dossier = parseDossierResponse(response, quipVoices);
