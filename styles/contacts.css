@@ -291,7 +291,25 @@
 .contact-voice-quip[data-voice="electrochemistry"] { border-left-color: #c36bb3; }
 .contact-voice-quip[data-voice="volition"] { border-left-color: #4a9f4a; }
 .contact-voice-quip[data-voice="perception"] { border-left-color: #9f9f4a; }
+/* Intel sources (shown below voice quips) */
+.contact-intel-sources {
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 0.65em;
+    color: #7a7a6a;
+    opacity: 0.6;
+    margin-top: 4px;
+    font-style: italic;
+    letter-spacing: 0.3px;
+}
 
+.contact-intel-sources i {
+    margin-right: 4px;
+    font-size: 0.9em;
+}
+
+.contact-dossier-status.intel-backed {
+    color: #4a9f4a;
+}
 /* ═══════════════════════════════════════════════════════════════
    ACTION BUTTONS
    ═══════════════════════════════════════════════════════════════ */
