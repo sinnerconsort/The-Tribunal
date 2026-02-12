@@ -2,8 +2,12 @@
  * The Tribunal - Settings Handlers
  * Wires the Settings tab inputs to state persistence
  * 
+ * @version 6.0.0 - Consolidated settings layout
+ *                  Merged Cases + Contacts into Auto-Detection (Section V)
+ *                  Merged Weather Effects + Source into single section (VII)
+ *                  Replaced 5 notification toggles with 1 global toggle
+ *                  Added context depth setting
  * @version 5.2.0 - Added Setting Profile selector (agnosticism refactor)
- *                  Profiles control voice personalities, prompt flavor, and theme styling
  */
 
 import { getSettings, saveSettings } from '../core/state.js';
@@ -28,6 +32,7 @@ const SETTINGS_IDS = {
     minVoices: 'cfg-min-voices',
     maxVoices: 'cfg-max-voices',
     triggerDelay: 'cfg-trigger-delay',
+    contextMessages: 'cfg-context-messages',
     showDiceRolls: 'cfg-show-dice',
     showFailedChecks: 'cfg-show-failed',
     autoTrigger: 'cfg-auto-trigger',
@@ -38,31 +43,23 @@ const SETTINGS_IDS = {
     // Vitals Detection (Section IV)
     autoVitals: 'cfg-auto-vitals',
     vitalsSensitivity: 'cfg-vitals-sensitivity',
-    vitalsNotify: 'cfg-vitals-notify',
     deathEnabled: 'cfg-death-enabled',
     autoConsume: 'cfg-auto-consume',
     
-    // Auto-Extraction (Section IV.5)
+    // Auto-Detection (Section V - merged extraction + cases + contacts)
     autoEquipment: 'cfg-auto-equipment',
     autoInventory: 'cfg-auto-inventory',
-    extractionNotify: 'cfg-extraction-notify',
-    
-    // Case Detection (Section V)
     autoCases: 'cfg-auto-cases',
-    casesNotify: 'cfg-cases-notify',
-    
-    // Contact Detection (Section VI)
     autoContacts: 'cfg-auto-contacts',
-    contactsNotify: 'cfg-contacts-notify',
     
-    // Thought Cabinet (Section VII)
+    // Thought Cabinet (Section VI)
     autoThoughts: 'cfg-auto-thoughts',
     autoGenerateThoughts: 'cfg-auto-generate-thoughts',
     themeThreshold: 'cfg-theme-threshold',
     themeDecay: 'cfg-theme-decay',
     internalizeDischarge: 'cfg-internalize-discharge',
     
-    // Weather Source (Section IX)
+    // Weather (Section VII - merged effects + source)
     weatherSourceRP: 'cfg-weather-source-rp',
     weatherSourceReal: 'cfg-weather-source-real',
     weatherLocation: 'cfg-weather-location',
@@ -93,6 +90,7 @@ const SETTINGS_IDS = {
     applySpecial: 'cfg-apply-special',
     
     // Actions
+    globalNotify: 'cfg-show-notifications',
     lockPositions: 'cfg-lock-positions',
     saveButton: 'cfg-save-settings',
     resetPositions: 'cfg-reset-positions',
@@ -101,7 +99,6 @@ const SETTINGS_IDS = {
     parseWorldTags: 'cfg-parse-world-tags',
     worldSyncWeather: 'cfg-world-sync-weather',
     worldSyncTime: 'cfg-world-sync-time',
-    worldNotify: 'cfg-world-notify',
     useAIExtractor: 'cfg-use-ai-extractor',
     injectWorldTag: 'cfg-inject-world-tag',
     copyWorldInject: 'cfg-copy-world-inject',
@@ -333,6 +330,7 @@ export function refreshSettingsFromState() {
     setInputValue(SETTINGS_IDS.minVoices, settings.voices?.minVoices ?? 3);
     setInputValue(SETTINGS_IDS.maxVoices, settings.voices?.maxVoicesPerTurn ?? 7);
     setInputValue(SETTINGS_IDS.triggerDelay, settings.voices?.triggerDelay ?? 1000);
+    setInputValue(SETTINGS_IDS.contextMessages, settings.voices?.contextMessages ?? 5);
     setCheckbox(SETTINGS_IDS.showDiceRolls, settings.showDiceRolls ?? true);
     setCheckbox(SETTINGS_IDS.showFailedChecks, settings.showFailedChecks ?? true);
     setCheckbox(SETTINGS_IDS.autoTrigger, settings.voices?.autoGenerate ?? false);
@@ -343,28 +341,19 @@ export function refreshSettingsFromState() {
     // Vitals Detection
     setCheckbox(SETTINGS_IDS.autoVitals, settings.vitals?.autoDetect ?? true);
     setSelectValue(SETTINGS_IDS.vitalsSensitivity, settings.vitals?.sensitivity || 'medium');
-    setCheckbox(SETTINGS_IDS.vitalsNotify, settings.vitals?.showNotifications ?? true);
     setCheckbox(SETTINGS_IDS.deathEnabled, settings.vitals?.deathEnabled ?? true);
     setCheckbox(SETTINGS_IDS.autoConsume, settings.vitals?.autoConsume ?? true);
     
-    // Auto-Extraction
+    // Auto-Detection (merged)
     setCheckbox(SETTINGS_IDS.autoEquipment, settings.extraction?.autoEquipment ?? false);
     setCheckbox(SETTINGS_IDS.autoInventory, settings.extraction?.autoInventory ?? false);
-    setCheckbox(SETTINGS_IDS.extractionNotify, settings.extraction?.showNotifications ?? true);
-    
-    // Case Detection
     setCheckbox(SETTINGS_IDS.autoCases, settings.cases?.autoDetect ?? false);
-    setCheckbox(SETTINGS_IDS.casesNotify, settings.cases?.showNotifications ?? true);
-    
-    // Contact Detection
     setCheckbox(SETTINGS_IDS.autoContacts, settings.contacts?.autoDetect ?? false);
-    setCheckbox(SETTINGS_IDS.contactsNotify, settings.contacts?.showNotifications ?? true);
 
     // World State
     setCheckbox(SETTINGS_IDS.parseWorldTags, settings.worldState?.parseWorldTags ?? true);
     setCheckbox(SETTINGS_IDS.worldSyncWeather, settings.worldState?.syncWeather ?? true);
     setCheckbox(SETTINGS_IDS.worldSyncTime, settings.worldState?.syncTime ?? true);
-    setCheckbox(SETTINGS_IDS.worldNotify, settings.worldState?.showNotifications ?? true);
     setCheckbox(SETTINGS_IDS.useAIExtractor, settings.worldState?.useAIExtractor ?? false);
     setCheckbox(SETTINGS_IDS.injectWorldTag, settings.worldState?.injectWorldTag ?? false);
     
@@ -379,6 +368,7 @@ export function refreshSettingsFromState() {
     setInputValue(SETTINGS_IDS.internalizeDischarge, settings.thoughts?.internalizeDischarge ?? 5);
     
     // UI settings
+    setCheckbox(SETTINGS_IDS.globalNotify, settings.ui?.showNotifications ?? true);
     setCheckbox(SETTINGS_IDS.lockPositions, settings.ui?.lockPositions ?? false);
     
     console.log('[Tribunal] Settings UI refreshed from state');
@@ -478,6 +468,7 @@ export function saveAllSettings() {
     settings.voices.minVoices = getInputNumber(SETTINGS_IDS.minVoices, 3);
     settings.voices.maxVoicesPerTurn = getInputNumber(SETTINGS_IDS.maxVoices, 7);
     settings.voices.triggerDelay = getInputNumber(SETTINGS_IDS.triggerDelay, 1000);
+    settings.voices.contextMessages = getInputNumber(SETTINGS_IDS.contextMessages, 5);
     settings.voices.autoGenerate = getCheckbox(SETTINGS_IDS.autoTrigger, false);
     
     // Top-level settings
@@ -490,29 +481,20 @@ export function saveAllSettings() {
     // Vitals Detection
     settings.vitals.autoDetect = getCheckbox(SETTINGS_IDS.autoVitals, true);
     settings.vitals.sensitivity = getInputValue(SETTINGS_IDS.vitalsSensitivity, 'medium');
-    settings.vitals.showNotifications = getCheckbox(SETTINGS_IDS.vitalsNotify, true);
     settings.vitals.deathEnabled = getCheckbox(SETTINGS_IDS.deathEnabled, true);
     settings.vitals.autoConsume = getCheckbox(SETTINGS_IDS.autoConsume, true);
     
-    // Auto-Extraction
+    // Auto-Detection (merged)
     if (!settings.extraction) settings.extraction = {};
     settings.extraction.autoEquipment = getCheckbox(SETTINGS_IDS.autoEquipment, false);
     settings.extraction.autoInventory = getCheckbox(SETTINGS_IDS.autoInventory, false);
-    settings.extraction.showNotifications = getCheckbox(SETTINGS_IDS.extractionNotify, true);
-    
-    // Case Detection
     settings.cases.autoDetect = getCheckbox(SETTINGS_IDS.autoCases, false);
-    settings.cases.showNotifications = getCheckbox(SETTINGS_IDS.casesNotify, true);
-    
-    // Contact Detection
     settings.contacts.autoDetect = getCheckbox(SETTINGS_IDS.autoContacts, false);
-    settings.contacts.showNotifications = getCheckbox(SETTINGS_IDS.contactsNotify, true);
 
     // World State
     settings.worldState.parseWorldTags = getCheckbox(SETTINGS_IDS.parseWorldTags, true);
     settings.worldState.syncWeather = getCheckbox(SETTINGS_IDS.worldSyncWeather, true);
     settings.worldState.syncTime = getCheckbox(SETTINGS_IDS.worldSyncTime, true);
-    settings.worldState.showNotifications = getCheckbox(SETTINGS_IDS.worldNotify, true);
     settings.worldState.useAIExtractor = getCheckbox(SETTINGS_IDS.useAIExtractor, false);
     settings.worldState.injectWorldTag = getCheckbox(SETTINGS_IDS.injectWorldTag, false);
     
@@ -524,6 +506,7 @@ export function saveAllSettings() {
     settings.thoughts.internalizeDischarge = getInputNumber(SETTINGS_IDS.internalizeDischarge, 5);
     
     // UI settings
+    settings.ui.showNotifications = getCheckbox(SETTINGS_IDS.globalNotify, true);
     settings.ui.lockPositions = getCheckbox(SETTINGS_IDS.lockPositions, false);
     
     // NOW save - this triggers the debounced save to localStorage/server
@@ -806,7 +789,6 @@ function bindWorldStateHandlers() {
         'cfg-parse-world-tags',
         'cfg-world-sync-weather', 
         'cfg-world-sync-time',
-        'cfg-world-notify',
         'cfg-use-ai-extractor'
     ];
     
@@ -820,7 +802,6 @@ function bindWorldStateHandlers() {
                 settings.worldState.parseWorldTags = document.getElementById('cfg-parse-world-tags')?.checked ?? true;
                 settings.worldState.syncWeather = document.getElementById('cfg-world-sync-weather')?.checked ?? true;
                 settings.worldState.syncTime = document.getElementById('cfg-world-sync-time')?.checked ?? true;
-                settings.worldState.showNotifications = document.getElementById('cfg-world-notify')?.checked ?? true;
                 settings.worldState.useAIExtractor = document.getElementById('cfg-use-ai-extractor')?.checked ?? false;
                 
                 saveSettings();
@@ -954,7 +935,7 @@ export function getVitalsSettings() {
     return {
         autoDetect: settings?.vitals?.autoDetect ?? true,
         sensitivity: settings?.vitals?.sensitivity || 'medium',
-        showNotifications: settings?.vitals?.showNotifications ?? true
+        showNotifications: settings?.ui?.showNotifications ?? true
     };
 }
 
@@ -966,7 +947,7 @@ export function getCaseSettings() {
     const settings = getSettings();
     return {
         autoDetect: settings?.cases?.autoDetect ?? false,
-        showNotifications: settings?.cases?.showNotifications ?? true
+        showNotifications: settings?.ui?.showNotifications ?? true
     };
 }
 
@@ -978,7 +959,7 @@ export function getContactSettings() {
     const settings = getSettings();
     return {
         autoDetect: settings?.contacts?.autoDetect ?? false,
-        showNotifications: settings?.contacts?.showNotifications ?? true
+        showNotifications: settings?.ui?.showNotifications ?? true
     };
 }
 
@@ -1004,6 +985,25 @@ export function getThoughtSettings() {
 export function isInvestigationFabEnabled() {
     const settings = getSettings();
     return settings?.investigation?.showFab ?? true;
+}
+
+/**
+ * Check if detection notifications are enabled (global toggle)
+ * Replaces individual per-system notification checks
+ * @returns {boolean}
+ */
+export function areNotificationsEnabled() {
+    const settings = getSettings();
+    return settings?.ui?.showNotifications ?? true;
+}
+
+/**
+ * Get context depth setting (how many messages to scan)
+ * @returns {number}
+ */
+export function getContextMessages() {
+    const settings = getSettings();
+    return settings?.voices?.contextMessages ?? 5;
 }
 
 // ═══════════════════════════════════════════════════════════════
