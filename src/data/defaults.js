@@ -190,8 +190,8 @@ export const DEFAULT_GLOBAL_SETTINGS = {
         model: '',
         
         // Generation settings
-        maxTokens: 500,
-        temperature: 0.9
+        maxTokens: 1500,
+        temperature: 0.8
     },
     
     // ───────────────────────────────────────────────────────────
@@ -220,7 +220,7 @@ export const DEFAULT_GLOBAL_SETTINGS = {
     // VOICE SYSTEM SETTINGS
     // ───────────────────────────────────────────────────────────
     voices: {
-        autoGenerate: false,        // Auto-generate on message received
+        autoGenerate: true,        // Auto-generate on message received
         cascadeEnabled: true,       // Allow cascade triggers
         maxVoicesPerTurn: 3,        // Limit voices per generation
         
@@ -250,7 +250,7 @@ export const DEFAULT_GLOBAL_SETTINGS = {
     // VITALS SETTINGS
     // ───────────────────────────────────────────────────────────
     vitals: {
-        autoTrack: false,           // Auto-detect damage/healing from chat
+        autoTrack: true,            // Auto-detect damage/healing from chat
         showWarnings: true,         // Flash warnings at low health/morale
         warningThreshold: 30        // Percentage to trigger warnings
     },
@@ -280,7 +280,7 @@ export const DEFAULT_GLOBAL_SETTINGS = {
         useAIExtractor: false,      // Use AI to detect locations (costs API)
         
         // World tag injection
-        injectWorldTag: false       // Show injection prompt in settings
+        injectWorldTag: true        // Inject WORLD tags into AI context
     },
     
     // ───────────────────────────────────────────────────────────
