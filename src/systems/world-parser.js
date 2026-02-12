@@ -1,12 +1,15 @@
 /**
  * The Tribunal - World State Parser
  * Parses <!--- WORLD{...} ---> tags from messages
- * Updates location, weather, and time without API calls
+ * Updates location, weather, time, and player condition without API calls
  * 
- * @version 1.1.0 - Fixed time parsing for watch.js integration
+ * @version 2.0.0 - Added PC condition fields (pc_physical, pc_mental)
+ *   - WORLD tag now carries player physical/mental state
+ *   - Maps conditions to status effect IDs (same mapping as ai-extractor)
+ *   - Free condition detection on every message (no extra API call)
  * 
  * WORLD Tag Format:
- * <!--- WORLD{"weather":"Heavy Rain","temp":72,"location":"Outside Venue, Roseville","time":"11:30 PM"} --->
+ * <!--- WORLD{"weather":"Heavy Rain","temp":72,"location":"Outside Venue, Roseville","time":"11:30 PM","pc_physical":"wounded","pc_mental":"terrified"} --->
  */
 
 import { 
@@ -17,9 +20,38 @@ import {
     setWeather,
     setTime
 } from '../core/state.js';
-import { saveChatState } from '../core/persistence.js';
+import { getChatState, saveChatState } from '../core/persistence.js';
 import { setRPTime, setRPWeather } from '../ui/watch.js';
 import { refreshLocations } from '../ui/location-handlers.js';
+
+// ═══════════════════════════════════════════════════════════════
+// CONDITION → STATUS MAPPING
+// Same mapping used by ai-extractor.js for consistency.
+// Plain English labels → internal status effect IDs.
+// ═══════════════════════════════════════════════════════════════
+
+const CONDITION_TO_STATUS = {
+    // Physical conditions
+    wounded:     'finger_on_the_eject_button',
+    exhausted:   'waste_land',
+    intoxicated: 'revacholian_courage',
+    drugged:     'pyrholidon',
+    poisoned:    'finger_on_the_eject_button',
+    
+    // Mental conditions
+    terrified:    'caustic_echo',
+    enraged:      'law_jaw',
+    depressed:    'the_expression',
+    dissociating: 'the_pale',
+    manic:        'tequila_sunset',
+    lovestruck:   'homo_sexual_underground'
+};
+
+// "All clear" conditions → remove related statuses
+const CLEAR_CONDITIONS = {
+    healthy: ['finger_on_the_eject_button', 'waste_land', 'white_mourning'],
+    calm:    ['caustic_echo', 'law_jaw', 'the_expression', 'the_pale', 'tequila_sunset']
+};
 
 // ═══════════════════════════════════════════════════════════════
 // WORLD TAG REGEX
@@ -224,6 +256,99 @@ function findOrCreateLocation(name, district) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// CONDITION PROCESSOR
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Apply PC condition from WORLD tag to status effects
+ * @param {string|null} physical - e.g. "wounded", "healthy", null
+ * @param {string|null} mental - e.g. "terrified", "calm", null
+ * @param {boolean} notify - Show toasts
+ * @returns {{ changed: boolean, applied: string[], cleared: string[] }}
+ */
+function applyConditionFromWorldTag(physical, mental, notify = true) {
+    const applied = [];
+    const cleared = [];
+    
+    const state = getChatState();
+    if (!state) return { changed: false, applied, cleared };
+    
+    if (!state.vitals) state.vitals = { health: 13, maxHealth: 13, morale: 13, maxMorale: 13, activeEffects: [] };
+    if (!state.vitals.activeEffects) state.vitals.activeEffects = [];
+    
+    const activeEffects = state.vitals.activeEffects;
+    const activeIds = activeEffects.map(e => typeof e === 'string' ? e : e.id);
+    
+    for (const value of [physical, mental]) {
+        if (!value || typeof value !== 'string') continue;
+        const lower = value.toLowerCase().trim();
+        if (lower === 'null' || lower === '') continue;
+        
+        // Check if it's a "clear" condition (healthy/calm)
+        if (CLEAR_CONDITIONS[lower]) {
+            for (const statusId of CLEAR_CONDITIONS[lower]) {
+                const idx = activeEffects.findIndex(e => {
+                    const id = typeof e === 'string' ? e : e.id;
+                    const source = typeof e === 'string' ? 'unknown' : e.source;
+                    return id === statusId && (source === 'world-tag' || source === 'ai-detected' || source === 'detected');
+                });
+                if (idx >= 0) {
+                    const name = activeEffects[idx].name || statusId;
+                    activeEffects.splice(idx, 1);
+                    cleared.push(statusId);
+                    console.log(`[WorldParser] Cleared: ${name}`);
+                }
+            }
+            continue;
+        }
+        
+        // Map to status ID
+        const statusId = CONDITION_TO_STATUS[lower];
+        if (!statusId) continue;
+        
+        // Don't duplicate
+        if (activeIds.includes(statusId)) continue;
+        
+        activeEffects.push({
+            id: statusId,
+            name: lower.charAt(0).toUpperCase() + lower.slice(1),
+            source: 'world-tag',
+            remainingMessages: null,
+            stacks: 1
+        });
+        applied.push(statusId);
+        console.log(`[WorldParser] Applied condition: ${lower} → ${statusId}`);
+        
+        if (notify && typeof toastr !== 'undefined') {
+            toastr.info(
+                `Condition: ${lower}`,
+                'World State',
+                { timeOut: 2000 }
+            );
+        }
+    }
+    
+    const changed = applied.length > 0 || cleared.length > 0;
+    
+    if (changed) {
+        // Dispatch events for UI refresh
+        window.dispatchEvent(new CustomEvent('tribunal:statusRefreshNeeded'));
+        window.dispatchEvent(new CustomEvent('tribunal:vitalsChanged', {
+            detail: {
+                health: state.vitals.health,
+                maxHealth: state.vitals.maxHealth,
+                morale: state.vitals.morale,
+                maxMorale: state.vitals.maxMorale,
+                statusChange: true,
+                source: 'world-tag'
+            }
+        }));
+    }
+    
+    return { changed, applied, cleared };
+}
+
+// ═══════════════════════════════════════════════════════════════
 // STATE UPDATER
 // ═══════════════════════════════════════════════════════════════
 
@@ -240,6 +365,7 @@ export function applyWorldState(worldData, options = {}) {
         updateLocation = true,
         updateWeather = true,
         updateTime = true,
+        updateCondition = true,
         notify = true,
         refreshUI = true
     } = options;
@@ -248,7 +374,8 @@ export function applyWorldState(worldData, options = {}) {
         updated: false,
         location: null,
         weather: null,
-        time: null
+        time: null,
+        condition: null
     };
     
     // ─────────────────────────────────────────────────────────
@@ -343,6 +470,22 @@ export function applyWorldState(worldData, options = {}) {
     }
     
     // ─────────────────────────────────────────────────────────
+    // PLAYER CONDITION (pc_physical / pc_mental)
+    // ─────────────────────────────────────────────────────────
+    if (updateCondition && (worldData.pc_physical || worldData.pc_mental)) {
+        const conditionResult = applyConditionFromWorldTag(
+            worldData.pc_physical,
+            worldData.pc_mental,
+            notify
+        );
+        
+        if (conditionResult.changed) {
+            result.condition = conditionResult;
+            result.updated = true;
+        }
+    }
+    
+    // ─────────────────────────────────────────────────────────
     // SAVE & REFRESH
     // ─────────────────────────────────────────────────────────
     if (result.updated) {
@@ -397,15 +540,16 @@ export function processWorldTag(messageText, options = {}) {
  */
 export function getWorldTagInjectionText() {
     return `[System: Include a WORLD state tag at the start of each response in this exact format:
-<!--- WORLD{"weather":"current weather","temp":temperature_number,"location":"Specific Place, District","time":"HH:MM AM/PM"} --->
-Update these values to reflect the current scene. Keep the tag on one line.]`;
+<!--- WORLD{"weather":"current weather","temp":temperature_number,"location":"Specific Place, District","time":"HH:MM AM/PM","pc_physical":"wounded|exhausted|intoxicated|drugged|healthy|null","pc_mental":"terrified|enraged|depressed|dissociating|manic|lovestruck|calm|null"} --->
+Update these values to reflect the current scene. pc_physical and pc_mental describe the PLAYER CHARACTER's current state only — not NPCs or other characters. Use null if unchanged or unclear. Keep the tag on one line.]`;
 }
 
 /**
  * Get a shorter version for character cards
  */
 export function getWorldTagInjectionShort() {
-    return `[Always start responses with: <!--- WORLD{"weather":"...","temp":##,"location":"Place, Area","time":"H:MM PM"} --->]`;
+    return `[Always start responses with: <!--- WORLD{"weather":"...","temp":##,"location":"Place, Area","time":"H:MM PM","pc_physical":"wounded|exhausted|healthy|null","pc_mental":"terrified|calm|null"} --->
+pc_physical/pc_mental = PLAYER only, not NPCs.]`;
 }
 
 // ═══════════════════════════════════════════════════════════════
