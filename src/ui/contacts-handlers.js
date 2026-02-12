@@ -552,9 +552,9 @@ async function handleGenerateDossier(contactId) {
             await saveContact(contact);
             await renderContactsList();
         } else {
-            // Show error - dossier generation returned null
+            // Show error - dossier generation returned null (shouldn't happen now)
             if (typeof toastr !== 'undefined') {
-                toastr.warning('Could not generate dossier. Check API settings.');
+                toastr.warning('Dossier generation returned empty. Try again.');
             }
             if (generateBtn) {
                 generateBtn.disabled = false;
@@ -563,6 +563,11 @@ async function handleGenerateDossier(contactId) {
         }
     } catch (e) {
         console.error('[Contacts] Dossier generation failed:', e);
+        if (typeof toastr !== 'undefined') {
+            // Show the ACTUAL error so we can debug
+            const msg = e?.message || String(e);
+            toastr.warning(`Dossier failed: ${msg.substring(0, 150)}`, 'Generation Error', { timeOut: 8000 });
+        }
         if (generateBtn) {
             generateBtn.disabled = false;
             generateBtn.innerHTML = '<i class="fa-solid fa-brain"></i> GENERATE DOSSIER';
