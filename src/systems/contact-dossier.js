@@ -151,13 +151,24 @@ CONSENSUS: [2-3 sentence description from the protagonist's perspective]
 
 ${voicePersonalities.map(v => `${v.name}: [One punchy sentence or two short sentences]`).join('\n')}`;
 
+    // Gather all available context about this contact
+    const contextParts = [];
+    if (contact.context) contextParts.push(contact.context);
+    if (contact.relationship) contextParts.push(`Relationship: ${contact.relationship}`);
+    if (contact.notes) contextParts.push(`Notes: ${contact.notes}`);
+    // Also check for gathered intel from scanning (future feature)
+    if (contact.intel?.length > 0) contextParts.push(...contact.intel.slice(0, 3));
+    
+    const contextString = contextParts.length > 0 
+        ? contextParts.join('. ')
+        : 'No context available — the protagonist has barely interacted with this person.';
+
     const user = `Generate a dossier entry for this person as seen by the PROTAGONIST:
 
 NAME: ${contact.name}
-RELATIONSHIP: ${contact.relationship || 'Unknown'}
 DISPOSITION: ${contact.disposition || 'Neutral'}
+KNOWN CONTEXT: ${contextString}
 DETECTED TRAITS: ${(contact.detectedTraits || []).join(', ') || 'None identified yet'}
-CONTEXT: ${(contact.contexts || []).slice(0, 2).join(' ') || 'No context available — the protagonist has barely interacted with this person.'}
 
 Remember: Consensus first (from the protagonist's perspective), then one quip per voice (${voicePersonalities.map(v => v.name).join(', ')}).`;
 
