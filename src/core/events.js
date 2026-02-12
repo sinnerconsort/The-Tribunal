@@ -2,9 +2,10 @@
  * The Tribunal - Event Handlers
  * Hooks into SillyTavern's event system
  * 
- * @version 4.4.1 - Cleanup:
- *   - Fixed wrong import path for contact-intelligence.js
- *   - Removed unused imports (initSettings, getVitals)
+ * @version 4.6.0 - AI-primary vitals/status detection
+ *   - Wired processMessageStatuses into message flow
+ *   - Regex vitals/status skipped when AI extraction is active (prevents double-processing)
+ *   - AI extractor now applies vitals + condition-to-status mapping as primary source
  */
 
 import { eventSource, event_types, chat } from '../../../../../../script.js';
@@ -19,6 +20,9 @@ import { incrementMessageCount } from './state.js';
 
 // Import vitals extraction for HP/Morale parsing from AI messages
 import { processMessageVitals } from '../systems/vitals-extraction.js';
+
+// Import status detection for auto-applying status effects from narrative
+import { processMessageStatuses } from '../systems/status-detection.js';
 
 // Import investigation module for scene context updates
 import { updateSceneContext } from '../systems/investigation.js';
@@ -433,30 +437,64 @@ async function onMessageReceived(messageId) {
     }
     
     // ═══════════════════════════════════════════════════════════════
-    // VITALS EXTRACTION - Auto-update HP/Morale from AI text
-    // Detects "you take damage", "you heal", etc.
+    // VITALS & STATUS DETECTION (Regex Fallback)
+    // Only runs if AI extraction is NOT active for this message.
+    // When AI extraction runs, it handles vitals + condition→status
+    // mapping more accurately (understands metaphors, NPC context).
+    // Regex serves as the fallback for when AI extraction is disabled.
     // ═══════════════════════════════════════════════════════════════
-    try {
-        if (messageText) {
-            const vitalsResult = processMessageVitals(messageText);
-            if (vitalsResult.applied) {
-                console.log('[Tribunal] Vitals updated:', vitalsResult.events);
-                if (vitalsResult.healthDelta !== 0) {
-                    console.log(`[Tribunal] Health ${vitalsResult.healthDelta > 0 ? '+' : ''}${vitalsResult.healthDelta}`);
-                }
-                if (vitalsResult.moraleDelta !== 0) {
-                    console.log(`[Tribunal] Morale ${vitalsResult.moraleDelta > 0 ? '+' : ''}${vitalsResult.moraleDelta}`);
+    const settings = getSettings();
+    
+    // Determine if AI extraction will handle vitals/status
+    const extractCases = settings?.cases?.autoDetect;
+    const extractContacts = settings?.contacts?.autoDetect;
+    const extractEquipment = settings?.extraction?.autoEquipment ?? false;
+    const extractInventory = settings?.extraction?.autoInventory ?? false;
+    const aiWillHandle = extractCases || extractContacts || extractEquipment || extractInventory;
+    
+    if (!aiWillHandle) {
+        // Regex vitals (fallback when AI extraction is off)
+        try {
+            if (messageText) {
+                const vitalsResult = processMessageVitals(messageText);
+                if (vitalsResult.applied) {
+                    console.log('[Tribunal] Vitals updated (regex):', vitalsResult.events);
+                    if (vitalsResult.healthDelta !== 0) {
+                        console.log(`[Tribunal] Health ${vitalsResult.healthDelta > 0 ? '+' : ''}${vitalsResult.healthDelta}`);
+                    }
+                    if (vitalsResult.moraleDelta !== 0) {
+                        console.log(`[Tribunal] Morale ${vitalsResult.moraleDelta > 0 ? '+' : ''}${vitalsResult.moraleDelta}`);
+                    }
                 }
             }
+        } catch (error) {
+            console.log('[Tribunal] Vitals extraction skipped:', error.message);
         }
-    } catch (error) {
-        console.log('[Tribunal] Vitals extraction skipped:', error.message);
+        
+        // Regex status detection (fallback when AI extraction is off)
+        try {
+            if (messageText && settings?.autoDetectStatus !== false) {
+                const statusResult = processMessageStatuses(messageText);
+                if (statusResult.applied.length > 0 || statusResult.removed.length > 0) {
+                    if (statusResult.applied.length > 0) {
+                        console.log('[Tribunal] Statuses applied (regex):', statusResult.applied.join(', '));
+                    }
+                    if (statusResult.removed.length > 0) {
+                        console.log('[Tribunal] Statuses removed (regex):', statusResult.removed.join(', '));
+                    }
+                    triggerRefresh();
+                }
+            }
+        } catch (error) {
+            console.log('[Tribunal] Status detection skipped:', error.message);
+        }
+    } else {
+        console.log('[Tribunal] Regex vitals/status skipped (AI extraction active)');
     }
     
     // ═══════════════════════════════════════════════════════════════
     // THOUGHT CABINET - Theme tracking and research advancement
     // ═══════════════════════════════════════════════════════════════
-    const settings = getSettings();
     
     // Track themes in message (fills theme meters)
     try {
@@ -511,18 +549,11 @@ async function onMessageReceived(messageId) {
     
     // ═══════════════════════════════════════════════════════════════
     // AI EXTRACTION - Extract ALL game state using AI
-    // Handles: cases, contacts, locations, equipment, inventory, vitals
+    // Handles: cases, contacts, locations, equipment, inventory,
+    //          vitals (HP/Morale), and condition→status detection
     // ═══════════════════════════════════════════════════════════════
     try {
-        // Check individual extraction toggles
-        const extractCases = settings.cases?.autoDetect;
-        const extractContacts = settings.contacts?.autoDetect;
-        const extractEquipment = settings.extraction?.autoEquipment ?? false;
-        const extractInventory = settings.extraction?.autoInventory ?? false;
-        
-        const aiExtractionEnabled = extractCases || extractContacts || extractEquipment || extractInventory;
-        
-        if (aiExtractionEnabled && messageText) {
+        if (aiWillHandle && messageText) {
             const aiExtractor = await getAIExtractor();
             
             if (aiExtractor) {
@@ -580,6 +611,8 @@ async function onMessageReceived(messageId) {
                     if (processed.inventoryLost.length) extracted.push(`-${processed.inventoryLost.length} items`);
                     if (processed.healthChange) extracted.push(`HP ${processed.healthChange > 0 ? '+' : ''}${processed.healthChange}`);
                     if (processed.moraleChange) extracted.push(`Morale ${processed.moraleChange > 0 ? '+' : ''}${processed.moraleChange}`);
+                    if (processed.statusesApplied?.length) extracted.push(`+${processed.statusesApplied.length} statuses`);
+                    if (processed.statusesCleared?.length) extracted.push(`-${processed.statusesCleared.length} statuses`);
                     
                     if (extracted.length > 0) {
                         console.log('[Tribunal] AI extracted:', extracted.join(', '));
@@ -619,6 +652,11 @@ async function onMessageReceived(messageId) {
                     
                     if (processed.healthChange !== 0 || processed.moraleChange !== 0) {
                         // Update vitals display
+                        triggerRefresh();
+                    }
+                    
+                    if (processed.statusesApplied?.length > 0 || processed.statusesCleared?.length > 0) {
+                        // Update status display
                         triggerRefresh();
                     }
                 }
