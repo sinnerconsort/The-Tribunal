@@ -19,7 +19,7 @@
  * - Emits window event alongside internal events for cross-module use
  */
 
-import { getChatState, saveChatState } from '../core/persistence.js';
+import { getChatState, saveChatState, getSettings } from '../core/persistence.js';
 
 // ═══════════════════════════════════════════════════════════════
 // STATE
@@ -594,6 +594,10 @@ export function initAwareness() {
     
     // Set up periodic time check (every minute)
     setInterval(() => {
+        // Don't run if extension is disabled
+        const settings = getSettings?.();
+        if (!settings?.enabled) return;
+        
         checkTimeShift();
     }, 60000);
     
@@ -604,26 +608,31 @@ export function initAwareness() {
     
     // Dice rolls (from ledger-voices.js)
     window.addEventListener('tribunal:diceRoll', (e) => {
+        if (!getSettings?.()?.enabled) return;
         recordDiceRoll(e.detail);
     });
     
     // Fortune draws (from ledger-voices.js)
     window.addEventListener('tribunal:fortuneDrawn', (e) => {
+        if (!getSettings?.()?.enabled) return;
         recordFortune(e.detail);
     });
     
     // Vitals changes (add dispatch to crt-vitals.js)
     window.addEventListener('tribunal:vitalsChanged', (e) => {
+        if (!getSettings?.()?.enabled) return;
         updateVitals(e.detail);
     });
     
     // Location changes (from world-parser.js)
     window.addEventListener('tribunal:locationChanged', (e) => {
+        if (!getSettings?.()?.enabled) return;
         updateLocation(e.detail);
     });
     
     // Compartment tab opened (custom event from compartment-unlock.js)
     window.addEventListener('tribunal:compartmentOpened', (e) => {
+        if (!getSettings?.()?.enabled) return;
         onCompartmentOpen();
     });
     

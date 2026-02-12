@@ -630,6 +630,10 @@ export function initAutoConsume() {
     
     // Listen for message ticks
     window.addEventListener('tribunal:messageTick', () => {
+        // Don't process if extension is disabled
+        const settings = window.TribunalState?.getSettings?.();
+        if (!settings?.enabled) return;
+        
         checkCravings();
         checkAddictionDecay();
     });
