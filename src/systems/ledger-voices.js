@@ -6,7 +6,7 @@
  * THE LEDGER OF OBLIVION - Prophetic, inevitable, fate-speaking  
  * THE LEDGER OF FAILURE AND HATRED - Mocking, 4th-wall, nihilistic-caring
  * 
- * v1.4.0 - FEATURE: Contextual fortune generation via fortune-generator.js
+ * v2.0.0 - Genre-aware: dice responses and voice identities from registry
  *          Fortunes now know the character, time, themes, and emotional state
  */
 
@@ -19,6 +19,12 @@ import {
     drawContextualFortune, 
     drawContextualFortuneSync 
 } from './fortune-generator.js';
+
+// Import genre-aware voice data
+import { 
+    getLedgerVoiceIdentity, 
+    getDiceResponses 
+} from '../data/ledger-voices/registry.js';
 
 // Debounce flag for mobile double-click prevention
 let envelopeClickCooldown = false;
@@ -167,33 +173,31 @@ export function rollDrawerDice() {
     const isBoxcars = die1 === 6 && die2 === 6;
     const isSnakeEyes = die1 === 1 && die2 === 1;
     
-    let type, responseBank;
+    let type;
     
     if (isSnakeEyes) {
         type = 'snakeEyes';
-        responseBank = DICE_RESPONSES.snakeEyes;
     } else if (isBoxcars) {
         type = 'boxcars';
-        responseBank = DICE_RESPONSES.boxcars;
     } else if (isDouble) {
         type = 'doubles';
-        responseBank = DICE_RESPONSES.doubles;
     } else if (total >= 10) {
         type = 'high';
-        responseBank = DICE_RESPONSES.high;
     } else if (total <= 4) {
         type = 'low';
-        responseBank = DICE_RESPONSES.low;
     } else {
         type = 'normal';
-        responseBank = DICE_RESPONSES.normal;
     }
+    
+    // Try genre-aware dice responses, fall back to hardcoded DE
+    const responseBank = getDiceResponses(type) || DICE_RESPONSES[type];
     
     const lines = responseBank.lines;
     let response = lines[Math.floor(Math.random() * lines.length)];
     response = response.replace('{time}', getCurrentTime());
     
-    const voice = LEDGER_VOICES[responseBank.voice];
+    // Try genre-aware voice identity, fall back to hardcoded
+    const voice = getLedgerVoiceIdentity(responseBank.voice) || LEDGER_VOICES[responseBank.voice];
     
     return {
         die1,
@@ -214,27 +218,30 @@ export function rollDrawerDice() {
 }
 
 export function getLedgerCommentForCheck(checkResult) {
-    let responseBank;
+    let type;
     
     if (checkResult.isSnakeEyes) {
-        responseBank = DICE_RESPONSES.snakeEyes;
+        type = 'snakeEyes';
     } else if (checkResult.isBoxcars) {
-        responseBank = DICE_RESPONSES.boxcars;
+        type = 'boxcars';
     } else if (checkResult.die1 === checkResult.die2) {
-        responseBank = DICE_RESPONSES.doubles;
+        type = 'doubles';
     } else if (checkResult.roll >= 10) {
-        responseBank = DICE_RESPONSES.high;
+        type = 'high';
     } else if (checkResult.roll <= 4) {
-        responseBank = DICE_RESPONSES.low;
+        type = 'low';
     } else {
-        responseBank = DICE_RESPONSES.normal;
+        type = 'normal';
     }
+    
+    // Try genre-aware, fall back to hardcoded DE
+    const responseBank = getDiceResponses(type) || DICE_RESPONSES[type];
     
     const lines = responseBank.lines;
     let response = lines[Math.floor(Math.random() * lines.length)];
     response = response.replace('{time}', getCurrentTime());
     
-    const voice = LEDGER_VOICES[responseBank.voice];
+    const voice = getLedgerVoiceIdentity(responseBank.voice) || LEDGER_VOICES[responseBank.voice];
     
     return {
         voice: responseBank.voice,

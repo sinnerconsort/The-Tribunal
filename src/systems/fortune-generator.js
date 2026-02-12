@@ -9,7 +9,7 @@
  * 
  * The fortune stops being a cookie and becomes a wound.
  * 
- * @version 1.0.1 - Added enabled check to prevent API calls when extension is disabled
+ * @version 2.0.0 - Genre-aware: fortunes, personas, and pools loaded from registry
  */
 
 import { getContext } from '../../../../../extensions.js';
@@ -48,9 +48,17 @@ try {
 
 import { LEDGER_VOICES } from './ledger-voices.js';
 
+// Import genre-aware voice data
+import { 
+    getFortunePersona, 
+    getContextualFortunes, 
+    getEmptyFortunes, 
+    getLedgerVoiceIdentity 
+} from '../data/ledger-voices/registry.js';
+
 // ═══════════════════════════════════════════════════════════════
-// VOICE PERSONAS FOR AI GENERATION
-// These are the prompts that make the AI write like each voice
+// VOICE PERSONAS — LEGACY (now loaded from genre registry)
+// Kept for reference. Active data: src/data/ledger-voices/{genre}.js
 // ═══════════════════════════════════════════════════════════════
 
 const FORTUNE_PERSONAS = {
@@ -218,7 +226,7 @@ function getEmotionalState(context) {
  * @returns {string} Full prompt for AI generation
  */
 function buildFortunePrompt(voice, context) {
-    const persona = FORTUNE_PERSONAS[voice];
+    const persona = getFortunePersona(voice);
     
     let prompt = `${persona}
 
@@ -371,9 +379,8 @@ async function generateFortune(voice, context) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// STATIC FALLBACKS - CONTEXT-AWARE
-// These are organized by SITUATION, not just voice
-// They use placeholders that get filled with real context
+// STATIC FALLBACKS — LEGACY (now loaded from genre registry)
+// Kept for reference. Active data: src/data/ledger-voices/{genre}.js
 // ═══════════════════════════════════════════════════════════════
 
 const CONTEXTUAL_FORTUNES = {
@@ -540,7 +547,7 @@ const CONTEXTUAL_FORTUNES = {
     }
 };
 
-// Empty fortune replacements - these should hurt too
+// Empty fortune replacements — LEGACY (now from registry)
 const EMPTY_FORTUNES = [
     "The wrapper is empty. The fortune you needed was in a different drawer. A different life.",
     "No fortune. The paper absorbed it. Like the paper absorbs everything. Like you do.",
@@ -564,8 +571,8 @@ const EMPTY_FORTUNES = [
  * @returns {string} Selected fortune with placeholders filled
  */
 function selectStaticFortune(voice, context) {
-    const bank = CONTEXTUAL_FORTUNES[voice];
-    if (!bank) return selectRandom(CONTEXTUAL_FORTUNES.damaged.generic);
+    const bank = getContextualFortunes(voice);
+    if (!bank) return selectRandom(getContextualFortunes('damaged').generic);
     
     // Build pool of applicable fortunes with weights
     const pool = [];
@@ -676,12 +683,14 @@ export async function drawContextualFortune(forceVoice = null, allowAI = true) {
     
     // 15% chance of empty fortune (reduced from 20%)
     if (!forceVoice && Math.random() < 0.15) {
-        const emptyFortune = selectRandom(EMPTY_FORTUNES);
+        const emptyPool = getEmptyFortunes();
+        const emptyFortune = selectRandom(emptyPool);
+        const damagedVoice = getLedgerVoiceIdentity('damaged');
         return {
             fortune: fillPlaceholders(emptyFortune, context),
             voice: 'damaged',
-            voiceName: LEDGER_VOICES.damaged.name,
-            voiceColor: LEDGER_VOICES.damaged.color,
+            voiceName: damagedVoice.name,
+            voiceColor: damagedVoice.color,
             isEmpty: true,
             isGenerated: false
         };
@@ -689,7 +698,7 @@ export async function drawContextualFortune(forceVoice = null, allowAI = true) {
     
     // Select voice
     const selectedVoice = forceVoice || selectVoice(context);
-    const voice = LEDGER_VOICES[selectedVoice];
+    const voice = getLedgerVoiceIdentity(selectedVoice);
     
     let fortune = null;
     let isGenerated = false;
@@ -732,19 +741,21 @@ export function drawContextualFortuneSync(forceVoice = null) {
     
     // 15% chance of empty fortune
     if (!forceVoice && Math.random() < 0.15) {
-        const emptyFortune = selectRandom(EMPTY_FORTUNES);
+        const emptyPool = getEmptyFortunes();
+        const emptyFortune = selectRandom(emptyPool);
+        const damagedVoice = getLedgerVoiceIdentity('damaged');
         return {
             fortune: fillPlaceholders(emptyFortune, context),
             voice: 'damaged',
-            voiceName: LEDGER_VOICES.damaged.name,
-            voiceColor: LEDGER_VOICES.damaged.color,
+            voiceName: damagedVoice.name,
+            voiceColor: damagedVoice.color,
             isEmpty: true,
             isGenerated: false
         };
     }
     
     const selectedVoice = forceVoice || selectVoice(context);
-    const voice = LEDGER_VOICES[selectedVoice];
+    const voice = getLedgerVoiceIdentity(selectedVoice);
     const fortune = selectStaticFortune(selectedVoice, context);
     
     return {
@@ -780,9 +791,9 @@ if (typeof window !== 'undefined') {
         testAI: (voice = 'damaged') => drawContextualFortune(voice, true),
         
         // Direct access for debugging
-        CONTEXTUAL_FORTUNES,
-        EMPTY_FORTUNES,
-        FORTUNE_PERSONAS
+        getContextualFortunes,
+        getEmptyFortunes,
+        getFortunePersona
     };
 }
 
@@ -790,6 +801,6 @@ export default {
     drawContextualFortune,
     drawContextualFortuneSync,
     gatherContext,
-    CONTEXTUAL_FORTUNES,
-    EMPTY_FORTUNES
+    getContextualFortunes,
+    getEmptyFortunes
 };
