@@ -11,7 +11,7 @@
  *   2. Import it here and add to SETTING_PROFILES
  *   3. Done — it appears in the settings dropdown
  * 
- * @version 2.0.0 - Modular genre architecture
+ * @version 2.1.0 - Modular genre architecture + 10 genres
  */
 
 import { getSettings } from '../core/state.js';
@@ -26,6 +26,7 @@ import { profile as romance } from './genres/romance.js';
 import { profile as thrillerHorror } from './genres/thriller-horror.js';
 import { profile as postApocalyptic } from './genres/post-apocalyptic.js';
 import { profile as cyberpunk } from './genres/cyberpunk.js';
+import { profile as sliceOfLife } from './genres/slice-of-life.js';
 
 // ═══════════════════════════════════════════════════════════════
 // BASE SKILL PERSONALITIES (Setting-Agnostic Defaults)
@@ -90,6 +91,7 @@ export const SETTING_PROFILES = {
     thriller_horror: thrillerHorror,
     post_apocalyptic: postApocalyptic,
     cyberpunk: cyberpunk,
+    slice_of_life: sliceOfLife,
 };
 
 
