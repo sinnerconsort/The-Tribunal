@@ -3,6 +3,9 @@
  * Context analysis, voice selection, API calls, and prompt building
  * 
  * Now with CASCADE SYSTEM - skills react to each other!
+ * v0.4.0 - ERROR SURFACING: Users now see what went wrong instead of silent failures
+ *         - Added generation guards (cooldown, lock, message validation)
+ *         - Parse failure warnings via toastr
  * v0.3.4 - Added enabled check to prevent API calls when extension is disabled
  * 
  * REBUILD VERSION: Uses per-chat state accessors and new API helpers
@@ -27,8 +30,63 @@ import { getActiveStatuses } from '../ui/status-handlers.js';
 import { callAPI, getAvailableProfiles } from './api-helpers.js';
 import { analyzeContext, buildChorusPrompt } from './prompt-builder.js';
 
+// Error surfacing — shared with thought generation
+import { notifyUser, surfaceError } from '../utils/notification-helpers.js';
+
 // Re-export for external use
 export { callAPI, getAvailableProfiles, analyzeContext };
+
+// ═══════════════════════════════════════════════════════════════
+// GENERATION GUARDS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Prevents overlapping generation calls
+ */
+let generationInProgress = false;
+
+/**
+ * Cooldown — prevents rapid-fire generation
+ */
+let lastGenerationTime = 0;
+const GENERATION_COOLDOWN_MS = 2000;
+
+/**
+ * Check if generation should be blocked
+ * @param {string} messageText - The message that triggered generation
+ * @returns {{ blocked: boolean, reason?: string }}
+ */
+function checkGenerationGuards(messageText) {
+    // Guard: Extension disabled
+    const settings = getSettings();
+    if (!settings?.enabled) {
+        return { blocked: true, reason: 'Extension disabled' };
+    }
+    
+    // Guard: Already generating
+    if (generationInProgress) {
+        return { blocked: true, reason: 'Generation already in progress' };
+    }
+    
+    // Guard: Cooldown
+    const now = Date.now();
+    if (now - lastGenerationTime < GENERATION_COOLDOWN_MS) {
+        return { blocked: true, reason: 'Generation cooldown' };
+    }
+    
+    // Guard: Empty or very short message
+    if (!messageText || messageText.trim().length < 10) {
+        return { blocked: true, reason: 'Message too short' };
+    }
+    
+    // Guard: System messages / meta content
+    const trimmed = messageText.trim().toLowerCase();
+    if (trimmed.startsWith('[system') || trimmed.startsWith('<sys')) {
+        return { blocked: true, reason: 'System message' };
+    }
+    
+    return { blocked: false };
+}
 
 // ═══════════════════════════════════════════════════════════════
 // ANCIENT VOICE TRIGGER DEFINITIONS
@@ -394,7 +452,22 @@ export function parseChorusResponse(response, voiceData) {
         }
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // PARSE FAILURE HANDLING
+    // If we got a response but couldn't parse any voices, tell the user
+    // ═══════════════════════════════════════════════════════════════
     if (results.length === 0 && voiceData.length > 0 && response.trim()) {
+        console.warn('[Tribunal] Parse failure - got response but no matching voices');
+        console.warn('[Tribunal] Expected:', voiceData.map(v => v.skill.signature).join(', '));
+        console.warn('[Tribunal] Got lines:', lines.slice(0, 5).join(' | '));
+        
+        notifyUser(
+            'Voice Parse Issue',
+            `Got a response but couldn't match the expected format. Expected: ${voiceData.map(v => v.skill.signature).join(', ')}`,
+            'warning'
+        );
+        
+        // Salvage what we can — assign raw response to first voice
         const v = voiceData[0];
         results.push({
             skillId: v.skillId,
@@ -511,7 +584,12 @@ export async function generateVoices(selectedSkills, context) {
         console.log('[The Tribunal] Generated', parsed.length, 'voice responses');
         return parsed;
     } catch (error) {
-        console.error('[The Tribunal] Chorus generation failed:', error);
+        // ═══════════════════════════════════════════════════════════
+        // ERROR SURFACING: Classify and notify the user
+        // ═══════════════════════════════════════════════════════════
+        surfaceError(error, 'Voices');
+        
+        // Still throw for callers that want to handle it
         throw error;
     }
 }
@@ -522,35 +600,56 @@ export async function generateVoices(selectedSkills, context) {
 
 /**
  * Complete voice generation from raw message text
+ * NOW WITH: Generation guards, error surfacing, and cooldown protection
+ * 
  * @param {string} messageText - The scene/message to react to
  * @param {object} options - Optional overrides for voice count, etc.
- * @returns {Promise<array>} Generated voice results
+ * @returns {Promise<array>} Generated voice results (empty array on failure)
  */
 export async function generateVoicesForMessage(messageText, options = {}) {
-    // Safety check: Don't generate if extension is disabled
-    const settings = getSettings();
-    if (!settings?.enabled) {
-        console.log('[The Tribunal] Extension disabled, skipping voice generation');
+    // ═══════════════════════════════════════════════════════════
+    // GENERATION GUARDS
+    // ═══════════════════════════════════════════════════════════
+    const guard = checkGenerationGuards(messageText);
+    if (guard.blocked) {
+        console.log(`[The Tribunal] Generation blocked: ${guard.reason}`);
         return [];
     }
     
-    // 1. Analyze the context
-    const context = analyzeContext(messageText);
+    // Set generation lock
+    generationInProgress = true;
+    lastGenerationTime = Date.now();
     
-    // 2. Select which skills will speak
-    const selectedSkills = selectSpeakingSkills(context, options);
-    
-    if (selectedSkills.length === 0) {
-        console.log('[The Tribunal] No skills selected to speak');
+    try {
+        // 1. Analyze the context
+        const context = analyzeContext(messageText);
+        
+        // 2. Select which skills will speak
+        const selectedSkills = selectSpeakingSkills(context, options);
+        
+        if (selectedSkills.length === 0) {
+            console.log('[The Tribunal] No skills selected to speak');
+            return [];
+        }
+        
+        // 3. Generate the voices
+        const result = await generateVoices(selectedSkills, context);
+        return result;
+        
+    } catch (error) {
+        // generateVoices already surfaced the error to the user
+        // Just return empty so the caller doesn't crash
+        console.error('[The Tribunal] generateVoicesForMessage failed:', error);
         return [];
+        
+    } finally {
+        // Always release the generation lock
+        generationInProgress = false;
     }
-    
-    // 3. Generate the voices
-    return generateVoices(selectedSkills, context);
 }
 
 // ═══════════════════════════════════════════════════════════════
-// EXTERNAL API - For other modules to check ancient voice state
+// EXTERNAL API - For other modules to check state
 // ═══════════════════════════════════════════════════════════════
 
 /**
@@ -567,4 +666,12 @@ export function areAncientVoicesActive() {
  */
 export function getTriggeredAncientVoices() {
     return getActiveAncientVoices();
+}
+
+/**
+ * Check if generation is currently running
+ * @returns {boolean}
+ */
+export function isGenerating() {
+    return generationInProgress;
 }

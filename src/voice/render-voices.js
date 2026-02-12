@@ -6,6 +6,7 @@
  */
 
 import { getSettings } from '../core/state.js';
+import { getSkillName } from '../data/setting-profiles.js';
 
 // ═══════════════════════════════════════════════════════════════
 // VOICE RENDERING (Panel Display)
@@ -58,7 +59,7 @@ export function renderVoices(voiceResults, container) {
         return `
             <div class="tribunal-voice-line" style="border-left-color: ${voice.color}">
                 <div class="tribunal-voice-header">
-                    <span class="tribunal-voice-signature" style="color: ${voice.color}">${voice.signature || voice.skillName}</span>
+                    <span class="tribunal-voice-signature" style="color: ${voice.color}">${getSkillName(voice.skillId, voice.signature || voice.skillName)}</span>
                     ${checkBadge}
                 </div>
                 <div class="tribunal-voice-content">${voice.content}</div>
@@ -147,7 +148,7 @@ export function appendVoicesToChat(voiceResults, chatContainer) {
         return `
             <div class="tribunal-chat-voice ${checkClass}">
                 <div class="tribunal-chat-voice-header">
-                    <span class="tribunal-chat-voice-sig" style="color: ${voice.color}">${voice.signature || voice.skillName}</span>
+                    <span class="tribunal-chat-voice-sig" style="color: ${voice.color}">${getSkillName(voice.skillId, voice.signature || voice.skillName)}</span>
                     ${checkBadge}
                 </div>
                 <span class="tribunal-chat-voice-text">${voice.content}</span>

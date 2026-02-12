@@ -14,6 +14,7 @@
  */
 
 import { callAPIWithTokens } from './api-helpers.js';
+import { getProfileValue } from '../data/setting-profiles.js';
 import { 
     INVENTORY_TYPES, 
     inferInventoryType, 
@@ -512,13 +513,16 @@ export async function generateSingleItem(itemName, context = '') {
     const addictive = isAddictive(inferredType);
     const consumable = isConsumable(inferredType);
     
-    const systemPrompt = `You are channeling the internal skill voices of a Disco Elysium character. Every item tells a story. The skills in your head all have opinions about what you carry.
+    const genreIntro = getProfileValue('systemIntro', 
+        'You are channeling the internal skill voices of a character.');
+    
+    const systemPrompt = `${genreIntro} Every item tells a story. The skills in your head all have opinions about what you carry.
 
 ${addictive ? 'This is an ADDICTIVE substance. Electrochemistry should be EXCITED about it. Volition should DISAPPROVE.' : ''}
 
 Output ONLY valid JSON, no markdown, no explanation.`;
 
-    const userPrompt = `Generate rich Disco Elysium-style data for this inventory item:
+    const userPrompt = `Generate rich data for this inventory item, matching the tone of the setting:
 
 ITEM: ${itemName}
 TYPE: ${inferredType} (${typeInfo?.label || 'Unknown'})
@@ -539,7 +543,7 @@ Respond with ONLY this JSON structure:
   "name": "${itemName}",
   "type": "${inferredType}",
   "effectId": "${consumable ? 'CHOOSE_FROM_EFFECT_IDS' : 'none'}",
-  "description": "2-3 sentence evocative description. Make it poetic and strange, in the style of Disco Elysium item descriptions.",
+  "description": "2-3 sentence evocative description. Make it poetic and strange, matching the setting's tone.",
   "voiceQuips": [
     {"skill": "skill_id", "text": "One-liner about this item", "approves": true},
     {"skill": "other_skill", "text": "Different perspective one-liner", "approves": false}
@@ -611,9 +615,12 @@ export async function generateMultipleItems(itemNames, context = '') {
         return `- ${name} (type: ${type})`;
     }).join('\n');
     
-    const systemPrompt = `You are channeling the internal skill voices of a Disco Elysium character. Generate data for multiple inventory items. Output ONLY valid JSON array, no markdown.`;
+    const batchGenreIntro = getProfileValue('systemIntro', 
+        'You are channeling the internal skill voices of a character.');
     
-    const userPrompt = `Generate Disco Elysium-style data for these inventory items:
+    const systemPrompt = `${batchGenreIntro} Generate data for multiple inventory items. Output ONLY valid JSON array, no markdown.`;
+    
+    const userPrompt = `Generate data for these inventory items, matching the tone of the setting:
 
 ${itemList}
 

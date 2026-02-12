@@ -123,8 +123,8 @@ function getProfileIdByName(profileNameOrId) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Strip thinking model tags from response
- * Handles <think>, <thinking>, and similar patterns
+ * Strip thinking model tags and model stop tokens from response
+ * Handles <think>, <thinking>, and stop tokens like <|end_of_box|>, <|endoftext|>, etc.
  */
 function stripThinkingTags(text) {
     if (!text || typeof text !== 'string') return text;
@@ -137,6 +137,12 @@ function stripThinkingTags(text) {
     
     // Remove any remaining opening tags without closing
     cleaned = cleaned.replace(/<think(?:ing)?>/gi, '');
+    
+    // Strip model stop tokens (GLM, Llama, Qwen, Mistral, etc.)
+    cleaned = cleaned.replace(/<\|(?:end_of_box|endoftext|im_end|im_sep|eot_id|end|eos|pad)\|>/gi, '');
+    
+    // Strip other common stop sequences
+    cleaned = cleaned.replace(/\[end\]|\[\/end\]|\[DONE\]|<\/s>/gi, '');
     
     return cleaned.trim();
 }
