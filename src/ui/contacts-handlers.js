@@ -2,6 +2,11 @@
  * The Tribunal - Contacts Handlers
  * UI logic for the contacts section in the Ledger
  * 
+ * v1.2.0 - Context-aware dossier generation
+ *   - handleGenerateDossier stores intelSources and keyFacts from context-gatherer
+ *   - Success toast shows which sources were scanned
+ *   - Detected traits enriched by AI summarization
+ * 
  * v1.1.0 - FIXED: Replaced broken lazy dynamic imports with static imports
  *   - persistence, contacts data, and dossier generator all use static imports
  *   - Eliminates silent import failures that caused "Could not generate dossier" toast
@@ -142,7 +147,10 @@ async function renderContactCard(contact) {
     
     // Status indicator for dossier
     let dossierStatus = '';
-    if (hasDossier) {
+    const hasIntel = contact.dossier?.intelSources?.length > 0;
+    if (hasDossier && hasIntel) {
+        dossierStatus = `<span class="contact-dossier-status has-dossier intel-backed" title="Intel-backed dossier (${contact.dossier.intelSources.join(', ')})">●●●●○</span>`;
+    } else if (hasDossier) {
         dossierStatus = `<span class="contact-dossier-status has-dossier" title="Dossier generated">●●●○○</span>`;
     } else if (hasVoiceOpinions) {
         dossierStatus = `<span class="contact-dossier-status partial" title="Voice opinions recorded">●●○○○</span>`;
@@ -182,6 +190,12 @@ async function renderContactCard(contact) {
                 ${voiceQuipsHtml ? `
                     <div class="contact-voice-quips">
                         ${voiceQuipsHtml}
+                    </div>
+                ` : ''}
+                
+                ${contact.dossier?.intelSources?.length > 0 ? `
+                    <div class="contact-intel-sources">
+                        <i class="fa-solid fa-magnifying-glass"></i> ${contact.dossier.intelSources.join(' · ')}
                     </div>
                 ` : ''}
                 
@@ -547,10 +561,28 @@ async function handleGenerateDossier(contactId) {
                     text: q.content
                 })),
                 generatedAt: dossier.generatedAt || Date.now(),
-                basedOnDisposition: contact.disposition
+                basedOnDisposition: contact.disposition,
+                // Intel metadata from context-gatherer
+                intelSources: dossier.intelSources || [],
+                keyFacts: dossier.keyFacts || []
             };
+            
+            // Also update contact's detected traits if dossier discovered new ones
+            if (contact.detectedTraits?.length > 0) {
+                // detectedTraits may have been enriched by the gatherer
+                // They're already on the contact object from generateDossier()
+            }
+            
             await saveContact(contact);
             await renderContactsList();
+            
+            // Show success with source info
+            if (typeof toastr !== 'undefined') {
+                const sources = dossier.intelSources?.length > 0
+                    ? `Sources: ${dossier.intelSources.join(', ')}`
+                    : 'Generated from available context';
+                toastr.success(sources, `${contact.name} — Dossier Complete`, { timeOut: 4000 });
+            }
         } else {
             // Show error - dossier generation returned null (shouldn't happen now)
             if (typeof toastr !== 'undefined') {
