@@ -4,6 +4,14 @@
  * Builds prompts for AI to generate thoughts dynamically
  * based on persona, themes, and chat context.
  * 
+ * @version 4.5.0 - Prompt tightening overhaul:
+ *   - Added theme→skill affinity guide (model picks thematically relevant bonuses)
+ *   - Constrained bonus values to -1/+1 strictly, 1-2 skills each
+ *   - Added specialEffect examples with valid status targets
+ *   - Shortened text requirements (150w problem, 80w solution vs uncapped paragraphs)
+ *   - Name constraint: 2-5 words max
+ *   - Directed user prompts: "fixate on ONE moment" vs "what's bubbling"
+ *   - researchTime default 10→8 (thoughts complete slightly faster)
  * @version 4.4.0 - Setting Profile integration (agnosticism refactor)
  *                  All "Disco Elysium" string references now come from
  *                  the active setting profile via getProfileValue()
@@ -245,26 +253,63 @@ ${existingList}
 ## OUTPUT FORMAT
 Return ONLY valid JSON with this exact structure:
 {
-  "name": "SHORT EVOCATIVE NAME IN ALL CAPS",
+  "name": "SHORT EVOCATIVE NAME IN ALL CAPS (2-5 words max)",
   "theme": "one of: identity|death|love|violence|mystery|substance|failure|authority|paranoia|philosophy|money|supernatural",
-  "researchTime": 10,
-  "problemText": "2-3 paragraphs of rambling, philosophical internal monologue. Question everything. Be poetic, fragmented, obsessive.",
-  "solutionText": "2 paragraphs of twisted clarity. A conclusion that changes something - even if that change is just acceptance.",
-  "researchBonus": { "skill_id": { "value": -1, "flavor": "brief reason" } },
-  "internalizedBonus": { "skill_id": { "value": 1, "flavor": "brief reason" } },
+  "researchTime": 8,
+  "problemText": "1-2 short paragraphs. Questioning, obsessive, sometimes absurd, sometimes practical. Max 150 words.",
+  "solutionText": "1 paragraph of resolution — could be poetic, could be bluntly practical, could be darkly funny. Max 100 words.",
+  "researchBonus": { "skill_id": { "value": -1, "flavor": "Short Label" } },
+  "internalizedBonus": { "skill_id": { "value": 1, "flavor": "Label" }, "other_skill": { "value": -1, "flavor": "Label" } },
   "specialEffect": null
 }
+
+## BONUS RULES
+- researchBonus: 1-2 skills with -1 penalty each. The unresolved thought distracts you.
+- internalizedBonus: 1-4 skills with a MIX of +1 AND -1 values. The thought CHANGES you —
+  it doesn't just reward you. A sobriety thought gives +1 volition but -1 electrochemistry, -1 inland_empire.
+  A violence thought gives +1 physical_instrument but -1 empathy. Most internalized thoughts
+  should have at least one penalty alongside their bonuses.
+- Values: -1 or +1 normally, occasionally +2 for the primary bonus of a transformative thought.
+- Pick skills that THEMATICALLY connect (see affinity guide below).
+- "flavor" is a 2-4 word LABEL, not a sentence. Examples: "Sober", "Bad PR", "Insomnia", "Return of the self", "Rambling madman", "Liquid courage"
+
+## THEME → SKILL AFFINITIES (pick bonuses from the related skills)
+- death: empathy, inland_empire, pain_threshold, composure
+- love: empathy, suggestion, drama, electrochemistry, composure
+- violence: half_light, physical_instrument, reaction_speed, endurance, authority
+- mystery: logic, visual_calculus, perception, encyclopedia, rhetoric
+- substance: electrochemistry, endurance, composure, volition, inland_empire
+- failure: volition, composure, inland_empire, rhetoric, authority
+- identity: inland_empire, shivers, conceptualization, esprit_de_corps, volition
+- authority: authority, rhetoric, suggestion, esprit_de_corps, drama
+- paranoia: half_light, perception, shivers, visual_calculus, inland_empire
+- philosophy: conceptualization, encyclopedia, rhetoric, logic, inland_empire
+- money: interfacing, rhetoric, suggestion, savoir_faire, composure
+- supernatural: shivers, inland_empire, conceptualization, perception, empathy
+
+## SPECIAL EFFECTS (optional — use sparingly, only when the thought truly warrants it)
+If the thought has a dramatic enough concept, you may include ONE specialEffect:
+- { "type": "voice_amplify", "target": "skill_id", "description": "Skill speaks louder" }
+- { "type": "voice_silence", "target": "skill_id", "description": "Skill goes quiet" }
+- { "type": "toggle_state", "target": "status_id", "description": "Activates a condition" }
+  Valid status targets: revacholian_courage, pyrholidon, tequila_sunset, the_pale, caustic_echo, the_expression
+- { "type": "no_buff_from", "target": "source_name", "description": "Blocks buffs from a source" }
+Most thoughts should have "specialEffect": null. Only ~20% should have one.
 
 ## SKILL IDS (use these exact IDs)
 logic, encyclopedia, rhetoric, drama, conceptualization, visual_calculus, volition, inland_empire, empathy, authority, esprit_de_corps, suggestion, endurance, pain_threshold, physical_instrument, electrochemistry, shivers, half_light, hand_eye_coordination, perception, reaction_speed, savoir_faire, interfacing, composure
 
 ## STYLE GUIDE
-- Thoughts are OBSESSIVE and RECURSIVE
-- They question everything, especially themselves
-- The "problem" phase is CONFUSION - beautiful, poetic confusion
-- The "solution" is not always positive - sometimes it's just... acceptance
-- Use the character's actions and words as fuel for introspection
-- Reference specific moments from the chat when possible`;
+- Names: evocative, 2-5 words, ALL CAPS. Think case file labels, band names, medical diagnoses.
+  Examples: "WASTE LAND OF REALITY", "RIGOROUS SELF-CRITIQUE", "ACTUAL ART DEGREE"
+- Problem text: can be philosophical questioning, neurotic fixation, absurdist tangent, or earnest confusion.
+  NOT always poetic. Sometimes it's blunt: "There's something you can't get out of your head."
+  Sometimes it's unhinged. Match the tone to the theme.
+- Solution text: can be twisted wisdom, practical advice, dark comedy, or resigned acceptance.
+  "Congrats — you're sober." is a valid solution. So is cosmic horror. Match the thought.
+- Reference SPECIFIC moments from the chat. Don't be generic.
+- The thought should feel like internalizing it genuinely changes how you approach the story —
+  the bonuses and penalties should feel like CONSEQUENCES of accepting this truth about yourself.`;
 }
 
 /**
@@ -285,7 +330,7 @@ Recent conversation:
 ${chatContext}
 ---
 
-Generate a thought that crystallizes something from this interaction. What's bubbling beneath the surface? What does this conversation reveal about the user's relationship with this story?`;
+Generate a thought that latches onto ONE specific moment, choice, or tension from this conversation. Don't summarize — fixate on something. What did the user do or say (or fail to say) that reveals something deeper? Ground the thought in a CONCRETE detail from the scene above.`;
 }
 
 /**
@@ -423,15 +468,17 @@ ${existingNote}
 
 Generate ONE thought about the concept provided. Output ONLY valid JSON:
 {
-  "name": "SHORT EVOCATIVE NAME IN CAPS",
+  "name": "SHORT EVOCATIVE NAME IN CAPS (2-5 words)",
   "theme": "identity|death|love|violence|mystery|substance|failure|authority|paranoia|philosophy|money|supernatural",
-  "researchTime": 10,
-  "problemText": "2-3 paragraphs of rambling philosophical questioning",
-  "solutionText": "2 paragraphs of twisted clarity/resolution",
-  "researchBonus": { "skill_id": { "value": -1, "flavor": "reason" } },
-  "internalizedBonus": { "skill_id": { "value": 1, "flavor": "reason" } },
+  "researchTime": 8,
+  "problemText": "1-2 short paragraphs — questioning, absurd, practical, or neurotic. Max 150 words.",
+  "solutionText": "1 paragraph of resolution — poetic, practical, or darkly funny. Max 100 words.",
+  "researchBonus": { "skill_id": { "value": -1, "flavor": "Short Label" } },
+  "internalizedBonus": { "skill_id": { "value": 1, "flavor": "Label" }, "other_skill": { "value": -1, "flavor": "Label" } },
   "specialEffect": null
 }
+
+BONUS RULES: Research: 1-2 skills at -1. Internalized: 1-4 skills, MIX of +1 and -1 (the thought changes you, not just rewards you). Flavor is a 2-4 word label like "Sober" or "Bad PR".
 
 Skills: logic, encyclopedia, rhetoric, drama, conceptualization, visual_calculus, volition, inland_empire, empathy, authority, esprit_de_corps, suggestion, endurance, pain_threshold, physical_instrument, electrochemistry, shivers, half_light, hand_eye_coordination, perception, reaction_speed, savoir_faire, interfacing, composure`;
 
@@ -481,19 +528,21 @@ This thought MUST be primarily about ${spikingTheme.name.toLowerCase()}.
 ${persona?.context ? `User context: ${persona.context}` : ''}
 ${existingThoughts.length > 0 ? `\nExisting thoughts (don't duplicate): ${existingThoughts.join(', ')}` : ''}
 
-Generate ONE thought that crystallizes what "${spikingTheme.name}" means in this story.
+Generate ONE thought that crystallizes what "${spikingTheme.name}" means in this SPECIFIC story — not in the abstract. Anchor it to something concrete from the conversation.
 
 Output ONLY valid JSON:
 {
-  "name": "EVOCATIVE NAME RELATED TO ${spikingTheme.name.toUpperCase()}",
+  "name": "EVOCATIVE NAME RELATED TO ${spikingTheme.name.toUpperCase()} (2-5 words)",
   "theme": "${spikingTheme.id}",
-  "researchTime": 10,
-  "problemText": "Why does ${spikingTheme.name.toLowerCase()} keep appearing? What does it mean? Ramble philosophically...",
-  "solutionText": "The resolution - what ${spikingTheme.name.toLowerCase()} really means here...",
-  "researchBonus": { "skill_id": { "value": -1, "flavor": "reason" } },
-  "internalizedBonus": { "skill_id": { "value": 1, "flavor": "reason" } },
+  "researchTime": 8,
+  "problemText": "1-2 short paragraphs — obsessive, absurd, practical, or neurotic. Max 150 words.",
+  "solutionText": "1 paragraph — what ${spikingTheme.name.toLowerCase()} actually means here. Max 100 words.",
+  "researchBonus": { "skill_id": { "value": -1, "flavor": "Short Label" } },
+  "internalizedBonus": { "skill_id": { "value": 1, "flavor": "Label" }, "other_skill": { "value": -1, "flavor": "Label" } },
   "specialEffect": null
-}`;
+}
+
+BONUS RULES: Research: 1-2 skills at -1. Internalized: 1-4 skills, MIX of +1 and -1 (the thought changes you, not just rewards you). Flavor is a 2-4 word label.`;
 
     const chatContext = recentMessages.length > 0
         ? recentMessages.join('\n\n')
@@ -506,7 +555,7 @@ Recent conversation where "${spikingTheme.name}" has been building:
 ${chatContext}
 ---
 
-Generate a thought that captures what all this ${spikingTheme.name.toLowerCase()} means.`;
+Pick ONE specific moment from above where "${spikingTheme.name.toLowerCase()}" hit hardest. Build the thought around THAT moment — not the theme in general.`;
 
     return {
         system,
