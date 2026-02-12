@@ -1,7 +1,6 @@
 /**
  * The Tribunal - Wallet Profiles Template
  * Leather wallet with flipping RCM ID card, persona slots, and money pocket
- * v2.0.0 - Added per-persona genre selector (overrides global setting profile)
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -118,11 +117,6 @@ export const PROFILES_TAB_HTML = `
                                 </div>
                             </div>
                             
-                            <div class="card-genre">
-                                <div class="genre-label">Setting</div>
-                                <div class="genre-value" id="tribunal-genre">Disco Elysium</div>
-                            </div>
-                            
                             <div class="card-copotype">
                                 <div class="copotype-label">Copotype</div>
                                 <div class="copotype-value" id="tribunal-copotype">Unknown</div>
@@ -149,14 +143,6 @@ export const PROFILES_TAB_HTML = `
                                     <option value="first">First Person (I/my)</option>
                                     <option value="third">Third Person (they/their)</option>
                                 </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label class="form-label">Setting / Genre</label>
-                                <select class="form-select" id="tribunal-persona-genre">
-                                    <option value="disco_elysium">Disco Elysium</option>
-                                </select>
-                                <div class="form-hint">Overrides global genre for this identity</div>
                             </div>
                             
                             <div class="form-group">
@@ -427,51 +413,6 @@ export function renderPersonaSlots(personas = [], activeId = null) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Populate the persona genre dropdown from setting-profiles registry
- * Call after DOM is ready, pass the same getSettingProfiles function used in settings
- * @param {Array} profiles - Array of { id, name, description } from getAvailableProfiles()
- */
-export function populatePersonaGenres(profiles) {
-    const select = document.getElementById('tribunal-persona-genre');
-    if (!select) return;
-    
-    select.innerHTML = '';
-    
-    // "Use Global" option — defers to whatever's set in Settings > Section I
-    const globalOpt = document.createElement('option');
-    globalOpt.value = '';
-    globalOpt.textContent = '— Use Global Setting —';
-    select.appendChild(globalOpt);
-    
-    if (profiles?.length > 0) {
-        profiles.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p.id;
-            opt.textContent = p.name;
-            if (p.description) opt.title = p.description;
-            select.appendChild(opt);
-        });
-    }
-}
-
-/**
- * Update the genre display on the card front from the current select value
- */
-export function refreshGenreDisplay() {
-    const select = document.getElementById('tribunal-persona-genre');
-    const display = document.getElementById('tribunal-genre');
-    if (!select || !display) return;
-    
-    if (select.value) {
-        const selected = select.selectedOptions?.[0];
-        display.textContent = selected?.textContent || 'Default';
-    } else {
-        // Empty = using global, show the global profile name
-        display.textContent = 'Global';
-    }
-}
-
-/**
  * Initialize card flip behavior
  * Call this after the template is added to DOM
  */
@@ -560,26 +501,6 @@ export function updateCardDisplay(persona) {
     // POV and context (back of card)
     const povSelect = document.getElementById('tribunal-pov-style');
     if (povSelect) povSelect.value = persona.povStyle || 'second';
-    
-    // Genre (front display + back selector)
-    const genreDisplay = document.getElementById('tribunal-genre');
-    const genreSelect = document.getElementById('tribunal-persona-genre');
-    const genreId = persona.genre || persona.activeProfile || null;
-    
-    if (genreSelect && genreId) {
-        genreSelect.value = genreId;
-    }
-    if (genreDisplay) {
-        // Use selected option text if available, otherwise format the ID
-        const selectedOption = genreSelect?.selectedOptions?.[0];
-        if (selectedOption && genreId) {
-            genreDisplay.textContent = selectedOption.textContent;
-        } else {
-            genreDisplay.textContent = genreId 
-                ? genreId.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
-                : 'Default';
-        }
-    }
     
     const contextArea = document.getElementById('tribunal-char-context');
     if (contextArea) contextArea.value = persona.context || '';
