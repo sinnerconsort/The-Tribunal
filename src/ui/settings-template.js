@@ -1,6 +1,8 @@
 /**
  * The Tribunal - Settings Tab Template
  * RC-41-CFG Configuration Form
+ * v1.1.0 - Added Section I: Setting Profile genre selector
+ *          Dynamically populated from setting-profiles.js
  * v1.0.0 - Release version (debug sections removed)
  */
 
@@ -10,6 +12,22 @@ export const SETTINGS_TAB_HTML = `
         <!-- Header -->
         <div class="rcm-form-header">
             <div class="rcm-form-title">R.C.M. EQUIPMENT REQUISITION<br>CONFIGURATION FORM</div>
+        </div>
+        
+        <!-- Section I: Setting Profile -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">I. SETTING PROFILE</div>
+            <div class="rcm-section-content">
+                <div class="rcm-field-row">
+                    <label class="rcm-field-label">GENRE:</label>
+                    <select id="cfg-setting-profile" class="rcm-select">
+                        <option value="disco_elysium">Disco Elysium</option>
+                    </select>
+                </div>
+                <div class="rcm-field-note">
+                    <em id="cfg-setting-profile-desc">Controls voice personalities, prompt flavor, and world defaults</em>
+                </div>
+            </div>
         </div>
         
         <!-- Section II: Connection -->

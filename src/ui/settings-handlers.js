@@ -229,6 +229,13 @@ export function populateSettingProfiles() {
         settings.activeProfile = select.value;
         saveSettings();
         
+        // Update description note below dropdown
+        const descEl = document.getElementById('cfg-setting-profile-desc');
+        if (descEl) {
+            const selectedOption = select.options[select.selectedIndex];
+            descEl.textContent = selectedOption?.title || 'Controls voice personalities, prompt flavor, and world defaults';
+        }
+        
         if (typeof toastr !== 'undefined') {
             const selectedOption = select.options[select.selectedIndex];
             toastr.success(
