@@ -2,17 +2,26 @@
  * The Tribunal - Settings Handlers
  * Wires the Settings tab inputs to state persistence
  * 
- * @version 5.1.1 - Fixed indentation in saveAllSettings
+ * @version 6.0.0 - Consolidated settings layout
+ *                  Merged Cases + Contacts into Auto-Detection (Section V)
+ *                  Merged Weather Effects + Source into single section (VII)
+ *                  Replaced 5 notification toggles with 1 global toggle
+ *                  Added context depth setting
+ * @version 5.2.0 - Added Setting Profile selector (agnosticism refactor)
  */
 
 import { getSettings, saveSettings } from '../core/state.js';
 import { getAvailableProfiles } from '../voice/api-helpers.js';
+import { getAvailableProfiles as getSettingProfiles } from '../data/setting-profiles.js';
 
 // ═══════════════════════════════════════════════════════════════
 // ELEMENT IDS
 // ═══════════════════════════════════════════════════════════════
 
 const SETTINGS_IDS = {
+    // Setting Profile (Section I)
+    settingProfile: 'cfg-setting-profile',
+    
     // Connection (Section II)
     connectionProfile: 'cfg-connection-profile',
     temperature: 'cfg-temperature',
@@ -23,6 +32,7 @@ const SETTINGS_IDS = {
     minVoices: 'cfg-min-voices',
     maxVoices: 'cfg-max-voices',
     triggerDelay: 'cfg-trigger-delay',
+    contextMessages: 'cfg-context-messages',
     showDiceRolls: 'cfg-show-dice',
     showFailedChecks: 'cfg-show-failed',
     autoTrigger: 'cfg-auto-trigger',
@@ -33,31 +43,23 @@ const SETTINGS_IDS = {
     // Vitals Detection (Section IV)
     autoVitals: 'cfg-auto-vitals',
     vitalsSensitivity: 'cfg-vitals-sensitivity',
-    vitalsNotify: 'cfg-vitals-notify',
     deathEnabled: 'cfg-death-enabled',
     autoConsume: 'cfg-auto-consume',
     
-    // Auto-Extraction (Section IV.5)
+    // Auto-Detection (Section V - merged extraction + cases + contacts)
     autoEquipment: 'cfg-auto-equipment',
     autoInventory: 'cfg-auto-inventory',
-    extractionNotify: 'cfg-extraction-notify',
-    
-    // Case Detection (Section V)
     autoCases: 'cfg-auto-cases',
-    casesNotify: 'cfg-cases-notify',
-    
-    // Contact Detection (Section VI)
     autoContacts: 'cfg-auto-contacts',
-    contactsNotify: 'cfg-contacts-notify',
     
-    // Thought Cabinet (Section VII)
+    // Thought Cabinet (Section VI)
     autoThoughts: 'cfg-auto-thoughts',
     autoGenerateThoughts: 'cfg-auto-generate-thoughts',
     themeThreshold: 'cfg-theme-threshold',
     themeDecay: 'cfg-theme-decay',
     internalizeDischarge: 'cfg-internalize-discharge',
     
-    // Weather Source (Section IX)
+    // Weather (Section VII - merged effects + source)
     weatherSourceRP: 'cfg-weather-source-rp',
     weatherSourceReal: 'cfg-weather-source-real',
     weatherLocation: 'cfg-weather-location',
@@ -88,6 +90,7 @@ const SETTINGS_IDS = {
     applySpecial: 'cfg-apply-special',
     
     // Actions
+    globalNotify: 'cfg-show-notifications',
     lockPositions: 'cfg-lock-positions',
     saveButton: 'cfg-save-settings',
     resetPositions: 'cfg-reset-positions',
@@ -96,7 +99,6 @@ const SETTINGS_IDS = {
     parseWorldTags: 'cfg-parse-world-tags',
     worldSyncWeather: 'cfg-world-sync-weather',
     worldSyncTime: 'cfg-world-sync-time',
-    worldNotify: 'cfg-world-notify',
     useAIExtractor: 'cfg-use-ai-extractor',
     injectWorldTag: 'cfg-inject-world-tag',
     copyWorldInject: 'cfg-copy-world-inject',
@@ -121,6 +123,9 @@ let handlersInitialized = false;
 export function initSettingsTab() {
     // Populate connection profiles dropdown
     populateConnectionProfiles();
+    
+    // Populate setting profile dropdown (DE, Noir, Generic, etc.)
+    populateSettingProfiles();
     
     // Load current settings into UI
     refreshSettingsFromState();
@@ -160,6 +165,85 @@ export function initSettingsTab() {
     bindCompartmentSettingsHandlers();
     
     console.log('[Tribunal] Settings handlers initialized');
+}
+
+/**
+ * Populate the setting profile dropdown with available profiles
+ * These control the flavor/personality of the entire extension
+ */
+export function populateSettingProfiles() {
+    const select = document.getElementById(SETTINGS_IDS.settingProfile);
+    if (!select) {
+        console.warn('[Tribunal] Setting profile select not found');
+        return;
+    }
+    
+    // Clear existing options
+    select.innerHTML = '';
+    
+    // Get available profiles from setting-profiles.js
+    try {
+        const profiles = getSettingProfiles();
+        
+        if (profiles && profiles.length > 0) {
+            profiles.forEach(profile => {
+                const option = document.createElement('option');
+                option.value = profile.id;
+                option.textContent = profile.name;
+                if (profile.description) {
+                    option.title = profile.description;
+                }
+                select.appendChild(option);
+            });
+            
+            console.log(`[Tribunal] Populated ${profiles.length} setting profiles`);
+        } else {
+            // Fallback if no profiles found
+            const fallback = document.createElement('option');
+            fallback.value = 'disco_elysium';
+            fallback.textContent = 'Disco Elysium (Default)';
+            select.appendChild(fallback);
+            console.warn('[Tribunal] No setting profiles found, using fallback');
+        }
+    } catch (err) {
+        console.error('[Tribunal] Error loading setting profiles:', err);
+        // Add fallback option
+        const fallback = document.createElement('option');
+        fallback.value = 'disco_elysium';
+        fallback.textContent = 'Disco Elysium (Default)';
+        select.appendChild(fallback);
+    }
+    
+    // Set current value from settings
+    const settings = getSettings();
+    if (settings?.activeProfile) {
+        select.value = settings.activeProfile;
+    }
+    
+    // Bind immediate change handler — switching profiles takes effect live
+    select.addEventListener('change', () => {
+        const settings = getSettings();
+        settings.activeProfile = select.value;
+        saveSettings();
+        
+        // Update description note below dropdown
+        const descEl = document.getElementById('cfg-setting-profile-desc');
+        if (descEl) {
+            const selectedOption = select.options[select.selectedIndex];
+            descEl.textContent = selectedOption?.title || 'Controls voice personalities, prompt flavor, and world defaults';
+        }
+        
+        if (typeof toastr !== 'undefined') {
+            const selectedOption = select.options[select.selectedIndex];
+            toastr.success(
+                `Profile: ${selectedOption?.textContent || select.value}`,
+                'Setting Changed',
+                { timeOut: 2000 }
+            );
+        }
+        
+        console.log('[Tribunal] Active profile changed to:', select.value);
+    });
 }
 
 /**
@@ -233,6 +317,9 @@ export function refreshSettingsFromState() {
     const settings = getSettings();
     if (!settings) return;
     
+    // Setting Profile
+    setSelectValue(SETTINGS_IDS.settingProfile, settings.activeProfile || 'disco_elysium');
+    
     // API / Connection settings
     const apiSettings = settings.api || {};
     setSelectValue(SETTINGS_IDS.connectionProfile, apiSettings.connectionProfile || 'current');
@@ -243,6 +330,7 @@ export function refreshSettingsFromState() {
     setInputValue(SETTINGS_IDS.minVoices, settings.voices?.minVoices ?? 3);
     setInputValue(SETTINGS_IDS.maxVoices, settings.voices?.maxVoicesPerTurn ?? 7);
     setInputValue(SETTINGS_IDS.triggerDelay, settings.voices?.triggerDelay ?? 1000);
+    setInputValue(SETTINGS_IDS.contextMessages, settings.voices?.contextMessages ?? 5);
     setCheckbox(SETTINGS_IDS.showDiceRolls, settings.showDiceRolls ?? true);
     setCheckbox(SETTINGS_IDS.showFailedChecks, settings.showFailedChecks ?? true);
     setCheckbox(SETTINGS_IDS.autoTrigger, settings.voices?.autoGenerate ?? false);
@@ -253,28 +341,19 @@ export function refreshSettingsFromState() {
     // Vitals Detection
     setCheckbox(SETTINGS_IDS.autoVitals, settings.vitals?.autoDetect ?? true);
     setSelectValue(SETTINGS_IDS.vitalsSensitivity, settings.vitals?.sensitivity || 'medium');
-    setCheckbox(SETTINGS_IDS.vitalsNotify, settings.vitals?.showNotifications ?? true);
     setCheckbox(SETTINGS_IDS.deathEnabled, settings.vitals?.deathEnabled ?? true);
     setCheckbox(SETTINGS_IDS.autoConsume, settings.vitals?.autoConsume ?? true);
     
-    // Auto-Extraction
+    // Auto-Detection (merged)
     setCheckbox(SETTINGS_IDS.autoEquipment, settings.extraction?.autoEquipment ?? false);
     setCheckbox(SETTINGS_IDS.autoInventory, settings.extraction?.autoInventory ?? false);
-    setCheckbox(SETTINGS_IDS.extractionNotify, settings.extraction?.showNotifications ?? true);
-    
-    // Case Detection
     setCheckbox(SETTINGS_IDS.autoCases, settings.cases?.autoDetect ?? false);
-    setCheckbox(SETTINGS_IDS.casesNotify, settings.cases?.showNotifications ?? true);
-    
-    // Contact Detection
     setCheckbox(SETTINGS_IDS.autoContacts, settings.contacts?.autoDetect ?? false);
-    setCheckbox(SETTINGS_IDS.contactsNotify, settings.contacts?.showNotifications ?? true);
 
     // World State
     setCheckbox(SETTINGS_IDS.parseWorldTags, settings.worldState?.parseWorldTags ?? true);
     setCheckbox(SETTINGS_IDS.worldSyncWeather, settings.worldState?.syncWeather ?? true);
     setCheckbox(SETTINGS_IDS.worldSyncTime, settings.worldState?.syncTime ?? true);
-    setCheckbox(SETTINGS_IDS.worldNotify, settings.worldState?.showNotifications ?? true);
     setCheckbox(SETTINGS_IDS.useAIExtractor, settings.worldState?.useAIExtractor ?? false);
     setCheckbox(SETTINGS_IDS.injectWorldTag, settings.worldState?.injectWorldTag ?? false);
     
@@ -289,6 +368,7 @@ export function refreshSettingsFromState() {
     setInputValue(SETTINGS_IDS.internalizeDischarge, settings.thoughts?.internalizeDischarge ?? 5);
     
     // UI settings
+    setCheckbox(SETTINGS_IDS.globalNotify, settings.ui?.showNotifications ?? true);
     setCheckbox(SETTINGS_IDS.lockPositions, settings.ui?.lockPositions ?? false);
     
     console.log('[Tribunal] Settings UI refreshed from state');
@@ -376,6 +456,9 @@ export function saveAllSettings() {
     if (!settings.weather) settings.weather = {};
     
     // FIX: Mutate the existing object instead of creating a new one
+    // Setting Profile
+    settings.activeProfile = getInputValue(SETTINGS_IDS.settingProfile, 'disco_elysium');
+    
     // Connection settings
     settings.api.connectionProfile = getInputValue(SETTINGS_IDS.connectionProfile, 'current');
     settings.api.temperature = getInputFloat(SETTINGS_IDS.temperature, 0.8);
@@ -385,6 +468,7 @@ export function saveAllSettings() {
     settings.voices.minVoices = getInputNumber(SETTINGS_IDS.minVoices, 3);
     settings.voices.maxVoicesPerTurn = getInputNumber(SETTINGS_IDS.maxVoices, 7);
     settings.voices.triggerDelay = getInputNumber(SETTINGS_IDS.triggerDelay, 1000);
+    settings.voices.contextMessages = getInputNumber(SETTINGS_IDS.contextMessages, 5);
     settings.voices.autoGenerate = getCheckbox(SETTINGS_IDS.autoTrigger, false);
     
     // Top-level settings
@@ -397,29 +481,20 @@ export function saveAllSettings() {
     // Vitals Detection
     settings.vitals.autoDetect = getCheckbox(SETTINGS_IDS.autoVitals, true);
     settings.vitals.sensitivity = getInputValue(SETTINGS_IDS.vitalsSensitivity, 'medium');
-    settings.vitals.showNotifications = getCheckbox(SETTINGS_IDS.vitalsNotify, true);
     settings.vitals.deathEnabled = getCheckbox(SETTINGS_IDS.deathEnabled, true);
     settings.vitals.autoConsume = getCheckbox(SETTINGS_IDS.autoConsume, true);
     
-    // Auto-Extraction
+    // Auto-Detection (merged)
     if (!settings.extraction) settings.extraction = {};
     settings.extraction.autoEquipment = getCheckbox(SETTINGS_IDS.autoEquipment, false);
     settings.extraction.autoInventory = getCheckbox(SETTINGS_IDS.autoInventory, false);
-    settings.extraction.showNotifications = getCheckbox(SETTINGS_IDS.extractionNotify, true);
-    
-    // Case Detection
     settings.cases.autoDetect = getCheckbox(SETTINGS_IDS.autoCases, false);
-    settings.cases.showNotifications = getCheckbox(SETTINGS_IDS.casesNotify, true);
-    
-    // Contact Detection
     settings.contacts.autoDetect = getCheckbox(SETTINGS_IDS.autoContacts, false);
-    settings.contacts.showNotifications = getCheckbox(SETTINGS_IDS.contactsNotify, true);
 
     // World State
     settings.worldState.parseWorldTags = getCheckbox(SETTINGS_IDS.parseWorldTags, true);
     settings.worldState.syncWeather = getCheckbox(SETTINGS_IDS.worldSyncWeather, true);
     settings.worldState.syncTime = getCheckbox(SETTINGS_IDS.worldSyncTime, true);
-    settings.worldState.showNotifications = getCheckbox(SETTINGS_IDS.worldNotify, true);
     settings.worldState.useAIExtractor = getCheckbox(SETTINGS_IDS.useAIExtractor, false);
     settings.worldState.injectWorldTag = getCheckbox(SETTINGS_IDS.injectWorldTag, false);
     
@@ -431,6 +506,7 @@ export function saveAllSettings() {
     settings.thoughts.internalizeDischarge = getInputNumber(SETTINGS_IDS.internalizeDischarge, 5);
     
     // UI settings
+    settings.ui.showNotifications = getCheckbox(SETTINGS_IDS.globalNotify, true);
     settings.ui.lockPositions = getCheckbox(SETTINGS_IDS.lockPositions, false);
     
     // NOW save - this triggers the debounced save to localStorage/server
@@ -713,7 +789,6 @@ function bindWorldStateHandlers() {
         'cfg-parse-world-tags',
         'cfg-world-sync-weather', 
         'cfg-world-sync-time',
-        'cfg-world-notify',
         'cfg-use-ai-extractor'
     ];
     
@@ -727,7 +802,6 @@ function bindWorldStateHandlers() {
                 settings.worldState.parseWorldTags = document.getElementById('cfg-parse-world-tags')?.checked ?? true;
                 settings.worldState.syncWeather = document.getElementById('cfg-world-sync-weather')?.checked ?? true;
                 settings.worldState.syncTime = document.getElementById('cfg-world-sync-time')?.checked ?? true;
-                settings.worldState.showNotifications = document.getElementById('cfg-world-notify')?.checked ?? true;
                 settings.worldState.useAIExtractor = document.getElementById('cfg-use-ai-extractor')?.checked ?? false;
                 
                 saveSettings();
@@ -861,7 +935,7 @@ export function getVitalsSettings() {
     return {
         autoDetect: settings?.vitals?.autoDetect ?? true,
         sensitivity: settings?.vitals?.sensitivity || 'medium',
-        showNotifications: settings?.vitals?.showNotifications ?? true
+        showNotifications: settings?.ui?.showNotifications ?? true
     };
 }
 
@@ -873,7 +947,7 @@ export function getCaseSettings() {
     const settings = getSettings();
     return {
         autoDetect: settings?.cases?.autoDetect ?? false,
-        showNotifications: settings?.cases?.showNotifications ?? true
+        showNotifications: settings?.ui?.showNotifications ?? true
     };
 }
 
@@ -885,7 +959,7 @@ export function getContactSettings() {
     const settings = getSettings();
     return {
         autoDetect: settings?.contacts?.autoDetect ?? false,
-        showNotifications: settings?.contacts?.showNotifications ?? true
+        showNotifications: settings?.ui?.showNotifications ?? true
     };
 }
 
@@ -911,6 +985,25 @@ export function getThoughtSettings() {
 export function isInvestigationFabEnabled() {
     const settings = getSettings();
     return settings?.investigation?.showFab ?? true;
+}
+
+/**
+ * Check if detection notifications are enabled (global toggle)
+ * Replaces individual per-system notification checks
+ * @returns {boolean}
+ */
+export function areNotificationsEnabled() {
+    const settings = getSettings();
+    return settings?.ui?.showNotifications ?? true;
+}
+
+/**
+ * Get context depth setting (how many messages to scan)
+ * @returns {number}
+ */
+export function getContextMessages() {
+    const settings = getSettings();
+    return settings?.voices?.contextMessages ?? 5;
 }
 
 // ═══════════════════════════════════════════════════════════════

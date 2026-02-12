@@ -2,6 +2,7 @@
  * The Tribunal - Watch Functionality
  * Real-time / RP-time toggle with weather display
  * 
+ * v2.0.2 - Added enabled checks to prevent idle scanning when extension is disabled
  * v2.0.1 - Fixed import path for weather-integration.js
  *        - Added fallback weather detection
  *        - Added debug logging for weather connection
@@ -415,6 +416,13 @@ export function toggleWatchMode() {
  * Start the watch interval
  */
 export async function startWatch() {
+    // Don't start if extension is disabled
+    const settings = window.TribunalState?.getSettings?.();
+    if (!settings?.enabled) {
+        console.log('[Watch] Extension disabled, skipping start');
+        return;
+    }
+    
     console.log('[Watch] Starting...');
     
     // Connect to weather effects
@@ -426,6 +434,10 @@ export async function startWatch() {
     
     // Start interval (every second for clock, weather refreshes less often)
     watchInterval = setInterval(async () => {
+        // Don't run if extension is disabled
+        const settings = window.TribunalState?.getSettings?.();
+        if (!settings?.enabled) return;
+        
         await updateWatch();
         // Update newspaper less frequently
         if (Date.now() % 60000 < 1000) {

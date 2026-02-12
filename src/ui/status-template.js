@@ -149,45 +149,45 @@ export const STATUS_TAB_HTML = `
             <div class="rcm-section-header">OFFICER CLASSIFICATION (copotype)</div>
             <div class="rcm-section-content">
                 <div class="rcm-copotype-grid" id="rcm-copotypes">
-                    <div class="rcm-copotype-item" data-copotype="apocalypse-cop">
+                    <div class="rcm-copotype-item" data-copotype="apocalypse-cop" data-label-off="Nihilist" data-label-on="Apocalypse Cop">
                         <span class="rcm-copotype-box">□</span>
-                        <span class="rcm-copotype-label">Apocalypse Cop</span>
+                        <span class="rcm-copotype-label">Nihilist</span>
                     </div>
-                    <div class="rcm-copotype-item" data-copotype="sorry-cop">
+                    <div class="rcm-copotype-item" data-copotype="sorry-cop" data-label-off="Apologetic" data-label-on="Sorry Cop">
                         <span class="rcm-copotype-box">□</span>
-                        <span class="rcm-copotype-label">Sorry Cop</span>
+                        <span class="rcm-copotype-label">Apologetic</span>
                     </div>
-                    <div class="rcm-copotype-item" data-copotype="boring-cop">
+                    <div class="rcm-copotype-item" data-copotype="boring-cop" data-label-off="Professional" data-label-on="Boring Cop">
                         <span class="rcm-copotype-box">□</span>
-                        <span class="rcm-copotype-label">Boring Cop</span>
+                        <span class="rcm-copotype-label">Professional</span>
                     </div>
-                    <div class="rcm-copotype-item" data-copotype="honour-cop">
+                    <div class="rcm-copotype-item" data-copotype="honour-cop" data-label-off="Honourable" data-label-on="Honour Cop">
                         <span class="rcm-copotype-box">□</span>
-                        <span class="rcm-copotype-label">Honour Cop</span>
+                        <span class="rcm-copotype-label">Honourable</span>
                     </div>
-                    <div class="rcm-copotype-item" data-copotype="art-cop">
+                    <div class="rcm-copotype-item" data-copotype="art-cop" data-label-off="Artistic" data-label-on="Art Cop">
                         <span class="rcm-copotype-box">□</span>
-                        <span class="rcm-copotype-label">Art Cop</span>
+                        <span class="rcm-copotype-label">Artistic</span>
                     </div>
-                    <div class="rcm-copotype-item" data-copotype="hobocop">
+                    <div class="rcm-copotype-item" data-copotype="hobocop" data-label-off="Vagrant" data-label-on="Hobocop">
                         <span class="rcm-copotype-box">□</span>
-                        <span class="rcm-copotype-label">Hobocop</span>
+                        <span class="rcm-copotype-label">Vagrant</span>
                     </div>
-                    <div class="rcm-copotype-item" data-copotype="superstar-cop">
+                    <div class="rcm-copotype-item" data-copotype="superstar-cop" data-label-off="Showoff" data-label-on="Superstar Cop">
                         <span class="rcm-copotype-box">□</span>
-                        <span class="rcm-copotype-label">Superstar Cop</span>
+                        <span class="rcm-copotype-label">Showoff</span>
                     </div>
-                    <div class="rcm-copotype-item" data-copotype="dick-mullen">
+                    <div class="rcm-copotype-item" data-copotype="dick-mullen" data-label-off="Detective" data-label-on="Dick Mullen">
                         <span class="rcm-copotype-box">□</span>
-                        <span class="rcm-copotype-label">Dick Mullen</span>
+                        <span class="rcm-copotype-label">Detective</span>
                     </div>
-                    <div class="rcm-copotype-item" data-copotype="human-can-opener">
+                    <div class="rcm-copotype-item" data-copotype="human-can-opener" data-label-off="Charming" data-label-on="Human Can-Opener">
                         <span class="rcm-copotype-box">□</span>
-                        <span class="rcm-copotype-label">Human Can-Opener</span>
+                        <span class="rcm-copotype-label">Charming</span>
                     </div>
-                    <div class="rcm-copotype-item" data-copotype="innocence">
+                    <div class="rcm-copotype-item" data-copotype="innocence" data-label-off="Innocent" data-label-on="Innocence">
                         <span class="rcm-copotype-box">□</span>
-                        <span class="rcm-copotype-label">Innocence</span>
+                        <span class="rcm-copotype-label">Innocent</span>
                     </div>
                 </div>
             </div>

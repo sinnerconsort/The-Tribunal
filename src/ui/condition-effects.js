@@ -526,11 +526,20 @@ export function updateHealthEffects(healthPercent, moralePercent) {
 export function startHealthMonitor() {
     // Check health every 2 seconds
     setInterval(() => {
+        // Don't run if extension is disabled
+        const settings = window.TribunalState?.getSettings?.();
+        if (!settings?.enabled) return;
+        
         checkVitalsForEffects();
     }, 2000);
     
     // Also listen for vitals change events
-    window.addEventListener('tribunal:vitalsChanged', checkVitalsForEffects);
+    window.addEventListener('tribunal:vitalsChanged', () => {
+        const settings = window.TribunalState?.getSettings?.();
+        if (!settings?.enabled) return;
+        
+        checkVitalsForEffects();
+    });
     
     console.log('[Condition FX] Health monitor started');
 }

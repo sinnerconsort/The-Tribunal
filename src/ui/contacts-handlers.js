@@ -2,7 +2,14 @@
  * The Tribunal - Contacts Handlers
  * UI logic for the contacts section in the Ledger
  * 
- * v1.0.1 - Added name validation to prevent garbage contacts
+ * v1.2.0 - Context-aware dossier generation
+ *   - handleGenerateDossier stores intelSources and keyFacts from context-gatherer
+ *   - Success toast shows which sources were scanned
+ *   - Detected traits enriched by AI summarization
+ * 
+ * v1.1.0 - FIXED: Replaced broken lazy dynamic imports with static imports
+ *   - persistence, contacts data, and dossier generator all use static imports
+ *   - Eliminates silent import failures that caused "Could not generate dossier" toast
  * 
  * INLINE FORM VERSION: 
  * - No modals - forms expand inline in the ledger
@@ -11,57 +18,16 @@
  */
 
 // ═══════════════════════════════════════════════════════════════
-// LAZY IMPORTS - Only load when actually needed
+// IMPORTS
 // ═══════════════════════════════════════════════════════════════
 
-let _persistence = null;
-let _contactsData = null;
-let _contactDossier = null;
-
-async function getPersistence() {
-    if (!_persistence) {
-        try {
-            _persistence = await import('../core/persistence.js');
-        } catch (e) {
-            console.error('[Contacts] Could not load persistence:', e.message);
-            _persistence = {
-                getChatState: () => null,
-                saveChatState: () => {}
-            };
-        }
-    }
-    return _persistence;
-}
-
-async function getContactsData() {
-    if (!_contactsData) {
-        try {
-            _contactsData = await import('../data/contacts.js');
-        } catch (e) {
-            console.error('[Contacts] Could not load contacts data:', e.message);
-            _contactsData = {
-                CONTACT_TYPES: {},
-                CONTACT_DISPOSITIONS: {},
-                createContact: (o) => ({ id: `contact_${Date.now()}`, name: 'Unknown', ...o }),
-                getTypeFromDisposition: () => 'unknown',
-                getDisposition: () => ({ id: 'neutral', label: 'Neutral', color: '#7a7a7a' })
-            };
-        }
-    }
-    return _contactsData;
-}
-
-async function getContactDossier() {
-    if (!_contactDossier) {
-        try {
-            _contactDossier = await import('../systems/contact-dossier.js');
-        } catch (e) {
-            console.error('[Contacts] Could not load contact-dossier:', e.message);
-            _contactDossier = null;
-        }
-    }
-    return _contactDossier;
-}
+import { getChatState, saveChatState } from '../core/persistence.js';
+import { 
+    CONTACT_DISPOSITIONS, 
+    createContact, getDisposition,
+    reseedOnDispositionChange 
+} from '../data/contacts.js';
+import { generateDossier } from '../systems/contact-dossier.js';
 
 // ═══════════════════════════════════════════════════════════════
 // NAME VALIDATION - Prevent garbage contacts
@@ -129,31 +95,28 @@ function validateContactName(name) {
 // ═══════════════════════════════════════════════════════════════
 
 async function getContacts() {
-    const persistence = await getPersistence();
-    const state = persistence.getChatState();
+    const state = getChatState();
     if (!state) return {};
     if (!state.relationships) state.relationships = {};
     return state.relationships;
 }
 
 async function saveContact(contact) {
-    const persistence = await getPersistence();
-    const state = persistence.getChatState();
+    const state = getChatState();
     if (!state) return;
     if (!state.relationships) state.relationships = {};
     
     contact.lastModified = Date.now();
     state.relationships[contact.id] = contact;
-    persistence.saveChatState();
+    saveChatState();
 }
 
 async function deleteContact(contactId) {
-    const persistence = await getPersistence();
-    const state = persistence.getChatState();
+    const state = getChatState();
     if (!state?.relationships) return;
     
     delete state.relationships[contactId];
-    persistence.saveChatState();
+    saveChatState();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -164,8 +127,7 @@ async function deleteContact(contactId) {
  * Render a single contact card - shows dossier content
  */
 async function renderContactCard(contact) {
-    const contactsData = await getContactsData();
-    const disposition = contactsData.getDisposition(contact.disposition);
+    const disposition = getDisposition(contact.disposition);
     
     // Check if we have dossier content
     const hasDossier = contact.dossier?.consensus || contact.dossier?.voiceQuips?.length > 0;
@@ -185,7 +147,10 @@ async function renderContactCard(contact) {
     
     // Status indicator for dossier
     let dossierStatus = '';
-    if (hasDossier) {
+    const hasIntel = contact.dossier?.intelSources?.length > 0;
+    if (hasDossier && hasIntel) {
+        dossierStatus = `<span class="contact-dossier-status has-dossier intel-backed" title="Intel-backed dossier (${contact.dossier.intelSources.join(', ')})">●●●●○</span>`;
+    } else if (hasDossier) {
         dossierStatus = `<span class="contact-dossier-status has-dossier" title="Dossier generated">●●●○○</span>`;
     } else if (hasVoiceOpinions) {
         dossierStatus = `<span class="contact-dossier-status partial" title="Voice opinions recorded">●●○○○</span>`;
@@ -225,6 +190,12 @@ async function renderContactCard(contact) {
                 ${voiceQuipsHtml ? `
                     <div class="contact-voice-quips">
                         ${voiceQuipsHtml}
+                    </div>
+                ` : ''}
+                
+                ${contact.dossier?.intelSources?.length > 0 ? `
+                    <div class="contact-intel-sources">
+                        <i class="fa-solid fa-magnifying-glass"></i> ${contact.dossier.intelSources.join(' · ')}
                     </div>
                 ` : ''}
                 
@@ -395,8 +366,7 @@ async function handleInlineAddSave() {
         return;
     }
     
-    const contactsData = await getContactsData();
-    const contact = contactsData.createContact({
+    const contact = createContact({
         name,
         context: document.getElementById('contact-input-context')?.value?.trim() || '',
         disposition: 'neutral',
@@ -416,12 +386,11 @@ async function showInlineEditForm(contactId) {
     const contact = contacts[contactId];
     if (!contact) return;
     
-    const contactsData = await getContactsData();
     const card = document.querySelector(`.contact-card[data-contact-id="${contactId}"]`);
     if (!card) return;
     
     // Build disposition options
-    const dispositionOptions = Object.values(contactsData.CONTACT_DISPOSITIONS)
+    const dispositionOptions = Object.values(CONTACT_DISPOSITIONS)
         .map(d => `<option value="${d.id}" ${contact.disposition === d.id ? 'selected' : ''}>${d.label}</option>`)
         .join('');
     
@@ -545,15 +514,12 @@ async function handleInlineEditSave(contactId) {
     // Reseed voice opinions if disposition changed significantly
     if (oldDisposition !== newDisposition) {
         try {
-            const contactsData = await getContactsData();
-            if (contactsData.reseedOnDispositionChange) {
-                contact.voiceOpinions = contactsData.reseedOnDispositionChange(
-                    contact.voiceOpinions || {},
-                    oldDisposition,
-                    newDisposition
-                );
-                console.log(`[Contacts] Reseeded opinions for ${contact.name}: ${oldDisposition} → ${newDisposition}`);
-            }
+            contact.voiceOpinions = reseedOnDispositionChange(
+                contact.voiceOpinions || {},
+                oldDisposition,
+                newDisposition
+            );
+            console.log(`[Contacts] Reseeded opinions for ${contact.name}: ${oldDisposition} → ${newDisposition}`);
         } catch (e) {
             console.warn('[Contacts] Could not reseed opinions:', e.message);
         }
@@ -575,13 +541,6 @@ async function handleGenerateDossier(contactId) {
     const contact = contacts[contactId];
     if (!contact) return;
     
-    // Get the dossier generator
-    const dossierModule = await getContactDossier();
-    if (!dossierModule?.generateDossier) {
-        console.error('[Contacts] Dossier generation not available');
-        return;
-    }
-    
     // Find the button and show loading state
     const generateBtn = document.querySelector(`.contact-generate-btn[data-contact-id="${contactId}"], .contact-regenerate-btn[data-contact-id="${contactId}"]`);
     if (generateBtn) {
@@ -590,7 +549,7 @@ async function handleGenerateDossier(contactId) {
     }
     
     try {
-        const dossier = await dossierModule.generateDossier(contact, contactId);
+        const dossier = await generateDossier(contact, contactId);
         
         if (dossier) {
             // Map the dossier response to our expected format
@@ -602,14 +561,32 @@ async function handleGenerateDossier(contactId) {
                     text: q.content
                 })),
                 generatedAt: dossier.generatedAt || Date.now(),
-                basedOnDisposition: contact.disposition
+                basedOnDisposition: contact.disposition,
+                // Intel metadata from context-gatherer
+                intelSources: dossier.intelSources || [],
+                keyFacts: dossier.keyFacts || []
             };
+            
+            // Also update contact's detected traits if dossier discovered new ones
+            if (contact.detectedTraits?.length > 0) {
+                // detectedTraits may have been enriched by the gatherer
+                // They're already on the contact object from generateDossier()
+            }
+            
             await saveContact(contact);
             await renderContactsList();
-        } else {
-            // Show error - dossier generation returned null
+            
+            // Show success with source info
             if (typeof toastr !== 'undefined') {
-                toastr.warning('Could not generate dossier. Check API settings.');
+                const sources = dossier.intelSources?.length > 0
+                    ? `Sources: ${dossier.intelSources.join(', ')}`
+                    : 'Generated from available context';
+                toastr.success(sources, `${contact.name} — Dossier Complete`, { timeOut: 4000 });
+            }
+        } else {
+            // Show error - dossier generation returned null (shouldn't happen now)
+            if (typeof toastr !== 'undefined') {
+                toastr.warning('Dossier generation returned empty. Try again.');
             }
             if (generateBtn) {
                 generateBtn.disabled = false;
@@ -618,6 +595,11 @@ async function handleGenerateDossier(contactId) {
         }
     } catch (e) {
         console.error('[Contacts] Dossier generation failed:', e);
+        if (typeof toastr !== 'undefined') {
+            // Show the ACTUAL error so we can debug
+            const msg = e?.message || String(e);
+            toastr.warning(`Dossier failed: ${msg.substring(0, 150)}`, 'Generation Error', { timeOut: 8000 });
+        }
         if (generateBtn) {
             generateBtn.disabled = false;
             generateBtn.innerHTML = '<i class="fa-solid fa-brain"></i> GENERATE DOSSIER';

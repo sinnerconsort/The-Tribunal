@@ -1,6 +1,13 @@
 /**
  * The Tribunal - Settings Tab Template
  * RC-41-CFG Configuration Form
+ * v2.0.0 - Consolidated settings layout
+ *          Merged Weather Effects + Source into single section
+ *          Merged Cases + Contacts into Auto-Detection
+ *          Replaced 5 notification toggles with 1 global toggle
+ *          Added context depth setting
+ *          Renumbered sections I-VII + Compartment
+ * v1.1.0 - Added Section I: Setting Profile genre selector
  * v1.0.0 - Release version (debug sections removed)
  */
 
@@ -10,6 +17,22 @@ export const SETTINGS_TAB_HTML = `
         <!-- Header -->
         <div class="rcm-form-header">
             <div class="rcm-form-title">R.C.M. EQUIPMENT REQUISITION<br>CONFIGURATION FORM</div>
+        </div>
+        
+        <!-- Section I: Setting Profile -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">I. SETTING PROFILE</div>
+            <div class="rcm-section-content">
+                <div class="rcm-field-row">
+                    <label class="rcm-field-label">GENRE:</label>
+                    <select id="cfg-setting-profile" class="rcm-select">
+                        <option value="disco_elysium">Disco Elysium</option>
+                    </select>
+                </div>
+                <div class="rcm-field-note">
+                    <em id="cfg-setting-profile-desc">Controls voice personalities, prompt flavor, and world defaults</em>
+                </div>
+            </div>
         </div>
         
         <!-- Section II: Connection -->
@@ -60,10 +83,20 @@ export const SETTINGS_TAB_HTML = `
                     </div>
                 </div>
                 
-                <div class="rcm-field-row">
-                    <label class="rcm-field-label">TRIGGER DELAY (MS):</label>
-                    <input type="number" id="cfg-trigger-delay" class="rcm-input" 
-                           value="1000" min="0" max="5000" step="100">
+                <div class="rcm-field-grid">
+                    <div class="rcm-field-item">
+                        <label class="rcm-field-label">TRIGGER DELAY (MS):</label>
+                        <input type="number" id="cfg-trigger-delay" class="rcm-input" 
+                               value="1000" min="0" max="5000" step="100">
+                    </div>
+                    <div class="rcm-field-item">
+                        <label class="rcm-field-label">CONTEXT DEPTH:</label>
+                        <input type="number" id="cfg-context-messages" class="rcm-input" 
+                               value="5" min="1" max="20">
+                    </div>
+                </div>
+                <div class="rcm-field-note">
+                    <em>How many messages to scan for voice generation context</em>
                 </div>
                 
                 <label class="rcm-checkbox-row">
@@ -123,11 +156,6 @@ export const SETTINGS_TAB_HTML = `
                         <input type="checkbox" id="cfg-world-sync-time" checked>
                         <span>Sync time to watch</span>
                     </label>
-                    
-                    <label class="rcm-checkbox-row">
-                        <input type="checkbox" id="cfg-world-notify" checked>
-                        <span>Show location notifications</span>
-                    </label>
                 </div>
                 
                 <div style="border-top: 1px dashed rgba(255,255,255,0.2); margin: 12px 0; padding-top: 12px;">
@@ -142,7 +170,7 @@ export const SETTINGS_TAB_HTML = `
                 
                 <div style="border-top: 1px dashed rgba(255,255,255,0.2); margin: 12px 0; padding-top: 12px;">
                     <label class="rcm-checkbox-row">
-                        <input type="checkbox" id="cfg-inject-world-tag">
+                        <input type="checkbox" id="cfg-inject-world-tag" checked>
                         <span>Show injection prompt</span>
                     </label>
                     <div id="world-tag-inject-preview" style="display: none; margin-top: 8px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; font-size: 10px;">
@@ -177,11 +205,6 @@ export const SETTINGS_TAB_HTML = `
                     </select>
                 </div>
                 
-                <label class="rcm-checkbox-row">
-                    <input type="checkbox" id="cfg-vitals-notify" checked>
-                    <span>Show vitals notifications</span>
-                </label>
-                
                 <div style="border-top: 1px dashed rgba(255,255,255,0.2); margin: 12px 0; padding-top: 12px;">
                     <div class="rcm-field-note" style="margin-bottom: 8px;">
                         <em>💀 Death System</em>
@@ -210,9 +233,9 @@ export const SETTINGS_TAB_HTML = `
             </div>
         </div>
         
-        <!-- Section IV.5: Auto-Extraction -->
+        <!-- Section V: Auto-Detection (merged extraction + cases + contacts) -->
         <div class="rcm-section">
-            <div class="rcm-section-header">IV.5 AUTO-EXTRACTION</div>
+            <div class="rcm-section-header">V. AUTO-DETECTION</div>
             <div class="rcm-section-content">
                 <div class="rcm-field-note" style="margin-bottom: 10px;">
                     <em>🤖 AI extracts game state from chat messages</em>
@@ -235,53 +258,26 @@ export const SETTINGS_TAB_HTML = `
                 </div>
                 
                 <label class="rcm-checkbox-row">
-                    <input type="checkbox" id="cfg-extraction-notify" checked>
-                    <span>Show extraction notifications</span>
-                </label>
-            </div>
-        </div>
-        
-        <!-- Section V: Case Detection -->
-        <div class="rcm-section">
-            <div class="rcm-section-header">V. CASE DETECTION</div>
-            <div class="rcm-section-content">
-                <label class="rcm-checkbox-row">
                     <input type="checkbox" id="cfg-auto-cases">
-                    <span>Auto-detect tasks from chat</span>
+                    <span>Auto-detect tasks & quests</span>
                 </label>
                 <div class="rcm-field-note">
-                    <em>Scan messages for quests and objectives</em>
+                    <em>Scan messages for objectives and assignments</em>
                 </div>
                 
                 <label class="rcm-checkbox-row">
-                    <input type="checkbox" id="cfg-cases-notify" checked>
-                    <span>Show detection notifications</span>
-                </label>
-            </div>
-        </div>
-        
-        <!-- Section VI: Contact Detection -->
-        <div class="rcm-section">
-            <div class="rcm-section-header">VI. CONTACT DETECTION</div>
-            <div class="rcm-section-content">
-                <label class="rcm-checkbox-row">
                     <input type="checkbox" id="cfg-auto-contacts">
-                    <span>Auto-detect contacts from chat</span>
+                    <span>Auto-detect contacts</span>
                 </label>
                 <div class="rcm-field-note">
                     <em>Scan messages for new NPCs and names</em>
                 </div>
-                
-                <label class="rcm-checkbox-row">
-                    <input type="checkbox" id="cfg-contacts-notify" checked>
-                    <span>Show detection notifications</span>
-                </label>
             </div>
         </div>
         
-        <!-- Section VII: Thought Cabinet -->
+        <!-- Section VI: Thought Cabinet -->
         <div class="rcm-section">
-            <div class="rcm-section-header">VII. THOUGHT CABINET</div>
+            <div class="rcm-section-header">VI. THOUGHT CABINET</div>
             <div class="rcm-section-content">
                 <label class="rcm-checkbox-row">
                     <input type="checkbox" id="cfg-auto-thoughts">
@@ -319,9 +315,9 @@ export const SETTINGS_TAB_HTML = `
             </div>
         </div>
         
-        <!-- Section VIII: Weather Effects -->
+        <!-- Section VII: Weather (merged effects + source) -->
         <div class="rcm-section">
-            <div class="rcm-section-header">VIII. WEATHER EFFECTS</div>
+            <div class="rcm-section-header">VII. WEATHER</div>
             <div class="rcm-section-content">
                 <label class="rcm-checkbox-row">
                     <input type="checkbox" id="cfg-weather-enabled" checked>
@@ -336,80 +332,76 @@ export const SETTINGS_TAB_HTML = `
                         <option value="heavy">Heavy (performance impact)</option>
                     </select>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Section IX: Weather Source -->
-        <div class="rcm-section">
-            <div class="rcm-section-header">IX. WEATHER SOURCE</div>
-            <div class="rcm-section-content">
-                <div class="rcm-field-note" style="margin-bottom: 10px;">
-                    <em>Where should time & weather come from?</em>
-                </div>
                 
-                <div class="rcm-radio-group" style="margin-bottom: 12px;">
-                    <label class="rcm-radio-row">
-                        <input type="radio" name="cfg-weather-source" id="cfg-weather-source-rp" value="rp" checked>
-                        <span>📖 RP Mode (chat-detected)</span>
+                <div style="border-top: 1px dashed rgba(255,255,255,0.2); margin: 12px 0; padding-top: 12px;">
+                    <div class="rcm-field-note" style="margin-bottom: 10px;">
+                        <em>Where should time & weather come from?</em>
+                    </div>
+                    
+                    <div class="rcm-radio-group" style="margin-bottom: 12px;">
+                        <label class="rcm-radio-row">
+                            <input type="radio" name="cfg-weather-source" id="cfg-weather-source-rp" value="rp" checked>
+                            <span>📖 RP Mode (chat-detected)</span>
+                        </label>
+                        <div class="rcm-field-note" style="margin-left: 24px; margin-bottom: 8px;">
+                            <em>Scans messages for weather keywords</em>
+                        </div>
+                        
+                        <label class="rcm-radio-row">
+                            <input type="radio" name="cfg-weather-source" id="cfg-weather-source-real" value="real">
+                            <span>🌍 Real-World (Open-Meteo API)</span>
+                        </label>
+                        <div class="rcm-field-note" style="margin-left: 24px;">
+                            <em>Your actual local weather & time</em>
+                        </div>
+                    </div>
+                    
+                    <div id="weather-real-options" style="display: none; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px; margin-bottom: 12px;">
+                        <div class="rcm-field-row" style="margin-bottom: 8px;">
+                            <label class="rcm-field-label">📍 LOCATION:</label>
+                            <div style="display: flex; gap: 6px;">
+                                <input type="text" id="cfg-weather-location" class="rcm-input" 
+                                       placeholder="Seattle, WA" style="flex: 1;">
+                                <button id="cfg-weather-auto-location" class="rcm-btn rcm-btn-small" title="Auto-detect from IP">
+                                    🎯
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="rcm-field-row" style="margin-bottom: 8px;">
+                            <label class="rcm-field-label">🌡️ UNITS:</label>
+                            <div class="rcm-radio-group-inline" style="display: flex; gap: 16px;">
+                                <label class="rcm-radio-row">
+                                    <input type="radio" name="cfg-weather-units" id="cfg-weather-units-f" value="fahrenheit" checked>
+                                    <span>°F</span>
+                                </label>
+                                <label class="rcm-radio-row">
+                                    <input type="radio" name="cfg-weather-units" id="cfg-weather-units-c" value="celsius">
+                                    <span>°C</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div id="weather-current-display" style="text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px; margin-bottom: 8px;">
+                            <div style="font-size: 11px; color: #888; margin-bottom: 4px;">CURRENT CONDITIONS</div>
+                            <div id="weather-current-info" style="font-size: 14px;">
+                                <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+                            </div>
+                            <div id="weather-current-location" style="font-size: 10px; color: #666; margin-top: 4px;"></div>
+                        </div>
+                        
+                        <button id="cfg-weather-refresh" class="rcm-btn rcm-btn-dashed" style="width: 100%;">
+                            🔄 Refresh Weather
+                        </button>
+                    </div>
+                    
+                    <label class="rcm-checkbox-row">
+                        <input type="checkbox" id="cfg-weather-auto" checked>
+                        <span>Auto-detect keywords (RP mode)</span>
                     </label>
-                    <div class="rcm-field-note" style="margin-left: 24px; margin-bottom: 8px;">
-                        <em>Scans messages for weather keywords</em>
+                    <div class="rcm-field-note">
+                        <em>Scan chat for weather/horror/pale keywords</em>
                     </div>
-                    
-                    <label class="rcm-radio-row">
-                        <input type="radio" name="cfg-weather-source" id="cfg-weather-source-real" value="real">
-                        <span>🌍 Real-World (Open-Meteo API)</span>
-                    </label>
-                    <div class="rcm-field-note" style="margin-left: 24px;">
-                        <em>Your actual local weather & time</em>
-                    </div>
-                </div>
-                
-                <div id="weather-real-options" style="display: none; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 4px; margin-bottom: 12px;">
-                    <div class="rcm-field-row" style="margin-bottom: 8px;">
-                        <label class="rcm-field-label">📍 LOCATION:</label>
-                        <div style="display: flex; gap: 6px;">
-                            <input type="text" id="cfg-weather-location" class="rcm-input" 
-                                   placeholder="Seattle, WA" style="flex: 1;">
-                            <button id="cfg-weather-auto-location" class="rcm-btn rcm-btn-small" title="Auto-detect from IP">
-                                🎯
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="rcm-field-row" style="margin-bottom: 8px;">
-                        <label class="rcm-field-label">🌡️ UNITS:</label>
-                        <div class="rcm-radio-group-inline" style="display: flex; gap: 16px;">
-                            <label class="rcm-radio-row">
-                                <input type="radio" name="cfg-weather-units" id="cfg-weather-units-f" value="fahrenheit" checked>
-                                <span>°F</span>
-                            </label>
-                            <label class="rcm-radio-row">
-                                <input type="radio" name="cfg-weather-units" id="cfg-weather-units-c" value="celsius">
-                                <span>°C</span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div id="weather-current-display" style="text-align: center; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px; margin-bottom: 8px;">
-                        <div style="font-size: 11px; color: #888; margin-bottom: 4px;">CURRENT CONDITIONS</div>
-                        <div id="weather-current-info" style="font-size: 14px;">
-                            <i class="fa-solid fa-spinner fa-spin"></i> Loading...
-                        </div>
-                        <div id="weather-current-location" style="font-size: 10px; color: #666; margin-top: 4px;"></div>
-                    </div>
-                    
-                    <button id="cfg-weather-refresh" class="rcm-btn rcm-btn-dashed" style="width: 100%;">
-                        🔄 Refresh Weather
-                    </button>
-                </div>
-                
-                <label class="rcm-checkbox-row">
-                    <input type="checkbox" id="cfg-weather-auto" checked>
-                    <span>Auto-detect keywords (RP mode)</span>
-                </label>
-                <div class="rcm-field-note">
-                    <em>Scan chat for weather/horror/pale keywords</em>
                 </div>
             </div>
         </div>
@@ -444,6 +436,14 @@ export const SETTINGS_TAB_HTML = `
         
         <!-- Actions -->
         <div class="rcm-section rcm-actions">
+            <label class="rcm-checkbox-row">
+                <input type="checkbox" id="cfg-show-notifications" checked>
+                <span>Show detection notifications</span>
+            </label>
+            <div class="rcm-field-note">
+                <em>Toast popups for vitals, extraction, cases, contacts & location changes</em>
+            </div>
+            
             <label class="rcm-checkbox-row">
                 <input type="checkbox" id="cfg-lock-positions">
                 <span>Lock icon positions</span>
