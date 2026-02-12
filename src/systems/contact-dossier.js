@@ -2,6 +2,13 @@
  * The Tribunal - Contact Dossier System
  * Generates voice-written dossiers for NPCs
  * 
+ * v1.1.0 - Profile-aware dossier generation:
+ *   - Pulls systemIntro + thoughtToneGuide from active setting profile
+ *   - Uses getSkillPersonality() for genre-correct voice personalities
+ *   - Reframed as "protagonist's perception" not neutral character sheet
+ *   - Added "not enough data" guidance for low-context contacts
+ *   - Lazy import for setting-profiles.js with graceful fallback
+ * 
  * ╔══════════════════════════════════════════════════════════════════════════╗
  * ║  Voice-authored NPC descriptions with strongest opinion quips            ║
  * ║  Regenerates on creation and when disposition shifts                     ║
@@ -14,6 +21,7 @@
 
 let _api = null;
 let _skills = null;
+let _profiles = null;
 let _generatingFor = new Set(); // Prevent duplicate generation
 
 async function getAPI() {
@@ -46,6 +54,17 @@ async function getSkills() {
         }
     }
     return _skills;
+}
+
+async function getProfiles() {
+    if (!_profiles) {
+        try {
+            _profiles = await import('../data/setting-profiles.js');
+        } catch (e) {
+            console.warn('[Dossier] Setting profiles not available:', e.message);
+        }
+    }
+    return _profiles;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -123,13 +142,26 @@ export function selectQuipVoices(voiceOpinions) {
 
 /**
  * Build the prompt for dossier generation
+ * 
+ * v1.1.0: Now profile-aware — pulls tone/style from active setting profile
+ *         Uses getSkillPersonality() instead of raw skill.personality
+ * 
  * @param {object} contact - Contact data
  * @param {Array} quipVoices - Selected voices for quips
- * @param {object} skills - Skills data for voice personalities
+ * @param {object} skills - Skills data for voice names/signatures
+ * @param {object} profiles - Setting profiles module (optional)
  * @returns {object} { system, user }
  */
-function buildDossierPrompt(contact, quipVoices, skills) {
-    // Get voice personalities for selected voices
+function buildDossierPrompt(contact, quipVoices, skills, profiles) {
+    // Get voice personalities — prefer profile-aware version, fall back to raw
+    const getPersonality = (voiceId) => {
+        if (profiles?.getSkillPersonality) {
+            return profiles.getSkillPersonality(voiceId);
+        }
+        const skill = skills?.SKILLS?.[voiceId];
+        return skill?.personality || '';
+    };
+
     const voicePersonalities = quipVoices.map(v => {
         const skill = skills?.SKILLS?.[v.voiceId];
         return {
@@ -137,33 +169,53 @@ function buildDossierPrompt(contact, quipVoices, skills) {
             name: skill?.signature || skill?.name || v.voiceId.toUpperCase(),
             stance: v.stance,
             score: v.score,
-            personality: skill?.personality || ''
+            personality: getPersonality(v.voiceId)
         };
     });
+
+    // Pull profile-driven flavor
+    const systemIntro = profiles?.getProfileValue?.('systemIntro', 
+        'You generate internal mental voices for a roleplayer.') 
+        || 'You generate internal mental voices for a roleplayer.';
+    const thoughtTone = profiles?.getProfileValue?.('thoughtToneGuide',
+        'Match the tone to the story.')
+        || 'Match the tone to the story.';
     
-    const system = `You are generating a detective's dossier entry for an NPC. Write in the style of Disco Elysium - noir, introspective, occasionally darkly humorous.
+    const system = `${systemIntro}
 
+You are generating a dossier entry about an NPC as seen through the PROTAGONIST's eyes. This is how the protagonist's internal voices perceive and evaluate this person.
+
+## TONE
+${thoughtTone}
+
+## FORMAT
 The dossier has two parts:
-1. A CONSENSUS DESCRIPTION (2-3 sentences) - A general assessment written as if by a detective's internal chorus of voices. Objective but with personality.
-2. VOICE QUIPS (one per voice) - Short, punchy observations from specific skills/voices. Each should reflect that voice's unique perspective and personality.
+1. A CONSENSUS DESCRIPTION (2-3 sentences) — A general assessment written as if by the protagonist's internal chorus of voices. How does the protagonist read this person? What's their gut feeling? Be specific to the context provided, not generic.
+2. VOICE QUIPS (one per voice) — Short, punchy observations from specific internal voices. Each should reflect that voice's unique perspective and personality.
 
-VOICE PERSONALITIES:
+## VOICE PERSONALITIES:
 ${voicePersonalities.map(v => `${v.name} (${v.stance}, score: ${v.score}): ${v.personality.substring(0, 200)}...`).join('\n\n')}
 
+## CRITICAL RULES
+- The dossier describes an NPC as perceived by the PROTAGONIST — not a neutral character sheet.
+- Voice quips should feel like the protagonist's skills arguing about this person.
+- Keep it grounded in what's actually known from context. Don't invent backstory.
+- If there's minimal context, say so — "not enough data" is a valid assessment.
+
 FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
-CONSENSUS: [2-3 sentence description]
+CONSENSUS: [2-3 sentence description from the protagonist's perspective]
 
 ${voicePersonalities.map(v => `${v.name}: [One punchy sentence or two short sentences]`).join('\n')}`;
 
-    const user = `Generate a dossier entry for:
+    const user = `Generate a dossier entry for this person as seen by the PROTAGONIST:
 
 NAME: ${contact.name}
 RELATIONSHIP: ${contact.relationship || 'Unknown'}
 DISPOSITION: ${contact.disposition || 'Neutral'}
-DETECTED TRAITS: ${(contact.detectedTraits || []).join(', ') || 'None identified'}
-CONTEXT: ${(contact.contexts || []).slice(0, 2).join(' ') || 'No context available'}
+DETECTED TRAITS: ${(contact.detectedTraits || []).join(', ') || 'None identified yet'}
+CONTEXT: ${(contact.contexts || []).slice(0, 2).join(' ') || 'No context available — the protagonist has barely interacted with this person.'}
 
-Remember: Consensus first, then one quip per voice (${voicePersonalities.map(v => v.name).join(', ')}).`;
+Remember: Consensus first (from the protagonist's perspective), then one quip per voice (${voicePersonalities.map(v => v.name).join(', ')}).`;
 
     return { system, user };
 }
@@ -250,6 +302,7 @@ export async function generateDossier(contact, contactId) {
     try {
         const api = await getAPI();
         const skills = await getSkills();
+        const profiles = await getProfiles();
         
         if (!api?.callAPI) {
             console.warn('[Dossier] API not available - check import paths');
@@ -272,7 +325,7 @@ export async function generateDossier(contact, contactId) {
         _skills = skills; // Cache for parser
         
         // Build and send prompt
-        const prompt = buildDossierPrompt(contact, quipVoices, skills);
+        const prompt = buildDossierPrompt(contact, quipVoices, skills, profiles);
         const response = await api.callAPI(prompt.system, prompt.user);
         
         // Parse response
