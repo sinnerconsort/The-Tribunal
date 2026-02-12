@@ -5,6 +5,8 @@
  * REBUILD VERSION: Uses per-chat state accessors instead of global settings
  * This fixes the POV bug where pronouns weren't persisting per-chat!
  * 
+ * @version 1.1.0 - Profile-aware: uses getSkillPersonality() and getProfileValue() 
+ *                  for genre-specific voice personalities and system intro
  * @version 1.0.1 - Removed unused getChatState import
  * COMPATIBILITY: Also checks old extensionSettings location as fallback
  */
@@ -12,6 +14,7 @@
 import { SKILLS } from '../data/skills.js';
 import { STATUS_EFFECTS, COPOTYPE_IDS } from '../data/statuses.js';
 import { getReactionLine, getSkillDynamics } from '../data/relationships.js';
+import { getSkillPersonality, getAncientPersonality, getProfileValue } from '../data/setting-profiles.js';
 
 // Import from rebuild's state management
 import { getPersona, getVitals, getSettings } from '../core/state.js';
@@ -756,7 +759,11 @@ All skills should lean into this vibe while keeping their individual personaliti
             checkInfo = ' [Passive]';
         }
 
-        return `${v.skill.signature}${checkInfo}: ${v.skill.personality}`;
+        // Get personality from active profile (genre-aware) instead of hardcoded SKILLS data
+        const personality = v.isAncient 
+            ? getAncientPersonality(v.skillId) || v.skill.personality
+            : getSkillPersonality(v.skillId) || v.skill.personality;
+        return `${v.skill.signature}${checkInfo}: ${personality}`;
     }).join('\n\n');
 
     // ═══════════════════════════════════════════════════════
@@ -764,8 +771,10 @@ All skills should lean into this vibe while keeping their individual personaliti
     // ═══════════════════════════════════════════════════════
     const criticalOverride = buildCriticalStateOverride();
 
-    // Build system prompt
-    const systemPrompt = `You generate internal mental voices for a roleplayer, inspired by Disco Elysium's skill system.
+    // Build system prompt — uses active genre profile for intro
+    const systemIntro = getProfileValue('systemIntro', 
+        'You generate internal mental voices for a roleplayer.');
+    const systemPrompt = `${systemIntro}
 
 ═══════════════════════════════════════════════════════════════
 CRITICAL IDENTITY - READ THIS FIRST

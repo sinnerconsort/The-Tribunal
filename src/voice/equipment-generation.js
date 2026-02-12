@@ -13,6 +13,7 @@
  */
 
 import { callAPIWithTokens } from './api-helpers.js';
+import { getProfileValue } from '../data/setting-profiles.js';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -403,11 +404,15 @@ function normalizeItemName(raw) {
 export async function generateSingleItem(itemName, context = '') {
     console.log('[Equipment] Generating data for:', itemName);
     
-    const systemPrompt = `You are channeling the internal skill voices of a Disco Elysium character. Every item of clothing tells a story. The skills in your head all have opinions about what you wear.
+    const genreIntro = getProfileValue('systemIntro', 
+        'You are channeling the internal skill voices of a character.');
+    const equipSection = getProfileValue('equipmentSectionName', 'The Wardrobe');
+    
+    const systemPrompt = `${genreIntro} Every item of clothing tells a story. The skills in your head all have opinions about what you wear.
 
 Output ONLY valid JSON, no markdown, no explanation.`;
 
-    const userPrompt = `Generate rich Disco Elysium-style data for this clothing/accessory item:
+    const userPrompt = `Generate rich data for this clothing/accessory item, matching the tone of the setting:
 
 ITEM: ${itemName}
 CONTEXT: ${context || 'Part of the character\'s outfit'}
@@ -477,11 +482,14 @@ export async function generateMultipleItems(itemNames, context = '') {
     
     console.log('[Equipment] Batch generating', itemNames.length, 'items');
     
-    const systemPrompt = `You are channeling the internal skill voices of a Disco Elysium character. Every item of clothing tells a story.
+    const genreIntro = getProfileValue('systemIntro', 
+        'You are channeling the internal skill voices of a character.');
+    
+    const systemPrompt = `${genreIntro} Every item of clothing tells a story.
 
 Output ONLY valid JSON array, no markdown, no explanation.`;
 
-    const userPrompt = `Generate Disco Elysium-style data for these clothing/accessory items:
+    const userPrompt = `Generate data for these clothing/accessory items, matching the tone of the setting:
 
 ITEMS: ${itemNames.join(', ')}
 CONTEXT: ${context || 'Part of the character\'s outfit'}
