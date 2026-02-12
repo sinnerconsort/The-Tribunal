@@ -147,23 +147,56 @@ function getTypeFromDisposition(disposition) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Get the current player character name and AI character name
- * Used to exclude them from NPC detection
+ * Get the current player character name (to EXCLUDE from detection)
+ * Only excludes the USER — the AI character should be a contact
  * @returns {string[]} Array of names to exclude
  */
-function getCharacterNames() {
+function getExcludedNames() {
     const names = [];
     try {
         const ctx = window.SillyTavern?.getContext?.() ||
                      (typeof getContext === 'function' ? getContext() : null);
         if (ctx) {
-            if (ctx.name1) names.push(ctx.name1); // Player character
-            if (ctx.name2) names.push(ctx.name2); // AI character
+            if (ctx.name1) names.push(ctx.name1); // Player character — always exclude
+            // NOTE: ctx.name2 (AI character) intentionally NOT excluded
+            // The AI character should be detected and auto-added as first contact
         }
     } catch (e) {
         // Silent fail
     }
     return names;
+}
+
+/**
+ * Get the AI character name for auto-contact seeding
+ * Returns null for world cards / group chats where there's no single character
+ * @returns {{ name: string, isWorldCard: boolean } | null}
+ */
+function getAICharacterInfo() {
+    try {
+        const ctx = window.SillyTavern?.getContext?.() ||
+                     (typeof getContext === 'function' ? getContext() : null);
+        if (!ctx) return null;
+        
+        const name = ctx.name2;
+        if (!name) return null;
+        
+        // Detect world cards: typically have no single character identity
+        // Group chats have multiple characters
+        const isGroup = ctx.groups?.length > 0 || ctx.groupId;
+        
+        // Check if the character description suggests a world/narrator card
+        // (cards named things like "Revachol", "The World", "Narrator", etc.)
+        const worldCardIndicators = /\b(world|narrator|system|setting|scenario|adventure|realm|kingdom|lands?)\b/i;
+        const looksLikeWorldCard = worldCardIndicators.test(name);
+        
+        return {
+            name: name,
+            isWorldCard: isGroup || looksLikeWorldCard
+        };
+    } catch (e) {
+        return null;
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -383,6 +416,50 @@ const COMMON_WORDS = new Set([
     'god', 'gods', 'king', 'queen', 'lord', 'prince', 'princess',
     'captain', 'officer', 'soldier', 'guard', 'doctor', 'nurse',
     'master', 'sir', 'madam', 'miss', 'mister',
+
+    // ── Occupations, roles, titles (RP/fantasy/noir/generic) ──
+    // These are descriptions, not proper names
+    'butcher', 'baker', 'merchant', 'vendor', 'trader', 'shopkeeper', 'storekeeper',
+    'bartender', 'barkeep', 'barman', 'barmaid', 'innkeeper', 'landlord', 'landlady',
+    'blacksmith', 'smith', 'tailor', 'cobbler', 'tanner', 'weaver', 'potter',
+    'farmer', 'fisherman', 'fisher', 'hunter', 'trapper', 'woodsman', 'lumberjack',
+    'servant', 'maid', 'butler', 'footman', 'steward', 'attendant', 'valet',
+    'cook', 'chef', 'waiter', 'waitress', 'hostess',
+    'priest', 'priestess', 'monk', 'nun', 'cleric', 'preacher', 'bishop', 'cardinal',
+    'knight', 'squire', 'warrior', 'ranger', 'paladin', 'rogue', 'assassin',
+    'mage', 'wizard', 'witch', 'warlock', 'sorcerer', 'sorceress', 'druid', 'shaman',
+    'thief', 'bandit', 'brigand', 'pirate', 'smuggler', 'outlaw',
+    'sailor', 'navigator', 'pilot', 'engineer', 'mechanic', 'technician',
+    'bard', 'healer', 'herbalist', 'alchemist', 'apothecary', 'midwife',
+    'detective', 'inspector', 'constable', 'sheriff', 'marshal', 'deputy',
+    'judge', 'lawyer', 'prosecutor', 'attorney', 'magistrate', 'bailiff',
+    'mayor', 'governor', 'senator', 'minister', 'ambassador', 'diplomat',
+    'professor', 'teacher', 'scholar', 'librarian', 'tutor', 'student', 'apprentice',
+    'general', 'commander', 'lieutenant', 'sergeant', 'corporal', 'private',
+    'admiral', 'colonel', 'major', 'ensign', 'cadet',
+    'spy', 'informant', 'agent', 'operative', 'handler',
+    'courier', 'messenger', 'herald', 'crier', 'scribe',
+    'beggar', 'vagrant', 'drifter', 'hermit', 'nomad', 'refugee',
+    'noble', 'baron', 'baroness', 'duke', 'duchess', 'earl', 'count', 'countess',
+    'emperor', 'empress', 'regent', 'heir', 'consort',
+    'warden', 'jailer', 'executioner', 'hangman',
+    'bouncer', 'doorman', 'receptionist', 'clerk', 'secretary', 'accountant',
+    'driver', 'cabbie', 'chauffeur', 'conductor',
+    'janitor', 'custodian', 'caretaker', 'groundskeeper',
+    'singer', 'dancer', 'musician', 'performer', 'entertainer', 'acrobat', 'jester',
+    'painter', 'sculptor', 'artist', 'writer', 'poet', 'author',
+    'photographer', 'journalist', 'reporter', 'editor',
+    'stagehand', 'roadie', 'bouncer', 'promoter',
+    'boss', 'chief', 'leader', 'elder', 'elder', 'chief',
+    'companion', 'partner', 'ally', 'rival', 'enemy', 'foe', 'nemesis',
+    'victim', 'witness', 'suspect', 'accomplice', 'bystander',
+    'stranger', 'traveler', 'visitor', 'guest', 'patron', 'customer', 'client',
+    'figure', 'silhouette', 'shadow', 'phantom', 'ghost', 'spirit', 'specter',
+
+    // ── Generic descriptors used as identifiers ──
+    'guy', 'dude', 'fella', 'fellow', 'bloke', 'lad', 'lass', 'gal', 'dame', 'chap',
+    'gentleman', 'gentlemen', 'lady', 'ladies',
+    'someone', 'whoever', 'nobody',
     'group', 'team', 'crowd', 'army', 'force', 'power', 'energy',
     'game', 'games', 'show', 'shows', 'part', 'parts',
     'idea', 'plan', 'reason', 'question', 'answer', 'problem', 'issue',
@@ -420,6 +497,9 @@ function looksLikeName(name) {
     const words = name.trim().split(/\s+/);
     const lowerName = name.toLowerCase().trim();
     
+    // ── Reject template variables that survived stripping ──
+    if (/\{\{|\}\}/.test(name)) return false;
+    
     // Single word names
     if (words.length === 1) {
         // Must not be in common words
@@ -449,6 +529,28 @@ function looksLikeName(name) {
         // First word is common AND it's only 2 words - likely verb+prep not a name
         return false;
     }
+    
+    // ── NEW: Reject generic descriptor phrases ──
+    // Catches "Old Man", "Guy In Hat", "Tall Woman", "Hooded Figure", etc.
+    // Check if first word is a descriptor adjective (not a name)
+    const DESCRIPTOR_STARTERS = new Set([
+        'old', 'young', 'tall', 'short', 'big', 'small', 'fat', 'thin', 'large',
+        'hooded', 'masked', 'cloaked', 'robed', 'armored', 'armed', 'scarred',
+        'dark', 'pale', 'blind', 'deaf', 'one-eyed', 'bearded', 'bald',
+        'drunk', 'angry', 'nervous', 'mysterious', 'strange', 'weird', 'creepy',
+        'local', 'nearby', 'foreign', 'unknown', 'unnamed', 'random',
+        'other', 'another', 'second', 'third', 'first', 'last',
+        'poor', 'rich', 'wealthy', 'dirty', 'clean', 'injured', 'wounded',
+        'little', 'elderly', 'frail', 'burly', 'grizzled', 'weathered',
+        'pretty', 'beautiful', 'ugly', 'handsome', 'lovely'
+    ]);
+    
+    if (DESCRIPTOR_STARTERS.has(firstLower)) return false;
+    
+    // Reject if ALL words are common — no proper name component at all
+    // "Guy In Hat" = all common → rejected
+    // "John Smith" = "john" not common → passes
+    if (allCommon) return false;  // (already checked above, but explicit for clarity)
     
     return true;
 }
@@ -485,6 +587,12 @@ export function detectPotentialNPCs(messageText, excludeNames = []) {
     if (!messageText || typeof messageText !== 'string') {
         return new Map();
     }
+    
+    // ═══════════════════════════════════════════════════════════
+    // PRE-PROCESSING: Strip template variables BEFORE detection
+    // Catches {{user}}, {{char}}, {{User}}, etc.
+    // ═══════════════════════════════════════════════════════════
+    const cleanedText = messageText.replace(/\{\{[^}]+\}\}/g, ' ');
     
     // Build exclusion set from provided names (case-insensitive, includes first names)
     const excluded = new Set();
@@ -535,7 +643,7 @@ export function detectPotentialNPCs(messageText, excludeNames = []) {
         try {
             const regex = new RegExp(pattern.source, pattern.flags);
             let match;
-            while ((match = regex.exec(messageText)) !== null) {
+            while ((match = regex.exec(cleanedText)) !== null) {
                 const potentialNames = match.slice(1).filter(m => m && /^[A-Z]/.test(m));
                 for (const name of potentialNames) {
                     if (!name.startsWith('"') && !name.startsWith('\u201C')) {
@@ -553,7 +661,7 @@ export function detectPotentialNPCs(messageText, excludeNames = []) {
         try {
             const regex = new RegExp(pattern.source, pattern.flags);
             let match;
-            while ((match = regex.exec(messageText)) !== null) {
+            while ((match = regex.exec(cleanedText)) !== null) {
                 if (match[1]) {
                     addDetection(match[1], 0.7, match[0]);
                 }
@@ -1090,6 +1198,54 @@ export function dismissDispositionSuggestion(contactId) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// INTERNAL: Enrich contact traits from VOICE content
+// This captures what the USER'S voices think, not the AI narration
+// ═══════════════════════════════════════════════════════════════
+
+function enrichTraitsFromVoices(voiceResults, mentionedContacts) {
+    if (!voiceResults?.length || !mentionedContacts?.size) return;
+    
+    for (const [npcName, contact] of mentionedContacts) {
+        try {
+            // Combine all voice content that mentions this NPC
+            const relevantVoiceText = voiceResults
+                .filter(v => v.content && typeof v.content === 'string')
+                .map(v => v.content)
+                .filter(content => {
+                    const lower = content.toLowerCase();
+                    const lowerName = npcName.toLowerCase();
+                    const firstName = lowerName.split(' ')[0];
+                    return lower.includes(lowerName) || lower.includes(firstName);
+                })
+                .join(' ');
+            
+            if (!relevantVoiceText) continue;
+            
+            // Extract traits from what the VOICES said about this person
+            const voiceTraits = extractTraitsFromContext(npcName, relevantVoiceText);
+            
+            if (voiceTraits.length > 0) {
+                // Merge with existing traits (voice-derived traits take precedence)
+                const state = getChatState();
+                const stateContact = state?.relationships?.[contact.id];
+                if (stateContact) {
+                    const existing = new Set(stateContact.detectedTraits || []);
+                    for (const trait of voiceTraits) {
+                        existing.add(trait);
+                    }
+                    stateContact.detectedTraits = Array.from(existing);
+                    saveChatState();
+                    
+                    console.log(`[Contact Intelligence] Voice-enriched traits for ${npcName}:`, voiceTraits);
+                }
+            }
+        } catch (e) {
+            // Skip this contact
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // INTERNAL: Process voice opinions for mentioned contacts
 // ═══════════════════════════════════════════════════════════════
 
@@ -1176,11 +1332,26 @@ export async function updateContactIntelligence(voiceResults, context) {
         
         console.log('[Contact Intelligence] Scanning for NPCs...');
         
-        // FIX (Bug 4): Get character names to exclude from detection
-        const excludeNames = getCharacterNames();
+        // Only exclude the USER name — AI character is a valid contact
+        const excludeNames = getExcludedNames();
         
-        // Detect potential NPCs (excluding player/AI character names)
+        // Detect potential NPCs
         const detected = detectPotentialNPCs(context.message, excludeNames);
+        
+        // ═══════════════════════════════════════════════════════
+        // AUTO-DETECT AI CHARACTER as first contact
+        // Skip for world cards / group chats
+        // ═══════════════════════════════════════════════════════
+        const charInfo = getAICharacterInfo();
+        if (charInfo && !charInfo.isWorldCard) {
+            const charName = charInfo.name;
+            const existingChar = findMatchingContact(charName);
+            if (!existingChar) {
+                // AI character not yet a contact — track them with high confidence
+                // They'll pass the mention threshold quickly since they appear in every message
+                trackPendingContact(charName, 'Primary character');
+            }
+        }
         
         if (detected.size === 0) {
             return;
@@ -1201,9 +1372,16 @@ export async function updateContactIntelligence(voiceResults, context) {
             }
         }
         
-        // Process voice opinions if we have both contacts and voice results
+        // ═══════════════════════════════════════════════════════
+        // Process voice opinions from VOICE RESULTS (not AI text)
+        // Voices' actual words determine sentiment, not narration
+        // ═══════════════════════════════════════════════════════
         if (mentionedContacts.size > 0 && voiceResults?.length > 0) {
             processVoiceOpinions(voiceResults, mentionedContacts);
+            
+            // Also extract traits from voice content (not just AI narration)
+            enrichTraitsFromVoices(voiceResults, mentionedContacts);
+            
             checkDispositionShifts(mentionedContacts);
         }
         

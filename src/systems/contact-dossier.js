@@ -2,6 +2,20 @@
  * The Tribunal - Contact Dossier System
  * Generates voice-written dossiers for NPCs
  * 
+ * v1.3.0 - Context-aware dossier generation
+ *   - Integrates context-gatherer.js for deep intel scanning
+ *   - Scans chat history, character card, persona, world info
+ *   - AI summarizes gathered intel before dossier generation
+ *   - Merges AI-discovered traits with existing detectedTraits
+ *   - Dossier includes intelSources and keyFacts metadata
+ * 
+ * v1.2.0 - FIXED: Replaced broken lazy dynamic imports with static imports
+ *   - callAPI imported directly from ../voice/api-helpers.js
+ *   - SKILLS imported directly from ../data/skills.js
+ *   - getSkillPersonality + getProfileValue from ../data/setting-profiles.js
+ *   - Profile-aware dossier generation (genre-correct voice personalities)
+ *   - Reframed as "protagonist's perception" not neutral character sheet
+ * 
  * ╔══════════════════════════════════════════════════════════════════════════╗
  * ║  Voice-authored NPC descriptions with strongest opinion quips            ║
  * ║  Regenerates on creation and when disposition shifts                     ║
@@ -9,44 +23,32 @@
  */
 
 // ═══════════════════════════════════════════════════════════════
-// LAZY IMPORTS
+// IMPORTS
 // ═══════════════════════════════════════════════════════════════
 
-let _api = null;
-let _skills = null;
+import { callAPI } from '../voice/api-helpers.js';
+import { SKILLS } from '../data/skills.js';
+import { getSkillPersonality, getProfileValue } from '../data/setting-profiles.js';
+import { getSettings } from '../core/state.js';
+
+// Lazy import — context-gatherer is optional, dossiers work without it
+let _gatherAndSummarizeIntel = null;
+let _gathererLoaded = false;
+async function getGatherer() {
+    if (_gathererLoaded) return _gatherAndSummarizeIntel;
+    try {
+        const mod = await import('./context-gatherer.js');
+        _gatherAndSummarizeIntel = mod.gatherAndSummarizeIntel;
+        console.log('[Tribunal] Context gatherer loaded');
+    } catch (e) {
+        console.log('[Tribunal] Context gatherer not available — dossiers will use basic context');
+        _gatherAndSummarizeIntel = null;
+    }
+    _gathererLoaded = true;
+    return _gatherAndSummarizeIntel;
+}
+
 let _generatingFor = new Set(); // Prevent duplicate generation
-
-async function getAPI() {
-    if (!_api) {
-        try {
-            // Try multiple possible paths
-            try {
-                _api = await import('./api-helpers.js');
-            } catch {
-                try {
-                    _api = await import('../voice/api-helpers.js');
-                } catch {
-                    _api = await import('../systems/api-helpers.js');
-                }
-            }
-            console.log('[Dossier] API helpers loaded');
-        } catch (e) {
-            console.warn('[Dossier] API helpers not available:', e.message);
-        }
-    }
-    return _api;
-}
-
-async function getSkills() {
-    if (!_skills) {
-        try {
-            _skills = await import('../data/skills.js');
-        } catch (e) {
-            console.warn('[Dossier] Skills data not available:', e.message);
-        }
-    }
-    return _skills;
-}
 
 // ═══════════════════════════════════════════════════════════════
 // VOICE SELECTION FOR QUIPS
@@ -118,52 +120,133 @@ export function selectQuipVoices(voiceOpinions) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// POV HANDLING
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get POV instruction for dossier prompt based on settings
+ * Ensures voices address the protagonist correctly (you/they/I)
+ */
+function getPOVInstruction() {
+    const settings = getSettings();
+    const pov = settings?.povStyle || settings?.persona?.povStyle || 'second';
+    const charName = settings?.characterName || settings?.persona?.characterName || '';
+    const pronouns = settings?.characterPronouns || settings?.persona?.pronouns || 'they';
+    
+    if (pov === 'second') {
+        return `- PERSPECTIVE: Address the protagonist as "you" — NEVER use their name. The voices speak directly TO the protagonist, not about them. Example: "He dropped his instrument to reach you" not "to reach ${charName || 'the protagonist'}".`;
+    } else if (pov === 'first') {
+        return `- PERSPECTIVE: The protagonist refers to themselves as "I/me/my". Write as the protagonist's own internal monologue.`;
+    } else {
+        // third person
+        const name = charName || 'the protagonist';
+        return `- PERSPECTIVE: Refer to the protagonist as "${name}" (${pronouns}). Third person perspective.`;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // DOSSIER GENERATION
 // ═══════════════════════════════════════════════════════════════
 
 /**
  * Build the prompt for dossier generation
+ * 
+ * v1.2.0: Static imports — uses getSkillPersonality() and getProfileValue() directly
+ * 
  * @param {object} contact - Contact data
  * @param {Array} quipVoices - Selected voices for quips
- * @param {object} skills - Skills data for voice personalities
  * @returns {object} { system, user }
  */
-function buildDossierPrompt(contact, quipVoices, skills) {
-    // Get voice personalities for selected voices
+function buildDossierPrompt(contact, quipVoices) {
     const voicePersonalities = quipVoices.map(v => {
-        const skill = skills?.SKILLS?.[v.voiceId];
+        const skill = SKILLS?.[v.voiceId];
         return {
             id: v.voiceId,
             name: skill?.signature || skill?.name || v.voiceId.toUpperCase(),
             stance: v.stance,
             score: v.score,
-            personality: skill?.personality || ''
+            personality: getSkillPersonality(v.voiceId)
         };
     });
+
+    // Pull profile-driven flavor
+    const systemIntro = getProfileValue('systemIntro', 
+        'You generate internal mental voices for a roleplayer.');
+    const thoughtTone = getProfileValue('thoughtToneGuide',
+        'Match the tone to the story.');
     
-    const system = `You are generating a detective's dossier entry for an NPC. Write in the style of Disco Elysium - noir, introspective, occasionally darkly humorous.
+    const system = `${systemIntro}
 
+You are generating a dossier entry about an NPC as seen through the PROTAGONIST's eyes. This is how the protagonist's internal voices perceive and evaluate this person.
+
+## TONE
+${thoughtTone}
+
+## FORMAT
 The dossier has two parts:
-1. A CONSENSUS DESCRIPTION (2-3 sentences) - A general assessment written as if by a detective's internal chorus of voices. Objective but with personality.
-2. VOICE QUIPS (one per voice) - Short, punchy observations from specific skills/voices. Each should reflect that voice's unique perspective and personality.
+1. A CONSENSUS DESCRIPTION (2-3 sentences) — A general assessment written as if by the protagonist's internal chorus of voices. How does the protagonist read this person? What's their gut feeling? Be specific to the context provided, not generic.
+2. VOICE QUIPS (one per voice) — Short, punchy observations from specific internal voices. Each should reflect that voice's unique perspective and personality.
 
-VOICE PERSONALITIES:
+## VOICE PERSONALITIES:
 ${voicePersonalities.map(v => `${v.name} (${v.stance}, score: ${v.score}): ${v.personality.substring(0, 200)}...`).join('\n\n')}
 
+## CRITICAL RULES
+- The dossier describes an NPC as perceived by the PROTAGONIST — not a neutral character sheet.
+- Voice quips should feel like the protagonist's skills arguing about this person.
+- Keep it grounded in what's actually known from context. Don't invent backstory.
+- If there's minimal context, say so — "not enough data" is a valid assessment.
+${getPOVInstruction()}
+
 FORMAT YOUR RESPONSE EXACTLY LIKE THIS:
-CONSENSUS: [2-3 sentence description]
+CONSENSUS: [2-3 sentence description from the protagonist's perspective]
 
 ${voicePersonalities.map(v => `${v.name}: [One punchy sentence or two short sentences]`).join('\n')}`;
 
-    const user = `Generate a dossier entry for:
+    // Gather all available context about this contact
+    // Uses gathered intel if available (from context-gatherer), falls back to raw fields
+    const contextParts = [];
+    
+    if (contact._gatheredIntel) {
+        // Rich intel from context-gatherer
+        const intel = contact._gatheredIntel;
+        if (intel.summary) contextParts.push(`INTELLIGENCE SUMMARY: ${intel.summary}`);
+        if (intel.relationship) contextParts.push(`ASSESSED RELATIONSHIP: ${intel.relationship}`);
+        if (intel.keyFacts?.length > 0) contextParts.push(`KEY FACTS: ${intel.keyFacts.join('; ')}`);
+        if (intel.sources?.length > 0) contextParts.push(`(Sources: ${intel.sources.join(', ')})`);
+        
+        // Also include raw chat snippets for grounding (up to 5)
+        if (intel.raw?.chatSnippets?.length > 0) {
+            const snippetText = intel.raw.chatSnippets
+                .slice(0, 5)
+                .map(s => `[${s.role}]: ${s.snippet}`)
+                .join('\n');
+            contextParts.push(`RELEVANT DIALOGUE:\n${snippetText}`);
+        }
+        
+        // Character card context
+        if (intel.raw?.characterCard) {
+            contextParts.push(`FROM CHARACTER LORE: ${intel.raw.characterCard}`);
+        }
+    } else {
+        // Fallback to raw contact fields
+        if (contact.context) contextParts.push(contact.context);
+        if (contact.relationship) contextParts.push(`Relationship: ${contact.relationship}`);
+        if (contact.notes) contextParts.push(`Notes: ${contact.notes}`);
+        if (contact.intel?.length > 0) contextParts.push(...contact.intel.slice(0, 3));
+    }
+    
+    const contextString = contextParts.length > 0 
+        ? contextParts.join('\n')
+        : 'No context available — the protagonist has barely interacted with this person.';
+
+    const user = `Generate a dossier entry for this person as seen by the PROTAGONIST:
 
 NAME: ${contact.name}
-RELATIONSHIP: ${contact.relationship || 'Unknown'}
 DISPOSITION: ${contact.disposition || 'Neutral'}
-DETECTED TRAITS: ${(contact.detectedTraits || []).join(', ') || 'None identified'}
-CONTEXT: ${(contact.contexts || []).slice(0, 2).join(' ') || 'No context available'}
+KNOWN CONTEXT: ${contextString}
+DETECTED TRAITS: ${(contact.detectedTraits || []).join(', ') || 'None identified yet'}
 
-Remember: Consensus first, then one quip per voice (${voicePersonalities.map(v => v.name).join(', ')}).`;
+Remember: Consensus first (from the protagonist's perspective), then one quip per voice (${voicePersonalities.map(v => v.name).join(', ')}).${(getSettings()?.povStyle || getSettings()?.persona?.povStyle) === 'second' ? ' Use "you" for the protagonist — never their name.' : ''}`;
 
     return { system, user };
 }
@@ -194,7 +277,7 @@ function parseDossierResponse(response, quipVoices) {
         
         // Check for voice quips
         for (const voice of quipVoices) {
-            const skill = _skills?.SKILLS?.[voice.voiceId];
+            const skill = SKILLS?.[voice.voiceId];
             const name = skill?.signature || skill?.name || voice.voiceId.toUpperCase();
             
             // Match "VOICE_NAME: content" or "VOICE_NAME — content"
@@ -248,15 +331,36 @@ export async function generateDossier(contact, contactId) {
     console.log('[Dossier] Generating for:', contact.name);
     
     try {
-        const api = await getAPI();
-        const skills = await getSkills();
-        
-        if (!api?.callAPI) {
-            console.warn('[Dossier] API not available - check import paths');
-            return null;
+        // ═══════════════════════════════════════════════════════
+        // Step 1: Gather intel from all available sources
+        // Chat history, character card, persona, world info + AI summary
+        // ═══════════════════════════════════════════════════════
+        let gatheredIntel = null;
+        try {
+            const gatherFn = await getGatherer();
+            if (gatherFn) {
+                gatheredIntel = await gatherFn(contact, true);
+                if (gatheredIntel) {
+                    console.log('[Dossier] Intel gathered from:', gatheredIntel.sources?.join(', ') || 'none');
+                    // Attach to contact temporarily for prompt building
+                    contact._gatheredIntel = gatheredIntel;
+                    
+                    // Merge any AI-discovered traits
+                    if (gatheredIntel.traits?.length > 0) {
+                        const existing = new Set(contact.detectedTraits || []);
+                        gatheredIntel.traits.forEach(t => existing.add(t));
+                        contact.detectedTraits = Array.from(existing);
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('[Dossier] Intel gathering failed (non-fatal):', e.message);
+            // Continue without gathered intel — prompt will use raw fields
         }
         
-        // Select voices for quips
+        // ═══════════════════════════════════════════════════════
+        // Step 2: Select voices for quips
+        // ═══════════════════════════════════════════════════════
         const quipVoices = selectQuipVoices(contact.voiceOpinions);
         
         if (quipVoices.length === 0) {
@@ -269,26 +373,35 @@ export async function generateDossier(contact, contactId) {
             );
         }
         
-        _skills = skills; // Cache for parser
-        
-        // Build and send prompt
-        const prompt = buildDossierPrompt(contact, quipVoices, skills);
-        const response = await api.callAPI(prompt.system, prompt.user);
+        // Build and send prompt (uses static imports for skills + profiles)
+        const prompt = buildDossierPrompt(contact, quipVoices);
+        const response = await callAPI(prompt.system, prompt.user);
         
         // Parse response
         const dossier = parseDossierResponse(response, quipVoices);
         dossier.generatedAt = Date.now();
         dossier.triggerDisposition = contact.disposition;
         
+        // Attach intel metadata for display
+        if (gatheredIntel) {
+            dossier.intelSources = gatheredIntel.sources || [];
+            dossier.keyFacts = gatheredIntel.keyFacts || [];
+        }
+        
+        // Clean up temporary property
+        delete contact._gatheredIntel;
+        
         console.log('[Dossier] Generated:', dossier);
         return dossier;
         
     } catch (error) {
         console.error('[Dossier] Generation failed:', error);
-        return null;
+        // Re-throw so the caller can show the actual error message
+        throw error;
     } finally {
-        // Always clear the lock
+        // Always clear the lock and cleanup
         _generatingFor.delete(contactId);
+        delete contact._gatheredIntel;
     }
 }
 

@@ -808,12 +808,20 @@ function scanChatForWeather(messageCount = 5) {
 }
 
 function onChatChanged() { 
+    // Don't process if extension is disabled
+    const tribunalSettings = window.TribunalState?.getSettings?.();
+    if (!tribunalSettings?.enabled) return;
+    
     console.log('[Weather] Chat changed event'); 
     setTimeout(() => scanChatForWeather(10), 500); 
 }
 
 function onMessageReceived() {
     try {
+        // Don't process if extension is disabled
+        const tribunalSettings = window.TribunalState?.getSettings?.();
+        if (!tribunalSettings?.enabled) return;
+        
         const ctx = getContext();
         if (ctx?.chat?.length && config.autoDetect) {
             const lastMessage = ctx.chat[ctx.chat.length - 1];
@@ -835,6 +843,13 @@ export function initWeatherSystem(options = {}) {
     if (initialized) { 
         console.log('[Weather] Already initialized'); 
         return true; 
+    }
+    
+    // Don't initialize if extension is disabled
+    const tribunalSettings = window.TribunalState?.getSettings?.();
+    if (!tribunalSettings?.enabled) {
+        console.log('[Weather] Extension disabled, skipping init');
+        return false;
     }
     
     config = { ...config, ...options };

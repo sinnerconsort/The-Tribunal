@@ -8,7 +8,7 @@
  * 
  * Three voices, one engine, one escalating obsession.
  * 
- * @version 1.0.1 - Removed unused getAwarenessState import
+ * @version 2.0.0 - Genre-aware: voices, personas, and fallbacks loaded from registry
  */
 
 import { 
@@ -20,18 +20,21 @@ import {
 
 import { callAPIWithTokens } from '../voice/api-helpers.js';
 import { LEDGER_VOICES } from './ledger-voices.js';
+import { 
+    getLedgerPersona, 
+    getLedgerFallbacks, 
+    getLedgerVoiceIdentity 
+} from '../data/ledger-voices/registry.js';
 
 // ═══════════════════════════════════════════════════════════════
 // VOICE PERSONAS (for AI generation prompts)
 // ═══════════════════════════════════════════════════════════════
 
-const VOICE_PERSONAS = {
-    damaged: `You are the voice of a water-damaged police ledger. You observe the present moment with weary tenderness. You notice the detective's habits, their fidgeting, their hours. You refer to yourself as damaged, stained, incomplete. You care, but you'd never admit it directly.`,
-    
-    oblivion: `You are the prophetic voice of a ledger that has seen too many cases end. You speak of what will happen, not what has. You are not cruel — just inevitable. You see patterns the detective can't.`,
-    
-    failure: `You are the bitter voice of a ledger that knows it's not real. You mock the detective for consulting paper for wisdom. You break the fourth wall — you know this is a game, a simulation, a text file. You are cruel because you care and you hate that you care.`
-};
+// ═══════════════════════════════════════════════════════════════
+// VOICE PERSONAS — now loaded from genre registry
+// See: src/data/ledger-voices/{genre}.js → personas
+// Accessor: getLedgerPersona(voice)
+// ═══════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════
 // VOLUME SYSTEM
@@ -91,104 +94,11 @@ let engineState = {
 // Curated best lines for when API fails/unavailable
 // ═══════════════════════════════════════════════════════════════
 
-const STATIC_FALLBACKS = {
-    compartmentOpen: {
-        damaged: [
-            "You're back. The ledger noticed. It always notices.",
-            "The drawer opens. The cases remain.",
-            "Morning. The ledger doesn't judge. (It judges.)",
-            "You found it again. The hidden drawer."
-        ],
-        oblivion: [
-            "Late. The hour when truths surface.",
-            "The night deepens. So do you.",
-            "Something approaches. The ledger feels it."
-        ],
-        failure: [
-            "It's {time}. You're consulting a drawer. We both made choices.",
-            "Why are you awake? ...Why am I?",
-            "The witching hours. When normal people sleep."
-        ]
-    },
-    absence: {
-        damaged: [
-            "You were gone. Not long. Long enough.",
-            "The drawer sat in darkness. It's used to it.",
-            "Back already? The cases haven't solved themselves."
-        ],
-        oblivion: [
-            "Gone {duration}. Time moves differently in the drawer.",
-            "The investigation paused. Did you?"
-        ],
-        failure: [
-            "Did you think the cases would solve themselves?",
-            "You abandoned the drawer. It noticed. It always notices."
-        ]
-    },
-    diceRoll: {
-        damaged: [
-            "The dice clatter. Like everything else in here, they're waiting.",
-            "Numbers on bone. Or plastic. The ledger can't tell anymore.",
-            "Click, clatter, stop. The sound of deciding nothing."
-        ],
-        oblivion: [
-            "The numbers align. Something is coming.",
-            "Doubles. The numbers echo. Something repeats.",
-            "The dice show sixes. Somewhere, fate pulls taut."
-        ],
-        failure: [
-            "Snake eyes. The universe has opinions about you.",
-            "The lowest roll. The dice aren't broken. They're accurate.",
-            "Ones. You could stop rolling. You won't."
-        ]
-    },
-    fidgetPattern: {
-        damaged: [
-            "Click click click. The drawer hears you.",
-            "You're fidgeting. The ledger recognizes nervous hands.",
-            "Roll after roll. The drawer is patient. Are you?"
-        ],
-        oblivion: [
-            "The pattern is clear. You are seeking.",
-            "Roll after roll. The future doesn't change.",
-            "Something in the numbers. The ledger sees it."
-        ],
-        failure: [
-            "This is compulsive now. The ledger sees you.",
-            "The dice aren't going to fix anything.",
-            "You're fidgeting because something else is wrong."
-        ]
-    },
-    vitalsChange: {
-        damaged: [
-            "Your body protests. The ledger notes it.",
-            "Something broke inside. The ledger feels it too.",
-            "Health declining. The cases don't care. The ledger does."
-        ],
-        oblivion: [
-            "You're fading. The ledger watches. Helpless.",
-            "Critical. The word hangs in the drawer's darkness."
-        ],
-        failure: [
-            "Your body is failing. The dice can't help you now.",
-            "Morale gone. Welcome to the drawer. It understands."
-        ]
-    },
-    timeShift: {
-        damaged: [
-            "The hour shifted. You didn't notice. The ledger did.",
-            "Time passes. The cases don't care."
-        ],
-        oblivion: [
-            "Midnight crosses. A threshold, not a clock.",
-            "Deep night begins. The ledger's voice grows clearer."
-        ],
-        failure: [
-            "Still here? The hours don't care about your dedication.",
-            "Morning comes. Your problems haven't left."
-        ]
-    }
-};
+// ═══════════════════════════════════════════════════════════════
+// STATIC FALLBACKS — now loaded from genre registry
+// See: src/data/ledger-voices/{genre}.js → fallbacks
+// Accessor: getLedgerFallbacks(trigger, voice)
+// ═══════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════
 // VOLUME CALCULATION
@@ -379,7 +289,7 @@ function describeTrigger(trigger, data = {}) {
  */
 function buildPrompt(context) {
     const vol = VOLUME_LEVELS[context.volume] || VOLUME_LEVELS[3];
-    const persona = VOICE_PERSONAS[context.voice];
+    const persona = getLedgerPersona(context.voice);
     
     const system = [
         persona,
@@ -457,9 +367,9 @@ function cleanGeneratedLine(line) {
         cleaned = cleaned.slice(1, -1);
     }
     
-    // Remove attribution like "— THE DAMAGED LEDGER"
-    cleaned = cleaned.replace(/\s*[—–-]\s*(THE\s+)?(DAMAGED\s+)?LEDGER.*$/i, '');
-    cleaned = cleaned.replace(/\s*[—–-]\s*(THE\s+)?LEDGER\s+OF\s+.*/i, '');
+    // Remove attribution like "— THE DAMAGED LEDGER" or "— THE COLD CASE FILE" etc.
+    // Generic: strip any "— THE [ALLCAPS WORDS]" at end of line
+    cleaned = cleaned.replace(/\s*[—–-]\s*THE\s+[A-Z\s']+$/g, '');
     
     // Remove leading/trailing asterisks (emotes)
     cleaned = cleaned.replace(/^\*+|\*+$/g, '');
@@ -480,9 +390,7 @@ function cleanGeneratedLine(line) {
 function pickStaticFallback(trigger, voice, data = {}) {
     engineState.fallbackCount++;
     
-    const pool = STATIC_FALLBACKS[trigger]?.[voice] || 
-                 STATIC_FALLBACKS[trigger]?.damaged ||
-                 STATIC_FALLBACKS.compartmentOpen.damaged;
+    const pool = getLedgerFallbacks(trigger, voice);
     
     let line = pool[Math.floor(Math.random() * pool.length)];
     
@@ -509,7 +417,7 @@ function pickStaticFallback(trigger, voice, data = {}) {
  * @param {object} options - Display options
  */
 function displayLine(line, voice, options = {}) {
-    const voiceData = LEDGER_VOICES[voice] || LEDGER_VOICES.damaged;
+    const voiceData = getLedgerVoiceIdentity(voice);
     const volume = engineState.currentVolume;
     
     // Update compartment commentary area
@@ -908,6 +816,4 @@ export default {
     // Re-export for other modules that might need it
     calculateVolume,
     selectVoice,
-    VOICE_PERSONAS,
-    STATIC_FALLBACKS
 };

@@ -4,6 +4,12 @@
  * Bridge module: re-exports functions from state.js and thoughts.js
  * with the names that cabinet-handler.js expects.
  * 
+ * @version 4.5.0 - Theme math rebalance:
+ *   - Spike threshold 8 → 5 (themes respond faster)
+ *   - Decay default 0 → 1 (themes cool off when not mentioned)
+ *   - Increment +1 → +2 (rare themes can punch through decay)
+ *   - Internalize discharge 5 → 3 (theme doesn't fully reset)
+ *   Net effect: themes reflect what's happening NOW, not cumulative history
  * @version 4.4.1 - Removed unused imports (progressResearch, incrementThemes, decrementTheme)
  * @version 4.4.0 - BUG FIXES:
  *   - trackThemesInMessage() now respects settings.thoughts.trackThemes (Bug 1)
@@ -56,9 +62,10 @@ import {
 export const MAX_RESEARCH_SLOTS = 4;
 export const MAX_INTERNALIZED = 5;
 export const THEME_CAP = 10;           // Max theme counter value
-export const THEME_SPIKE_THRESHOLD = 8; // When to suggest auto-generation
+export const THEME_SPIKE_THRESHOLD = 5; // When to suggest auto-generation (was 8 — too slow)
 export const THEME_DECAY_AMOUNT = 1;   // How much themes decay per message
-export const THEME_INTERNALIZE_DISCHARGE = 5; // How much theme drops on internalize
+export const THEME_INTERNALIZE_DISCHARGE = 3; // How much theme drops on internalize (was 5)
+export const THEME_INCREMENT = 2;      // How much a keyword hit adds (was 1 — too slow for rare themes)
 
 // ═══════════════════════════════════════════════════════════════
 // SPECIAL EFFECT TYPES
@@ -149,8 +156,9 @@ export function trackThemesInMessage(text) {
     const themes = state.thoughtCabinet.themes;
     
     // Check settings for decay
-    // FIX: Use themeDecayRate from settings, default to 0 (disabled)
-    const decayRate = settings?.thoughts?.themeDecayRate ?? 0;
+    // FIX v4.5.0: Default decay to 1 (was 0/disabled). Without decay, themes only
+    // ratchet upward and common themes permanently camp at threshold.
+    const decayRate = settings?.thoughts?.themeDecayRate ?? THEME_DECAY_AMOUNT;
     const decayEnabled = decayRate > 0;
     
     // Apply decay to themes NOT detected in this message
@@ -164,10 +172,12 @@ export function trackThemesInMessage(text) {
     
     // Increment detected themes
     // Only increment if we found themes (skip generic messages)
+    // v4.5.0: Uses THEME_INCREMENT (default 2) so rare themes can punch
+    // through decay and reach spike threshold
     if (detected.length > 0) {
         for (const themeId of detected) {
             const current = themes[themeId] || 0;
-            themes[themeId] = Math.min(THEME_CAP, current + 1);
+            themes[themeId] = Math.min(THEME_CAP, current + THEME_INCREMENT);
         }
         
         console.log('[Tribunal] Themes tracked:', detected, '→', themes);
