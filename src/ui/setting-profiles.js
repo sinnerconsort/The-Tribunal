@@ -17,6 +17,10 @@
  * - `getActiveProfile()` reads from global settings
  * - `getSkillPersonality(skillId)` is the main accessor other files use
  * 
+ * @version 1.4.0 - Added thought cabinet style properties to all profiles:
+ *                  thoughtExampleNames, thoughtToneGuide, thoughtExampleSolution
+ *                  These feed into thought-prompt-builder.js to make generated
+ *                  thoughts match the active genre/setting profile.
  * @version 1.3.0 - All profiles fleshed out: Generic, Noir, Fantasy, Space Opera (+ DE original)
  */
 
@@ -120,6 +124,11 @@ export const SETTING_PROFILES = {
         thoughtStyleName: `Disco Elysium's Thought Cabinet`,
         thoughtStyleDescription: 'introspective thought in the style of Disco Elysium',
 
+        // ── Thought Cabinet Style Guide (fed to AI generation prompts) ──
+        thoughtExampleNames: ['WASTE LAND OF REALITY', 'VOLUMETRIC SHIT COMPRESSOR', 'RIGOROUS SELF-CRITIQUE', 'THE SUICIDE OF KRAS MAZOV', 'JAMAIS VU (DEREALIZATION)'],
+        thoughtToneGuide: `Thoughts can be existential, absurdist, political, or unexpectedly practical. The tone shifts — one thought is a nihilistic meditation on failure, the next is a pseudo-scientific report on the density of your own shit. Match the tone to the concept: serious themes get poetic treatment, bodily/substance themes get darkly comedic treatment, political themes get ideological treatment. Don't default to one register.`,
+        thoughtExampleSolution: `"Congrats — you're sober. It will take a while for your body to remember how to metabolize anything that isn't sugar from alcohol, so you're going to be pretty ravenous soon. Eat plenty."`,
+
         // ── World Defaults ──
         currency: 'Réal',
         defaultWeather: {
@@ -202,6 +211,11 @@ export const SETTING_PROFILES = {
         thoughtSystemName: 'the detective\'s internal monologue system',
         thoughtStyleName: 'the case board',
         thoughtStyleDescription: 'introspective thought in the style of hardboiled noir fiction',
+
+        // ── Thought Cabinet Style Guide ──
+        thoughtExampleNames: ['THREE DRINKS PAST MIDNIGHT', 'THE DAME WHO WALKED IN', 'DEAD MAN\'S ALIBI', 'BADGE AND BOTTLE', 'THE COLD CASE ITCH'],
+        thoughtToneGuide: `Thoughts read like hardboiled detective voiceover — cynical, world-weary, with occasional moments of raw honesty that cut through the tough-guy act. Problem text is the detective arguing with themselves at 3 AM. Solution text lands like the last line of a chapter — blunt, resigned, or darkly funny. Avoid purple prose. Noir is economical. Every sentence should hit like a short pour of whiskey.`,
+        thoughtExampleSolution: `"The case isn't cold. You are. You stopped caring somewhere around the third dead end and the fifth drink. The evidence didn't change. You did."`,
 
         // ── World Defaults ──
         currency: 'dollar',
@@ -306,6 +320,11 @@ export const SETTING_PROFILES = {
         thoughtStyleName: 'the thought cabinet',
         thoughtStyleDescription: 'introspective thought exploring the character\'s inner world',
 
+        // ── Thought Cabinet Style Guide ──
+        thoughtExampleNames: ['THE WEIGHT OF CHOOSING', 'FAMILIAR STRANGER', 'LEARNED HELPLESSNESS', 'THE GOOD VERSION OF YOU', 'COMFORTABLE NUMBNESS'],
+        thoughtToneGuide: `Take cues from the conversation's genre and tone. If the RP is dark, the thoughts should be raw and unflinching. If it's light, they can be wry and self-aware. If it's dramatic, let them be operatic. The thought should feel like it belongs in THIS story — not transplanted from somewhere else. Read the room and match it. When in doubt, aim for the tone of an introspective journal entry written at 2 AM: honest, slightly unhinged, and more perceptive than the writer realizes.`,
+        thoughtExampleSolution: `"You already knew the answer. You asked the question because you were hoping someone would talk you out of it. Nobody did. That's the answer too."`,
+
         currency: 'coin',
         defaultWeather: {
             condition: 'clear',
@@ -407,6 +426,11 @@ export const SETTING_PROFILES = {
         thoughtSystemName: 'the adventurer\'s inner council',
         thoughtStyleName: 'the inner sanctum',
         thoughtStyleDescription: 'introspective thought in the style of epic fantasy narration',
+
+        // ── Thought Cabinet Style Guide ──
+        thoughtExampleNames: ['THE DRAGON\'S SILENCE', 'BLOOD OATH REMEMBERED', 'THE EMPTY THRONE', 'OATHBREAKER\'S ARITHMETIC', 'THE HEALER\'S DOUBT'],
+        thoughtToneGuide: `Thoughts have the weight of myth but the honesty of a campfire confession. Problem text is the hero questioning the quest at 3 AM while the fire dies — not grand speeches, but quiet doubt. Solution text has finality: a conclusion that feels carved in stone, even if what's carved is uncomfortable. Avoid Tolkien pastiche — no "hark" or "lo." Think more like Joe Abercrombie or Ursula Le Guin: earned wisdom, not decorative language. Mythic weight, modern clarity.`,
+        thoughtExampleSolution: `"The oath doesn't care why you broke it. The people you swore to protect don't care why you left. You had your reasons. You'll carry them alongside the consequences. Both are heavy. Neither goes away."`,
 
         // ── World Defaults ──
         currency: 'gold',
@@ -511,6 +535,11 @@ export const SETTING_PROFILES = {
         thoughtSystemName: 'the officer\'s inner council',
         thoughtStyleName: 'the command log',
         thoughtStyleDescription: 'introspective thought in the style of space opera narration',
+
+        // ── Thought Cabinet Style Guide ──
+        thoughtExampleNames: ['HULL BREACH PROTOCOL', 'THE LAST TRANSMISSION', 'VOID SICKNESS', 'ACCEPTABLE LOSSES', 'THE GRAVITY YOU LEFT BEHIND'],
+        thoughtToneGuide: `Thoughts oscillate between clinical precision and existential vastness. Problem text reads like a personal log entry that got too honest — the officer's mask slipping in private. Solution text has the finality of a captain's decision: measured, costly, and made knowing the math. The void is always there in the background — the scale of space makes personal problems feel both insignificant and desperately urgent. Think Battlestar Galactica introspection, not Star Wars adventure.`,
+        thoughtExampleSolution: `"The math doesn't change. Fourteen hours of oxygen. Six crew. You already know which two names you'd cross off the list. You've known since the breach. The decision isn't the hard part. Living with it afterward is."`,
 
         // ── World Defaults ──
         currency: 'credit',
