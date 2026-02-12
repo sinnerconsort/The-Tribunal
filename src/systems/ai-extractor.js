@@ -2,7 +2,11 @@
  * The Tribunal - AI Extractor
  * Uses AI to extract game state from chat messages
  * 
- * @version 1.0.1 - Removed unused getSettings import
+ * @version 2.0.0 - AI-primary vitals + condition-to-status detection
+ *   - Vitals changes now APPLIED to state (no longer log-only)
+ *   - Added condition field: physical/mental/dying state detection
+ *   - Maps AI conditions to status effect IDs (replaces regex as primary)
+ *   - Dispatches tribunal:vitalsChanged + tribunal:statusRefreshNeeded events
  * 
  * EXPANDED: Now extracts:
  * - Quests/Cases (existing)
@@ -140,6 +144,11 @@ Extract ALL of the following. Respond with ONLY valid JSON (no markdown, no expl
   "vitals": {
     "health": {"change": 0, "reason": "Why HP changed or null"},
     "morale": {"change": 0, "reason": "Why morale changed or null"}
+  },
+  "condition": {
+    "physical": "wounded|exhausted|intoxicated|drugged|poisoned|healthy|null",
+    "mental": "terrified|enraged|depressed|dissociating|manic|lovestruck|calm|null",
+    "dying": false
   }
 }
 
@@ -149,6 +158,11 @@ RULES:
 - EQUIPMENT is NOT: body features, hair, eyes, scars, tattoos, physical descriptions
 - INVENTORY = carried/usable items: weapons, tools, consumables, documents, money, keys, etc.
 - VITALS: health damage from injuries/exhaustion; morale damage from emotional trauma/failure
+- CONDITION: the PLAYER CHARACTER's current physical/mental state after this message
+- CONDITION physical: "wounded" (injured/bleeding), "exhausted" (tired/drained), "intoxicated" (drunk), "drugged" (on substances), "poisoned", "healthy" (fine/uninjured), or null (unclear/unchanged)
+- CONDITION mental: "terrified" (scared/panicking), "enraged" (angry/furious), "depressed" (sad/grieving), "dissociating" (detached/unreal), "manic" (hyper/euphoric), "lovestruck" (desire/attraction), "calm" (composed), or null (unclear/unchanged)
+- CONDITION dying: true ONLY if the player character is dying or near death
+- CONDITION describes the PLAYER only, not NPCs or other characters
 - Use positive numbers for gains, negative for losses
 - For completed quests, title must closely match existing
 - If nothing to extract, use empty arrays [] or 0 for vitals
@@ -440,6 +454,7 @@ export async function extractFromMessage(messageText, options = {}) {
         equipment: { gained: [], lost: [], changed: [] },
         inventory: { gained: [], lost: [] },
         vitals: { health: { change: 0, reason: null }, morale: { change: 0, reason: null } },
+        condition: { physical: null, mental: null, dying: false },
         error: null,
         raw: null
     };
@@ -476,6 +491,7 @@ export async function extractFromMessage(messageText, options = {}) {
             results.equipment = parsed.equipment || results.equipment;
             results.inventory = parsed.inventory || results.inventory;
             results.vitals = parsed.vitals || results.vitals;
+            results.condition = parsed.condition || results.condition;
         } else {
             results.error = 'Failed to parse extraction response';
         }
@@ -518,6 +534,7 @@ function parseExtractionResponse(response) {
         if (!parsed.equipment) parsed.equipment = { gained: [], lost: [], changed: [] };
         if (!parsed.inventory) parsed.inventory = { gained: [], lost: [] };
         if (!parsed.vitals) parsed.vitals = { health: { change: 0, reason: null }, morale: { change: 0, reason: null } };
+        if (!parsed.condition) parsed.condition = { physical: null, mental: null, dying: false };
         
         // Ensure arrays
         ['new', 'completed', 'updated'].forEach(k => {
@@ -590,7 +607,9 @@ export async function processExtractionResults(results, options = {}) {
         inventoryGained: [],
         inventoryLost: [],
         healthChange: 0,
-        moraleChange: 0
+        moraleChange: 0,
+        statusesApplied: [],
+        statusesCleared: []
     };
     
     if (!results || results.error) {
@@ -733,20 +752,85 @@ export async function processExtractionResults(results, options = {}) {
     }
     
     // ─────────────────────────────────────────────────────────────
-    // Process Vitals Changes
-    // ─────────────────────────────────────────────────────────────
-    // VITALS: Handled exclusively by vitals-extraction.js (regex system)
-    // to prevent double-processing. AI extractor still EXTRACTS vitals
-    // data (for logging/debugging) but does NOT apply it to state.
+    // Process Vitals Changes (AI-PRIMARY)
+    // AI extractor is now the primary source for vitals changes.
+    // Regex (vitals-extraction.js) serves as fallback for when
+    // AI extraction is disabled or doesn't run.
     // ─────────────────────────────────────────────────────────────
     if (results.vitals) {
         if (results.vitals.health?.change && results.vitals.health.change !== 0) {
-            processed.healthChange = parseInt(results.vitals.health.change, 10) || 0;
-            console.log(`[AI Extractor] Vitals suggestion (not applied): Health ${processed.healthChange > 0 ? '+' : ''}${processed.healthChange} - ${results.vitals.health.reason || 'no reason'}`);
+            const delta = parseInt(results.vitals.health.change, 10) || 0;
+            if (delta !== 0) {
+                if (!state.vitals) state.vitals = { health: 13, maxHealth: 13, morale: 13, maxMorale: 13, activeEffects: [] };
+                state.vitals.health = Math.max(0, Math.min(state.vitals.maxHealth || 13, (state.vitals.health || 13) + delta));
+                processed.healthChange = delta;
+                console.log(`[AI Extractor] Health ${delta > 0 ? '+' : ''}${delta}: ${results.vitals.health.reason || 'no reason'} → now ${state.vitals.health}/${state.vitals.maxHealth}`);
+                
+                if (notifyCallback) {
+                    const verb = delta < 0 ? 'took damage' : 'healed';
+                    notifyCallback(`${verb}: ${results.vitals.health.reason || `${Math.abs(delta)} HP`}`, delta < 0 ? 'loss' : 'gain');
+                }
+            }
         }
         if (results.vitals.morale?.change && results.vitals.morale.change !== 0) {
-            processed.moraleChange = parseInt(results.vitals.morale.change, 10) || 0;
-            console.log(`[AI Extractor] Vitals suggestion (not applied): Morale ${processed.moraleChange > 0 ? '+' : ''}${processed.moraleChange} - ${results.vitals.morale.reason || 'no reason'}`);
+            const delta = parseInt(results.vitals.morale.change, 10) || 0;
+            if (delta !== 0) {
+                if (!state.vitals) state.vitals = { health: 13, maxHealth: 13, morale: 13, maxMorale: 13, activeEffects: [] };
+                state.vitals.morale = Math.max(0, Math.min(state.vitals.maxMorale || 13, (state.vitals.morale || 13) + delta));
+                processed.moraleChange = delta;
+                console.log(`[AI Extractor] Morale ${delta > 0 ? '+' : ''}${delta}: ${results.vitals.morale.reason || 'no reason'} → now ${state.vitals.morale}/${state.vitals.maxMorale}`);
+                
+                if (notifyCallback) {
+                    const verb = delta < 0 ? 'morale hit' : 'morale boost';
+                    notifyCallback(`${verb}: ${results.vitals.morale.reason || `${Math.abs(delta)} Morale`}`, delta < 0 ? 'loss' : 'gain');
+                }
+            }
+        }
+        
+        // Dispatch vitals changed event for CRT display + condition effects
+        if (processed.healthChange !== 0 || processed.moraleChange !== 0) {
+            window.dispatchEvent(new CustomEvent('tribunal:vitalsChanged', {
+                detail: {
+                    health: state.vitals.health,
+                    maxHealth: state.vitals.maxHealth,
+                    morale: state.vitals.morale,
+                    maxMorale: state.vitals.maxMorale,
+                    source: 'ai-extractor'
+                }
+            }));
+        }
+    }
+    
+    // ─────────────────────────────────────────────────────────────
+    // Process Condition → Status Mapping
+    // Maps AI-detected physical/mental states to status effect IDs.
+    // More accurate than regex because the AI understands context
+    // (metaphors, NPC vs player, past vs present tense, etc.)
+    // ─────────────────────────────────────────────────────────────
+    if (results.condition) {
+        const conditionResult = applyConditionStatuses(state, results.condition);
+        processed.statusesApplied = conditionResult.applied;
+        processed.statusesCleared = conditionResult.cleared;
+        
+        if (conditionResult.applied.length > 0 || conditionResult.cleared.length > 0) {
+            if (conditionResult.applied.length > 0) {
+                console.log(`[AI Extractor] Conditions applied: ${conditionResult.applied.join(', ')}`);
+            }
+            if (conditionResult.cleared.length > 0) {
+                console.log(`[AI Extractor] Conditions cleared: ${conditionResult.cleared.join(', ')}`);
+            }
+            
+            window.dispatchEvent(new CustomEvent('tribunal:statusRefreshNeeded'));
+            window.dispatchEvent(new CustomEvent('tribunal:vitalsChanged', {
+                detail: {
+                    health: state.vitals?.health,
+                    maxHealth: state.vitals?.maxHealth,
+                    morale: state.vitals?.morale,
+                    maxMorale: state.vitals?.maxMorale,
+                    statusChange: true,
+                    source: 'ai-extractor'
+                }
+            }));
         }
     }
     
@@ -985,13 +1069,114 @@ export async function processExtractionResults(results, options = {}) {
         processed.inventoryGained.length > 0 ||
         processed.inventoryLost.length > 0 ||
         processed.healthChange !== 0 ||
-        processed.moraleChange !== 0;
+        processed.moraleChange !== 0 ||
+        processed.statusesApplied.length > 0 ||
+        processed.statusesCleared.length > 0;
     
     if (hasChanges) {
         saveChatState();
     }
     
     return processed;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONDITION → STATUS MAPPING
+// Maps AI-detected conditions to internal status effect IDs.
+// The AI sees descriptive labels; we translate to game IDs.
+// ═══════════════════════════════════════════════════════════════
+
+const CONDITION_TO_STATUS = {
+    // Physical conditions
+    wounded:     'finger_on_the_eject_button',
+    exhausted:   'waste_land',
+    intoxicated: 'revacholian_courage',
+    drugged:     'pyrholidon',
+    poisoned:    'finger_on_the_eject_button',  // Treated as wound/damage
+    
+    // Mental conditions
+    terrified:    'caustic_echo',
+    enraged:      'law_jaw',
+    depressed:    'the_expression',
+    dissociating: 'the_pale',
+    manic:        'tequila_sunset',
+    lovestruck:   'homo_sexual_underground'
+};
+
+// Conditions that mean "this category is fine" → clear related statuses
+const CLEAR_CONDITIONS = {
+    healthy: ['finger_on_the_eject_button', 'waste_land', 'white_mourning'],
+    calm:    ['caustic_echo', 'law_jaw', 'the_expression', 'the_pale', 'tequila_sunset']
+};
+
+/**
+ * Apply/clear status effects based on AI-detected condition
+ * @param {object} state - Current chat state
+ * @param {object} condition - { physical, mental, dying }
+ * @returns {{ applied: string[], cleared: string[] }}
+ */
+function applyConditionStatuses(state, condition) {
+    const applied = [];
+    const cleared = [];
+    
+    if (!state.vitals) state.vitals = { health: 13, maxHealth: 13, morale: 13, maxMorale: 13, activeEffects: [] };
+    if (!state.vitals.activeEffects) state.vitals.activeEffects = [];
+    
+    const activeEffects = state.vitals.activeEffects;
+    const activeIds = activeEffects.map(e => typeof e === 'string' ? e : e.id);
+    
+    // Handle "dying" flag → white_mourning
+    if (condition.dying === true) {
+        if (!activeIds.includes('white_mourning')) {
+            activeEffects.push({
+                id: 'white_mourning',
+                name: 'White Mourning',
+                source: 'ai-detected',
+                remainingMessages: null,
+                stacks: 1
+            });
+            applied.push('white_mourning');
+        }
+    }
+    
+    // Process physical + mental conditions
+    for (const field of ['physical', 'mental']) {
+        const value = condition[field]?.toLowerCase?.()?.trim();
+        if (!value || value === 'null') continue;
+        
+        // Check if it's a "clear" condition
+        if (CLEAR_CONDITIONS[value]) {
+            for (const statusId of CLEAR_CONDITIONS[value]) {
+                const idx = activeEffects.findIndex(e => 
+                    (typeof e === 'string' ? e : e.id) === statusId &&
+                    (typeof e === 'string' || e.source === 'ai-detected')
+                );
+                if (idx >= 0) {
+                    activeEffects.splice(idx, 1);
+                    cleared.push(statusId);
+                }
+            }
+            continue;
+        }
+        
+        // Map to status ID
+        const statusId = CONDITION_TO_STATUS[value];
+        if (!statusId) continue;
+        
+        // Don't duplicate
+        if (activeIds.includes(statusId)) continue;
+        
+        activeEffects.push({
+            id: statusId,
+            name: value.charAt(0).toUpperCase() + value.slice(1),
+            source: 'ai-detected',
+            remainingMessages: null,
+            stacks: 1
+        });
+        applied.push(statusId);
+    }
+    
+    return { applied, cleared };
 }
 
 // ═══════════════════════════════════════════════════════════════
