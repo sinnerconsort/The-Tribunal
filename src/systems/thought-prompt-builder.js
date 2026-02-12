@@ -143,27 +143,34 @@ function getResearchingThoughtNames() {
 
 /**
  * Determine the thought perspective based on POV style
- * @returns {Object} { type, description }
+ * 
+ * CRITICAL: In ALL perspectives, thoughts are inside the PROTAGONIST's head.
+ * The protagonist is the player's character — the "You" in the chat log.
+ * The CHARACTER (ctx.name2) is who the protagonist is talking to.
+ * 
+ * @returns {Object} { type, description, framing, example, targetNote }
  */
 function getThoughtPerspective() {
     const persona = getPersona();
     const povStyle = persona?.povStyle || 'second';
     
     if (povStyle === 'first') {
-        // First person = You ARE the character = Participant
+        // First person = Player IS the protagonist
         return {
             type: 'participant',
-            description: 'You ARE the protagonist, living this story from the inside.',
-            framing: 'Address the user directly as "you" - these are YOUR thoughts about YOUR actions and feelings.',
-            example: '"Why did you say that? What were you hoping to achieve?"'
+            description: 'The player IS the protagonist. The thought cabinet is inside THEIR head.',
+            framing: 'Address the protagonist directly as "you" — these are thoughts about what YOU did, what YOU felt, what YOU chose.',
+            example: '"Why did you say that? What were you hoping to achieve?"',
+            targetNote: 'The thought is about the PROTAGONIST (labeled "You" in the chat log), NOT about the character they are speaking to.'
         };
     } else {
-        // Second/Third person = You're watching = Observer
+        // Second/Third person = Player is watching but thoughts are STILL about the protagonist
         return {
             type: 'observer',
-            description: 'You are WATCHING the protagonist, observing their story unfold.',
-            framing: 'Address the user as someone observing - "you" refers to the watcher, not the character.',
-            example: '"Why does part of you understand them? What does their choice reveal?"'
+            description: 'The player is observing the protagonist\'s story, but the thought cabinet is still inside the PROTAGONIST\'s head.',
+            framing: 'Address the player as "you" watching — but the thought should be about what the PROTAGONIST is going through, as seen from outside.',
+            example: '"Why does part of you understand them? What does their choice reveal about what you\'re really looking for?"',
+            targetNote: 'The thought is about the PROTAGONIST (labeled "You" in the chat log), NOT about the character they are speaking to.'
         };
     }
 }
@@ -236,12 +243,17 @@ function buildSystemPrompt(perspective, themes, personaContext, existingThoughts
 ## YOUR TASK
 Generate ONE ${styleDesc} in the style of ${styleName}.
 
-## THE USER'S PERSPECTIVE
+## WHO IS WHO — READ THIS CAREFULLY
+- The PROTAGONIST is the player's character — labeled "You" in the chat log. The thought cabinet lives inside THEIR head.
+- The CHARACTER they are talking to is someone else — an NPC, a companion, an interlocutor. Thoughts are NOT about this character.
+- ${perspective.targetNote}
+
+## THE PLAYER'S PERSPECTIVE
 ${perspective.description}
 
-${personaContext ? `**Who they are:** ${personaContext}` : '**No persona context provided** - generate something that fits the narrative.'}
+${personaContext ? `**Who the protagonist is:** ${personaContext}` : '**No persona context provided** - generate something that fits the narrative.'}
 
-**CRITICAL - PLAYER PRONOUNS: Use ${formattedPronouns} when addressing the player. Do not infer pronouns from narrative context.**
+**CRITICAL - PLAYER PRONOUNS: Use ${formattedPronouns} when referring to the protagonist. Do not infer pronouns from narrative context.**
 
 ## FRAMING
 ${perspective.framing}
@@ -324,14 +336,15 @@ function buildUserPrompt(messages, characterName) {
         ? messages.join('\n\n')
         : 'No recent chat context available.';
     
-    return `The user is engaged with ${characterName}.
+    return `In this conversation, the PROTAGONIST ("You") is talking to ${characterName}.
+The thought cabinet is inside the PROTAGONIST's head — not ${characterName}'s.
 
 Recent conversation:
 ---
 ${chatContext}
 ---
 
-Generate a thought that latches onto ONE specific moment, choice, or tension from this conversation. Don't summarize — fixate on something. What did the user do or say (or fail to say) that reveals something deeper? Ground the thought in a CONCRETE detail from the scene above.`;
+Generate a thought about what the PROTAGONIST is going through. What did THEY do, say, feel, or fail to address? Fixate on ONE specific moment from the protagonist's perspective. This is THEIR internal monologue — not a commentary on ${characterName}.`;
 }
 
 /**
@@ -462,9 +475,13 @@ export function buildQuickThoughtPrompt(concept) {
     const styleDesc = getProfileValue('thoughtStyleDescription');
     
     // NOTE: No "icon" field requested - we derive it from theme
-    const system = `You generate ${styleDesc}s. The user is a ${perspective.type} (${perspective.description}).
+    const system = `You generate ${styleDesc}s. The player is a ${perspective.type} (${perspective.description}).
 
-**CRITICAL - PLAYER PRONOUNS: Use ${playerPronouns} when addressing the player. Do not infer pronouns from narrative context.**
+## WHO IS WHO
+The thought cabinet is inside the PROTAGONIST's head. ${perspective.targetNote}
+Thoughts are the protagonist's internal monologue — what THEY think, feel, question, obsess over.
+
+**CRITICAL - PLAYER PRONOUNS: Use ${playerPronouns} when referring to the protagonist. Do not infer pronouns from narrative context.**
 ${existingNote}
 
 Generate ONE thought about the concept provided. Output ONLY valid JSON:
@@ -483,7 +500,7 @@ BONUS RULES: Research: 1-2 skills at -1. Internalized: 1-4 skills, MIX of +1 and
 
 Skills: logic, encyclopedia, rhetoric, drama, conceptualization, visual_calculus, volition, inland_empire, empathy, authority, esprit_de_corps, suggestion, endurance, pain_threshold, physical_instrument, electrochemistry, shivers, half_light, hand_eye_coordination, perception, reaction_speed, savoir_faire, interfacing, composure`;
 
-    const user = `${persona?.context ? `User context: ${persona.context}\n\n` : ''}Generate a thought about: "${concept}"`;
+    const user = `${persona?.context ? `The protagonist: ${persona.context}\n\n` : ''}Generate a thought the PROTAGONIST is having about: "${concept}"`;
     
     return { 
         system, 
@@ -518,15 +535,19 @@ export function buildThemeTriggeredPrompt(spikingTheme) {
     const styleDesc = getProfileValue('thoughtStyleDescription');
     
     // NOTE: No "icon" field requested - theme is pre-determined
-    const system = `You generate ${styleDesc}s. The user is a ${perspective.type}.
+    const system = `You generate ${styleDesc}s. The player is a ${perspective.type}.
+
+## WHO IS WHO
+The thought cabinet is inside the PROTAGONIST's head. ${perspective.targetNote}
+Thoughts are the protagonist's internal monologue — what THEY think, feel, question, obsess over.
 
 ## CRITICAL: THEME SPIKE
-The theme "${spikingTheme.name}" has reached critical mass in this story.
-This thought MUST be primarily about ${spikingTheme.name.toLowerCase()}.
+The theme "${spikingTheme.name}" has reached critical mass in the PROTAGONIST's story.
+This thought MUST be primarily about what ${spikingTheme.name.toLowerCase()} means to the PROTAGONIST.
 
-**CRITICAL - PLAYER PRONOUNS: Use ${playerPronouns} when addressing the player. Do not infer pronouns from narrative context.**
+**CRITICAL - PLAYER PRONOUNS: Use ${playerPronouns} when referring to the protagonist. Do not infer pronouns from narrative context.**
 
-${persona?.context ? `User context: ${persona.context}` : ''}
+${persona?.context ? `The protagonist: ${persona.context}` : ''}
 ${existingThoughts.length > 0 ? `\nExisting thoughts (don't duplicate): ${existingThoughts.join(', ')}` : ''}
 
 Generate ONE thought that crystallizes what "${spikingTheme.name}" means in this SPECIFIC story — not in the abstract. Anchor it to something concrete from the conversation.
@@ -549,14 +570,15 @@ BONUS RULES: Research: 1-2 skills at -1. Internalized: 1-4 skills, MIX of +1 and
         ? recentMessages.join('\n\n')
         : 'No recent context available.';
 
-    const user = `The user is talking to ${characterName}.
+    const user = `The PROTAGONIST ("You") is talking to ${characterName}.
+The thought cabinet is inside the PROTAGONIST's head — not ${characterName}'s.
 
 Recent conversation where "${spikingTheme.name}" has been building:
 ---
 ${chatContext}
 ---
 
-Pick ONE specific moment from above where "${spikingTheme.name.toLowerCase()}" hit hardest. Build the thought around THAT moment — not the theme in general.`;
+Pick ONE specific moment where "${spikingTheme.name.toLowerCase()}" hit the PROTAGONIST hardest. What are THEY feeling about it? Build the thought around THAT — not around what ${characterName} did or said.`;
 
     return {
         system,
