@@ -2,6 +2,13 @@
  * The Tribunal - Contact Dossier System
  * Generates voice-written dossiers for NPCs
  * 
+ * v1.3.0 - Context-aware dossier generation
+ *   - Integrates context-gatherer.js for deep intel scanning
+ *   - Scans chat history, character card, persona, world info
+ *   - AI summarizes gathered intel before dossier generation
+ *   - Merges AI-discovered traits with existing detectedTraits
+ *   - Dossier includes intelSources and keyFacts metadata
+ * 
  * v1.2.0 - FIXED: Replaced broken lazy dynamic imports with static imports
  *   - callAPI imported directly from ../voice/api-helpers.js
  *   - SKILLS imported directly from ../data/skills.js
@@ -22,6 +29,7 @@
 import { callAPI } from '../voice/api-helpers.js';
 import { SKILLS } from '../data/skills.js';
 import { getSkillPersonality, getProfileValue } from '../data/setting-profiles.js';
+import { gatherAndSummarizeIntel } from './context-gatherer.js';
 
 let _generatingFor = new Set(); // Prevent duplicate generation
 
@@ -152,15 +160,40 @@ CONSENSUS: [2-3 sentence description from the protagonist's perspective]
 ${voicePersonalities.map(v => `${v.name}: [One punchy sentence or two short sentences]`).join('\n')}`;
 
     // Gather all available context about this contact
+    // Uses gathered intel if available (from context-gatherer), falls back to raw fields
     const contextParts = [];
-    if (contact.context) contextParts.push(contact.context);
-    if (contact.relationship) contextParts.push(`Relationship: ${contact.relationship}`);
-    if (contact.notes) contextParts.push(`Notes: ${contact.notes}`);
-    // Also check for gathered intel from scanning (future feature)
-    if (contact.intel?.length > 0) contextParts.push(...contact.intel.slice(0, 3));
+    
+    if (contact._gatheredIntel) {
+        // Rich intel from context-gatherer
+        const intel = contact._gatheredIntel;
+        if (intel.summary) contextParts.push(`INTELLIGENCE SUMMARY: ${intel.summary}`);
+        if (intel.relationship) contextParts.push(`ASSESSED RELATIONSHIP: ${intel.relationship}`);
+        if (intel.keyFacts?.length > 0) contextParts.push(`KEY FACTS: ${intel.keyFacts.join('; ')}`);
+        if (intel.sources?.length > 0) contextParts.push(`(Sources: ${intel.sources.join(', ')})`);
+        
+        // Also include raw chat snippets for grounding (up to 5)
+        if (intel.raw?.chatSnippets?.length > 0) {
+            const snippetText = intel.raw.chatSnippets
+                .slice(0, 5)
+                .map(s => `[${s.role}]: ${s.snippet}`)
+                .join('\n');
+            contextParts.push(`RELEVANT DIALOGUE:\n${snippetText}`);
+        }
+        
+        // Character card context
+        if (intel.raw?.characterCard) {
+            contextParts.push(`FROM CHARACTER LORE: ${intel.raw.characterCard}`);
+        }
+    } else {
+        // Fallback to raw contact fields
+        if (contact.context) contextParts.push(contact.context);
+        if (contact.relationship) contextParts.push(`Relationship: ${contact.relationship}`);
+        if (contact.notes) contextParts.push(`Notes: ${contact.notes}`);
+        if (contact.intel?.length > 0) contextParts.push(...contact.intel.slice(0, 3));
+    }
     
     const contextString = contextParts.length > 0 
-        ? contextParts.join('. ')
+        ? contextParts.join('\n')
         : 'No context available — the protagonist has barely interacted with this person.';
 
     const user = `Generate a dossier entry for this person as seen by the PROTAGONIST:
@@ -255,7 +288,33 @@ export async function generateDossier(contact, contactId) {
     console.log('[Dossier] Generating for:', contact.name);
     
     try {
-        // Select voices for quips
+        // ═══════════════════════════════════════════════════════
+        // Step 1: Gather intel from all available sources
+        // Chat history, character card, persona, world info + AI summary
+        // ═══════════════════════════════════════════════════════
+        let gatheredIntel = null;
+        try {
+            gatheredIntel = await gatherAndSummarizeIntel(contact, true);
+            if (gatheredIntel) {
+                console.log('[Dossier] Intel gathered from:', gatheredIntel.sources?.join(', ') || 'none');
+                // Attach to contact temporarily for prompt building
+                contact._gatheredIntel = gatheredIntel;
+                
+                // Merge any AI-discovered traits
+                if (gatheredIntel.traits?.length > 0) {
+                    const existing = new Set(contact.detectedTraits || []);
+                    gatheredIntel.traits.forEach(t => existing.add(t));
+                    contact.detectedTraits = Array.from(existing);
+                }
+            }
+        } catch (e) {
+            console.warn('[Dossier] Intel gathering failed (non-fatal):', e.message);
+            // Continue without gathered intel — prompt will use raw fields
+        }
+        
+        // ═══════════════════════════════════════════════════════
+        // Step 2: Select voices for quips
+        // ═══════════════════════════════════════════════════════
         const quipVoices = selectQuipVoices(contact.voiceOpinions);
         
         if (quipVoices.length === 0) {
@@ -277,6 +336,15 @@ export async function generateDossier(contact, contactId) {
         dossier.generatedAt = Date.now();
         dossier.triggerDisposition = contact.disposition;
         
+        // Attach intel metadata for display
+        if (gatheredIntel) {
+            dossier.intelSources = gatheredIntel.sources || [];
+            dossier.keyFacts = gatheredIntel.keyFacts || [];
+        }
+        
+        // Clean up temporary property
+        delete contact._gatheredIntel;
+        
         console.log('[Dossier] Generated:', dossier);
         return dossier;
         
@@ -285,8 +353,9 @@ export async function generateDossier(contact, contactId) {
         // Re-throw so the caller can show the actual error message
         throw error;
     } finally {
-        // Always clear the lock
+        // Always clear the lock and cleanup
         _generatingFor.delete(contactId);
+        delete contact._gatheredIntel;
     }
 }
 
