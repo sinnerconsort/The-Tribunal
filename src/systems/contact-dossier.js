@@ -29,8 +29,24 @@
 import { callAPI } from '../voice/api-helpers.js';
 import { SKILLS } from '../data/skills.js';
 import { getSkillPersonality, getProfileValue } from '../data/setting-profiles.js';
-import { gatherAndSummarizeIntel } from './context-gatherer.js';
-import { extensionSettings } from '../core/state.js';
+import { getSettings } from '../core/state.js';
+
+// Lazy import — context-gatherer is optional, dossiers work without it
+let _gatherAndSummarizeIntel = null;
+let _gathererLoaded = false;
+async function getGatherer() {
+    if (_gathererLoaded) return _gatherAndSummarizeIntel;
+    try {
+        const mod = await import('./context-gatherer.js');
+        _gatherAndSummarizeIntel = mod.gatherAndSummarizeIntel;
+        console.log('[Tribunal] Context gatherer loaded');
+    } catch (e) {
+        console.log('[Tribunal] Context gatherer not available — dossiers will use basic context');
+        _gatherAndSummarizeIntel = null;
+    }
+    _gathererLoaded = true;
+    return _gatherAndSummarizeIntel;
+}
 
 let _generatingFor = new Set(); // Prevent duplicate generation
 
@@ -112,9 +128,10 @@ export function selectQuipVoices(voiceOpinions) {
  * Ensures voices address the protagonist correctly (you/they/I)
  */
 function getPOVInstruction() {
-    const pov = extensionSettings?.povStyle || 'second';
-    const charName = extensionSettings?.characterName || '';
-    const pronouns = extensionSettings?.characterPronouns || 'they';
+    const settings = getSettings();
+    const pov = settings?.povStyle || settings?.persona?.povStyle || 'second';
+    const charName = settings?.characterName || settings?.persona?.characterName || '';
+    const pronouns = settings?.characterPronouns || settings?.persona?.pronouns || 'they';
     
     if (pov === 'second') {
         return `- PERSPECTIVE: Address the protagonist as "you" — NEVER use their name. The voices speak directly TO the protagonist, not about them. Example: "He dropped his instrument to reach you" not "to reach ${charName || 'the protagonist'}".`;
@@ -229,7 +246,7 @@ DISPOSITION: ${contact.disposition || 'Neutral'}
 KNOWN CONTEXT: ${contextString}
 DETECTED TRAITS: ${(contact.detectedTraits || []).join(', ') || 'None identified yet'}
 
-Remember: Consensus first (from the protagonist's perspective), then one quip per voice (${voicePersonalities.map(v => v.name).join(', ')}).${extensionSettings?.povStyle === 'second' ? ' Use "you" for the protagonist — never their name.' : ''}`;
+Remember: Consensus first (from the protagonist's perspective), then one quip per voice (${voicePersonalities.map(v => v.name).join(', ')}).${(getSettings()?.povStyle || getSettings()?.persona?.povStyle) === 'second' ? ' Use "you" for the protagonist — never their name.' : ''}`;
 
     return { system, user };
 }
@@ -320,17 +337,20 @@ export async function generateDossier(contact, contactId) {
         // ═══════════════════════════════════════════════════════
         let gatheredIntel = null;
         try {
-            gatheredIntel = await gatherAndSummarizeIntel(contact, true);
-            if (gatheredIntel) {
-                console.log('[Dossier] Intel gathered from:', gatheredIntel.sources?.join(', ') || 'none');
-                // Attach to contact temporarily for prompt building
-                contact._gatheredIntel = gatheredIntel;
-                
-                // Merge any AI-discovered traits
-                if (gatheredIntel.traits?.length > 0) {
-                    const existing = new Set(contact.detectedTraits || []);
-                    gatheredIntel.traits.forEach(t => existing.add(t));
-                    contact.detectedTraits = Array.from(existing);
+            const gatherFn = await getGatherer();
+            if (gatherFn) {
+                gatheredIntel = await gatherFn(contact, true);
+                if (gatheredIntel) {
+                    console.log('[Dossier] Intel gathered from:', gatheredIntel.sources?.join(', ') || 'none');
+                    // Attach to contact temporarily for prompt building
+                    contact._gatheredIntel = gatheredIntel;
+                    
+                    // Merge any AI-discovered traits
+                    if (gatheredIntel.traits?.length > 0) {
+                        const existing = new Set(contact.detectedTraits || []);
+                        gatheredIntel.traits.forEach(t => existing.add(t));
+                        contact.detectedTraits = Array.from(existing);
+                    }
                 }
             }
         } catch (e) {
