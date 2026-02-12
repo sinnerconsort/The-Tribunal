@@ -5,10 +5,11 @@
  * based on persona, themes, and chat context.
  * 
  * @version 4.5.0 - Prompt tightening overhaul:
+ *   - Style guide now pulled from active setting profile (genre-adaptive)
  *   - Added theme→skill affinity guide (model picks thematically relevant bonuses)
- *   - Constrained bonus values to -1/+1 strictly, 1-2 skills each
+ *   - Internalized bonuses now MIX positive AND negative (thoughts change you, not reward you)
  *   - Added specialEffect examples with valid status targets
- *   - Shortened text requirements (150w problem, 80w solution vs uncapped paragraphs)
+ *   - Shortened text requirements (150w problem, 100w solution vs uncapped paragraphs)
  *   - Name constraint: 2-5 words max
  *   - Directed user prompts: "fixate on ONE moment" vs "what's bubbling"
  *   - researchTime default 10→8 (thoughts complete slightly faster)
@@ -300,13 +301,13 @@ Most thoughts should have "specialEffect": null. Only ~20% should have one.
 logic, encyclopedia, rhetoric, drama, conceptualization, visual_calculus, volition, inland_empire, empathy, authority, esprit_de_corps, suggestion, endurance, pain_threshold, physical_instrument, electrochemistry, shivers, half_light, hand_eye_coordination, perception, reaction_speed, savoir_faire, interfacing, composure
 
 ## STYLE GUIDE
-- Names: evocative, 2-5 words, ALL CAPS. Think case file labels, band names, medical diagnoses.
-  Examples: "WASTE LAND OF REALITY", "RIGOROUS SELF-CRITIQUE", "ACTUAL ART DEGREE"
-- Problem text: can be philosophical questioning, neurotic fixation, absurdist tangent, or earnest confusion.
-  NOT always poetic. Sometimes it's blunt: "There's something you can't get out of your head."
-  Sometimes it's unhinged. Match the tone to the theme.
-- Solution text: can be twisted wisdom, practical advice, dark comedy, or resigned acceptance.
-  "Congrats — you're sober." is a valid solution. So is cosmic horror. Match the thought.
+${getProfileValue('thoughtToneGuide', 'Match the tone to the story. Read the room.')}
+
+- Names: evocative, 2-5 words, ALL CAPS.
+  Examples from this setting: ${(getProfileValue('thoughtExampleNames', ['THE WEIGHT OF CHOOSING', 'FAMILIAR STRANGER'])).join(', ')}
+- Problem text: 1-2 short paragraphs, max 150 words. Grounded in specifics from the conversation.
+- Solution text: 1 paragraph, max 100 words. Has finality — a conclusion, not a continuation.
+  Example: ${getProfileValue('thoughtExampleSolution', '"You already knew. You were just hoping someone would talk you out of it."')}
 - Reference SPECIFIC moments from the chat. Don't be generic.
 - The thought should feel like internalizing it genuinely changes how you approach the story —
   the bonuses and penalties should feel like CONSEQUENCES of accepting this truth about yourself.`;
