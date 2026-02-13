@@ -1619,6 +1619,13 @@ export function collectItem(objectName) {
             addedAt: Date.now()
         });
         console.log('[Investigation] Added to inventory:', objectName);
+        
+        // Tell inventory UI to refresh
+        try {
+            document.dispatchEvent(new CustomEvent('tribunal:inventoryChanged', {
+                detail: { source: 'investigation', item: objectName }
+            }));
+        } catch (e) { /* silent */ }
     }
     
     saveChatState();
