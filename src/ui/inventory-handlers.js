@@ -62,7 +62,7 @@ function getRecentChatContext(maxMessages = 15) {
         const messages = allMessages.slice(-maxMessages);
         
         const cleanedMessages = messages
-            .filter(m => m.mes && !m.is_system) // Skip system messages
+            .filter(m => m.mes && m.is_user && !m.is_system) // USER messages only — AI messages describe NPC items
             .map(m => {
                 let text = m.mes;
                 
@@ -83,7 +83,7 @@ function getRecentChatContext(maxMessages = 15) {
             })
             .filter(text => text.length > 20); // Skip very short/empty messages
         
-        console.log(`[Inventory] Found ${cleanedMessages.length} chat messages for context`);
+        console.log(`[Inventory] Found ${cleanedMessages.length} user chat messages for context`);
         
         return cleanedMessages.join('\n\n---\n\n');
     } catch (e) {
