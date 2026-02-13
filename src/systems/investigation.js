@@ -1506,16 +1506,23 @@ function handleCollect(discoveryId) {
     const collectBtn = document.querySelector(`.discovery-collect-btn[data-id="${discoveryId}"]`);
     if (!collectBtn) return;
     
-    // Mark as collected
+    // Mark as collected with clear visual feedback
     discovery.collected = true;
-    collectBtn.textContent = 'COLLECTED';
+    collectBtn.textContent = '✓ COLLECTED';
     collectBtn.disabled = true;
     collectBtn.style.opacity = '0.6';
+    collectBtn.style.background = '#2a3a2a';
+    collectBtn.style.borderColor = '#5a7a5a';
+    collectBtn.style.color = '#8ab88a';
     
     // Store in inventory
     const item = collectItem(discovery.name);
     if (item) {
         console.log('[Investigation] Collected:', discovery.name);
+        // Toast so the user knows it went to inventory
+        if (typeof toastr !== 'undefined') {
+            toastr.success(`Added "${discovery.name}" to inventory`, 'Item Collected');
+        }
     }
 }
 
@@ -1585,6 +1592,34 @@ export function collectItem(objectName) {
         ...item,
         collectedAt: Date.now()
     });
+    
+    // ── Also add to actual inventory so it shows in the INV tab ──
+    if (!state.inventory) state.inventory = { carried: [], stash: {}, money: 0 };
+    if (!state.inventory.carried) state.inventory.carried = [];
+    
+    // Map investigation types to inventory categories
+    const CONSUMABLE_TYPES = ['consumable', 'food', 'medicine', 'drug', 'alcohol', 'cigarette'];
+    const invType = item.type || 'misc';
+    const category = CONSUMABLE_TYPES.includes(invType) ? 'consumable' : 'misc';
+    
+    // Don't duplicate if already in inventory
+    const alreadyInInventory = state.inventory.carried.some(
+        i => i.name?.toLowerCase() === objectName.toLowerCase()
+    );
+    
+    if (!alreadyInInventory) {
+        state.inventory.carried.push({
+            id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+            name: objectName,
+            type: invType,
+            category: category,
+            quantity: 1,
+            source: 'investigation',
+            context: item.peek || item.location || null,
+            addedAt: Date.now()
+        });
+        console.log('[Investigation] Added to inventory:', objectName);
+    }
     
     saveChatState();
     console.log('[Investigation] Collected item:', objectName);
