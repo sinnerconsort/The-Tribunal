@@ -24,6 +24,9 @@
     font-family: var(--ie-font-body);
     color: var(--ie-text-primary);
     will-change: transform;
+    /* ── Flicker fix: stabilize GPU compositing layer ── */
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 
 .ie-panel-open {
@@ -426,6 +429,11 @@
     padding: 0;
     margin-left: 32px;
     margin-right: 30px;
+    /* ── Flicker fix: own compositing layer so tab switches 
+         don't force the entire panel GPU layer to rebuild ── */
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 
 /* ═══════════════════════════════════════════════════════════════
