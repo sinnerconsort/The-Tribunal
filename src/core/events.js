@@ -329,6 +329,17 @@ async function onChatChanged() {
         // Function not available - that's okay
     }
     
+    // Reset cabinet UI tab selections (prevents flicker from stale tab refs)
+    try {
+        const cabinetHandler = await import('../ui/cabinet-handler.js');
+        if (typeof cabinetHandler.resetCabinetSelections === 'function') {
+            cabinetHandler.resetCabinetSelections();
+            console.log('[Tribunal] Cabinet tab selections reset');
+        }
+    } catch (e) {
+        // Function not available - that's okay
+    }
+    
     // Reset inventory handlers (CRITICAL for preventing item bleed)
     try {
         const inventoryHandlers = await import('../ui/inventory-handlers.js');
