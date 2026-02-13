@@ -156,6 +156,57 @@ const MORALE_HEAL_PATTERNS = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
+// PLAYER CONTEXT FILTER
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Check if a regex match is actually about the player character.
+ * Looks at the sentence containing the match for player pronouns.
+ * Explicit DE-style tags like [HEALTH -2] bypass this check.
+ * @param {string} fullText - The full message text
+ * @param {RegExpMatchArray} match - The regex match
+ * @returns {boolean} True if this match is about the player
+ */
+function isAboutPlayer(fullText, match) {
+    const matchText = match[0];
+    
+    // Explicit game mechanic tags always count (HEALTH -2, MORALE +1, etc)
+    if (/\[(?:HEALTH|MORALE)\s*[+\-–]|(?:HEALTH|MORALE):\s*[+\-–]|[+\-]\d+\s+(?:HEALTH|MORALE)/i.test(matchText)) {
+        return true;
+    }
+    
+    // If the pattern itself contains "you/your" it's already player-targeted
+    if (/\byou(?:r(?:self|s)?|'?r?e?)?\b/i.test(matchText)) {
+        return true;
+    }
+    
+    // For patterns without "you" — check the surrounding sentence
+    // Extract the sentence containing the match
+    const matchStart = match.index || 0;
+    const before = fullText.substring(Math.max(0, matchStart - 150), matchStart);
+    const after = fullText.substring(matchStart, Math.min(fullText.length, matchStart + matchText.length + 150));
+    const context = before + after;
+    
+    // Find the sentence boundaries
+    const sentenceMatch = context.match(/[^.!?\n]*[.!?\n]?/g) || [context];
+    const relevantSentence = sentenceMatch.find(s => s.includes(matchText.substring(0, 20))) || context;
+    
+    // Check if the sentence references the player
+    if (/\byou(?:r(?:self|s)?|'?r?e?)?\b/i.test(relevantSentence)) {
+        return true;
+    }
+    
+    // NPC-directed patterns that boost player morale are fine
+    // "she smiles at you", "they thank you" — "at/to/with you" in context
+    if (/(?:at|to|toward|with|for)\s+you\b/i.test(context)) {
+        return true;
+    }
+    
+    // No player reference found — this is probably about an NPC
+    return false;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // EXTRACTION FUNCTION
 // ═══════════════════════════════════════════════════════════════
 
@@ -196,6 +247,7 @@ export function extractVitalsFromMessage(messageText) {
     for (const pattern of HEALTH_DAMAGE_PATTERNS) {
         const matches = messageText.matchAll(pattern);
         for (const match of matches) {
+            if (!isAboutPlayer(messageText, match)) continue; // Skip NPC damage
             const explicitDamage = match[1] ? parseInt(match[1], 10) : 0;
             
             if (explicitDamage > 0) {
@@ -213,6 +265,7 @@ export function extractVitalsFromMessage(messageText) {
     for (const pattern of HEALTH_HEAL_PATTERNS) {
         const matches = messageText.matchAll(pattern);
         for (const match of matches) {
+            if (!isAboutPlayer(messageText, match)) continue; // Skip NPC healing
             const explicitHeal = match[1] ? parseInt(match[1], 10) : 0;
             
             if (explicitHeal > 0) {
@@ -230,6 +283,7 @@ export function extractVitalsFromMessage(messageText) {
     for (const pattern of MORALE_DAMAGE_PATTERNS) {
         const matches = messageText.matchAll(pattern);
         for (const match of matches) {
+            if (!isAboutPlayer(messageText, match)) continue; // Skip NPC morale damage
             const explicitDamage = match[1] ? parseInt(match[1], 10) : 0;
             
             if (explicitDamage > 0) {
@@ -247,6 +301,7 @@ export function extractVitalsFromMessage(messageText) {
     for (const pattern of MORALE_HEAL_PATTERNS) {
         const matches = messageText.matchAll(pattern);
         for (const match of matches) {
+            if (!isAboutPlayer(messageText, match)) continue; // Skip NPC morale recovery
             const explicitHeal = match[1] ? parseInt(match[1], 10) : 0;
             
             if (explicitHeal > 0) {
