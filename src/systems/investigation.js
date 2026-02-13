@@ -1614,6 +1614,7 @@ export function collectItem(objectName) {
             type: invType,
             category: category,
             quantity: 1,
+            description: item.peek || null,
             source: 'investigation',
             context: item.peek || item.location || null,
             addedAt: Date.now()
