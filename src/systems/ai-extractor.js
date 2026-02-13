@@ -173,7 +173,9 @@ RULES:
 - Use positive numbers for gains, negative for losses
 - For completed quests, title must closely match existing
 - If nothing to extract, use empty arrays [] or 0 for vitals
-- Only extract CLEAR, EXPLICIT changes - don't assume or infer`;
+- Only extract CLEAR, EXPLICIT changes - don't assume or infer
+
+CRITICAL: Output ONLY the JSON object. No reasoning, no explanation, no thinking. Start with { and end with }.`;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -193,38 +195,24 @@ export async function extractEquipmentFromPersona(personaText) {
     console.log('[AI Extractor] Extracting equipment from persona...');
     
     try {
-        const systemPrompt = `You extract ONLY wearable clothing and accessories from character descriptions.
+        const systemPrompt = `You are a JSON extraction tool. Output ONLY valid JSON — no reasoning, no explanations, no thinking, no preamble.
 
-EXTRACT these types of items:
-- Garments: shirts, pants, jackets, coats, dresses, skirts, sweaters, hoodies, etc.
-- Footwear: shoes, boots, sneakers, sandals, heels, etc.
-- Accessories: hats, glasses, scarves, belts, ties, gloves, etc.
-- Jewelry: rings, necklaces, bracelets, earrings, watches, chokers, etc.
-- Bags: backpacks, purses, briefcases, satchels, etc.
+Extract ONLY wearable clothing and accessories from character descriptions.
 
-DO NOT EXTRACT (these are body features, not clothing):
-- Physical features: face shape, body type, height, weight, build
-- Hair: hair color, hair style, hair length, facial hair, beards, mutton chops
-- Eyes: eye color, eye shape
-- Skin: skin color, skin tone, complexion, tan
-- Body marks: scars, tattoos, birthmarks, freckles, moles, piercings
-- Body parts: arms, legs, hands, face, chest
-- Physical states: "bloated face", "burst capillaries", "ravaged look", "the expression"
-- Abstract descriptions: "worn look", "tired appearance"
-- Field labels: "Hair:", "Eyes:", "Appearance:", "Clothing:"
+EXTRACT: Garments, footwear, accessories, jewelry, bags.
+DO NOT EXTRACT: Hair, eyes, skin, body features, scars, tattoos, physical states, abstract descriptions, field labels.
 
-Respond with ONLY a JSON array of clothing item names, nothing else.
-Keep item names concise but descriptive (e.g., "Black Leather Jacket", not just "Jacket").
-If an item has a specific style or color mentioned, include it.
-If no clothing items found, respond with: []`;
+Respond with ONLY a JSON array of clothing item names: ["Black Leather Jacket", "Worn Boots"]
+Keep names concise but descriptive. Include color/style if mentioned.
+If no clothing found: []
 
-        const userPrompt = `Extract ONLY wearable clothing and accessories from this character description:
+CRITICAL: Your response must start with [ and end with ]. No other text.`;
 
-${personaText.substring(0, 3000)}
+        const userPrompt = `Extract ONLY wearable clothing and accessories from this character description. Respond with JSON array only — no thinking, no explanation.
 
-Respond with a JSON array of clothing item names only.`;
+${personaText.substring(0, 3000)}`;
 
-        const response = await makeAPICall(systemPrompt, userPrompt, 500);
+        const response = await makeAPICall(systemPrompt, userPrompt, 1000);
         
         if (!response) {
             console.warn('[AI Extractor] No response for persona extraction');
@@ -302,9 +290,11 @@ ${chatContext || 'None'}
     }
     
     // Simpler, more direct prompt
-    const systemPrompt = `Extract items the PLAYER CHARACTER would have in their invisible bag of holding. Think broadly — in every story, characters end up carrying all kinds of things.
+    const systemPrompt = `You are a JSON extraction tool. Output ONLY valid JSON — no reasoning, no explanations, no thinking, no preamble. Your entire response must be a JSON array and nothing else.
 
-Return ONLY a JSON array like: [{"name":"Cigarettes","quantity":10,"type":"consumable"}]
+Extract items the PLAYER CHARACTER would have in their invisible bag of holding.
+
+Return ONLY: [{"name":"Cigarettes","quantity":10,"type":"consumable"}]
 
 Types: consumable, tool, document, money, weapon, misc
 
@@ -326,17 +316,17 @@ EXCLUDE:
 - Abstract concepts
 - Items belonging to OTHER characters or NPCs — only the player's items
 
-Return [] if truly no items found.`;
+Return [] if truly no items found.
 
-    const userPrompt = `What items would the PLAYER CHARACTER have on them? Be generous — if they'd logically have it, include it. Ignore items belonging to NPCs or other characters.
+CRITICAL: Your response must start with [ and end with ]. No other text.`;
 
-${combinedText.substring(0, 3000)}
+    const userPrompt = `Extract inventory items for the PLAYER CHARACTER. Respond with ONLY a JSON array — no thinking, no explanation, no other text.
 
-Return JSON array only:`;
+${combinedText.substring(0, 3000)}`;
 
     try {
         toast('Calling API...', 'info');
-        const response = await makeAPICall(systemPrompt, userPrompt, 600);
+        const response = await makeAPICall(systemPrompt, userPrompt, 1500);
         
         if (!response) {
             toast('API returned null!', 'error');
@@ -396,36 +386,23 @@ export async function extractInventoryFromPersona(personaText) {
     console.log('[AI Extractor] Extracting inventory from persona...');
     
     try {
-        const systemPrompt = `You extract items a character would carry — their invisible bag of holding. Think broadly about what someone described this way would logically have on them.
+        const systemPrompt = `You are a JSON extraction tool. Output ONLY valid JSON — no reasoning, no explanations, no thinking, no preamble.
 
-EXTRACT these types of items:
-- Weapons: guns, knives, batons, anything used offensively/defensively
-- Tools: lighters, flashlights, lockpicks, phones, gadgets
-- Consumables: cigarettes, alcohol, drugs, food, medicine, drinks
-- Documents: notes, letters, photos, IDs, badges, books
-- Money: cash, coins, currency of any kind
-- Keys and access items
-- Personal effects: wallet contents, pocket items, bags and their contents
-- Implied items: if they smoke, they have cigarettes AND a lighter
+Extract items a character would carry — their invisible bag of holding.
 
-DO NOT EXTRACT:
-- Clothing (that goes in equipment)
-- Body features or descriptions
-- Abstract concepts
-- Things the character DOESN'T have
+EXTRACT: Weapons, tools, consumables, documents, money, keys, personal effects, implied items (smoker = cigarettes + lighter).
+DO NOT EXTRACT: Clothing, body features, abstract concepts, things they DON'T have.
 
-Respond with ONLY a JSON array of objects:
-[{"name": "Item Name", "quantity": 1, "type": "weapon|tool|consumable|document|money|key|misc"}]
+Return: [{"name": "Item Name", "quantity": 1, "type": "weapon|tool|consumable|document|money|key|misc"}]
+If none: []
 
-If no inventory items found, respond with: []`;
+CRITICAL: Your response must start with [ and end with ]. No other text.`;
 
-        const userPrompt = `Extract ONLY carried/usable items from this character description:
+        const userPrompt = `Extract carried/usable items from this character. JSON array only — no thinking, no explanation.
 
-${personaText.substring(0, 3000)}
+${personaText.substring(0, 3000)}`;
 
-Respond with a JSON array.`;
-
-        const response = await makeAPICall(systemPrompt, userPrompt, 500);
+        const response = await makeAPICall(systemPrompt, userPrompt, 1000);
         
         if (!response) return [];
         
@@ -499,7 +476,7 @@ export async function extractFromMessage(messageText, options = {}) {
             inventory: existingInventory
         }, excludeNames);
         
-        const systemPrompt = `You are a precise data extraction assistant for a Disco Elysium-style RPG system. Extract game state changes from roleplay messages. Output only valid JSON with no additional text or markdown formatting.`;
+        const systemPrompt = `You are a JSON extraction tool for an RPG system. Extract game state changes from roleplay messages. Output ONLY valid JSON — no reasoning, no explanations, no thinking, no preamble. Your entire response must be a single JSON object and nothing else.`;
         
         const response = await makeAPICall(systemPrompt, prompt, 1500);
         
