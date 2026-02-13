@@ -149,22 +149,31 @@ function getTypeFromDisposition(disposition) {
 /**
  * Get the current player character name (to EXCLUDE from detection)
  * Only excludes the USER — the AI character should be a contact
+ * Checks multiple sources since ctx.name1 may be the ST username, not the persona
  * @returns {string[]} Array of names to exclude
  */
 function getExcludedNames() {
-    const names = [];
+    const names = new Set();
     try {
         const ctx = window.SillyTavern?.getContext?.() ||
                      (typeof getContext === 'function' ? getContext() : null);
         if (ctx) {
-            if (ctx.name1) names.push(ctx.name1); // Player character — always exclude
+            if (ctx.name1) names.add(ctx.name1); // Player character — always exclude
             // NOTE: ctx.name2 (AI character) intentionally NOT excluded
             // The AI character should be detected and auto-added as first contact
+        }
+        
+        // Also check persona name — this is what {{user}} resolves to
+        if (window.power_user?.persona_name) {
+            names.add(window.power_user.persona_name);
+        }
+        if (window.power_user?.default_persona) {
+            names.add(window.power_user.default_persona);
         }
     } catch (e) {
         // Silent fail
     }
-    return names;
+    return [...names].filter(Boolean);
 }
 
 /**
