@@ -228,6 +228,15 @@ function truncate(str, maxLen) {
 
 function closeDropdown() {
     if (activeDropdown) {
+        // Reset button highlight
+        const wrapper = activeDropdown.parentElement;
+        if (wrapper) {
+            const btn = wrapper.querySelector('.case-link-btn:not(.linked)');
+            if (btn) {
+                btn.style.borderColor = '';
+                btn.style.color = '';
+            }
+        }
         try {
             activeDropdown.remove();
         } catch (e) {
@@ -378,6 +387,9 @@ async function showDropdown(wrapper, discovery) {
     const caseIntel = await getCaseIntel();
     if (!caseIntel) {
         console.warn('[CaseLink] Case intelligence not available');
+        if (typeof toastr !== 'undefined') {
+            toastr.warning('Case system not available', 'The Tribunal');
+        }
         return;
     }
     
@@ -398,10 +410,25 @@ async function showDropdown(wrapper, discovery) {
         console.warn('[CaseLink] Error getting case data:', e);
     }
     
+    // If no active cases, toast instead of showing a dead-end dropdown
+    if (!activeCases || activeCases.length === 0) {
+        if (typeof toastr !== 'undefined') {
+            toastr.info('No active cases to link to. Create a case first via the Cases tab.', 'No Cases');
+        }
+        return;
+    }
+    
     const dropdownHtml = renderCaseDropdown(discovery, activeCases, matches);
     wrapper.insertAdjacentHTML('beforeend', dropdownHtml);
     
     activeDropdown = wrapper.querySelector('.case-link-dropdown');
+    
+    // Highlight the button as active
+    const btn = wrapper.querySelector('.case-link-btn');
+    if (btn) {
+        btn.style.borderColor = '#8ab88a';
+        btn.style.color = '#e0f0d8';
+    }
     
     // Wire up dropdown item clicks
     if (activeDropdown) {
@@ -446,7 +473,17 @@ async function handleLinkToCase(discoveryId, caseId, wrapper) {
         }
         
         closeDropdown();
-        showNotification(`Linked to "${state?.cases?.[caseId]?.title || 'case'}"`);
+        
+        // Toast so the user clearly sees it worked
+        const caseTitle = state?.cases?.[caseId]?.title || 'case';
+        if (typeof toastr !== 'undefined') {
+            toastr.success(`Linked to "${caseTitle}"`, 'Evidence Filed');
+        }
+        showNotification(`Linked to "${caseTitle}"`);
+    } else {
+        if (typeof toastr !== 'undefined') {
+            toastr.warning('Could not link — may already be linked', 'The Tribunal');
+        }
     }
 }
 
