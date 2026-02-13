@@ -998,6 +998,12 @@ export async function initInventoryHandlers() {
         console.log('[Inventory] CHAT_CHANGED hook registered');
     }
     
+    // Listen for external inventory changes (e.g. investigation collect)
+    document.addEventListener('tribunal:inventoryChanged', () => {
+        console.log('[Inventory] External inventory change detected, refreshing...');
+        refreshDisplay();
+    });
+    
     // Initial render
     refreshDisplay();
     
