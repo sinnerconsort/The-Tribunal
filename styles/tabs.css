@@ -155,24 +155,16 @@
    TAB CONTENT
    ═══════════════════════════════════════════════════════════════ */
 
-/* ── Flicker fix: use visibility + height instead of display: none.
-     display: none removes elements from the layout tree entirely,
-     forcing a full GPU layer rebuild on every tab switch.
-     This approach keeps elements in the render tree but collapsed,
-     making the switch a cheap visibility flip instead of a layout reflow. ── */
-
 .ie-tab-content {
-    visibility: hidden;
-    height: 0;
-    overflow: hidden;
-    opacity: 0;
+    display: none;
 }
 
 .ie-tab-content.ie-tab-content-active {
-    visibility: visible;
-    height: auto;
-    overflow: visible;
-    opacity: 1;
+    display: block;
+    /* ── Flicker fix: promote active tab to own GPU layer so
+         display:block doesn't force full panel layer rebuild ── */
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 
 /* ═══════════════════════════════════════════════════════════════
