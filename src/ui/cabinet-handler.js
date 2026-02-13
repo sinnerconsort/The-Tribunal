@@ -2,7 +2,13 @@
  * The Tribunal - Cabinet Handler
  * Wires the cabinet template UI to the cabinet.js logic
  * 
- * @version 5.0.1 - Removed 6 unused imports (THEMES, getThemeCounters, internalizeThought, MAX_INTERNALIZED, MAX_RESEARCH_SLOTS, refreshStatusFromState)
+ * @version 5.1.0 - FLICKER FIX:
+ *   - refreshCabinet() no longer resets tab selections on every render
+ *   - Added state null guard: if getChatState() returns null, skip render entirely
+ *   - Smart tab validation: only deselects if thought no longer exists
+ *   - New resetCabinetSelections() for chat-change events only
+ *   - Prevents DOM thrashing from transient chat_metadata unavailability
+ * @version 5.0.1 - Removed 6 unused imports
  */
 
 import { getChatState, saveChatState } from '../core/persistence.js';
@@ -414,14 +420,65 @@ function onForgetThought(thoughtId, e) {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Refresh all cabinet displays
+ * Validate that selected tabs still point to existing thoughts.
+ * Only deselects if the thought no longer exists in state —
+ * does NOT blindly null everything on every render.
  */
-export function refreshCabinet() {
-    // FIX: Reset tab selections on refresh to prevent phantom bleed
-    // When switching chats, old thought IDs would persist and point to nothing
+function validateTabSelections() {
+    if (selectedTabs.research && !getThought(selectedTabs.research)) {
+        selectedTabs.research = null;
+    }
+    if (selectedTabs.discovered && !getThought(selectedTabs.discovered)) {
+        selectedTabs.discovered = null;
+    }
+    if (selectedTabs.internalized && !getThought(selectedTabs.internalized)) {
+        selectedTabs.internalized = null;
+    }
+}
+
+/**
+ * Reset tab selections completely.
+ * Call this ONLY on chat change / chat load — NOT on every render.
+ * Exported so events.js can call it on CHAT_CHANGED.
+ */
+export function resetCabinetSelections() {
     selectedTabs.research = null;
     selectedTabs.discovered = null;
     selectedTabs.internalized = null;
+    console.log('[Tribunal] Cabinet tab selections reset (chat change)');
+}
+
+/**
+ * Refresh all cabinet displays
+ * 
+ * FIX v5.1.0: 
+ *   - No longer resets selectedTabs on every call (was causing flicker)
+ *   - Guards against null state (transient chat_metadata unavailability)
+ *   - Validates tabs exist instead of blindly clearing
+ */
+export function refreshCabinet() {
+    // ═══════════════════════════════════════════════════════════
+    // FIX: Guard against null state
+    // If chat_metadata is transiently unavailable (during ST save/load),
+    // skip the render entirely rather than writing empty HTML into every
+    // container and causing flicker when state comes back.
+    // ═══════════════════════════════════════════════════════════
+    const state = getChatState();
+    if (!state) {
+        console.warn('[Tribunal] Cabinet refresh skipped - no chat state available');
+        return;
+    }
+    
+    // ═══════════════════════════════════════════════════════════
+    // FIX: Smart tab validation instead of blind reset
+    // Only deselect if the thought no longer exists.
+    // Previously this was:
+    //   selectedTabs.research = null;
+    //   selectedTabs.discovered = null;
+    //   selectedTabs.internalized = null;
+    // Which caused blank cards on every render cycle.
+    // ═══════════════════════════════════════════════════════════
+    validateTabSelections();
     
     renderThemes();
     renderResearchTabs();
@@ -540,6 +597,13 @@ function renderResearchContent() {
     }
     
     const thought = getThought(thoughtId);
+    
+    // FIX: If the thought data is missing, show a fallback instead of blank
+    if (!thought) {
+        content.innerHTML = '<div class="cabinet-empty-message">Thought data unavailable</div>';
+        return;
+    }
+    
     const progressData = getResearchProgress(thoughtId);
     const progress = progressData?.percent || 0;
     const color = getThoughtColor(thought);
@@ -547,8 +611,8 @@ function renderResearchContent() {
     content.innerHTML = `
         <div class="cabinet-card-expanded" style="--card-bg: ${color.bg}; --card-border: ${color.border};">
             <div class="cabinet-card-header">
-                <span class="cabinet-card-icon">${thought?.icon || '💭'}</span>
-                <span class="cabinet-card-title">${thought?.name || 'Unknown'}</span>
+                <span class="cabinet-card-icon">${thought.icon || '💭'}</span>
+                <span class="cabinet-card-title">${thought.name || 'Unknown'}</span>
             </div>
             
             <div class="cabinet-card-progress-bar">
@@ -557,11 +621,11 @@ function renderResearchContent() {
             </div>
             
             <div class="cabinet-card-body">
-                <div class="cabinet-card-text">${thought?.problemText || ''}</div>
+                <div class="cabinet-card-text">${thought.problemText || ''}</div>
             </div>
             
             <div class="cabinet-card-bonuses">
-                ${renderBonuses(thought?.researchBonus, 'research')}
+                ${renderBonuses(thought.researchBonus, 'research')}
             </div>
             
             <div class="cabinet-card-actions">
@@ -644,17 +708,24 @@ function renderDiscoveredContent() {
     }
     
     const thought = getThought(thoughtId);
+    
+    // FIX: Guard against missing thought data
+    if (!thought) {
+        content.innerHTML = '<div class="cabinet-empty-message">Thought data unavailable</div>';
+        return;
+    }
+    
     const color = getThoughtColor(thought);
     
     content.innerHTML = `
         <div class="cabinet-card-expanded" style="--card-bg: ${color.bg}; --card-border: ${color.border};">
             <div class="cabinet-card-header">
-                <span class="cabinet-card-icon">${thought?.icon || FALLBACK_ICON}</span>
-                <span class="cabinet-card-title">${thought?.name || 'Unknown'}</span>
+                <span class="cabinet-card-icon">${thought.icon || FALLBACK_ICON}</span>
+                <span class="cabinet-card-title">${thought.name || 'Unknown'}</span>
             </div>
             
             <div class="cabinet-card-body">
-                <div class="cabinet-card-text">${thought?.problemText || ''}</div>
+                <div class="cabinet-card-text">${thought.problemText || ''}</div>
             </div>
             
             <div class="cabinet-card-actions">
@@ -744,11 +815,18 @@ function renderInternalizedContent() {
     }
     
     const thought = getThought(thoughtId);
+    
+    // FIX: Guard against missing thought data
+    if (!thought) {
+        content.innerHTML = '<div class="cabinet-empty-message">Thought data unavailable</div>';
+        return;
+    }
+    
     const color = getThoughtColor(thought);
     
     // Special effect HTML
     let specialEffectHtml = '';
-    if (thought?.specialEffect) {
+    if (thought.specialEffect) {
         const effect = thought.specialEffect;
         const desc = effect.description || `${effect.type}: ${effect.target}`;
         specialEffectHtml = `
@@ -762,17 +840,17 @@ function renderInternalizedContent() {
     content.innerHTML = `
         <div class="cabinet-card-expanded" style="--card-bg: ${color.bg}; --card-border: ${color.border};">
             <div class="cabinet-card-header">
-                <span class="cabinet-card-icon">${thought?.icon || FALLBACK_ICON}</span>
-                <span class="cabinet-card-title">${thought?.name || 'Unknown'}</span>
+                <span class="cabinet-card-icon">${thought.icon || FALLBACK_ICON}</span>
+                <span class="cabinet-card-title">${thought.name || 'Unknown'}</span>
             </div>
             
             <div class="cabinet-card-body">
                 <div class="cabinet-card-label">Solution</div>
-                <div class="cabinet-card-text">${thought?.solutionText || ''}</div>
+                <div class="cabinet-card-text">${thought.solutionText || ''}</div>
             </div>
             
             <div class="cabinet-card-bonuses">
-                ${renderBonuses(thought?.internalizedBonus, 'internalized')}
+                ${renderBonuses(thought.internalizedBonus, 'internalized')}
             </div>
             
             ${specialEffectHtml}
