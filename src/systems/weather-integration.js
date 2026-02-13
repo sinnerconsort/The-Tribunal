@@ -1,6 +1,12 @@
 /**
  * Weather Integration Module - The Tribunal
  * ALL-IN-ONE: Effects + Integration + Event Emitter
+ * v3.3.0 - Fixed horror/pale ALWAYS ACTIVE bug
+ *        - Pale now requires "the pale" phrase, not standalone "pale"
+ *        - Horror mild threshold raised from 3→5, tightened word list
+ *        - Special effects auto-clear when real weather data arrives
+ *        - Special effects decay after 2 messages without reinforcement
+ *        - Fixed cloudy/overcast wrongly mapping to fog effects
  * v3.2.0 - HTML comment world state parsing (invisible to user!)
  *        - Format: <!--WORLD{"weather":"Snow","time":"3:45 PM"}-->
  *        - Falls back to visible JSON for backwards compatibility
@@ -41,6 +47,8 @@ let currentTemp = null;
 let currentLocation = null;
 let effectIntensity = 'medium';
 let initialized = false;
+let specialEffectMessagesSinceSet = 0;  // Track how many messages since special was last reinforced
+const SPECIAL_EFFECT_DECAY_MESSAGES = 2; // Auto-clear after this many messages without reinforcement
 let config = { effectsEnabled: true, autoDetect: true, intensity: 'light', syncWithTimeOfDay: true, skipEventListeners: false };
 
 const PARTICLE_COUNTS = {
@@ -485,8 +493,9 @@ function extractWorldState(message) {
 const JSON_WEATHER_MAP = {
     'clear': 'clear',
     'sunny': 'clear',
-    'cloudy': 'fog',
-    'overcast': 'fog',
+    'cloudy': 'clear',       // No weather particles for cloudy - period effects still apply
+    'overcast': 'clear',     // No weather particles for overcast - period effects still apply
+    'partly cloudy': 'clear',
     'rain': 'rain',
     'rainy': 'rain',
     'light rain': 'rain',
@@ -543,11 +552,11 @@ const WEATHER_PATTERNS = {
     storm: /\b(storm|stormy|thunder|thunderstorm|lightning|tempest|gale|downpour|torrential)\b/i,
     rain: /\b(rain\w*|drizzl\w*|shower\w*|wet|damp\w*|precipitation)\b/i,
     snow: /\b(snow\w*|blizzard|flurries|frost\w*|freez\w*|ice|icy|sleet|frozen|cold(?:er|est|ly|ness)?)\b/i,
-    fog: /\b(fog\w*|mist\w*|haz[ey]\w*|murky|smog\w*|overcast)\b/i,
+    fog: /\b(fog\w*|mist\w*|haz[ey]\w*|murky|smog\w*)\b/i,
     wind: /\b(wind\w*|gust\w*|breez\w*)\b/i,
     waves: /\b(wave|waves|ocean|sea|harbor|harbour|dock|pier|beach|shore|coastal|tide)\b/i,
     smoke: /\b(smoke|smoking|cigarette|cigar|exhale|ash|ashtray)\b/i,
-    clear: /\b(clear|sunny|bright|cloudless|fair|beautiful day)\b/i
+    clear: /\b(clear|sunny|bright|cloudless|fair|beautiful day|overcast|cloudy|grey sky|gray sky)\b/i
 };
 
 const PERIOD_PATTERNS = {
@@ -558,14 +567,18 @@ const PERIOD_PATTERNS = {
 };
 
 const SPECIAL_PATTERNS = {
-    pale: /\b(pale|void|unconscious|dreaming|limbo|threshold|dissociat|the\s+pale|pale\s+wall|nothingness)\b/i,
-    // Horror has two tiers - intense words trigger immediately, mild words need 3+ matches
-    horror: null  // Handled specially in scanForKeywords()
+    // FIXED: "pale" alone matches WAY too much regular fiction text ("she went pale", "pale skin")
+    // Now requires Disco Elysium-specific phrases or very specific context
+    pale: /\b(the\s+pale|pale\s+wall|pale\s+exposure|pale\s+lattice|entering\s+the\s+pale|consumed\s+by\s+pale|dissociat(?:ing|ed|ion)|nothingness\s+encroach|reality\s+dissolv|between\s+worlds)\b/i,
+    // Horror handled specially in scanForKeywords()
+    horror: null
 };
 
-// Horror detection - split into intense (instant trigger) vs mild (need multiple)
-const HORROR_INTENSE = /\b(corpse|murder|mutilat|dismember|gore|entrails|viscera|eviscerat)\b/i;
-const HORROR_MILD = /\b(horror|dread|terror|fear|blood|bloody|death|dead|scream|knife|stab|kill|killer)\b/gi;
+// Horror detection - FIXED thresholds
+// Intense words: extremely graphic, immediate trigger
+const HORROR_INTENSE = /\b(mutilat|dismember|eviscerat|entrails|viscera|disembowel)\b/i;
+// Mild words: need 5+ matches (was 3, way too easy to trigger in normal dramatic scenes)
+const HORROR_MILD = /\b(corpse|murder|gore|bloody|scream(?:ing|ed)?|stab(?:bed|bing)?|slaughter)\b/gi;
 
 /**
  * Scan message for weather keywords (fallback when no JSON found)
@@ -587,7 +600,7 @@ function scanForKeywords(message) {
     }
     
     const mildMatches = message.match(HORROR_MILD);
-    if (mildMatches && mildMatches.length >= 3) {
+    if (mildMatches && mildMatches.length >= 5) {
         console.log('[Weather] Horror triggered by', mildMatches.length, 'mild keywords:', mildMatches);
         return { type: 'special', value: 'horror' };
     }
@@ -630,6 +643,14 @@ function processMessageForWeather(message) {
         const weather = normalizeWeatherFromJSON(worldState.weather);
         if (weather) {
             console.log('[Weather] ✓ Using JSON weather:', weather);
+            
+            // JSON weather data is authoritative — CLEAR any stuck special effects
+            if (currentSpecial) {
+                console.log('[Weather] Clearing stuck special effect:', currentSpecial, '(JSON weather takes priority)');
+                currentSpecial = null;
+                specialEffectMessagesSinceSet = 0;
+            }
+            
             setWeather(weather);
             
             // Also extract temperature if available
@@ -659,14 +680,43 @@ function processMessageForWeather(message) {
         console.log('[Weather] ✓ Keyword detected:', keywordResult);
         
         if (keywordResult.type === 'special') {
+            // Special effect found — set it and reset decay counter
             setSpecialEffect(keywordResult.value);
-        } else if (keywordResult.type === 'weather') {
-            setWeather(keywordResult.value);
-        } else if (keywordResult.type === 'period') {
-            setPeriod(keywordResult.value);
+            specialEffectMessagesSinceSet = 0;
+        } else {
+            // Weather or period found but NO special — increment decay counter
+            if (currentSpecial) {
+                specialEffectMessagesSinceSet++;
+                console.log('[Weather] Special effect decay:', specialEffectMessagesSinceSet, '/', SPECIAL_EFFECT_DECAY_MESSAGES);
+                
+                if (specialEffectMessagesSinceSet >= SPECIAL_EFFECT_DECAY_MESSAGES) {
+                    console.log('[Weather] Auto-clearing special effect:', currentSpecial, '(no reinforcement for', SPECIAL_EFFECT_DECAY_MESSAGES, 'messages)');
+                    currentSpecial = null;
+                    specialEffectMessagesSinceSet = 0;
+                }
+            }
+            
+            if (keywordResult.type === 'weather') {
+                setWeather(keywordResult.value);
+            } else if (keywordResult.type === 'period') {
+                setPeriod(keywordResult.value);
+            }
         }
         
         return { ...keywordResult, source: 'keywords' };
+    }
+    
+    // No weather data at all — still increment special effect decay
+    if (currentSpecial) {
+        specialEffectMessagesSinceSet++;
+        console.log('[Weather] Special effect decay (no weather found):', specialEffectMessagesSinceSet, '/', SPECIAL_EFFECT_DECAY_MESSAGES);
+        
+        if (specialEffectMessagesSinceSet >= SPECIAL_EFFECT_DECAY_MESSAGES) {
+            console.log('[Weather] Auto-clearing special effect:', currentSpecial, '(no reinforcement for', SPECIAL_EFFECT_DECAY_MESSAGES, 'messages)');
+            currentSpecial = null;
+            specialEffectMessagesSinceSet = 0;
+            renderEffects();
+        }
     }
     
     console.log('[Weather] No weather data found in message');
@@ -713,6 +763,7 @@ export function setPeriod(period) {
 export function setSpecialEffect(effect) {
     const previous = { weather: currentWeather, period: currentPeriod, special: currentSpecial };
     currentSpecial = effect;
+    specialEffectMessagesSinceSet = 0;  // Reset decay counter
     console.log('[Weather] setSpecialEffect:', previous.special, '→', currentSpecial);
     renderEffects();
     emit('specialChange', { weather: currentWeather, period: currentPeriod, special: currentSpecial, intensity: effectIntensity, previous });
@@ -758,6 +809,17 @@ export function triggerHorror(duration = 15000) {
 export function exitHorror() { 
     window.TribunalConditionFX?.exitHorror?.();
 }
+
+export function clearSpecialEffect() {
+    if (currentSpecial) {
+        console.log('[Weather] Manually clearing special effect:', currentSpecial);
+        currentSpecial = null;
+        specialEffectMessagesSinceSet = 0;
+        renderEffects();
+        emit('specialChange', { weather: currentWeather, period: currentPeriod, special: null, intensity: effectIntensity });
+    }
+}
+
 export function getAvailableEffects() {
     return { weather: ['rain', 'snow', 'storm', 'fog', 'wind', 'waves', 'smoke', 'clear'], period: ['day', 'city-night', 'quiet-night', 'indoor'], special: ['pale', 'horror'] };
 }
@@ -790,13 +852,42 @@ function scanChatForWeather(messageCount = 5) {
         console.log('[Weather] Scanning last', messageCount, 'messages...');
         
         // Scan from newest to oldest, stop on first match
+        // IMPORTANT: Skip special effects (horror/pale) during scan — these should only
+        // trigger from the LATEST message, not from old chat history
         const messages = ctx.chat.slice(-messageCount).reverse();
+        let isFirstMessage = true;
+        
         for (const msg of messages) {
             if (msg?.mes) {
-                const result = processMessageForWeather(msg.mes);
-                if (result) {
-                    console.log('[Weather] ✓ Found weather in chat:', result);
-                    return; // Stop after first match
+                // For the most recent message, process normally (including specials)
+                // For older messages, only look for weather/period
+                if (isFirstMessage) {
+                    const result = processMessageForWeather(msg.mes);
+                    if (result) {
+                        console.log('[Weather] ✓ Found weather in latest message:', result);
+                        return;
+                    }
+                    isFirstMessage = false;
+                } else {
+                    // Try JSON first (always safe)
+                    const worldState = extractWorldState(msg.mes);
+                    if (worldState) {
+                        const weather = normalizeWeatherFromJSON(worldState.weather);
+                        if (weather) {
+                            console.log('[Weather] ✓ Found JSON weather in older message:', weather);
+                            setWeather(weather);
+                            return;
+                        }
+                    }
+                    
+                    // Keyword scan but SKIP specials for old messages
+                    const keywordResult = scanForKeywords(msg.mes);
+                    if (keywordResult && keywordResult.type !== 'special') {
+                        console.log('[Weather] ✓ Found weather keyword in older message:', keywordResult);
+                        if (keywordResult.type === 'weather') setWeather(keywordResult.value);
+                        else if (keywordResult.type === 'period') setPeriod(keywordResult.value);
+                        return;
+                    }
                 }
             }
         }
@@ -910,6 +1001,8 @@ export function debugWeather() {
         state: getState(), 
         available: getAvailableEffects(), 
         initialized, 
+        specialDecay: specialEffectMessagesSinceSet,
+        specialDecayThreshold: SPECIAL_EFFECT_DECAY_MESSAGES,
         cssInjected: !!document.getElementById('tribunal-weather-css'), 
         layerCount: document.querySelectorAll('.tribunal-weather-layer').length,
         subscribers: {
@@ -941,7 +1034,8 @@ export function forceWeather(weather) {
 
 export default {
     initWeatherSystem, setWeather, setPeriod, setSpecialEffect, setIntensity, setEnabled, getState,
-    triggerPale, exitPale, isInPale, triggerHorror, exitHorror, processMessage: processMessageForWeather,
+    triggerPale, exitPale, isInPale, triggerHorror, exitHorror, clearSpecialEffect,
+    processMessage: processMessageForWeather,
     testEffect, getAvailableEffects, onWeatherChange, subscribe, debugWeather, rescanChat, setAutoDetect,
     syncWithWeatherTime, setWeatherState: setWeather, setEffectsEnabled: setEnabled, setEffectsIntensity: setIntensity,
     forceWeather
