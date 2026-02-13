@@ -200,6 +200,48 @@ function formatSkillName(skill) {
     return skill.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
+/**
+ * Parse description text that may contain [SKILL_NAME] tagged sections.
+ * Converts "[PAIN_THRESHOLD] A stainless steel cuff..." into styled HTML blocks.
+ * Plain text without tags is returned as a normal paragraph.
+ */
+function formatDescription(desc) {
+    if (!desc) return '';
+    
+    // Check if description contains [SKILL_NAME] tags
+    const tagPattern = /\[([A-Z][A-Z_]+)\]\s*/g;
+    if (!tagPattern.test(desc)) {
+        // No tags — return as plain paragraph
+        return `<p class="equip-desc">${desc}</p>`;
+    }
+    
+    // Split on [SKILL_NAME] tags, keeping the skill names
+    const parts = desc.split(/\[([A-Z][A-Z_]+)\]\s*/);
+    let html = '';
+    
+    // parts[0] is text before any tag (usually empty)
+    if (parts[0]?.trim()) {
+        html += `<p class="equip-desc">${parts[0].trim()}</p>`;
+    }
+    
+    // Subsequent pairs: [skillName, text, skillName, text, ...]
+    for (let i = 1; i < parts.length; i += 2) {
+        const skill = parts[i];
+        const text = (parts[i + 1] || '').trim();
+        if (!text) continue;
+        
+        const skillFormatted = formatSkillName(skill);
+        html += `
+            <div class="equip-quip">
+                <span class="equip-quip-skill">${skillFormatted}:</span>
+                <span class="equip-quip-text">${text}</span>
+            </div>
+        `;
+    }
+    
+    return html;
+}
+
 function toast(msg, type = 'info') {
     if (typeof toastr !== 'undefined') toastr[type](msg, 'Equipment');
     else console.log(`[Equipment] ${type}: ${msg}`);
@@ -278,7 +320,7 @@ function renderItem(item) {
             </div>
             <div class="equip-details">
                 ${bonusText ? `<div class="equip-bonuses">(${bonusText})</div>` : ''}
-                ${item.description ? `<p class="equip-desc">${item.description}</p>` : ''}
+                ${item.description ? formatDescription(item.description) : ''}
                 ${quipsHtml ? `<div class="equip-quips">${quipsHtml}</div>` : ''}
                 <div class="equip-actions">
                     <button class="equip-btn equip-toggle">${item.equipped ? 'Store' : 'Equip'}</button>
