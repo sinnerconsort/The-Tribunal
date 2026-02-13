@@ -138,7 +138,7 @@ Extract ALL of the following. Respond with ONLY valid JSON (no markdown, no expl
     "changed": [{"name": "Item name", "change": "What changed - damaged, repaired, etc."}]
   },
   "inventory": {
-    "gained": [{"name": "Item name", "quantity": 1, "context": "How obtained"}],
+    "gained": [{"name": "Item name", "quantity": 1, "type": "weapon|tool|consumable|document|money|key|misc", "context": "How obtained"}],
     "lost": [{"name": "Item name", "quantity": 1, "context": "How lost/used"}]
   },
   "vitals": {
@@ -156,7 +156,10 @@ RULES:
 - CONTACTS: Extract only NPCs (non-player characters) with actual proper names. Do NOT extract common words, descriptions, locations, or generic nouns as contacts. A contact must be a named CHARACTER (person, entity with a name).${excludeNames.length > 0 ? `\n- EXCLUDED NAMES (these are the player/main character, NOT NPCs - never extract these): ${excludeNames.join(', ')}` : ''}
 - EQUIPMENT = wearable items ONLY: clothing, shoes, hats, glasses, jewelry, bags, watches, accessories
 - EQUIPMENT is NOT: body features, hair, eyes, scars, tattoos, physical descriptions
-- INVENTORY = carried/usable items: weapons, tools, consumables, documents, money, keys, etc.
+- EQUIPMENT changes apply to the PLAYER CHARACTER only — do NOT extract what NPCs are wearing
+- INVENTORY = anything a character picks up, receives, finds, buys, is given, uses, or would logically carry. Think of it as an invisible bag of holding — weapons, tools, consumables, food, drinks, documents, money, keys, phones, books, gifts, trinkets, souvenirs, anything tangible that isn't worn as clothing
+- If a character interacts with an object (picks it up, pockets it, is handed something, buys something), it goes in inventory
+- INVENTORY changes apply to the PLAYER CHARACTER only — items that NPCs carry, show, or use do NOT go into the player's inventory unless the player explicitly takes or receives them
 - VITALS: health damage from injuries/exhaustion; morale damage from emotional trauma/failure
 - CONDITION: the PLAYER CHARACTER's current physical/mental state after this message
 - CONDITION physical: "wounded" (injured/bleeding), "exhausted" (tired/drained), "intoxicated" (drunk), "drugged" (on substances), "poisoned", "healthy" (fine/uninjured), or null (unclear/unchanged)
@@ -295,14 +298,33 @@ ${chatContext || 'None'}
     }
     
     // Simpler, more direct prompt
-    const systemPrompt = `Extract items a character would carry in their pockets. Return ONLY a JSON array like: [{"name":"Cigarettes","quantity":10,"type":"consumable"}]
-Types: consumable, tool, document, money, weapon, misc
-Include: cigarettes, lighters, phones, wallets, keys, cash, weapons mentioned
-Exclude: clothing, body features
-If someone is smoking, they have cigarettes AND a lighter.
-Return [] if no items found.`;
+    const systemPrompt = `Extract items the PLAYER CHARACTER would have in their invisible bag of holding. Think broadly — in every story, characters end up carrying all kinds of things.
 
-    const userPrompt = `What items would this character have on them?
+Return ONLY a JSON array like: [{"name":"Cigarettes","quantity":10,"type":"consumable"}]
+
+Types: consumable, tool, document, money, weapon, misc
+
+INCLUDE generously:
+- Anything explicitly mentioned as carried, held, pocketed, or owned by the PLAYER
+- Items implied by the player's actions (smoking = cigarettes + lighter, drinking = a bottle/flask)
+- Weapons the player mentions or implies having
+- Phones, wallets, keys, bags and their contents
+- Food, drinks, medicine, substances the player uses
+- Documents, letters, photos, IDs, badges
+- Tools, gadgets, devices
+- Gifts, trinkets, souvenirs, mementos
+- Money or currency mentioned
+
+EXCLUDE:
+- Clothing and accessories (those go in equipment)
+- Body features or descriptions
+- Furniture, buildings, vehicles (things too large to carry)
+- Abstract concepts
+- Items belonging to OTHER characters or NPCs — only the player's items
+
+Return [] if truly no items found.`;
+
+    const userPrompt = `What items would the PLAYER CHARACTER have on them? Be generous — if they'd logically have it, include it. Ignore items belonging to NPCs or other characters.
 
 ${combinedText.substring(0, 3000)}
 
@@ -370,16 +392,17 @@ export async function extractInventoryFromPersona(personaText) {
     console.log('[AI Extractor] Extracting inventory from persona...');
     
     try {
-        const systemPrompt = `You extract ONLY carried/usable items from character descriptions.
+        const systemPrompt = `You extract items a character would carry — their invisible bag of holding. Think broadly about what someone described this way would logically have on them.
 
 EXTRACT these types of items:
-- Weapons: guns, knives, batons, etc.
-- Tools: lighters, flashlights, lockpicks, etc.
-- Consumables: cigarettes, alcohol, drugs, food, medicine
-- Documents: notes, letters, photos, IDs, badges
-- Money: cash, coins, currency
+- Weapons: guns, knives, batons, anything used offensively/defensively
+- Tools: lighters, flashlights, lockpicks, phones, gadgets
+- Consumables: cigarettes, alcohol, drugs, food, medicine, drinks
+- Documents: notes, letters, photos, IDs, badges, books
+- Money: cash, coins, currency of any kind
 - Keys and access items
-- Small personal effects: wallet contents, pocket items
+- Personal effects: wallet contents, pocket items, bags and their contents
+- Implied items: if they smoke, they have cigarettes AND a lighter
 
 DO NOT EXTRACT:
 - Clothing (that goes in equipment)
@@ -698,10 +721,12 @@ export async function processExtractionResults(results, options = {}) {
                     existing.quantity += (item.quantity || 1);
                     processed.inventoryGained.push({ ...existing, added: item.quantity || 1 });
                 } else {
+                    const itemType = item.type || inferInventoryType(item.name);
                     const newItem = {
                         id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
                         name: item.name,
-                        type: item.type || inferInventoryType(item.name),
+                        type: itemType,
+                        category: isConsumableType(itemType) ? 'consumable' : 'misc',
                         quantity: item.quantity || 1,
                         source: 'ai-extracted',
                         context: item.context || null,
@@ -1275,6 +1300,14 @@ function inferInventoryType(name) {
     if (/medicine|bandage|medkit/.test(lower)) return 'medicine';
     
     return 'misc';
+}
+
+/**
+ * Check if an inventory type should be categorized as consumable
+ * Must match inventory-handlers.js categories so items render in the correct grid
+ */
+function isConsumableType(type) {
+    return ['cigarette', 'alcohol', 'drug', 'food', 'medicine'].includes(type);
 }
 
 // ═══════════════════════════════════════════════════════════════
