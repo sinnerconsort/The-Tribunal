@@ -164,7 +164,7 @@ RULES:
 - INVENTORY = anything a character picks up, receives, finds, buys, is given, uses, or would logically carry. Think of it as an invisible bag of holding — weapons, tools, consumables, food, drinks, documents, money, keys, phones, books, gifts, trinkets, souvenirs, anything tangible that isn't worn as clothing
 - If a character interacts with an object (picks it up, pockets it, is handed something, buys something), it goes in inventory
 - INVENTORY changes apply to the PLAYER CHARACTER only — items that NPCs carry, show, or use do NOT go into the player's inventory unless the player explicitly takes or receives them
-- VITALS: health damage from injuries/exhaustion; morale damage from emotional trauma/failure
+- VITALS: health/morale changes for the PLAYER CHARACTER only. If an NPC gets hurt or emotionally affected, that is NOT a vitals change. Only report damage/healing that happens to "${playerName}"
 - CONDITION: the PLAYER CHARACTER's current physical/mental state after this message
 - CONDITION physical: "wounded" (injured/bleeding), "exhausted" (tired/drained), "intoxicated" (drunk), "drugged" (on substances), "poisoned", "healthy" (fine/uninjured), or null (unclear/unchanged)
 - CONDITION mental: "terrified" (scared/panicking), "enraged" (angry/furious), "depressed" (sad/grieving), "dissociating" (detached/unreal), "manic" (hyper/euphoric), "lovestruck" (desire/attraction), "calm" (composed), or null (unclear/unchanged)
