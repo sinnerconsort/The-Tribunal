@@ -90,7 +90,11 @@ function buildExtractionPrompt(messageText, existingData = {}, excludeNames = []
     const existingEquipment = equipment.map(e => `- ${e.name}`).join('\n') || 'None';
     const existingInventory = inventory.map(i => `- ${i.name}${i.quantity > 1 ? ` (x${i.quantity})` : ''}`).join('\n') || 'None';
     
+    // Identify the player character for the AI
+    const playerName = excludeNames[0] || 'the player';
+    
     return `Analyze this roleplay message and extract game state changes.
+The PLAYER CHARACTER is named "${playerName}". All equipment, inventory, vitals, and condition changes refer to THIS character only.
 
 <message>
 ${messageText}
@@ -153,7 +157,7 @@ Extract ALL of the following. Respond with ONLY valid JSON (no markdown, no expl
 }
 
 RULES:
-- CONTACTS: Extract only NPCs (non-player characters) with actual proper names. Do NOT extract common words, descriptions, locations, or generic nouns as contacts. A contact must be a named CHARACTER (person, entity with a name).${excludeNames.length > 0 ? `\n- EXCLUDED NAMES (these are the player/main character, NOT NPCs - never extract these): ${excludeNames.join(', ')}` : ''}
+- CONTACTS: Extract only NPCs (non-player characters) with actual proper names. Do NOT extract common words, descriptions, locations, or generic nouns as contacts. A contact must be a named CHARACTER (person, entity with a name). "${playerName}" is the PLAYER — NEVER add them as a contact.${excludeNames.length > 0 ? `\n- EXCLUDED NAMES (these are the player/main character, NOT NPCs - never extract these): ${excludeNames.join(', ')}` : ''}
 - EQUIPMENT = wearable items ONLY: clothing, shoes, hats, glasses, jewelry, bags, watches, accessories
 - EQUIPMENT is NOT: body features, hair, eyes, scars, tattoos, physical descriptions
 - EQUIPMENT changes apply to the PLAYER CHARACTER only — do NOT extract what NPCs are wearing
