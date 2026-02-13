@@ -481,8 +481,32 @@ async function handleLinkToCase(discoveryId, caseId, wrapper) {
         }
         showNotification(`Linked to "${caseTitle}"`);
     } else {
-        if (typeof toastr !== 'undefined') {
-            toastr.warning('Could not link — may already be linked', 'The Tribunal');
+        closeDropdown();
+        
+        // Check if it was already linked (auto-link may have beaten the user)
+        const caseObj = state?.cases?.[caseId];
+        const alreadyLinked = caseObj?.hints?.find(h => 
+            h.discoveryId === discoveryId || (discovery.name && h.text?.includes(discovery.name))
+        );
+        
+        if (alreadyLinked) {
+            // Already linked — update the button to show it and give friendly feedback
+            const btn = wrapper.querySelector('.case-link-btn');
+            if (btn) {
+                const caseTitle = caseObj?.title || 'Case';
+                btn.style.cssText = CASE_LINK_STYLES.linkBtnLinked;
+                btn.innerHTML = `📁 ${truncate(caseTitle, 15)}`;
+                btn.disabled = true;
+                btn.classList.add('linked');
+            }
+            linkedDiscoveries.set(discoveryId, caseId);
+            if (typeof toastr !== 'undefined') {
+                toastr.info(`Already linked to "${caseObj?.title || 'case'}"`, 'Evidence Filed');
+            }
+        } else {
+            if (typeof toastr !== 'undefined') {
+                toastr.warning('Could not link to case', 'The Tribunal');
+            }
         }
     }
 }
