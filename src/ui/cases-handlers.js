@@ -260,7 +260,26 @@ async function renderCaseDetail(caseId) {
 /**
  * Render the full cases section
  */
+let _casesRenderRetries = 0;
+const MAX_RENDER_RETRIES = 2;
+
 export async function renderCasesList() {
+    // ═══ STATE NULL GUARD ═══
+    // During ST save/load cycles, getChatState() can transiently return null.
+    // If we render during that window, we'd blank the list with "No open cases"
+    // even though cases exist. Skip render entirely — stale content > blank content.
+    const persistence = await getPersistence();
+    const state = persistence.getChatState();
+    if (!state) {
+        console.log('[Cases] State transiently null - skipping render');
+        if (_casesRenderRetries < MAX_RENDER_RETRIES) {
+            _casesRenderRetries++;
+            setTimeout(() => renderCasesList(), 150);
+        }
+        return;
+    }
+    _casesRenderRetries = 0;  // Reset on successful state access
+    
     const activeListEl = document.getElementById('cases-active-list');
     const closedListEl = document.getElementById('cases-closed-list');
     const activeEmptyEl = document.getElementById('cases-active-empty');
@@ -302,6 +321,10 @@ export async function renderCasesList() {
 export async function renderSelectedCaseDetail() {
     const detailEl = document.getElementById('case-detail-panel');
     if (!detailEl) return;
+    
+    // State null guard
+    const persistence = await getPersistence();
+    if (!persistence.getChatState()) return;
     
     if (selectedCaseId) {
         detailEl.innerHTML = await renderCaseDetail(selectedCaseId);
