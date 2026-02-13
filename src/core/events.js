@@ -205,19 +205,29 @@ function isEnabled() {
 /**
  * Get player + AI character names for NPC detection filtering
  * Prevents user persona and AI character from being added as contacts
+ * Checks multiple sources since ctx.name1 may be the ST username, not the persona name
  * @returns {string[]}
  */
 function getCharacterNames() {
-    const names = [];
+    const names = new Set();
     try {
         const ctx = window.SillyTavern?.getContext?.() ||
                      (typeof getContext === 'function' ? getContext() : null);
         if (ctx) {
-            if (ctx.name1) names.push(ctx.name1);
-            if (ctx.name2) names.push(ctx.name2);
+            if (ctx.name1) names.add(ctx.name1);
+            if (ctx.name2) names.add(ctx.name2);
+        }
+        
+        // Also check persona name — this is what {{user}} resolves to
+        // ctx.name1 might be the ST username, not the character being played
+        if (window.power_user?.persona_name) {
+            names.add(window.power_user.persona_name);
+        }
+        if (window.power_user?.default_persona) {
+            names.add(window.power_user.default_persona);
         }
     } catch (e) { /* silent */ }
-    return names;
+    return [...names].filter(Boolean);
 }
 
 /**
@@ -324,17 +334,6 @@ async function onChatChanged() {
         if (typeof cabinet.resetCabinetState === 'function') {
             cabinet.resetCabinetState();
             console.log('[Tribunal] Cabinet state reset');
-        }
-    } catch (e) {
-        // Function not available - that's okay
-    }
-    
-    // Reset cabinet UI tab selections (prevents flicker from stale tab refs)
-    try {
-        const cabinetHandler = await import('../ui/cabinet-handler.js');
-        if (typeof cabinetHandler.resetCabinetSelections === 'function') {
-            cabinetHandler.resetCabinetSelections();
-            console.log('[Tribunal] Cabinet tab selections reset');
         }
     } catch (e) {
         // Function not available - that's okay
