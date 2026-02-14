@@ -1051,7 +1051,7 @@ function extractShiversJSON(response) {
 
 /**
  * Generate an AI Shivers quip + investigation seed, falling back to static on failure.
- * Uses callAPIWithTokens (600 tokens — GLM needs headroom for reasoning overhead).
+ * Uses callAPIWithTokens (1000 tokens — models that think-in-content need ~700 headroom + ~200 for JSON).
  * Pulls scene context directly from SillyTavern chat for world-accurate prose.
  * 
  * NEW v1.1: Returns { quip, seed } and stores seed in currentState
@@ -1082,7 +1082,7 @@ async function generateShiversQuip(weather, period, location) {
         });
         
         const prompt = buildShiversPrompt(weather, period, location, sceneContext);
-        const response = await callAPIWithTokens(prompt.system, prompt.user, 600);
+        const response = await callAPIWithTokens(prompt.system, prompt.user, 1000);
         
         const parsed = extractShiversJSON(response);
         
