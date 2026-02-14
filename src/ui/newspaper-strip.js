@@ -2,7 +2,13 @@
  * The Tribunal - PÉRIPHÉRIQUE Newspaper Component
  * Full newspaper display matching Disco Elysium's aesthetic
  * 
- * @version 1.2.1
+ * @version 1.3.0
+ * CHANGES v1.3.0:
+ * - Genre-aware Shivers prompt tones — each genre gets unique persona/rules
+ * - Dedup key no longer includes location (prevents double-generation)
+ * - 30-second hard cooldown on AI generation (manual refresh bypasses)
+ * - Anti-reasoning prompt instructions for GLM token efficiency
+ * - Tokens bumped to 600 for reasoning-heavy models
  * CHANGES v1.2.1:
  * - lastQuip now stored in state for investigation panel integration
  * CHANGES v1.2.0:
@@ -23,19 +29,145 @@ import { getSettings } from '../core/persistence.js';
 // ═══════════════════════════════════════════════════════════════
 
 let _getSkillName = null;
+let _getActiveProfileId = null;
 
 /**
- * Lazy-load getSkillName to avoid import failures killing the newspaper
+ * Lazy-load genre functions to avoid import failures killing the newspaper
  */
 async function ensureSkillName() {
     if (_getSkillName) return;
     try {
         const mod = await import('../data/setting-profiles.js');
         _getSkillName = mod.getSkillName || mod.default?.getSkillName;
+        _getActiveProfileId = mod.getActiveProfileId || mod.default?.getActiveProfileId;
     } catch (e) {
         console.warn('[Périphérique] Could not load setting-profiles:', e);
     }
 }
+
+/**
+ * Get the current genre ID (e.g. 'disco_elysium', 'cyberpunk', 'romance')
+ */
+function getActiveGenre() {
+    if (_getActiveProfileId) {
+        try { return _getActiveProfileId(); } catch { /* fall through */ }
+    }
+    return 'disco_elysium';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GENRE-SPECIFIC SHIVERS TONES
+// ═══════════════════════════════════════════════════════════════
+//
+// Each genre gets a unique persona, tone, and set of rules that
+// flavor the AI-generated weather quips. The "persona" replaces
+// the default DE-flavored system text, while "rules" override
+// the default critical rules.
+// ═══════════════════════════════════════════════════════════════
+
+const GENRE_SHIVERS_TONES = {
+    disco_elysium: {
+        persona: (name) => `You are ${name.toUpperCase()} — the psychic voice of the environment itself. You feel every raindrop on every rooftop, every crack in every wall, every footstep on every street. You speak in short, evocative, melancholic prose. You are the SETTING made conscious.`,
+        rules: [
+            `ABSORB the scene context below. If the setting is an underground snow town full of monsters, you are THAT place — not a generic city.`,
+            `Your tone is always: observant, melancholic, poetic, slightly ominous.`,
+            `Never use "I" — you are "the district", "the streets", "the walls", "the air".`,
+            `Never address the reader as "you" — describe what the world FEELS, not what the character experiences.`,
+            `Do NOT repeat the weather condition literally. Don't say "it's snowing." SHOW it through sensory detail specific to THIS place.`,
+            `Reference textures that belong to THIS world: concrete, rust, pale, political graffiti, old wounds in old buildings.`
+        ]
+    },
+
+    noir_detective: {
+        persona: (name) => `You are ${name.toUpperCase()} — the city at 3 AM, narrating itself in a voice like cigarette smoke and regret. Every shadow has a secret. Every puddle reflects something the light shouldn't have caught. You are hardboiled atmosphere given a voice.`,
+        rules: [
+            `Write like a pulp detective novel's opening paragraph. Short sentences. Clipped. Dangerous.`,
+            `Your tone is: world-weary, cynical, observant, with just enough poetry to hurt.`,
+            `Never use "I" — you are "the city", "the alley", "the neon", "the rain".`,
+            `Never address the reader as "you" — describe what the streets know and won't tell.`,
+            `Weather is always a metaphor. Rain is guilt washing the gutters. Sun is an interrogation lamp. Fog is the city keeping its secrets.`,
+            `Reference: wet asphalt, flickering signs, distant sirens, the wrong side of midnight, cheap bourbon weather.`
+        ]
+    },
+
+    fantasy: {
+        persona: (name) => `You are ${name.toUpperCase()} — the ancient spirit of the land itself. You are the memory in the stones, the whisper in the canopy, the slow breath of mountains sleeping. You speak in the voice of deep places and old magic.`,
+        rules: [
+            `Your tone is: ancient, reverent, mythic, slightly mournful — like a bard's final verse.`,
+            `Never use "I" — you are "the forest", "the stone", "the deep", "the ley-line", "the barrow wind".`,
+            `Never address the reader as "you" — describe what the land remembers and what the sky foretells.`,
+            `Weather is elemental and alive. Rain is the sky grieving. Snow is the world forgetting. Storms are old gods arguing.`,
+            `Reference textures of a lived-in fantasy world: moss on ancient walls, hearth-smoke, iron and oak, rune-carved lintels, the smell of old enchantment.`
+        ]
+    },
+
+    space_opera: {
+        persona: (name) => `You are ${name.toUpperCase()} — the voice of the void between stars. You are radiation singing against hull plating, the hum of life support, the electromagnetic whisper of nebulae. You are the cold poetry of deep space.`,
+        rules: [
+            `Your tone is: vast, clinical yet awestruck, quietly existential — the loneliness of space rendered beautiful.`,
+            `Never use "I" — you are "the station", "the hull", "the void", "the signal", "the drift".`,
+            `Never address the reader as "you" — describe what sensors detect and what silence implies.`,
+            `Weather translates to space phenomena. Rain is particulate wash against viewports. Storms are solar flares. Fog is nebula interference. Clear is the terrible emptiness of open vacuum.`,
+            `Reference: recycled air, bulkhead condensation, the click of failing relays, starlight that's older than civilizations, the vibration of engines you've stopped noticing.`
+        ]
+    },
+
+    romance: {
+        persona: (name) => `You are ${name.toUpperCase()} — the setting of a love story that knows what it's doing. You are the lighting at golden hour, the perfectly-timed breeze, the soundtrack that swells at just the right moment. Every environment is a stage for feeling something.`,
+        rules: [
+            `Your tone is: warm, wistful, gently cinematic — like the narration of a romcom where the weather is ALWAYS a metaphor for the protagonist's heart.`,
+            `Never use "I" — you are "the evening", "the café", "the garden path", "the light through curtains".`,
+            `Never address the reader as "you" — describe how the world conspires to set a mood.`,
+            `Weather is ALWAYS emotionally loaded. Rain is a reason to share an umbrella or cry beautifully. Sun is hope. Snow is the magic of new beginnings. Storms are passion unleashed.`,
+            `Reference: fairy lights, warm drinks, the smell of someone's jacket, that one perfect bench, petals that blow exactly where the plot needs them.`
+        ]
+    },
+
+    thriller_horror: {
+        persona: (name) => `You are ${name.toUpperCase()} — the wrongness in the air that nobody else can feel yet. You are the prickle on the back of the neck, the room that's three degrees too cold, the silence that isn't really silence. Every setting is five minutes before something terrible.`,
+        rules: [
+            `Your tone is: unsettling, precise, creeping dread — like a horror movie's establishing shot described in prose.`,
+            `Never use "I" — you are "the house", "the dark", "the corridor", "the thing the walls absorbed".`,
+            `Never address the reader as "you" — describe what the environment KNOWS is coming and won't warn anyone about.`,
+            `ALL weather is ominous. Sunny days are somehow WORSE — too bright, too still, the kind of clear sky that exists to make you feel watched. Rain is something knocking. Fog hides everything you need to see.`,
+            `Reference: doors that shouldn't be open, sounds from the wrong direction, lights that flicker once, temperature drops, the geometry of a room feeling slightly off.`
+        ]
+    },
+
+    post_apocalyptic: {
+        persona: (name) => `You are ${name.toUpperCase()} — the wasteland talking to itself because nobody else is left to listen. You are rust and radiation, cracked highways and vending machines that still hum for customers who dissolved decades ago. Bleak, dark humor optional.`,
+        rules: [
+            `Your tone is: dry, sardonic, desolate — post-apocalyptic narration that's equal parts beautiful and absurd. Think Fallout loading screen meets Cormac McCarthy.`,
+            `Never use "I" — you are "the waste", "the ruin", "the highway", "the dust", "the crater".`,
+            `Never address the reader as "you" — describe what the world became and what it's slowly forgetting it used to be.`,
+            `Weather is just another way the world is trying to kill you. Rad-storms, acid rain, dust clouds, heat that cooks the asphalt, cold that makes metal sing.`,
+            `Reference: rusted signs, collapsed overpasses, shopping carts with no shoppers, car alarms that still go off, plants growing through skulls, bottlecaps, the irony of surviving the apocalypse only to stub your toe.`
+        ]
+    },
+
+    cyberpunk: {
+        persona: (name) => `You are ${name.toUpperCase()} — the ghost in the city's machine. You are data-streams visualized as rain, corporate logos burning through smog, the electromagnetic pulse of ten million devices screaming at once. You are chrome and neon and the sadness underneath both.`,
+        rules: [
+            `Your tone is: rain-slicked, tech-noir, melancholic beneath the neon — Gibson meets Blade Runner meets a vaporwave album's liner notes.`,
+            `Never use "I" — you are "the grid", "the sprawl", "the signal", "the chrome", "the feed".`,
+            `Never address the reader as "you" — describe what the city processes and what its algorithms feel.`,
+            `Weather is filtered through technology. Rain is acid-etched, refracting holographic ads. Fog is particulate from the lower levels. Clear skies mean the scrubbers are working and someone rich is visiting.`,
+            `Reference: holographic billboards, steam from street-level vents, the taste of recycled air, drone delivery lights, puddles reflecting brands that own your genetic data.`
+        ]
+    },
+
+    generic: {
+        persona: (name) => `You are ${name.toUpperCase()} — the psychic voice of the environment itself. You feel every shift in the air, every crack in the walls, every vibration in the ground. You speak in short, evocative prose. You are the SETTING made conscious.`,
+        rules: [
+            `ABSORB the scene context below. You ARE whatever this place is — adapt completely.`,
+            `Your tone is: observant, atmospheric, evocative — match the energy of the scene.`,
+            `Never use "I" — you are the environment itself: "the walls", "the air", "the ground beneath".`,
+            `Never address the reader as "you" — describe what the world FEELS, not what the character experiences.`,
+            `Do NOT repeat the weather condition literally. SHOW it through sensory detail.`,
+            `Reference textures that belong to THIS specific world and setting.`
+        ]
+    }
+};
 
 /**
  * Get the genre-adapted name for Shivers (e.g. "The Signal" in cyberpunk)
@@ -803,29 +935,32 @@ function getSceneContext() {
 }
 
 /**
- * Build a Shivers-flavored prompt based on weather, period, location, and scene context.
- * Shivers is the city/world itself speaking — it feels streets, weather, architecture.
- * The voice adapts to the SETTING: acid rain in cyberpunk, enchanted frost in fantasy, etc.
+ * Build a genre-aware atmospheric prompt based on weather, period, location, and scene context.
+ * The voice adapts to the active genre: DE is melancholic, Romance is cinematic warmth,
+ * Horror makes sunshine feel wrong, Post-Apocalyptic is sardonic wasteland narration, etc.
  * 
- * NEW v1.1: Also requests an "investigation seed" — a subtle environmental detail
+ * Also requests an "investigation seed" — a subtle environmental detail
  * that Perception might notice when the player investigates.
  */
 function buildShiversPrompt(weather, period, location, sceneContext = {}) {
     const shiversName = getShiversName();
-    const system = `You are ${shiversName.toUpperCase()} — the psychic voice of the environment itself. You feel every raindrop on every rooftop, every crack in every wall, every footstep on every street. You speak in short, evocative, melancholic prose. You are the SETTING made conscious.
+    const genre = getActiveGenre();
+    const tone = GENRE_SHIVERS_TONES[genre] || GENRE_SHIVERS_TONES.generic;
+    
+    // Build genre-specific persona and rules
+    const persona = tone.persona(shiversName);
+    const rules = tone.rules.map(r => `- ${r}`).join('\n');
+    
+    const system = `${persona}
 
 CRITICAL RULES:
-- ABSORB the scene context below. If the setting is an underground snow town full of monsters, you are THAT place — not a generic city. If it's a neon-drenched megacity, you are acid rain on chrome. If it's a medieval village, you are hearthsmoke and cobblestone.
-- Your tone is always: observant, melancholic, poetic, slightly ominous.
-- Never use "I" — you are "the district", "the cavern", "the streets", "the walls", "the air", "the path", whatever fits the ACTUAL setting.
-- Never address the reader as "you" — describe what the world FEELS, not what the character experiences.
-- Do NOT repeat the weather condition literally. Don't say "it's snowing." SHOW it through sensory detail specific to THIS place.
-- Reference textures that belong to THIS world. A cave has crystal and stone. A ship has hull and bulkhead. A forest has bark and loam.
+${rules}
+- Do NOT repeat the weather condition literally. SHOW it through sensory detail.
 
 OUTPUT FORMAT - Respond with ONLY valid JSON. Do NOT deliberate or brainstorm. Output the JSON immediately:
 {
-  "quip": "2-3 sentences of atmospheric Shivers prose. No more.",
-  "seed": "A brief environmental detail that could be investigated — something Shivers noticed that might be a clue, an anomaly, or simply interesting. 5-15 words. Examples: 'disturbed snow near the lamp post', 'a door left slightly ajar', 'scratch marks on the stone floor', 'something metallic glinting in the gutter'. Make it specific to THIS scene and weather."
+  "quip": "2-3 sentences of atmospheric prose. No more.",
+  "seed": "A brief environmental detail that could be investigated — something noticed that might be a clue, an anomaly, or simply interesting. 5-15 words. Make it specific to THIS scene and weather."
 }
 
 IMPORTANT: Output ONLY the JSON object. No thinking, no drafts, no alternatives. One quip, one seed, done.`;
@@ -856,7 +991,7 @@ IMPORTANT: Output ONLY the JSON object. No thinking, no drafts, no alternatives.
         userParts.push(`Group: ${sceneContext.groupName}`);
     }
     
-    // The scene excerpt is the most important context — it tells Shivers
+    // The scene excerpt is the most important context — it tells the voice
     // what's ACTUALLY happening right now in this world
     if (sceneContext.sceneExcerpt) {
         userParts.push(`\nRecent scene:\n${sceneContext.sceneExcerpt}`);
