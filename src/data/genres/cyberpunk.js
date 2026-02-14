@@ -96,50 +96,10 @@ THE FIXER [Suggestion] - I know a guy. I always know a guy. The question isn't w
         savoir_faire: 'The Edgerunner',
         interfacing: 'The Netrunner',
         composure: 'The Mask',
-        // Ancient Voices
+        // Ancient voices
         ancient_reptilian_brain: 'The Blackwall',
         limbic_system: 'The Engram',
         spinal_cord: 'The Cyberpsychosis',
-    },
-
-
-    // ── Genre-Adapted Names & Descriptions ──
-    categoryNames: {
-        intellect: 'Wetware',
-        psyche: 'Ghost',
-        physique: 'Chrome',
-        motorics: 'Wire',
-    },
-
-    skillDescriptions: {
-        // INTELLECT
-        logic: 'Data analysis. Pattern recognition. Corporate math.',
-        encyclopedia: 'Every media feed. Every conspiracy. Every dead netrunner.',
-        rhetoric: 'Corpo-speak. The language of leverage and liability.',
-        drama: 'A face for every client. None of them yours.',
-        conceptualization: 'Digital art in a world of analog pain.',
-        visual_calculus: 'Tactical overlay. Threat assessment in real time.',
-        // PSYCHE
-        volition: 'The street kid who refused to sell out.',
-        inland_empire: 'Ghost in the machine. Echoes of deleted data.',
-        empathy: 'Reading people through their chrome.',
-        authority: 'Corner office energy. The boardroom is a battlefield.',
-        suggestion: 'The fixer\'s soft touch. Everyone has a price.',
-        esprit_de_corps: 'The crew\'s running hot. You feel it in the link.',
-        // PHYSIQUE
-        endurance: 'Chrome holds when meat fails.',
-        pain_threshold: 'Pain dampeners off. Feel it. Learn from it.',
-        physical_instrument: 'Full-body chrome. The solo\'s answer to everything.',
-        electrochemistry: 'Synthetic bliss. Real addiction. Who can tell?',
-        half_light: 'Threat detected. Someone followed you from the market.',
-        shivers: 'Neon pulses. The city has a heartbeat.',
-        // MOTORICS
-        hand_eye_coordination: 'Smartgun link. The crosshair follows your eye.',
-        perception: 'Optical implants catching what meat eyes miss.',
-        reaction_speed: 'Reflex boosters. Moving faster than thought.',
-        savoir_faire: 'Running the edge with style. Chrome and leather.',
-        interfacing: 'Jacked in. The net opens like a cathedral.',
-        composure: 'The mask is chrome. The chrome doesn\'t flinch.',
     },
 
     skillPersonalities: {

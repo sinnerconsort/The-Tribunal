@@ -87,6 +87,10 @@ ROGUE [Electrochemistry] - Fox-den two clicks east. Barkeep waters the ale but t
         savoir_faire: 'The Swashbuckler',
         interfacing: 'The Artificer',
         composure: 'The Knight',
+        // Ancient voices
+        ancient_reptilian_brain: 'The Eldest Wyrm',
+        limbic_system: 'The Banshee',
+        spinal_cord: 'The Berserker Spirit',
     },
 
     skillPersonalities: {

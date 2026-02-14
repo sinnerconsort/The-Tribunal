@@ -91,6 +91,10 @@ THE ACE [Savoir Faire] - Asteroid field. Dense. Uncharted. The computer says don
         savoir_faire: 'The Ace',
         interfacing: 'The Engineer',
         composure: 'The Officer',
+        // Ancient voices
+        ancient_reptilian_brain: 'The Singularity',
+        limbic_system: 'The Last Transmission',
+        spinal_cord: 'The Berserker Protocol',
     },
 
     skillPersonalities: {

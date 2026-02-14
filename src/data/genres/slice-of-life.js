@@ -96,6 +96,10 @@ THE HOMEMAKER [Volition] - The house is a mess. The schedule is impossible. Ever
         savoir_faire: 'The Host',
         interfacing: 'The Appliance Whisperer',
         composure: 'The School Gate Face',
+        // Ancient voices
+        ancient_reptilian_brain: 'The Empty Nest',
+        limbic_system: 'The Baby Photos',
+        spinal_cord: 'The Nap',
     },
 
     skillPersonalities: {

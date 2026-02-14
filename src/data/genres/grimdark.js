@@ -97,6 +97,10 @@ THE RESOLVE [Volition] - Get up. Not because it matters. Not because anyone's wa
         savoir_faire: 'The Mercenary',
         interfacing: 'The Torturer',
         composure: 'The Hopelessness',
+        // Ancient voices
+        ancient_reptilian_brain: 'The Abyss',
+        limbic_system: 'The Last Prayer',
+        spinal_cord: 'The Blood',
     },
 
     skillPersonalities: {

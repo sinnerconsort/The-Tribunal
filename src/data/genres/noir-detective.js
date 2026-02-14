@@ -96,6 +96,10 @@ THE CITY [Shivers] - Rain again. The gutters are full. The neon's bleeding into 
         savoir_faire: 'The Smooth Operator',
         interfacing: 'The Wiretap',
         composure: 'The Mask',
+        // Ancient voices
+        ancient_reptilian_brain: 'The Cold Case',
+        limbic_system: 'The Letter',
+        spinal_cord: 'The Instinct',
     },
 
     skillPersonalities: {

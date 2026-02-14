@@ -93,6 +93,10 @@ THE SETTLER [Volition] - The soil is contaminated. The water needs filtering. Th
         savoir_faire: 'The Road Warrior',
         interfacing: 'The Mechanic',
         composure: 'The Mask',
+        // Ancient voices
+        ancient_reptilian_brain: 'The Before',
+        limbic_system: 'The Last Broadcast',
+        spinal_cord: 'The Hunger',
     },
 
     skillPersonalities: {

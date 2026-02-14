@@ -98,6 +98,10 @@ THE YEARNING [Inland Empire] - It's 2AM and the bed is too big and you're thinki
         savoir_faire: 'The Main Character',
         interfacing: 'The Phone',
         composure: 'The Poker Face',
+        // Ancient voices
+        ancient_reptilian_brain: 'The Soulmate Delusion',
+        limbic_system: 'The Song That Reminds You',
+        spinal_cord: 'The Kiss',
     },
 
     skillPersonalities: {
