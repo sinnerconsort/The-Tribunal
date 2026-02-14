@@ -1,7 +1,7 @@
 /**
  * The Tribunal - Voices Tab & Voice Display
  * Back-of-napkin math aesthetic + Panel/Chat styling
- * REBUILD v0.2.1 - Merged with display fixes
+ * REBUILD v0.3.0 - Removed old calc blocks (now in skill-accordion.css)
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -64,104 +64,9 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   ATTRIBUTES - Back-of-napkin calculations
+   ATTRIBUTES - Now handled by skill-accordion.css
+   Old napkin calc block styles removed in v0.3.0
    ═══════════════════════════════════════════════════════════════ */
-
-.napkin-calc-block {
-    position: relative;
-    margin-bottom: 8px;
-    padding: 8px 10px;
-    font-family: 'Segoe Script', 'Bradley Hand', cursive, sans-serif;
-}
-
-.napkin-attr-main {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    margin-bottom: 6px;
-}
-
-.napkin-attr-name {
-    font-size: 15px;
-    font-weight: 700;
-    text-decoration: underline;
-    text-decoration-style: wavy;
-    text-decoration-color: currentColor;
-}
-
-.napkin-attr-score {
-    font-family: 'Courier New', monospace;
-    font-size: 18px;
-    font-weight: 700;
-}
-
-.napkin-attr-score::before {
-    content: '= ';
-    font-size: 12px;
-    opacity: 0.6;
-}
-
-.napkin-skills-scatter {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 12px;
-    padding-left: 8px;
-    font-size: 12px;
-    color: #3a352f;
-}
-
-.napkin-skill {
-    white-space: nowrap;
-}
-
-.napkin-skill .name {
-    font-style: italic;
-}
-
-.napkin-skill .val {
-    font-family: 'Courier New', monospace;
-    font-weight: 700;
-}
-
-.napkin-skill.circled {
-    border: 1.5px solid rgba(0,0,0,0.3);
-    border-radius: 10px;
-    padding: 0px 5px;
-    background: rgba(255,255,255,0.3);
-}
-
-/* Attribute colors */
-.napkin-calc-int { border-left: 3px solid #4a6a8a; }
-.napkin-calc-int .napkin-attr-name,
-.napkin-calc-int .napkin-attr-score { color: #3a5a7a; }
-
-.napkin-calc-psy { border-left: 3px solid #7a5a8a; }
-.napkin-calc-psy .napkin-attr-name,
-.napkin-calc-psy .napkin-attr-score { color: #6a4a7a; }
-
-.napkin-calc-fys { border-left: 3px solid #9a5a5a; }
-.napkin-calc-fys .napkin-attr-name,
-.napkin-calc-fys .napkin-attr-score { color: #8a4a4a; }
-
-.napkin-calc-mot { border-left: 3px solid #8a7a4a; }
-.napkin-calc-mot .napkin-attr-name,
-.napkin-calc-mot .napkin-attr-score { color: #7a6a3a; }
-
-/* Subtle rotations for messiness */
-.napkin-calc-block:nth-child(1) { transform: rotate(-0.3deg); }
-.napkin-calc-block:nth-child(3) { transform: rotate(0.2deg); margin-left: 4px; }
-.napkin-calc-block:nth-child(5) { transform: rotate(-0.2deg); margin-left: 2px; }
-.napkin-calc-block:nth-child(7) { transform: rotate(0.3deg); }
-
-/* Plus signs between attributes */
-.napkin-plus {
-    text-align: center;
-    font-family: 'Courier New', monospace;
-    font-size: 14px;
-    color: rgba(0,0,0,0.12);
-    margin: 4px 0;
-    user-select: none;
-}
 
 /* ═══════════════════════════════════════════════════════════════
    INNER VOICES SECTION - Pushed to bottom
