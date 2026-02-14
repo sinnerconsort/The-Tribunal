@@ -450,7 +450,7 @@ function updateAncientVoicesContainer(container) {
             <div class="rcm-ancient-voice ${voice.id}">
                 <div class="ancient-voice-header">
                     <i class="${voice.icon}"></i>
-                    <span class="ancient-voice-name">${voice.name}</span>
+                    <span class="ancient-voice-name">${getSkillName(voice.id, voice.name)}</span>
                 </div>
                 <div class="ancient-voice-trigger">
                     <small>triggered by: ${triggerInfo}</small>
