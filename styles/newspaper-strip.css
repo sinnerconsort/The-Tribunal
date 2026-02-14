@@ -16,6 +16,36 @@
     box-shadow: 
         0 4px 16px rgba(0,0,0,0.4),
         inset 0 0 60px rgba(0,0,0,0.4);
+    /* Defensive: prevent parent from collapsing us */
+    display: block !important;
+    visibility: visible !important;
+    min-height: 120px !important;
+    opacity: 1 !important;
+}
+
+/* Defensive: ensure all direct children are visible */
+#newspaper-strip.peripherique-paper > .peripherique-header {
+    display: grid !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+#newspaper-strip.peripherique-paper > .peripherique-dateline {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+#newspaper-strip.peripherique-paper > .peripherique-shivers {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+#newspaper-strip.peripherique-paper > .peripherique-edition {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
