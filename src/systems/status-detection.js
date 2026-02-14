@@ -56,7 +56,7 @@ const REQUIRES_YOU_CONTEXT = new Set([
 const STICKY_STATUSES = new Set([
     'finger_on_the_eject_button',   // Wounds don't vanish between messages
     'white_mourning',               // Dying doesn't stop on its own
-    'the_pale',                     // Dissociation persists
+    'the_pale',                     // Unconsciousness persists
     'volumetric_shit_compressor',   // Hangovers last
 ]);
 
@@ -80,12 +80,14 @@ const EXTENDED_KEYWORDS = {
         'teeth knocked', 'nose broken', 'jaw shattered'
     ],
     the_pale: [
-        'losing consciousness', 'world fades', 'everything goes dark',
-        'slipping away', 'can\'t feel anything', 'reality shifts',
-        'world dissolves', 'edges blur', 'not real', 'is this real',
-        'out of body', 'watching yourself', 'far away', 'tunnel vision',
-        'the void', 'static fills', 'white noise', 'between worlds',
-        'ego death', 'who am i', 'who are you'
+        'losing consciousness', 'everything goes dark', 'world fades',
+        'slipping away', 'blacks out', 'blacked out', 'passed out',
+        'falls unconscious', 'knocked out', 'knocked unconscious',
+        'fainted', 'fainting', 'collapses', 'goes limp',
+        'eyes roll back', 'crumples', 'falls to the ground',
+        'asleep', 'dozing', 'drifting off', 'deep sleep', 'coma',
+        'out cold', 'lights out', 'world goes dark', 'vision darkens',
+        'can\'t stay awake', 'consciousness fading', 'everything goes black'
     ],
     white_mourning: [
         'life flashes', 'this is it', 'final breath', 'heart stopping',
