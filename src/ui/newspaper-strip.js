@@ -15,17 +15,34 @@
  */
 
 import { getSettings } from '../core/persistence.js';
-import { getSkillName } from '../data/setting-profiles.js';
 
 // ═══════════════════════════════════════════════════════════════
 // GENRE-AWARE SHIVERS NAME
 // ═══════════════════════════════════════════════════════════════
 
+let _getSkillName = null;
+
+/**
+ * Lazy-load getSkillName to avoid import failures killing the newspaper
+ */
+async function ensureSkillName() {
+    if (_getSkillName) return;
+    try {
+        const mod = await import('../data/setting-profiles.js');
+        _getSkillName = mod.getSkillName || mod.default?.getSkillName;
+    } catch (e) {
+        console.warn('[Périphérique] Could not load setting-profiles:', e);
+    }
+}
+
 /**
  * Get the genre-adapted name for Shivers (e.g. "The Signal" in cyberpunk)
  */
 function getShiversName() {
-    return getSkillName('shivers', 'Shivers');
+    if (_getSkillName) {
+        try { return _getSkillName('shivers', 'Shivers'); } catch { /* fall through */ }
+    }
+    return 'Shivers';
 }
 
 /**
@@ -1165,14 +1182,16 @@ export function initNewspaperStrip() {
     }
     
     // Small delay to ensure DOM is ready
-    setTimeout(() => {
+    setTimeout(async () => {
         connectToWeatherSystem();
         updateNewspaperFromWatch();
+        await ensureSkillName();
         updateShiversAttribution();
     }, 50);
     
     // Refresh attribution when genre changes
-    window.addEventListener('tribunal:genreChanged', () => {
+    window.addEventListener('tribunal:genreChanged', async () => {
+        await ensureSkillName();
         updateShiversAttribution();
     });
     
