@@ -41,7 +41,6 @@ import { initProfiles, refreshProfilesFromState } from './src/ui/profiles-handle
 import { initStatus, refreshStatusFromState } from './src/ui/status-handlers.js';
 import { initSettingsTab } from './src/ui/settings-handlers.js';
 import { initCabinetHandlers, refreshCabinet } from './src/ui/cabinet-handler.js';
-import { initNewspaperStrip, updateNewspaperStrip } from './src/ui/newspaper-strip.js';
 import { initLocationHandlers, refreshLocations } from './src/ui/location-handlers.js';
 import { initAwareness } from './src/systems/ledger-awareness.js';
 import { initFortuneInjection } from './src/systems/fortune-injection.js';
@@ -827,7 +826,6 @@ async function init() {
     initStatus();
     initSettingsTab();
     initCabinetHandlers();
-    initNewspaperStrip();
     initAwareness();
     initFortuneInjection();
     initFidgetPatterns();
