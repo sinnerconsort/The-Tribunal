@@ -252,21 +252,22 @@ export const NEWSPAPER_STRIP_CSS = `
 
 #newspaper-strip.peripherique-paper {
     position: relative;
-    margin: -10px -12px 12px -12px;
+    margin: 0 -12px 12px -12px;
     background-color: #2a2520 !important;
     color: #c8b8a0 !important;
     font-family: 'Times New Roman', Georgia, 'Noto Serif', serif;
     user-select: none;
     border: 3px solid #4a4035 !important;
-    overflow: hidden;
     box-shadow: 
         0 4px 16px rgba(0,0,0,0.4),
         inset 0 0 60px rgba(0,0,0,0.4);
-    /* Defensive: prevent parent from collapsing us */
-    display: block !important;
-    visibility: visible !important;
-    min-height: 120px !important;
-    opacity: 1 !important;
+    /* Flex item behavior */
+    flex-shrink: 0 !important;
+    /* Beat the ledger-paper ::before overlay */
+    z-index: 2 !important;
+    /* Override parent ledger-paper background bleeding */
+    background-image: none !important;
+    background-blend-mode: normal !important;
 }
 
 /* Defensive: ensure all direct children are visible */
@@ -1173,11 +1174,14 @@ async function connectToWeatherSystem() {
                 const state = weatherModule.getState();
                 if (state.weather || state.period) {
                     onWeatherChange(state);
+                    return true;
                 }
             }
         }
+        return false;
     } catch (e) {
         console.warn('[Périphérique] Weather integration not available:', e.message);
+        return false;
     }
 }
 
@@ -1223,8 +1227,17 @@ export function initNewspaperStrip() {
     
     // Small delay to ensure DOM is ready
     setTimeout(async () => {
-        connectToWeatherSystem();
-        updateNewspaperFromWatch();
+        // Try to connect to the weather system first (respects RP mode)
+        const connected = await connectToWeatherSystem();
+        
+        // Only use IRL fallback if weather system didn't provide data
+        if (!connected || (!currentState.weather && !currentState.period)) {
+            console.log('[Périphérique] No weather data from system, using IRL fallback');
+            updateNewspaperFromWatch();
+        } else {
+            console.log('[Périphérique] Using weather system data:', currentState.weather, currentState.period);
+        }
+        
         await ensureSkillName();
         updateShiversAttribution();
     }, 50);
