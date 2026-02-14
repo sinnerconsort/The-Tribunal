@@ -8,7 +8,7 @@
  * - First generation: API call, save to stash
  * - Re-add same item: Instant from cache, no API
  * 
- * v1.0.1 - Removed unused createInventoryItem import
+ * v1.1.0 - Genre-aware generation prompts and fallback quips
  * FIXED: parseItems() now handles parentheses correctly
  * "Pack of Astras (3x)" stays as ONE item
  */
@@ -67,6 +67,72 @@ const VALID_SKILLS = [
     'endurance', 'pain_threshold', 'physical_instrument', 'electrochemistry', 'shivers', 'half_light',
     'hand_eye_coordination', 'perception', 'reaction_speed', 'savoir_faire', 'interfacing', 'composure'
 ];
+
+// ═══════════════════════════════════════════════════════════════
+// GENRE-AWARE ITEM TONES
+// Controls how descriptions and quips are flavored
+// ═══════════════════════════════════════════════════════════════
+
+const GENRE_ITEM_TONES = {
+    disco_elysium: {
+        descStyle: 'Poetic and strange, like evidence from a crumbling world. Combine mundane observations with existential weight.',
+        quipStyle: 'Channel Disco Elysium skill voices — each skill has a distinct personality. Electrochemistry is hedonistic, Logic is dry and analytical, Inland Empire is mystical and paranoid.',
+        exampleDesc: 'A half-crushed pack. The foil catches light like a tiny sunset. Someone loved these once, or needed them, which is almost the same thing.',
+    },
+    noir_detective: {
+        descStyle: 'Hardboiled and cynical. Every object has a story, and most of them end badly. Describe items like a PI cataloguing evidence.',
+        quipStyle: 'Voices are world-weary and sharp. Logic deduces coldly, Empathy reads the room, Half Light keeps one hand near the gun.',
+        exampleDesc: 'A lighter that\'s seen better days. The kind of thing you find in a dead man\'s pocket and wish you hadn\'t.',
+    },
+    fantasy: {
+        descStyle: 'Evocative and lore-rich. Items feel like they have history — enchanted, cursed, or simply old enough to matter. Describe with a sense of wonder or dread.',
+        quipStyle: 'Voices speak like advisors in a fantasy court — the wizard analyzes, the ranger assesses utility, the bard finds beauty.',
+        exampleDesc: 'A vial of something luminous. The glass is warm to the touch and the liquid inside shifts color when no one is looking.',
+    },
+    cyberpunk: {
+        descStyle: 'Tech-noir and street-smart. Items are either corporate products or jury-rigged street gear. Everything has specs, model numbers, or street value.',
+        quipStyle: 'Voices are augmented and jacked-in. Logic runs cost-benefit, Interfacing evaluates tech specs, Electrochemistry rates the high.',
+        exampleDesc: 'A stim injector, Arasaka manufacture, serial filed off. The dosage indicator reads 73%. Someone was saving the rest.',
+    },
+    space_opera: {
+        descStyle: 'Vast and clinical with moments of cosmic wonder. Items are catalogued like ship inventory but carry the weight of deep space isolation.',
+        quipStyle: 'Voices are mission-focused but haunted by the void. Logic calculates utility, Shivers feels the emptiness between stars.',
+        exampleDesc: 'Standard-issue ration bar, vacuum-sealed. The packaging says "TERRAN BLEND" but nothing tastes like home out here.',
+    },
+    romance: {
+        descStyle: 'Emotionally resonant. Items carry personal significance — gifts, mementos, comfort objects. Focus on what the item means, not just what it is.',
+        quipStyle: 'Voices are emotionally attuned. Empathy reads the heart, Drama sees the romance, Volition counsels restraint.',
+        exampleDesc: 'A dried flower pressed between pages. The petals have lost their color but not their meaning.',
+    },
+    thriller_horror: {
+        descStyle: 'Unsettling and clinical. Describe items the way a forensic report would — precise details that make ordinary things feel wrong.',
+        quipStyle: 'Voices are on edge. Logic tries to rationalize, Half Light screams danger, Inland Empire senses what can\'t be explained.',
+        exampleDesc: 'A flashlight. The beam flickers at irregular intervals. The batteries are fresh. You checked.',
+    },
+    post_apocalyptic: {
+        descStyle: 'Practical and scarce. Everything is salvage. Describe items by what they\'re worth, what they\'re made from, and how long they\'ll last.',
+        quipStyle: 'Voices are survival-focused. Logic assesses trade value, Endurance evaluates calories, Half Light watches for thieves.',
+        exampleDesc: 'A tin of something. The label rotted off years ago. Could be beans. Could be dog food. Either way, it\'s dinner.',
+    },
+    generic: {
+        descStyle: 'Atmospheric and fitting to the scene. Describe items with character — what they look like, feel like, what story they tell.',
+        quipStyle: 'Voices offer distinct perspectives — analytical, emotional, instinctive. Each sees the item differently.',
+        exampleDesc: 'An object with a history. Scratched, used, carried. It belongs to someone now.',
+    }
+};
+
+/**
+ * Get the active genre's item tone
+ */
+function getGenreItemTone() {
+    try {
+        const { getActiveProfileId } = window.TribunalProfiles || {};
+        const genreId = getActiveProfileId?.() || 'disco_elysium';
+        return GENRE_ITEM_TONES[genreId] || GENRE_ITEM_TONES.generic;
+    } catch {
+        return GENRE_ITEM_TONES.disco_elysium;
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // FIXED: PARENTHESIS-AWARE ITEM PARSER
@@ -498,7 +564,7 @@ function normalizeItemName(raw) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// SINGLE ITEM GENERATION
+// SINGLE ITEM GENERATION (genre-aware)
 // ═══════════════════════════════════════════════════════════════
 
 /**
@@ -515,14 +581,18 @@ export async function generateSingleItem(itemName, context = '') {
     
     const genreIntro = getProfileValue('systemIntro', 
         'You are channeling the internal skill voices of a character.');
+    const tone = getGenreItemTone();
     
     const systemPrompt = `${genreIntro} Every item tells a story. The skills in your head all have opinions about what you carry.
+
+DESCRIPTION STYLE: ${tone.descStyle}
+QUIP STYLE: ${tone.quipStyle}
 
 ${addictive ? 'This is an ADDICTIVE substance. Electrochemistry should be EXCITED about it. Volition should DISAPPROVE.' : ''}
 
 Output ONLY valid JSON, no markdown, no explanation.`;
 
-    const userPrompt = `Generate rich data for this inventory item, matching the tone of the setting:
+    const userPrompt = `Generate rich data for this inventory item:
 
 ITEM: ${itemName}
 TYPE: ${inferredType} (${typeInfo?.label || 'Unknown'})
@@ -543,7 +613,7 @@ Respond with ONLY this JSON structure:
   "name": "${itemName}",
   "type": "${inferredType}",
   "effectId": "${consumable ? 'CHOOSE_FROM_EFFECT_IDS' : 'none'}",
-  "description": "2-3 sentence evocative description. Make it poetic and strange, matching the setting's tone.",
+  "description": "2-3 sentence evocative description matching the setting tone.",
   "voiceQuips": [
     {"skill": "skill_id", "text": "One-liner about this item", "approves": true},
     {"skill": "other_skill", "text": "Different perspective one-liner", "approves": false}
@@ -569,7 +639,7 @@ ${addictive ? `
 - One approving, one disapproving (or both can approve/disapprove based on item)
 `}
 - Keep quips short and punchy (under 15 words)
-- Channel the voice's personality
+- Channel each voice's personality
 
 Generate 2 voice quips from different skills.`;
 
@@ -597,7 +667,7 @@ Generate 2 voice quips from different skills.`;
 }
 
 // ═══════════════════════════════════════════════════════════════
-// BATCH GENERATION
+// BATCH GENERATION (genre-aware)
 // ═══════════════════════════════════════════════════════════════
 
 /**
@@ -617,10 +687,16 @@ export async function generateMultipleItems(itemNames, context = '') {
     
     const batchGenreIntro = getProfileValue('systemIntro', 
         'You are channeling the internal skill voices of a character.');
+    const tone = getGenreItemTone();
     
-    const systemPrompt = `${batchGenreIntro} Generate data for multiple inventory items. Output ONLY valid JSON array, no markdown.`;
+    const systemPrompt = `${batchGenreIntro} Generate data for multiple inventory items.
+
+DESCRIPTION STYLE: ${tone.descStyle}
+QUIP STYLE: ${tone.quipStyle}
+
+Output ONLY valid JSON array, no markdown.`;
     
-    const userPrompt = `Generate data for these inventory items, matching the tone of the setting:
+    const userPrompt = `Generate data for these inventory items:
 
 ${itemList}
 
@@ -818,7 +894,7 @@ function inferEffectIdFromType(type) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FALLBACK ITEM (when AI fails)
+// FALLBACK ITEM (when AI fails) - genre-aware
 // ═══════════════════════════════════════════════════════════════
 
 function createFallbackItem(name) {
@@ -840,7 +916,11 @@ function createFallbackItem(name) {
     };
 }
 
+/**
+ * Genre-aware fallback quips when AI generation fails
+ */
 function generateFallbackQuips(type) {
+    // These are intentionally genre-neutral — they work across all settings
     const quips = {
         cigarettes: [
             { skill: 'electrochemistry', text: 'Light one up. You know you want to.', approves: true },
@@ -848,7 +928,7 @@ function generateFallbackQuips(type) {
         ],
         alcohol: [
             { skill: 'electrochemistry', text: 'The good stuff. Pour one out for yourself.', approves: true },
-            { skill: 'logic', text: 'Your liver would like a word.', approves: false }
+            { skill: 'logic', text: 'Your body would like a word.', approves: false }
         ],
         stimulants: [
             { skill: 'electrochemistry', text: 'Oh YES. This is the ticket.', approves: true },
