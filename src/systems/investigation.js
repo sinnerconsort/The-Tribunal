@@ -15,7 +15,7 @@
  * 3. Discoveries appear as tappable cards
  * 4. User taps EXAMINE → Relevant skills react to that specific discovery
  * 
- * @version 7.0.2 - Fixed FAB position overlap with main FAB
+ * @version 7.1.0 - Integrated newspaper atmosphere into investigation panel
  */
 
 import { SKILLS } from '../data/skills.js';
@@ -42,13 +42,15 @@ import {
 
 let getInvestigationSeed = () => null;
 let clearInvestigationSeed = () => {};
+let getNewspaperState = () => ({ weather: 'overcast', period: 'afternoon', lastQuip: null });
 
 // Dynamic import to avoid circular dependency
 import('../ui/newspaper-strip.js')
     .then(m => {
         if (m.getInvestigationSeed) getInvestigationSeed = m.getInvestigationSeed;
         if (m.clearInvestigationSeed) clearInvestigationSeed = m.clearInvestigationSeed;
-        console.log('[Investigation] ✓ Shivers seed integration loaded');
+        if (m.getNewspaperState) getNewspaperState = m.getNewspaperState;
+        console.log('[Investigation] ✓ Shivers seed + atmosphere integration loaded');
     })
     .catch(() => {
         console.log('[Investigation] Newspaper module not available (seeds disabled)');
@@ -732,10 +734,10 @@ function createPanel() {
             <div style="${STYLES.mastheadSub}">❦ PERCEPTION SCAN ❦</div>
         </div>
         
-        <div style="${STYLES.dateline}">
-            <span>MARTINAISE, '51</span>
-            <span>VOL. XLII NO. 308</span>
-            <span>5 RÉAL</span>
+        <div id="tribunal-inv-dateline" style="${STYLES.dateline}">
+            <span id="tribunal-inv-date">MARTINAISE, '51</span>
+            <span id="tribunal-inv-weather-label">OVERCAST</span>
+            <span id="tribunal-inv-period">AFTERNOON</span>
         </div>
         
         <div style="${STYLES.headline}">
@@ -845,6 +847,7 @@ function open() {
     
     if (fab) fab.classList.add('ie-fab-active');
     
+    updateAtmosphereDisplay();
     updateContextDisplay();
     updateSeedDisplay();
 }
@@ -888,7 +891,60 @@ function updateContextDisplay() {
             : sceneContext;
         el.textContent = truncated;
     } else if (el) {
-        el.textContent = 'The scene awaits your investigation...';
+        // No scene context — show Shivers atmospheric quip if available
+        const state = getNewspaperState();
+        if (state.lastQuip) {
+            el.textContent = state.lastQuip;
+        } else {
+            el.textContent = 'The scene awaits your investigation...';
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ATMOSPHERE DISPLAY (weather/date/period from newspaper)
+// ═══════════════════════════════════════════════════════════════
+
+const PERIOD_LABELS = {
+    'DAWN': 'DAWN',
+    'MORNING': 'MORNING',
+    'AFTERNOON': 'AFTERNOON',
+    'EVENING': 'EVENING',
+    'NIGHT': 'NIGHT',
+    'LATE_NIGHT': 'LATE NIGHT',
+    'day': 'DAY',
+    'city-night': 'NIGHT',
+    'quiet-night': 'LATE NIGHT',
+    'indoor': 'INDOOR'
+};
+
+function updateAtmosphereDisplay() {
+    const state = getNewspaperState();
+    
+    // Update date
+    const dateEl = document.getElementById('tribunal-inv-date');
+    if (dateEl) {
+        const now = new Date();
+        const month = now.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+        const day = now.getDate();
+        dateEl.textContent = `${month} ${day}, '51`;
+    }
+    
+    // Update weather
+    const weatherEl = document.getElementById('tribunal-inv-weather-label');
+    if (weatherEl) {
+        const weather = (state.weather || 'overcast')
+            .replace('-day', '').replace('-night', '')
+            .toUpperCase();
+        weatherEl.textContent = weather;
+    }
+    
+    // Update period
+    const periodEl = document.getElementById('tribunal-inv-period');
+    if (periodEl) {
+        const period = PERIOD_LABELS[state.period] || 
+                       (state.period || 'AFTERNOON').toUpperCase().replace('_', ' ');
+        periodEl.textContent = period;
     }
 }
 
