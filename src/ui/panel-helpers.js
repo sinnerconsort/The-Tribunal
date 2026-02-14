@@ -2,10 +2,12 @@
  * The Tribunal - Panel Helpers
  * Panel controls, tab switching, and event binding
  * Extracted from rebuild v0.3.0
+ * v0.3.1 - Added skill accordion initialization
  */
 
 import { toggleWatchMode } from './watch.js';
 import { initLedgerHandlers } from '../core/events.js';
+import { buildSkillAccordion } from './voices-template.js';
 
 // ═══════════════════════════════════════════════════════════════
 // PANEL CONTROLS
@@ -209,6 +211,9 @@ export function bindEvents() {
     
     // Initialize ledger handlers (cases + contacts)
     initLedgerHandlers();
+
+    // Build skill accordion on voices tab
+    buildSkillAccordion();
 }
 
 /**
