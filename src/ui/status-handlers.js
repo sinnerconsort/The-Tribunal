@@ -14,9 +14,7 @@ import {
     removeActiveEffect 
 } from '../core/state.js';
 
-import { 
-    STATUS_EFFECTS
-} from '../data/statuses.js';
+import { getSkillName } from '../data/setting-profiles.js';
 
 import { 
     updateCRTVitals,
@@ -322,7 +320,7 @@ function updateActiveConditionsDisplay() {
     const lines = [];
     
     // Format skill name for display (e.g., 'physical_instrument' -> 'PHYSICAL INSTRUMENT')
-    const formatSkill = (id) => id.replace(/_/g, ' ').toUpperCase();
+    const formatSkill = (id) => getSkillName(id, id.replace(/_/g, ' ')).toUpperCase();
     
     // Add boosts (green/positive)
     for (const [skill, amount] of Object.entries(boosts)) {
