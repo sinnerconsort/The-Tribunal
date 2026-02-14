@@ -1,21 +1,17 @@
 /**
- * The Tribunal - Investigation Module v7.0
+ * The Tribunal - Investigation Module v7.2
  * "La Revacholière" - Perception-First Environmental Scanner
  * 
- * REDESIGN v7.0:
- * - NEW: Perception-first scan replaces generateEnvironmentScan
- * - NEW: Shivers investigation seed integration (from newspaper-strip.js)
- * - NEW: Discovery card UI with EXAMINE and COLLECT actions
- * - NEW: Weather effects modify discovery types and skill difficulties
- * - Skill reactions now triggered on-demand via EXAMINE button
+ * v7.2.0 CHANGES:
+ * - Removed newspaper-strip.js dependency entirely
+ * - Now imports Shivers/weather from shivers-weather.js
+ * - Shivers display renders in investigation panel (no separate newspaper)
  * 
- * The flow is now:
- * 1. Shivers generates atmospheric quip + hidden seed
+ * The flow:
+ * 1. Shivers generates atmospheric quip + hidden seed (via shivers-weather.js)
  * 2. User presses INVESTIGATE → Perception scans (with optional seed hint)
  * 3. Discoveries appear as tappable cards
  * 4. User taps EXAMINE → Relevant skills react to that specific discovery
- * 
- * @version 7.1.0 - Integrated newspaper atmosphere into investigation panel
  */
 
 import { SKILLS } from '../data/skills.js';
@@ -37,24 +33,59 @@ import {
 } from './investigation-case-link.js';
 
 // ═══════════════════════════════════════════════════════════════
-// SHIVERS SEED INTEGRATION
+// SHIVERS-WEATHER INTEGRATION (replaces newspaper-strip dependency)
 // ═══════════════════════════════════════════════════════════════
 
-let getInvestigationSeed = () => null;
-let clearInvestigationSeed = () => {};
-let getNewspaperState = () => ({ weather: 'overcast', period: 'afternoon', lastQuip: null });
+let shiversModule = null;
 
 // Dynamic import to avoid circular dependency
-import('../ui/newspaper-strip.js')
+import('../systems/shivers-weather.js')
     .then(m => {
-        if (m.getInvestigationSeed) getInvestigationSeed = m.getInvestigationSeed;
-        if (m.clearInvestigationSeed) clearInvestigationSeed = m.clearInvestigationSeed;
-        if (m.getNewspaperState) getNewspaperState = m.getNewspaperState;
-        console.log('[Investigation] ✓ Shivers seed + atmosphere integration loaded');
+        shiversModule = m;
+        
+        // Register callback so investigation panel updates when Shivers generates
+        if (m.onShiversUpdate) {
+            m.onShiversUpdate(onShiversQuipReady);
+        }
+        
+        console.log('[Investigation] ✓ Shivers-weather integration loaded');
     })
     .catch(() => {
-        console.log('[Investigation] Newspaper module not available (seeds disabled)');
+        console.log('[Investigation] Shivers-weather module not available (seeds disabled)');
     });
+
+/** Called by shivers-weather when a new quip + seed is ready */
+function onShiversQuipReady(quip, seed) {
+    // Update context area if we're showing a quip (no scene context)
+    if (!sceneContext) {
+        const contextEl = document.getElementById('tribunal-inv-context');
+        if (contextEl && quip) {
+            contextEl.textContent = quip;
+            contextEl.style.opacity = '1';
+        }
+    }
+    // Update seed display
+    updateSeedDisplay();
+}
+
+// Helper wrappers with safe fallbacks
+function getInvestigationSeed() {
+    return shiversModule?.getInvestigationSeed?.() || null;
+}
+
+function clearInvestigationSeed() {
+    shiversModule?.clearInvestigationSeed?.();
+}
+
+function getShiversState() {
+    return shiversModule?.getShiversState?.() || { 
+        weather: 'overcast', period: 'afternoon', lastQuip: null, investigationSeed: null 
+    };
+}
+
+function getCurrentWeatherFromShivers() {
+    return shiversModule?.getCurrentWeather?.() || 'overcast';
+}
 
 // ═══════════════════════════════════════════════════════════════
 // WEATHER EFFECTS ON INVESTIGATION
@@ -113,17 +144,7 @@ const WEATHER_EFFECTS = {
 };
 
 function getCurrentWeather() {
-    try {
-        // Try to get weather from newspaper state
-        const newspaperModule = window.TribunalNewspaper || {};
-        if (newspaperModule.getNewspaperState) {
-            return newspaperModule.getNewspaperState().weather || 'overcast';
-        }
-        // Fallback
-        return 'overcast';
-    } catch (e) {
-        return 'overcast';
-    }
+    return getCurrentWeatherFromShivers();
 }
 
 function getWeatherEffects(weather) {
@@ -174,7 +195,7 @@ let isOpen = false;
 let sceneContext = '';
 let lastResults = null;
 let isInvestigating = false;
-let currentDiscoveries = [];  // NEW: Stores current scan's discoveries
+let currentDiscoveries = [];
 
 // ═══════════════════════════════════════════════════════════════
 // STYLES
@@ -358,7 +379,6 @@ const STYLES = {
         color: #2a2318;
         font-style: italic;
     `,
-    // NEW: Discovery Card styles
     discoveryCard: `
         margin: 10px 12px;
         padding: 12px 14px;
@@ -429,7 +449,6 @@ const STYLES = {
         background: #f4ead5;
         color: #3d3225;
     `,
-    // Skill reaction (shown after EXAMINE)
     skillReaction: `
         margin: 4px 12px 4px 24px;
         padding: 8px 12px;
@@ -654,7 +673,7 @@ function createFAB() {
     fab.style.display = 'flex';
     fab.style.top = '155px';
     fab.style.left = '10px';
-    fab.style.zIndex = '9998';  // Below main FAB (9999)
+    fab.style.zIndex = '9998';
     
     let isDragging = false;
     let dragStartX, dragStartY, fabStartX, fabStartY;
@@ -755,7 +774,7 @@ function createPanel() {
         
         <div style="${STYLES.actions}">
             <button id="tribunal-inv-scan" style="${STYLES.btnPrimary}">⬤ INVESTIGATE</button>
-            <button id="tribunal-inv-rescan" style="${STYLES.btnSecondary}">↻</button>
+            <button id="tribunal-inv-shivers-refresh" style="${STYLES.btnSecondary}" title="Shivers speaks again...">↻</button>
         </div>
         
         <div id="tribunal-inv-results" style="${STYLES.results}">
@@ -772,7 +791,7 @@ function createPanel() {
     
     panel.querySelector('#tribunal-inv-close').addEventListener('click', close);
     panel.querySelector('#tribunal-inv-scan').addEventListener('click', doInvestigate);
-    panel.querySelector('#tribunal-inv-rescan').addEventListener('click', doInvestigate);
+    panel.querySelector('#tribunal-inv-shivers-refresh').addEventListener('click', handleShiversRefresh);
     
     return panel;
 }
@@ -892,7 +911,7 @@ function updateContextDisplay() {
         el.textContent = truncated;
     } else if (el) {
         // No scene context — show Shivers atmospheric quip if available
-        const state = getNewspaperState();
+        const state = getShiversState();
         if (state.lastQuip) {
             el.textContent = state.lastQuip;
         } else {
@@ -902,25 +921,10 @@ function updateContextDisplay() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ATMOSPHERE DISPLAY (weather/date/period from newspaper)
+// ATMOSPHERE DISPLAY (weather/date/period for investigation panel)
 // ═══════════════════════════════════════════════════════════════
 
-const PERIOD_LABELS = {
-    'DAWN': 'DAWN',
-    'MORNING': 'MORNING',
-    'AFTERNOON': 'AFTERNOON',
-    'EVENING': 'EVENING',
-    'NIGHT': 'NIGHT',
-    'LATE_NIGHT': 'LATE NIGHT',
-    'day': 'DAY',
-    'city-night': 'NIGHT',
-    'quiet-night': 'LATE NIGHT',
-    'indoor': 'INDOOR'
-};
-
 function updateAtmosphereDisplay() {
-    const state = getNewspaperState();
-    
     // Update date
     const dateEl = document.getElementById('tribunal-inv-date');
     if (dateEl) {
@@ -930,22 +934,70 @@ function updateAtmosphereDisplay() {
         dateEl.textContent = `${month} ${day}, '51`;
     }
     
-    // Update weather
+    // Update weather from shivers-weather module
     const weatherEl = document.getElementById('tribunal-inv-weather-label');
     if (weatherEl) {
-        const weather = (state.weather || 'overcast')
+        const weather = getCurrentWeather()
             .replace('-day', '').replace('-night', '')
             .toUpperCase();
         weatherEl.textContent = weather;
     }
     
-    // Update period
+    // Update period — compute from actual clock
     const periodEl = document.getElementById('tribunal-inv-period');
     if (periodEl) {
-        const period = PERIOD_LABELS[state.period] || 
-                       (state.period || 'AFTERNOON').toUpperCase().replace('_', ' ');
+        const hour = new Date().getHours();
+        let period = 'AFTERNOON';
+        if (hour >= 5 && hour < 7) period = 'DAWN';
+        else if (hour >= 7 && hour < 12) period = 'MORNING';
+        else if (hour >= 12 && hour < 17) period = 'AFTERNOON';
+        else if (hour >= 17 && hour < 20) period = 'EVENING';
+        else if (hour >= 20 && hour < 23) period = 'NIGHT';
+        else period = 'LATE NIGHT';
         periodEl.textContent = period;
     }
+}
+
+/**
+ * Handle Shivers refresh button — regenerate atmospheric quip
+ */
+async function handleShiversRefresh() {
+    const btn = document.getElementById('tribunal-inv-shivers-refresh');
+    const contextEl = document.getElementById('tribunal-inv-context');
+    
+    if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.4';
+        btn.textContent = '◌';
+    }
+    
+    // Show loading state in context if we're currently showing a quip (no scene context)
+    if (contextEl && !sceneContext) {
+        contextEl.style.opacity = '0.5';
+        contextEl.textContent = 'Shivers reaching out...';
+    }
+    
+    // Trigger regeneration via shivers-weather module
+    if (shiversModule?.regenerateShivers) {
+        shiversModule.regenerateShivers((quip, seed) => {
+            // Callback fires when quip is ready (fallback first, then AI)
+            if (!sceneContext && contextEl && quip) {
+                contextEl.textContent = quip;
+                contextEl.style.opacity = '1';
+            }
+            updateSeedDisplay();
+            updateAtmosphereDisplay();
+        });
+    }
+    
+    // Re-enable button after generation settles
+    setTimeout(() => {
+        if (btn) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.textContent = '↻';
+        }
+    }, 3000);
 }
 
 function updateSeedDisplay() {
@@ -955,7 +1007,8 @@ function updateSeedDisplay() {
     
     const seed = getInvestigationSeed();
     if (seed) {
-        seedTextEl.textContent = `Shivers noticed: "${seed}"`;
+        const shiversName = shiversModule?.getShiversDisplayName?.() || 'Shivers';
+        seedTextEl.textContent = `${shiversName} noticed: "${seed}"`;
         seedEl.style.display = 'flex';
     } else {
         seedEl.style.display = 'none';
@@ -967,17 +1020,9 @@ export function getSceneContext() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PERCEPTION-FIRST SCAN (NEW v7.0)
+// PERCEPTION-FIRST SCAN
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * Generate Perception scan - the new primary investigation method
- * Replaces generateEnvironmentScan with a focused Perception-only scan
- * that returns discoverable objects as interactive cards.
- * 
- * @param {string} sceneText - Scene to investigate
- * @returns {Object} Investigation results with discoveries array
- */
 async function generatePerceptionScan(sceneText) {
     const context = buildInvestigationContext(sceneText);
     const weather = getCurrentWeather();
@@ -985,14 +1030,14 @@ async function generatePerceptionScan(sceneText) {
     
     // Get Shivers investigation seed (if available) and consume it
     const shiversSeed = getInvestigationSeed();
-    clearInvestigationSeed();  // Consumed!
+    clearInvestigationSeed();
     
     // Check for drawer dice luck
     const luck = getInvestigationLuck(true);
     const luckPrompt = luck.hasLuck ? luck.promptInjection : '';
     
     // Roll Perception check
-    let perceptionDifficulty = 10;  // Medium baseline
+    let perceptionDifficulty = 10;
     if (weatherEffects.boostSkills.includes('perception')) {
         perceptionDifficulty -= 2;
     } else if (weatherEffects.hinderSkills.includes('perception')) {
@@ -1081,9 +1126,6 @@ Generate the Perception scan as JSON. ${context.charName} ${context.characterCon
     }
 }
 
-/**
- * Parse Perception scan response into display format
- */
 function parsePerceptionResponse(response, perceptionCheck, context, weather) {
     console.log('[Investigation] Parsing Perception response...');
     
@@ -1101,7 +1143,6 @@ function parsePerceptionResponse(response, perceptionCheck, context, weather) {
             weather
         };
         
-        // Process discoveries
         if (data.discoveries && Array.isArray(data.discoveries)) {
             for (const disc of data.discoveries) {
                 const discovery = {
@@ -1121,11 +1162,9 @@ function parsePerceptionResponse(response, perceptionCheck, context, weather) {
             }
         }
         
-        // Store discoveries for state
         currentDiscoveries = result.discoveries;
         storeDiscoveredObjects(result.discoveries, context);
         
-        // Process ticker
         if (data.ticker && Array.isArray(data.ticker)) {
             for (const item of data.ticker) {
                 result.ticker.push({
@@ -1145,7 +1184,6 @@ function parsePerceptionResponse(response, perceptionCheck, context, weather) {
         return result;
     }
     
-    // Fallback
     console.log('[Investigation] JSON parse failed, returning minimal result');
     return {
         environment: 'The scene reveals little to your searching eyes.',
@@ -1186,7 +1224,6 @@ async function doInvestigate() {
         <div style="font-size: 11px; letter-spacing: 2px;">PERCEPTION EXTENDING...</div>
     </div>`;
     
-    // Hide seed hint while scanning
     const seedEl = document.getElementById('tribunal-inv-seed');
     if (seedEl) seedEl.style.display = 'none';
     
@@ -1224,7 +1261,6 @@ function showDiscoveryResults(investigation) {
     lastResults = investigation;
     let html = '';
     
-    // Perception check indicator
     const checkIcon = investigation.perceptionCheck.isBoxcars ? '⚡' : 
                       investigation.perceptionCheck.isSnakeEyes ? '💀' :
                       investigation.perceptionCheck.success ? '◆' : '◇';
@@ -1234,14 +1270,12 @@ function showDiscoveryResults(investigation) {
         PERCEPTION ${checkIcon} ${checkText} • ${investigation.weather.toUpperCase()}
     </div>`;
     
-    // Environment description
     if (investigation.environment) {
         html += `<div style="padding: 12px 18px; font-size: 13px; line-height: 1.55; font-style: italic; color: #2a2318; border-bottom: 1px solid #c8b8a0;">
             ${investigation.environment}
         </div>`;
     }
     
-    // Discovery cards
     if (investigation.discoveries.length === 0) {
         html += `<div style="${STYLES.empty}">
             Perception finds nothing of note. Perhaps look again later.
@@ -1274,7 +1308,6 @@ function showDiscoveryResults(investigation) {
     
     resultsEl.innerHTML = html;
     
-    // Wire up button handlers
     resultsEl.querySelectorAll('.discovery-examine-btn').forEach(btn => {
         btn.addEventListener('click', () => handleExamine(btn.dataset.id));
     });
@@ -1283,16 +1316,13 @@ function showDiscoveryResults(investigation) {
         btn.addEventListener('click', () => handleCollect(btn.dataset.id));
     });
 
-    // Wire up case linking handlers
     initCaseLinkHandlers(resultsEl, investigation.discoveries);
 
-    // Process discoveries for auto-linking to cases
     const autoLinkResults = processDiscoveriesForAutoLink(investigation.discoveries, {
         autoLink: true
     });
     console.log('[Investigation] Case linking results:', autoLinkResults);
     
-    // Ticker
     if (tickerEl && investigation.ticker.length > 0) {
         const tickerItems = investigation.ticker.map((item, i) => {
             const separator = i < investigation.ticker.length - 1 
@@ -1323,11 +1353,9 @@ async function handleExamine(discoveryId) {
     const examineBtn = document.querySelector(`.discovery-examine-btn[data-id="${discoveryId}"]`);
     if (!reactionsEl || !examineBtn) return;
     
-    // Disable button while loading
     examineBtn.disabled = true;
     examineBtn.textContent = '...';
     
-    // Show loading
     reactionsEl.innerHTML = `<div style="padding: 8px 12px; font-size: 11px; color: #5c4d3d; font-style: italic;">Skills examining...</div>`;
     
     try {
@@ -1351,7 +1379,6 @@ async function handleExamine(discoveryId) {
             `;
         }
         
-        // Add "DIG DEEPER" button if more skills available
         reactionHtml += `
             <button class="dig-deeper-btn" data-id="${discoveryId}" style="${STYLES.discoveryBtnSecondary}; margin: 8px 12px 4px 24px; font-size: 9px;">
                 DIG DEEPER (more voices)
@@ -1360,10 +1387,8 @@ async function handleExamine(discoveryId) {
         
         reactionsEl.innerHTML = reactionHtml;
         
-        // Wire dig deeper
         reactionsEl.querySelector('.dig-deeper-btn')?.addEventListener('click', () => handleDigDeeper(discoveryId));
         
-        // Change examine button
         examineBtn.textContent = 'EXAMINED';
         examineBtn.disabled = true;
         examineBtn.style.opacity = '0.6';
@@ -1376,11 +1401,7 @@ async function handleExamine(discoveryId) {
     }
 }
 
-/**
- * Generate skill reactions for a specific discovery
- */
 async function generateSkillReactions(discovery, sceneText) {
-    // Select 2 relevant skills based on discovery type
     const skillMapping = {
         evidence: ['visual_calculus', 'logic', 'perception'],
         weapon: ['hand_eye_coordination', 'half_light', 'physical_instrument'],
@@ -1395,7 +1416,6 @@ async function generateSkillReactions(discovery, sceneText) {
     const relevantSkills = skillMapping[discovery.type] || skillMapping.misc;
     const selectedSkillIds = relevantSkills.slice(0, 2);
     
-    // Get weather effects for difficulty modifiers
     const weather = getCurrentWeather();
     const weatherEffects = getWeatherEffects(weather);
     
@@ -1407,17 +1427,15 @@ async function generateSkillReactions(discovery, sceneText) {
         
         const level = getSkillLevel(skillId);
         
-        // Base difficulty with weather adjustment
         let difficulty = getNarratorDifficulty('secondary');
         if (weatherEffects.boostSkills.includes(skillId)) {
-            difficulty -= 2;  // Weather favors this skill
+            difficulty -= 2;
         } else if (weatherEffects.hinderSkills.includes(skillId)) {
-            difficulty += 2;  // Weather opposes this skill
+            difficulty += 2;
         }
         
         const checkResult = rollSkillCheck(level, difficulty);
         
-        // Generate reaction via API
         const systemPrompt = `You are ${skill.signature} from Disco Elysium. React to a specific discovered object.
         
 Your personality: ${skill.personality || 'A skill voice'}
@@ -1443,7 +1461,6 @@ React as ${skill.signature}:`;
                 checkResult
             });
         } catch (e) {
-            // Fallback reaction
             reactions.push({
                 skillId,
                 signature: skill.signature,
@@ -1458,9 +1475,6 @@ React as ${skill.signature}:`;
     return reactions;
 }
 
-/**
- * Handle "DIG DEEPER" - get more skill reactions
- */
 async function handleDigDeeper(discoveryId) {
     const discovery = currentDiscoveries.find(d => d.id === discoveryId);
     if (!discovery) return;
@@ -1472,12 +1486,10 @@ async function handleDigDeeper(discoveryId) {
     digBtn.disabled = true;
     digBtn.textContent = '...';
     
-    // Get weather effects for difficulty modifiers
     const weather = getCurrentWeather();
     const weatherEffects = getWeatherEffects(weather);
     
     try {
-        // Get 2 different skills
         const usedSkills = discovery.skillReactions.map(r => r.skillId);
         const allSkills = Object.keys(SKILLS).filter(id => !usedSkills.includes(id));
         const newSkillIds = allSkills.sort(() => Math.random() - 0.5).slice(0, 2);
@@ -1488,12 +1500,11 @@ async function handleDigDeeper(discoveryId) {
             
             const level = getSkillLevel(skillId);
             
-            // Base difficulty with weather adjustment
             let difficulty = getNarratorDifficulty('tertiary');
             if (weatherEffects.boostSkills.includes(skillId)) {
-                difficulty -= 2;  // Weather favors this skill
+                difficulty -= 2;
             } else if (weatherEffects.hinderSkills.includes(skillId)) {
-                difficulty += 2;  // Weather opposes this skill
+                difficulty += 2;
             }
             
             const checkResult = rollSkillCheck(level, difficulty);
@@ -1517,7 +1528,6 @@ React as ${skill.signature}:`;
                 };
                 discovery.skillReactions.push(reaction);
                 
-                // Insert before dig deeper button
                 const borderColor = skill.color || '#2a2318';
                 const checkIcon = checkResult.isBoxcars ? ' ⚡' : 
                                   checkResult.isSnakeEyes ? ' 💀' :
@@ -1539,7 +1549,6 @@ React as ${skill.signature}:`;
         digBtn.textContent = 'DIG DEEPER';
         digBtn.disabled = false;
         
-        // After ~6 reactions, hide the button
         if (discovery.skillReactions.length >= 6) {
             digBtn.style.display = 'none';
         }
@@ -1562,7 +1571,6 @@ function handleCollect(discoveryId) {
     const collectBtn = document.querySelector(`.discovery-collect-btn[data-id="${discoveryId}"]`);
     if (!collectBtn) return;
     
-    // Mark as collected with clear visual feedback
     discovery.collected = true;
     collectBtn.textContent = '✓ COLLECTED';
     collectBtn.disabled = true;
@@ -1571,11 +1579,9 @@ function handleCollect(discoveryId) {
     collectBtn.style.borderColor = '#5a7a5a';
     collectBtn.style.color = '#8ab88a';
     
-    // Store in inventory
     const item = collectItem(discovery.name);
     if (item) {
         console.log('[Investigation] Collected:', discovery.name);
-        // Toast so the user knows it went to inventory
         if (typeof toastr !== 'undefined') {
             toastr.success(`Added "${discovery.name}" to inventory`, 'Item Collected');
         }
@@ -1649,16 +1655,14 @@ export function collectItem(objectName) {
         collectedAt: Date.now()
     });
     
-    // ── Also add to actual inventory so it shows in the INV tab ──
+    // Also add to actual inventory so it shows in the INV tab
     if (!state.inventory) state.inventory = { carried: [], stash: {}, money: 0 };
     if (!state.inventory.carried) state.inventory.carried = [];
     
-    // Map investigation types to inventory categories
     const CONSUMABLE_TYPES = ['consumable', 'food', 'medicine', 'drug', 'alcohol', 'cigarette'];
     const invType = item.type || 'misc';
     const category = CONSUMABLE_TYPES.includes(invType) ? 'consumable' : 'misc';
     
-    // Don't duplicate if already in inventory
     const alreadyInInventory = state.inventory.carried.some(
         i => i.name?.toLowerCase() === objectName.toLowerCase()
     );
@@ -1677,7 +1681,6 @@ export function collectItem(objectName) {
         });
         console.log('[Investigation] Added to inventory:', objectName);
         
-        // Tell inventory UI to refresh
         try {
             document.dispatchEvent(new CustomEvent('tribunal:inventoryChanged', {
                 detail: { source: 'investigation', item: objectName }
@@ -1724,7 +1727,12 @@ export function initInvestigation() {
     
     setupFABVisibilityWatcher();
     
-    console.log('[Investigation] Module initialized - Perception Scanner v7.0 ready');
+    // Initialize shivers-weather if module loaded
+    if (shiversModule?.initShiversWeather) {
+        shiversModule.initShiversWeather();
+    }
+    
+    console.log('[Investigation] Module initialized - Perception Scanner v7.2 ready');
 }
 
 export function openInvestigation() {
