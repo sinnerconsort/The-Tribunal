@@ -1,0 +1,230 @@
+/**
+ * The Tribunal - Skill Accordion
+ * Collapsible category display on the Whirling-in-Rags napkin
+ * @version 1.0.0
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   ACCORDION CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+
+.skill-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 12px 0 16px 0;
+    font-family: 'Courier New', 'Courier', monospace;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CATEGORY HEADER (clickable bar)
+   ═══════════════════════════════════════════════════════════════ */
+
+.skill-category-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    background: rgba(0, 0, 0, 0.04);
+    border-radius: 3px;
+    transition: background 0.15s ease;
+}
+
+.skill-category-header:hover {
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.skill-category-header:active {
+    background: rgba(0, 0, 0, 0.12);
+}
+
+/* Color bar on the left */
+.category-color-bar {
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 3px;
+    border-radius: 2px;
+}
+
+/* Expand/collapse arrow */
+.category-arrow {
+    font-size: 11px;
+    color: #8a7a60;
+    width: 14px;
+    text-align: center;
+    flex-shrink: 0;
+    margin-left: 4px;
+}
+
+/* Category name */
+.category-name {
+    font-family: 'Courier New', 'Courier', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #4a3f30;
+    text-decoration: underline;
+    text-decoration-style: dashed;
+    text-underline-offset: 3px;
+    text-decoration-color: rgba(0, 0, 0, 0.15);
+}
+
+.category-equals {
+    color: #8a7a60;
+    font-size: 13px;
+    margin-left: auto;
+    font-weight: 400;
+}
+
+.category-score {
+    font-size: 18px;
+    font-weight: 700;
+    color: #4a3f30;
+    min-width: 20px;
+    text-align: right;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EXPANDED STATE
+   ═══════════════════════════════════════════════════════════════ */
+
+.skill-category.expanded .skill-category-header {
+    background: rgba(0, 0, 0, 0.06);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.skill-category.expanded .category-name {
+    text-decoration-color: rgba(0, 0, 0, 0.25);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CATEGORY BODY (skill list)
+   ═══════════════════════════════════════════════════════════════ */
+
+.skill-category-body {
+    padding: 6px 12px 10px 22px;
+    background: rgba(0, 0, 0, 0.02);
+    border-left: 1px dashed rgba(0, 0, 0, 0.1);
+    margin-left: 6px;
+    border-bottom-left-radius: 3px;
+    border-bottom-right-radius: 3px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INDIVIDUAL SKILL ROW
+   ═══════════════════════════════════════════════════════════════ */
+
+.skill-row {
+    padding: 5px 0;
+    border-bottom: 1px dotted rgba(0, 0, 0, 0.06);
+}
+
+.skill-row:last-child {
+    border-bottom: none;
+}
+
+.skill-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Small color pip */
+.skill-color-pip {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+/* Skill display name */
+.skill-display-name {
+    font-family: 'Courier New', 'Courier', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4a3f30;
+    white-space: nowrap;
+}
+
+/* Dot leader connecting name to score */
+.skill-dots {
+    flex: 1;
+    border-bottom: 1px dotted rgba(0, 0, 0, 0.15);
+    min-width: 20px;
+    height: 1px;
+    margin: 0 4px;
+    align-self: flex-end;
+    margin-bottom: 3px;
+}
+
+/* Skill score number */
+.skill-score {
+    font-family: 'Courier New', 'Courier', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: #5a4a35;
+    min-width: 16px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* Flavor/description text */
+.skill-flavor {
+    font-family: 'Georgia', 'Times New Roman', serif;
+    font-size: 10px;
+    font-style: italic;
+    color: #8a7a65;
+    line-height: 1.4;
+    margin: 2px 0 0 11px;
+    padding-left: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCORE CHANGE HIGHLIGHT
+   ═══════════════════════════════════════════════════════════════ */
+
+.skill-score.score-changed {
+    color: #ad3d5b;
+    animation: score-flash 0.6s ease-out;
+}
+
+.category-score.score-changed {
+    color: #ad3d5b;
+    animation: score-flash 0.6s ease-out;
+}
+
+@keyframes score-flash {
+    0% { transform: scale(1.4); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE - Tighter on very small screens
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 360px) {
+    .category-name {
+        font-size: 12px;
+        letter-spacing: 1px;
+    }
+    
+    .skill-display-name {
+        font-size: 11px;
+    }
+    
+    .skill-flavor {
+        font-size: 9px;
+    }
+    
+    .skill-category-body {
+        padding-left: 14px;
+    }
+}
