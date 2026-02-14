@@ -15,7 +15,7 @@
  * 3. Discoveries appear as tappable cards
  * 4. User taps EXAMINE → Relevant skills react to that specific discovery
  * 
- * @version 7.1.0 - Integrated newspaper atmosphere into investigation panel
+ * @version 7.2.0 - Genre-aware investigation prompts, weather sync from newspaper, dynamic skill names
  */
 
 import { SKILLS } from '../data/skills.js';
@@ -57,6 +57,108 @@ import('../ui/newspaper-strip.js')
     .catch(() => {
         console.log('[Investigation] Newspaper module not available (seeds disabled)');
     });
+
+// ═══════════════════════════════════════════════════════════════
+// GENRE-AWARE HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+let _getSkillName = null;
+let _getActiveProfileId = null;
+let _getSkillPersonality = null;
+
+import('../data/setting-profiles.js')
+    .then(m => {
+        _getSkillName = m.getSkillName || m.default?.getSkillName;
+        _getActiveProfileId = m.getActiveProfileId || m.default?.getActiveProfileId;
+        _getSkillPersonality = m.getSkillPersonality || m.default?.getSkillPersonality;
+        console.log('[Investigation] ✓ Genre profile integration loaded');
+    })
+    .catch(() => {
+        console.log('[Investigation] Genre profiles not available (using defaults)');
+    });
+
+/** Get genre-aware name for a skill (e.g. "Shivers" → "The Signal" in cyberpunk) */
+function getGenreSkillName(skillId, fallback) {
+    if (_getSkillName) {
+        try { return _getSkillName(skillId, fallback); } catch { /* fall through */ }
+    }
+    return fallback;
+}
+
+/** Get the current genre ID */
+function getActiveGenre() {
+    if (_getActiveProfileId) {
+        try { return _getActiveProfileId(); } catch { /* fall through */ }
+    }
+    return 'disco_elysium';
+}
+
+/** Get genre-aware skill personality for prompts */
+function getGenreSkillPersonality(skillId) {
+    if (_getSkillPersonality) {
+        try { return _getSkillPersonality(skillId); } catch { /* fall through */ }
+    }
+    return null;
+}
+
+/** Get the genre-appropriate term for "detective" */
+function getPlayerTitle() {
+    const PLAYER_TITLES = {
+        disco_elysium: 'detective',
+        noir_detective: 'detective',
+        fantasy: 'adventurer',
+        space_opera: 'operative',
+        romance: 'protagonist',
+        thriller_horror: 'investigator',
+        post_apocalyptic: 'survivor',
+        cyberpunk: 'runner',
+        generic: 'investigator'
+    };
+    return PLAYER_TITLES[getActiveGenre()] || 'investigator';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GENRE-SPECIFIC INVESTIGATION TONES
+// ═══════════════════════════════════════════════════════════════
+
+const GENRE_INVESTIGATION_TONES = {
+    disco_elysium: {
+        persona: `You are PERCEPTION — the skill of noticing, observing, and finding. You scan environments with the weary precision of a detective who's seen too many crime scenes. Every detail tells a story.`,
+        scanStyle: `Objects should feel like evidence in a case file — mundane things made significant by context.`
+    },
+    noir_detective: {
+        persona: `You are PERCEPTION — sharp eyes in a dark world. You case the joint like a PI who knows every shadow hides something worth finding, and half of it will get you killed.`,
+        scanStyle: `Objects should feel like clues in a noir thriller — everything is potentially evidence, nothing is innocent.`
+    },
+    fantasy: {
+        persona: `You are PERCEPTION — the keen-eyed awareness of a seasoned explorer. You sense magical residues, notice ancient mechanisms, and spot what the dungeon is trying to hide.`,
+        scanStyle: `Objects should feel like treasures, artifacts, or ominous relics — a fantasy adventurer's discoveries.`
+    },
+    space_opera: {
+        persona: `You are PERCEPTION — sensor sweep made sentient. You scan for anomalies, catalog environmental hazards, and notice what the ship's automated systems keep missing.`,
+        scanStyle: `Objects should feel like salvage, tech artifacts, or anomalous readings — discoveries from the void.`
+    },
+    romance: {
+        persona: `You are PERCEPTION — the observant eye that notices what matters emotionally. You find the personal items, the telling details, the things that reveal character and history.`,
+        scanStyle: `Objects should feel personally meaningful — a forgotten letter, a significant gift, something that tells a love story or a heartbreak.`
+    },
+    thriller_horror: {
+        persona: `You are PERCEPTION — the survival instinct screaming that something is WRONG. You notice the exit routes, the things that shouldn't be there, and the evidence of what happened before you arrived.`,
+        scanStyle: `Objects should feel unsettling — evidence of something terrible, tools of survival, or things that raise more questions than answers.`
+    },
+    post_apocalyptic: {
+        persona: `You are PERCEPTION — wasteland awareness, the difference between finding dinner and being dinner. You spot the useful salvage, the hidden caches, and the things that might explode.`,
+        scanStyle: `Objects should feel like wasteland salvage — pre-war relics, improvised tools, suspiciously edible things, or loot worth dying for.`
+    },
+    cyberpunk: {
+        persona: `You are PERCEPTION — augmented awareness slicing through corporate disinformation and street-level noise. You scan for hackable tech, black-market goods, and data that someone tried to erase.`,
+        scanStyle: `Objects should feel like cyberpunk loot — data shards, modded tech, corp secrets, or street-level contraband.`
+    },
+    generic: {
+        persona: `You are PERCEPTION — the skill of noticing, observing, and finding. You scan environments for concrete, discoverable OBJECTS and DETAILS.`,
+        scanStyle: `Objects should fit naturally within the scene's setting and genre.`
+    }
+};
 
 // ═══════════════════════════════════════════════════════════════
 // WEATHER EFFECTS ON INVESTIGATION
@@ -737,7 +839,7 @@ function createPanel() {
         </div>
         
         <div id="tribunal-inv-dateline" style="${STYLES.dateline}">
-            <span id="tribunal-inv-date">MARTINAISE, '51</span>
+            <span id="tribunal-inv-date">—</span>
             <span id="tribunal-inv-weather-label">OVERCAST</span>
             <span id="tribunal-inv-period">AFTERNOON</span>
         </div>
@@ -752,16 +854,16 @@ function createPanel() {
         
         <div id="tribunal-inv-seed" style="${STYLES.seedHint}; display: none;">
             <span style="color: #5a8a8a;">◈</span>
-            <span id="tribunal-inv-seed-text">Shivers noticed something...</span>
+            <span id="tribunal-inv-seed-text">Something noticed...</span>
         </div>
         
         <div style="${STYLES.actions}">
             <button id="tribunal-inv-scan" style="${STYLES.btnPrimary}">⬤ INVESTIGATE</button>
-            <button id="tribunal-inv-shivers-refresh" style="${STYLES.btnSecondary}" title="Shivers speaks again...">↻</button>
+            <button id="tribunal-inv-shivers-refresh" style="${STYLES.btnSecondary}" title="The environment speaks again...">↻</button>
         </div>
         
         <div id="tribunal-inv-results" style="${STYLES.results}">
-            <div style="${STYLES.empty}">Your skills await your command, detective...</div>
+            <div style="${STYLES.empty}">Your skills await your command...</div>
         </div>
         
         <div id="tribunal-inv-ticker" style="${STYLES.ticker}">
@@ -910,37 +1012,47 @@ function updateContextDisplay() {
 function updateAtmosphereDisplay() {
     const state = getNewspaperState();
     
-    // Update date
+    // Update date — sync from newspaper (which may use RP time from watch)
     const dateEl = document.getElementById('tribunal-inv-date');
     if (dateEl) {
         const now = new Date();
         const month = now.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
         const day = now.getDate();
-        dateEl.textContent = `${month} ${day}, '51`;
+        // Use location from newspaper if available, otherwise just date
+        const location = state.location || '';
+        dateEl.textContent = location 
+            ? `${month} ${day}` 
+            : `${month} ${day}, '51`;
     }
     
-    // Update weather — use getCurrentWeather() which already has fallback logic
+    // Update weather — sync from newspaper state (Shivers' weather)
     const weatherEl = document.getElementById('tribunal-inv-weather-label');
     if (weatherEl) {
-        const weather = getCurrentWeather()
+        const weather = (state.weather || 'overcast')
             .replace('-day', '').replace('-night', '')
-            .replace('clear', 'clear').replace('overcast', 'overcast')
             .toUpperCase();
         weatherEl.textContent = weather;
     }
     
-    // Update period — compute from actual clock, don't rely on newspaper state
+    // Update period — sync from newspaper state
     const periodEl = document.getElementById('tribunal-inv-period');
     if (periodEl) {
-        const hour = new Date().getHours();
-        let period = 'AFTERNOON';
-        if (hour >= 5 && hour < 7) period = 'DAWN';
-        else if (hour >= 7 && hour < 12) period = 'MORNING';
-        else if (hour >= 12 && hour < 17) period = 'AFTERNOON';
-        else if (hour >= 17 && hour < 20) period = 'EVENING';
-        else if (hour >= 20 && hour < 23) period = 'NIGHT';
-        else period = 'LATE NIGHT';
+        const period = (state.period || 'AFTERNOON').toUpperCase();
         periodEl.textContent = period;
+    }
+}
+
+/**
+ * Update the dateline after investigation completes with investigation-specific weather
+ */
+function updatePostScanAtmosphere(investigation) {
+    if (!investigation) return;
+    
+    const weatherEl = document.getElementById('tribunal-inv-weather-label');
+    if (weatherEl && investigation.weather) {
+        weatherEl.textContent = investigation.weather
+            .replace('-day', '').replace('-night', '')
+            .toUpperCase();
     }
 }
 
@@ -961,7 +1073,7 @@ async function handleShiversRefresh() {
     // Show loading state in context if we're currently showing a quip (no scene context)
     if (contextEl && !sceneContext) {
         contextEl.style.opacity = '0.5';
-        contextEl.textContent = 'Shivers reaching out...';
+        contextEl.textContent = 'The environment shifts...';
     }
     
     // Trigger regeneration in newspaper module
@@ -997,7 +1109,8 @@ function updateSeedDisplay() {
     
     const seed = getInvestigationSeed();
     if (seed) {
-        seedTextEl.textContent = `Shivers noticed: "${seed}"`;
+        const shiversName = getGenreSkillName('shivers', 'Shivers');
+        seedTextEl.textContent = `${shiversName} noticed: "${seed}"`;
         seedEl.style.display = 'flex';
     } else {
         seedEl.style.display = 'none';
@@ -1060,10 +1173,14 @@ async function generatePerceptionScan(sceneText) {
     // Build the seed injection for prompt
     let seedInjection = '';
     if (shiversSeed) {
-        seedInjection = `\nSHIVERS NOTICED: The environment recently drew attention to: "${shiversSeed}". Perception may follow up on this detail, investigate it further, or discover something else entirely. This is a hint, not a requirement.`;
+        const shiversName = getGenreSkillName('shivers', 'Shivers');
+        seedInjection = `\n${shiversName.toUpperCase()} NOTICED: The environment recently drew attention to: "${shiversSeed}". Perception may follow up on this detail, investigate it further, or discover something else entirely. This is a hint, not a requirement.`;
     }
 
-    const systemPrompt = `You are PERCEPTION — the skill of noticing, observing, and finding. You scan environments for concrete, discoverable OBJECTS and DETAILS.
+    const genre = getActiveGenre();
+    const tone = GENRE_INVESTIGATION_TONES[genre] || GENRE_INVESTIGATION_TONES.generic;
+
+    const systemPrompt = `${tone.persona}
 ${luckPrompt}
 WEATHER CONDITIONS: ${weather}
 ${weatherEffects.promptModifier}
@@ -1104,6 +1221,7 @@ RULES:
 - ${perceptionCheck.success ? '2-4 discoveries' : '1-2 discoveries (failed check = fewer finds)'}
 - Give objects dramatic names: THE + DESCRIPTOR + NOUN
 - "peek" should intrigue without revealing everything — save details for EXAMINE
+- ${tone.scanStyle}
 - Match the ${context.setting} setting
 - canCollect: false for furniture/large items, true for portable items
 - NEVER include the player character's body as a discoverable object
@@ -1215,7 +1333,7 @@ async function doInvestigate() {
     
     if (!sceneContext || sceneContext.trim().length === 0) {
         resultsEl.innerHTML = `<div style="${STYLES.empty}">
-            No scene to investigate. Send a message first, detective.
+            No scene to investigate. Send a message first.
         </div>`;
         return;
     }
@@ -1235,6 +1353,7 @@ async function doInvestigate() {
     try {
         const investigation = await generatePerceptionScan(sceneContext);
         showDiscoveryResults(investigation);
+        updatePostScanAtmosphere(investigation);
         
         console.log('[Investigation] Perception scan complete:', {
             discoveries: investigation.discoveries.length,
@@ -1460,9 +1579,11 @@ async function generateSkillReactions(discovery, sceneText) {
         const checkResult = rollSkillCheck(level, difficulty);
         
         // Generate reaction via API
-        const systemPrompt = `You are ${skill.signature} from Disco Elysium. React to a specific discovered object.
+        const genrePersonality = getGenreSkillPersonality(skillId);
+        const personalityText = genrePersonality || skill.personality || 'A skill voice';
+        const systemPrompt = `You are ${skill.signature}. React to a specific discovered object.
         
-Your personality: ${skill.personality || 'A skill voice'}
+Your personality: ${personalityText}
 
 Respond with ONE sentence (max 30 words). React to the object based on your perspective:
 - ${checkResult.success ? 'You notice something useful or insightful.' : 'You miss something or misinterpret it.'}
@@ -1540,9 +1661,11 @@ async function handleDigDeeper(discoveryId) {
             
             const checkResult = rollSkillCheck(level, difficulty);
             
-            const systemPrompt = `You are ${skill.signature} from Disco Elysium. React to a discovered object with fresh perspective.
+            const genrePersonality2 = getGenreSkillPersonality(skillId);
+            const personalityText2 = genrePersonality2 || skill.personality || 'A skill voice';
+            const systemPrompt = `You are ${skill.signature}. React to a discovered object with fresh perspective.
             
-Your personality: ${skill.personality || 'A skill voice'}
+Your personality: ${personalityText2}
 
 Respond with ONE sentence (max 30 words). ${checkResult.success ? 'Find something others missed.' : 'Offer a confused or wrong take.'}`;
 
@@ -1766,7 +1889,13 @@ export function initInvestigation() {
     
     setupFABVisibilityWatcher();
     
-    console.log('[Investigation] Module initialized - Perception Scanner v7.0 ready');
+    // Listen for genre changes to update dynamic text
+    window.addEventListener('tribunal:genreChanged', () => {
+        updateSeedDisplay();
+        updateAtmosphereDisplay();
+    });
+    
+    console.log('[Investigation] Module initialized - Perception Scanner v7.2 ready');
 }
 
 export function openInvestigation() {
