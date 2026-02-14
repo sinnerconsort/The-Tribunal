@@ -18,8 +18,6 @@ import { getSkillName } from '../data/setting-profiles.js';
 
 import { STATUS_EFFECTS } from '../data/statuses.js';
 
-import { getSkillName } from '../data/setting-profiles.js';
-
 import { 
     updateCRTVitals,
     updateRCMFormVitals,
