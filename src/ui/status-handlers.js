@@ -2,7 +2,7 @@
  * The Tribunal - Status Handlers
  * Wires the RCM Medical Form (Status tab) to state persistence
  * 
- * @version 1.0.1 - Removed 5 unused imports (COPOTYPE_IDS, DUAL_ANCIENT_TRIGGERS, SPINAL_CORD_COMBO, getStatusDisplayName, setRCMCopotype)
+ * @version 1.0.2 - Added copotype label swapping (DE names on check, generic on uncheck)
  */
 
 import { 
@@ -258,6 +258,11 @@ export function refreshStatusFromState() {
         const box = item.querySelector('.rcm-copotype-box');
         if (box) {
             box.textContent = isActive ? '☒' : '□';
+        }
+        // Swap label to DE name when active, generic when inactive
+        const label = item.querySelector('.rcm-copotype-label');
+        if (label) {
+            label.textContent = isActive ? (item.dataset.labelOn || item.dataset.copotype) : (item.dataset.labelOff || item.dataset.copotype);
         }
     });
     
@@ -577,6 +582,9 @@ function bindCopotypeSelection() {
                 newItem.classList.remove('rcm-copotype-active');
                 const box = newItem.querySelector('.rcm-copotype-box');
                 if (box) box.textContent = '□';
+                // Reset label to generic name
+                const label = newItem.querySelector('.rcm-copotype-label');
+                if (label) label.textContent = newItem.dataset.labelOff || newItem.dataset.copotype;
                 console.log(`[Tribunal] Cleared copotype`);
             } else {
                 // Select this copotype - clear others first
@@ -584,6 +592,9 @@ function bindCopotypeSelection() {
                     other.classList.remove('rcm-copotype-active');
                     const otherBox = other.querySelector('.rcm-copotype-box');
                     if (otherBox) otherBox.textContent = '□';
+                    // Reset other labels to generic names
+                    const otherLabel = other.querySelector('.rcm-copotype-label');
+                    if (otherLabel) otherLabel.textContent = other.dataset.labelOff || other.dataset.copotype;
                 });
                 
                 // Set new copotype
@@ -591,6 +602,9 @@ function bindCopotypeSelection() {
                 newItem.classList.add('rcm-copotype-active');
                 const box = newItem.querySelector('.rcm-copotype-box');
                 if (box) box.textContent = '☒';
+                // Swap label to DE name
+                const label = newItem.querySelector('.rcm-copotype-label');
+                if (label) label.textContent = newItem.dataset.labelOn || newItem.dataset.copotype;
                 console.log(`[Tribunal] Set copotype: ${copytypeId}`);
             }
             
