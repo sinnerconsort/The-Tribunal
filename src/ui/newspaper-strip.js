@@ -210,6 +210,7 @@ export const NEWSPAPER_STRIP_CSS = `
     font-family: 'Times New Roman', Georgia, 'Noto Serif', serif;
     user-select: none;
     border: 3px solid #4a4035;
+    overflow: hidden;
     box-shadow: 
         0 4px 16px rgba(0,0,0,0.4),
         inset 0 0 60px rgba(0,0,0,0.4);
@@ -221,11 +222,12 @@ export const NEWSPAPER_STRIP_CSS = `
 
 .peripherique-header {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     padding: 8px 12px;
     border-bottom: 1px solid #4a4035;
     background: #32302a;
+    overflow: hidden;
 }
 
 /* Weather Box */
@@ -281,8 +283,10 @@ export const NEWSPAPER_STRIP_CSS = `
     align-items: center;
     justify-content: center;
     gap: 8px;
-    padding: 0 15px;
+    padding: 0 10px;
     white-space: nowrap;
+    overflow: hidden;
+    min-width: 0;
 }
 
 .masthead-bracket {
@@ -307,6 +311,8 @@ export const NEWSPAPER_STRIP_CSS = `
     line-height: 1.4;
     color: #7a6a58;
     font-style: italic;
+    min-width: 0;
+    overflow: hidden;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -322,12 +328,15 @@ export const NEWSPAPER_STRIP_CSS = `
     color: #9a8a78;
     border-bottom: 2px solid #5a5045;
     background: #2d2825;
+    overflow: hidden;
+    gap: 8px;
 }
 
 .issue-number {
     font-weight: bold;
     letter-spacing: 1px;
     color: #8a7a68;
+    flex-shrink: 0;
 }
 
 .dateline-location {
@@ -335,11 +344,16 @@ export const NEWSPAPER_STRIP_CSS = `
     letter-spacing: 2px;
     text-transform: uppercase;
     color: #b0a090;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 }
 
 .paper-price {
     font-weight: bold;
     color: #8a7a60;
+    flex-shrink: 0;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -359,10 +373,12 @@ export const NEWSPAPER_STRIP_CSS = `
     line-height: 1.6;
     color: #c8b8a0;
     margin: 0 0 8px 0;
-    max-width: 420px;
+    max-width: min(420px, 100%);
     margin-left: auto;
     margin-right: auto;
     text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    overflow-wrap: break-word;
+    word-wrap: break-word;
 }
 
 .shivers-attribution {
