@@ -2,7 +2,7 @@
  * The Tribunal - Panel Helpers
  * Panel controls, tab switching, and event binding
  * Extracted from rebuild v0.3.0
- * v0.3.1 - Added skill accordion initialization
+ * v0.3.2 - Accordion refresh on tab switch, removed stale status/copotype handlers
  */
 
 import { toggleWatchMode } from './watch.js';
@@ -83,6 +83,11 @@ export function switchTab(tabName) {
     const mainTabs = ['voices', 'cabinet', 'status', 'ledger', 'inventory'];
     if (mainTabs.includes(tabName)) {
         document.querySelectorAll('.ie-bottom-btn').forEach(btn => btn.classList.remove('ie-bottom-btn-active'));
+    }
+
+    // Refresh accordion when switching to voices tab (picks up stat changes)
+    if (tabName === 'voices') {
+        buildSkillAccordion();
     }
 }
 
@@ -166,40 +171,8 @@ export function bindEvents() {
         if (typeof toastr !== 'undefined') toastr.info('Voice generation (not implemented yet)');
     });
 
-    // RCM Medical Form checkboxes - swap labels on toggle
-    document.querySelectorAll('.rcm-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('click', () => {
-            checkbox.classList.toggle('rcm-checked');
-            const isChecked = checkbox.classList.contains('rcm-checked');
-            const label = checkbox.querySelector('.rcm-checkbox-label');
-            
-            // Swap label text based on state
-            if (label) {
-                const labelOff = checkbox.dataset.labelOff;
-                const labelOn = checkbox.dataset.labelOn;
-                label.textContent = isChecked ? labelOn : labelOff;
-            }
-            
-            const status = checkbox.dataset.status;
-            console.log(`[The Tribunal] Status ${status}: ${isChecked}`);
-            // TODO: Hook into state management
-        });
-    });
-
-    // Copotype selection
-    document.querySelectorAll('.rcm-copotype-item').forEach(item => {
-        item.addEventListener('click', () => {
-            item.classList.toggle('rcm-copotype-active');
-            const box = item.querySelector('.rcm-copotype-box');
-            if (box) {
-                box.textContent = item.classList.contains('rcm-copotype-active') ? '☒' : '□';
-            }
-            const copotype = item.dataset.copotype;
-            const isActive = item.classList.contains('rcm-copotype-active');
-            console.log(`[The Tribunal] Copotype ${copotype}: ${isActive}`);
-            // TODO: Hook into state management
-        });
-    });
+    // NOTE: Status checkboxes and copotype selection are handled by
+    // status-handlers.js initStatus() — no duplicate handlers here.
 
     // ESC to close panel
     document.addEventListener('keydown', (e) => {
