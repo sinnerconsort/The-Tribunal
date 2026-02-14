@@ -2,8 +2,142 @@
  * The Tribunal - Inventory Tab Template
  * Evidence light table, equipment ticket, and radio
  * 
- * @version 2.1.0 - Added badge scan and manual add buttons
+ * @version 2.2.0 - Added trash button, genre-aware theming
  */
+
+// ═══════════════════════════════════════════════════════════════
+// GENRE-AWARE INVENTORY THEMING
+// ═══════════════════════════════════════════════════════════════
+
+const GENRE_INVENTORY_THEMES = {
+    disco_elysium: {
+        ticketTitle: 'MARTINAISE CLEANERS',
+        ticketSubtitle: 'EST. \'02 • "WE REMOVE ALL STAINS"',
+        ticketFooter: 'ITEMS LEFT OVER 30 DAYS BECOME PROPERTY OF MARTINAISE CLEANERS<br>NO REFUNDS • NO EXCEPTIONS • NO DISCO',
+        badgeText: 'RCM',
+        badgeSubtext: 'SCAN',
+        currencyLabel: 'RÉAL:',
+        sectionPickup: 'ITEMS FOR PICKUP',
+    },
+    noir_detective: {
+        ticketTitle: 'DOWNTOWN DRY CLEANERS',
+        ticketSubtitle: '"DISCRETION GUARANTEED"',
+        ticketFooter: 'UNCLAIMED ITEMS BECOME PROPERTY OF THE HOUSE<br>NO REFUNDS • NO QUESTIONS • NO WITNESSES',
+        badgeText: 'P.I.',
+        badgeSubtext: 'SCAN',
+        currencyLabel: 'CASH:',
+        sectionPickup: 'PERSONAL EFFECTS',
+    },
+    fantasy: {
+        ticketTitle: 'THE ARMORER\'S RACK',
+        ticketSubtitle: 'GUILD-CERTIFIED • "ENCHANTMENTS EXTRA"',
+        ticketFooter: 'ITEMS LEFT OVER ONE MOON BECOME PROPERTY OF THE GUILD<br>NO REFUNDS • NO CURSES • NO EXCEPTIONS',
+        badgeText: 'GUILD',
+        badgeSubtext: 'SCAN',
+        currencyLabel: 'GOLD:',
+        sectionPickup: 'ITEMS FOR RETRIEVAL',
+    },
+    cyberpunk: {
+        ticketTitle: 'CHOP SHOP OUTFITTERS',
+        ticketSubtitle: 'v2.1.7 • "NO QUESTIONS ASKED"',
+        ticketFooter: 'UNCLAIMED ITEMS SCRAPED AFTER 30 CYCLES<br>NO REFUNDS • NO RECEIPTS • NO TRACE',
+        badgeText: 'NET',
+        badgeSubtext: 'SCAN',
+        currencyLabel: 'CRED:',
+        sectionPickup: 'ITEMS IN LOCKER',
+    },
+    space_opera: {
+        ticketTitle: 'QUARTERMASTER\'S LOG',
+        ticketSubtitle: 'REQUISITION FORM • "ALL ITEMS LOGGED"',
+        ticketFooter: 'UNREQUISITIONED GEAR RECYCLED AFTER 30 CYCLES<br>NO APPEALS • NO EXCEPTIONS • BY ORDER',
+        badgeText: 'QM',
+        badgeSubtext: 'SCAN',
+        currencyLabel: 'CREDITS:',
+        sectionPickup: 'GEAR FOR PICKUP',
+    },
+    romance: {
+        ticketTitle: 'THE VINTAGE CLOSET',
+        ticketSubtitle: '"EVERY PIECE TELLS A STORY"',
+        ticketFooter: 'ITEMS LEFT OVER 30 DAYS GO TO CHARITY<br>WITH LOVE • ALWAYS',
+        badgeText: '♡',
+        badgeSubtext: 'SCAN',
+        currencyLabel: 'FUNDS:',
+        sectionPickup: 'YOUR THINGS',
+    },
+    thriller_horror: {
+        ticketTitle: 'LOST & FOUND',
+        ticketSubtitle: 'EVIDENCE LOCKUP • "HANDLE WITH CARE"',
+        ticketFooter: 'UNCLAIMED ITEMS WILL BE INCINERATED<br>NO EXCEPTIONS • NO QUESTIONS • DON\'T COME BACK',
+        badgeText: 'EVD',
+        badgeSubtext: 'SCAN',
+        currencyLabel: 'CASH:',
+        sectionPickup: 'ITEMS IN EVIDENCE',
+    },
+    post_apocalyptic: {
+        ticketTitle: 'THE SCRAP HEAP',
+        ticketSubtitle: '"IF IT AIN\'T BROKE, SOMEONE WANTS IT"',
+        ticketFooter: 'UNCLAIMED SALVAGE IS FAIR GAME AFTER 3 DAYS<br>NO REFUNDS • NO MERCY • SURVIVE',
+        badgeText: 'SALV',
+        badgeSubtext: 'SCAN',
+        currencyLabel: 'CAPS:',
+        sectionPickup: 'SALVAGE FOR PICKUP',
+    },
+    generic: {
+        ticketTitle: 'THE WARDROBE',
+        ticketSubtitle: '"KEEPING IT TOGETHER"',
+        ticketFooter: 'UNCLAIMED ITEMS WILL BE DISPOSED OF<br>NO REFUNDS • NO EXCEPTIONS',
+        badgeText: 'ID',
+        badgeSubtext: 'SCAN',
+        currencyLabel: 'MONEY:',
+        sectionPickup: 'ITEMS FOR PICKUP',
+    }
+};
+
+/**
+ * Get the active genre's inventory theme
+ */
+function getInventoryTheme() {
+    try {
+        const { getActiveProfileId } = window.TribunalProfiles || {};
+        const genreId = getActiveProfileId?.() || 'disco_elysium';
+        return GENRE_INVENTORY_THEMES[genreId] || GENRE_INVENTORY_THEMES.generic;
+    } catch {
+        return GENRE_INVENTORY_THEMES.disco_elysium;
+    }
+}
+
+/**
+ * Update all genre-aware text in the inventory DOM
+ * Call after genre changes or on init
+ */
+export function updateInventoryTheme() {
+    const theme = getInventoryTheme();
+    
+    // Equipment ticket
+    const ticketTitle = document.getElementById('ie-ticket-title');
+    const ticketSubtitle = document.getElementById('ie-ticket-subtitle');
+    const ticketFooter = document.getElementById('ie-ticket-footer-text');
+    const ticketPickup = document.getElementById('ie-ticket-pickup-label');
+    
+    if (ticketTitle) ticketTitle.textContent = theme.ticketTitle;
+    if (ticketSubtitle) ticketSubtitle.textContent = theme.ticketSubtitle;
+    if (ticketFooter) ticketFooter.innerHTML = theme.ticketFooter;
+    if (ticketPickup) ticketPickup.textContent = theme.sectionPickup;
+    
+    // Scan badge
+    const badgeText = document.getElementById('ie-badge-text');
+    const badgeSubtext = document.getElementById('ie-badge-subtext');
+    if (badgeText) badgeText.textContent = theme.badgeText;
+    if (badgeSubtext) badgeSubtext.textContent = theme.badgeSubtext;
+    
+    // Currency label
+    const currencyLabel = document.getElementById('ie-currency-label');
+    if (currencyLabel) currencyLabel.textContent = theme.currencyLabel;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TEMPLATE HTML
+// ═══════════════════════════════════════════════════════════════
 
 export const INVENTORY_TAB_HTML = `
 <div class="ie-tab-content inventory-page" data-tab-content="inventory">
@@ -51,25 +185,30 @@ export const INVENTORY_TAB_HTML = `
                 <p class="inv-evidence-detail-desc" id="ie-detail-desc"></p>
                 <div id="ie-detail-stats" style="display: none;"></div>
                 <div class="inv-evidence-detail-effect" id="ie-detail-effect"></div>
-                <button class="inv-evidence-consume-btn" id="ie-consume-btn" style="display: none;">
-                    ▶ CONSUME
-                </button>
+                <div class="inv-evidence-detail-actions">
+                    <button class="inv-evidence-consume-btn" id="ie-consume-btn" style="display: none;">
+                        ▶ CONSUME
+                    </button>
+                    <button class="inv-evidence-trash-btn" id="ie-trash-btn" title="Discard this item">
+                        <i class="fa-solid fa-trash-can"></i> DISCARD
+                    </button>
+                </div>
             </div>
         </div>
         
         <!-- Wallet Section with Scan Badge + Add Button -->
         <div class="inv-wallet-section" id="ie-inv-wallet-section">
-            <!-- RCM Badge - Click to Scan -->
+            <!-- Badge - Click to Scan -->
             <button class="inv-rcm-badge" id="ie-inv-scan-btn" title="Scan for items">
-                <span class="inv-rcm-badge-text">RCM</span>
-                <span class="inv-rcm-badge-subtext">SCAN</span>
+                <span class="inv-rcm-badge-text" id="ie-badge-text">RCM</span>
+                <span class="inv-rcm-badge-subtext" id="ie-badge-subtext">SCAN</span>
             </button>
             
             <!-- Leather Wallet (hidden when form open) -->
             <div class="inv-wallet" id="ie-inv-wallet">
                 <div class="inv-wallet-stitching"></div>
                 <div class="inv-wallet-content">
-                    <span class="inv-wallet-label">RÉAL:</span>
+                    <span class="inv-wallet-label" id="ie-currency-label">RÉAL:</span>
                     <span class="inv-wallet-value" id="ie-currency-value">0.00</span>
                 </div>
             </div>
@@ -89,7 +228,7 @@ export const INVENTORY_TAB_HTML = `
     </div>
     
     <!-- ═══════════════════════════════════════════════════════════════
-         EQUIP SUBTAB - Dry Cleaner's Ticket
+         EQUIP SUBTAB - Dry Cleaner's Ticket (genre-themed)
          ═══════════════════════════════════════════════════════════════ -->
     <div class="inventory-subcontent equip-ticket-container" data-subcontent="equip">
         <div class="equip-ticket">
@@ -98,8 +237,8 @@ export const INVENTORY_TAB_HTML = `
             
             <!-- Header -->
             <div class="equip-ticket-header">
-                <div class="equip-ticket-title">MARTINAISE CLEANERS</div>
-                <div class="equip-ticket-subtitle">EST. '02 • "WE REMOVE ALL STAINS"</div>
+                <div class="equip-ticket-title" id="ie-ticket-title">MARTINAISE CLEANERS</div>
+                <div class="equip-ticket-subtitle" id="ie-ticket-subtitle">EST. '02 • "WE REMOVE ALL STAINS"</div>
             </div>
             
             <!-- Ticket Number -->
@@ -110,7 +249,7 @@ export const INVENTORY_TAB_HTML = `
             
             <!-- Items List -->
             <div class="equip-ticket-items">
-                <div class="equip-ticket-section-label">ITEMS FOR PICKUP</div>
+                <div class="equip-ticket-section-label" id="ie-ticket-pickup-label">ITEMS FOR PICKUP</div>
                 
                 <div class="equip-ticket-items-list" id="ie-equip-items-list">
                     <!-- Items will be inserted here dynamically -->
@@ -125,7 +264,7 @@ export const INVENTORY_TAB_HTML = `
             
             <!-- Footer -->
             <div class="equip-ticket-footer">
-                <div class="equip-ticket-footer-text">
+                <div class="equip-ticket-footer-text" id="ie-ticket-footer-text">
                     ITEMS LEFT OVER 30 DAYS BECOME PROPERTY OF MARTINAISE CLEANERS<br>
                     NO REFUNDS • NO EXCEPTIONS • NO DISCO
                 </div>
@@ -536,7 +675,7 @@ async function handleAddItem() {
  * Initialize wallet section handlers
  */
 function initWalletHandlers() {
-    // Scan button (RCM badge)
+    // Scan button (badge)
     const scanBtn = document.getElementById('ie-inv-scan-btn');
     scanBtn?.addEventListener('click', scanForInventory);
     
@@ -591,6 +730,12 @@ export function initInventoryTemplateHandlers(options = {}) {
     initInventorySubtabs();
     initWalletHandlers();
     
+    // Apply genre theme on init
+    updateInventoryTheme();
+    
+    // Listen for genre changes
+    window.addEventListener('tribunal:genreChanged', updateInventoryTheme);
+    
     console.log('[Inventory] Template handlers initialized');
 }
 
@@ -613,4 +758,5 @@ if (typeof window !== 'undefined') {
     window.TribunalDebug.initWalletHandlers = initWalletHandlers;
     window.TribunalDebug.scanForInventory = scanForInventory;
     window.TribunalDebug.toggleAddForm = toggleAddForm;
+    window.TribunalDebug.updateInventoryTheme = updateInventoryTheme;
 }
