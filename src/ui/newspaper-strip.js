@@ -2,9 +2,7 @@
  * The Tribunal - PÉRIPHÉRIQUE Newspaper Component
  * Full newspaper display matching Disco Elysium's aesthetic
  * 
- * @version 1.2.1
- * CHANGES v1.2.1:
- * - lastQuip now stored in state for investigation panel integration
+ * @version 1.2.0
  * CHANGES v1.2.0:
  * - Shivers name and attribution now genre-aware via getSkillName()
  * - Attribution updates on genre change
@@ -246,119 +244,84 @@ export const NEWSPAPER_STRIP_HTML = `
 export const NEWSPAPER_STRIP_CSS = `
 /* ═══════════════════════════════════════════════════════════════
    PÉRIPHÉRIQUE NEWSPAPER - Disco Elysium Style
-   BULLETPROOF VERSION - #id scoped for maximum specificity
-   Overrides any parent container styling
    ═══════════════════════════════════════════════════════════════ */
 
-#newspaper-strip.peripherique-paper {
+.peripherique-paper {
     position: relative;
-    margin: 0 -12px 12px -12px;
-    background-color: #2a2520 !important;
-    color: #c8b8a0 !important;
+    margin: -10px -12px 12px -12px;
+    background-color: #2a2520;
     font-family: 'Times New Roman', Georgia, 'Noto Serif', serif;
     user-select: none;
-    border: 3px solid #4a4035 !important;
+    border: 3px solid #4a4035;
     overflow: hidden;
     box-shadow: 
         0 4px 16px rgba(0,0,0,0.4),
         inset 0 0 60px rgba(0,0,0,0.4);
-    /* Flex item behavior */
-    flex-shrink: 0 !important;
-    /* Beat the ledger-paper ::before overlay */
-    z-index: 2 !important;
-    /* Override parent ledger-paper background bleeding */
-    background-image: none !important;
-    background-blend-mode: normal !important;
-}
-
-/* Defensive: ensure all direct children are visible */
-#newspaper-strip.peripherique-paper > .peripherique-header {
-    display: grid !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
-#newspaper-strip.peripherique-paper > .peripherique-dateline {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
-#newspaper-strip.peripherique-paper > .peripherique-shivers {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
-#newspaper-strip.peripherique-paper > .peripherique-edition {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
    HEADER ROW
    ═══════════════════════════════════════════════════════════════ */
 
-#newspaper-strip .peripherique-header {
+.peripherique-header {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
     padding: 8px 12px;
     border-bottom: 1px solid #4a4035;
-    background: #32302a !important;
+    background: #32302a;
     overflow: hidden;
 }
 
 /* Weather Box */
-#newspaper-strip .peripherique-weather-box {
+.peripherique-weather-box {
     display: grid;
     grid-template-columns: auto auto;
     grid-template-rows: auto auto;
     gap: 2px 8px;
     padding: 6px 10px;
     border: 1px solid #5a5045;
-    background: #252220 !important;
+    background: #252220;
     font-size: 10px;
     line-height: 1.3;
 }
 
-#newspaper-strip .peripherique-weather-box .weather-label {
+.peripherique-weather-box .weather-label {
     grid-column: 1 / -1;
     font-size: 8px;
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 1.5px;
-    color: #8a7a65 !important;
+    color: #8a7a65;
     border-bottom: 1px solid #4a4035;
     padding-bottom: 3px;
     margin-bottom: 2px;
 }
 
-#newspaper-strip .peripherique-weather-box .weather-condition {
+.peripherique-weather-box .weather-condition {
     font-style: italic;
-    color: #c8b8a0 !important;
+    color: #c8b8a0;
     font-size: 11px;
 }
 
-#newspaper-strip .peripherique-weather-box .weather-temp {
+.peripherique-weather-box .weather-temp {
     font-weight: bold;
-    color: #d4c4a8 !important;
+    color: #d4c4a8;
     text-align: right;
     font-size: 11px;
 }
 
-#newspaper-strip .peripherique-weather-box .weather-icon {
+.peripherique-weather-box .weather-icon {
     grid-column: 2;
     grid-row: 2 / 4;
     font-size: 16px;
-    color: #8a7a60 !important;
+    color: #8a7a60;
     justify-self: end;
     align-self: center;
 }
 
 /* Masthead */
-#newspaper-strip .peripherique-masthead {
+.peripherique-masthead {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -369,27 +332,27 @@ export const NEWSPAPER_STRIP_CSS = `
     min-width: 0;
 }
 
-#newspaper-strip .masthead-bracket {
+.masthead-bracket {
     font-size: 14px;
-    color: #6a5a48 !important;
+    color: #6a5a48;
     font-weight: 300;
 }
 
-#newspaper-strip .masthead-title {
+.masthead-title {
     font-family: 'Playfair Display', 'Times New Roman', Georgia, serif;
     font-size: 16px;
     font-weight: 400;
     letter-spacing: 3px;
-    color: #d4c8b8 !important;
+    color: #d4c8b8;
     text-transform: uppercase;
 }
 
 /* Publication Info */
-#newspaper-strip .peripherique-pub-info {
+.peripherique-pub-info {
     text-align: right;
     font-size: 8px;
     line-height: 1.4;
-    color: #7a6a58 !important;
+    color: #7a6a58;
     font-style: italic;
     min-width: 0;
     overflow: hidden;
@@ -399,40 +362,40 @@ export const NEWSPAPER_STRIP_CSS = `
    DATE LINE
    ═══════════════════════════════════════════════════════════════ */
 
-#newspaper-strip .peripherique-dateline {
+.peripherique-dateline {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 6px 12px;
     font-size: 10px;
-    color: #9a8a78 !important;
+    color: #9a8a78;
     border-bottom: 2px solid #5a5045;
-    background: #2d2825 !important;
+    background: #2d2825;
     overflow: hidden;
     gap: 8px;
 }
 
-#newspaper-strip .issue-number {
+.issue-number {
     font-weight: bold;
     letter-spacing: 1px;
-    color: #8a7a68 !important;
+    color: #8a7a68;
     flex-shrink: 0;
 }
 
-#newspaper-strip .dateline-location {
+.dateline-location {
     font-weight: bold;
     letter-spacing: 2px;
     text-transform: uppercase;
-    color: #b0a090 !important;
+    color: #b0a090;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     min-width: 0;
 }
 
-#newspaper-strip .paper-price {
+.paper-price {
     font-weight: bold;
-    color: #8a7a60 !important;
+    color: #8a7a60;
     flex-shrink: 0;
 }
 
@@ -440,18 +403,18 @@ export const NEWSPAPER_STRIP_CSS = `
    SHIVERS QUIP SECTION
    ═══════════════════════════════════════════════════════════════ */
 
-#newspaper-strip .peripherique-shivers {
+.peripherique-shivers {
     padding: 14px 20px 12px;
     text-align: center;
-    background: #2a2520 !important;
+    background: #2a2520;
     border-bottom: 1px solid #4a4035;
 }
 
-#newspaper-strip .shivers-quip {
+.shivers-quip {
     font-size: 13px;
     font-style: italic;
     line-height: 1.6;
-    color: #c8b8a0 !important;
+    color: #c8b8a0;
     margin: 0 0 8px 0;
     max-width: min(420px, 100%);
     margin-left: auto;
@@ -461,11 +424,11 @@ export const NEWSPAPER_STRIP_CSS = `
     word-wrap: break-word;
 }
 
-#newspaper-strip .shivers-attribution {
+.shivers-attribution {
     font-size: 9px;
     font-weight: bold;
     letter-spacing: 3px;
-    color: #6a5a48 !important;
+    color: #6a5a48;
     text-transform: uppercase;
     display: flex;
     align-items: center;
@@ -473,10 +436,10 @@ export const NEWSPAPER_STRIP_CSS = `
     gap: 8px;
 }
 
-#newspaper-strip .shivers-refresh-btn {
-    background: none !important;
+.shivers-refresh-btn {
+    background: none;
     border: 1px solid transparent;
-    color: #5a4a38 !important;
+    color: #5a4a38;
     font-size: 13px;
     cursor: pointer;
     padding: 2px 5px;
@@ -486,16 +449,16 @@ export const NEWSPAPER_STRIP_CSS = `
     font-family: 'Times New Roman', Georgia, serif;
 }
 
-#newspaper-strip .shivers-refresh-btn:hover {
-    color: #c8b8a0 !important;
+.shivers-refresh-btn:hover {
+    color: #c8b8a0;
     border-color: #5a5045;
 }
 
-#newspaper-strip .shivers-refresh-btn:active {
-    color: #e0d0b8 !important;
+.shivers-refresh-btn:active {
+    color: #e0d0b8;
 }
 
-#newspaper-strip .shivers-refresh-btn.refreshing {
+.shivers-refresh-btn.refreshing {
     animation: shivers-spin 1s linear infinite;
     pointer-events: none;
     opacity: 0.5;
@@ -507,7 +470,7 @@ export const NEWSPAPER_STRIP_CSS = `
 }
 
 /* Loading state */
-#newspaper-strip .shivers-quip.shivers-loading {
+.shivers-quip.shivers-loading {
     opacity: 0.5;
     animation: shivers-pulse 1.5s ease-in-out infinite;
 }
@@ -521,79 +484,79 @@ export const NEWSPAPER_STRIP_CSS = `
    EDITION TAG
    ═══════════════════════════════════════════════════════════════ */
 
-#newspaper-strip .peripherique-edition {
+.peripherique-edition {
     text-align: center;
     padding: 6px 12px 8px;
     font-size: 9px;
     font-weight: bold;
     letter-spacing: 3px;
-    color: #7a6a58 !important;
+    color: #7a6a58;
     text-transform: uppercase;
-    background: #252220 !important;
+    background: #252220;
 }
 
 /* ═══════════════════════════════════════════════════════════════
    WEATHER-SPECIFIC STYLING
    ═══════════════════════════════════════════════════════════════ */
 
-#newspaper-strip.weather-rain,
-#newspaper-strip.weather-storm {
-    background-color: #252220 !important;
-    border-color: #3a3530 !important;
+.peripherique-paper.weather-rain,
+.peripherique-paper.weather-storm {
+    background-color: #252220;
+    border-color: #3a3530;
 }
 
-#newspaper-strip.weather-rain .shivers-quip,
-#newspaper-strip.weather-storm .shivers-quip {
-    color: #b8c8d0 !important;
+.peripherique-paper.weather-rain .shivers-quip,
+.peripherique-paper.weather-storm .shivers-quip {
+    color: #b8c8d0;
 }
 
-#newspaper-strip.weather-snow {
-    background-color: #2a2a30 !important;
-    border-color: #4a4a55 !important;
+.peripherique-paper.weather-snow {
+    background-color: #2a2a30;
+    border-color: #4a4a55;
 }
 
-#newspaper-strip.weather-snow .masthead-title {
-    color: #e0e0e8 !important;
+.peripherique-paper.weather-snow .masthead-title {
+    color: #e0e0e8;
 }
 
-#newspaper-strip.weather-snow .shivers-quip {
-    color: #d0d8e0 !important;
+.peripherique-paper.weather-snow .shivers-quip {
+    color: #d0d8e0;
 }
 
-#newspaper-strip.weather-fog,
-#newspaper-strip.weather-mist {
-    background-color: #282828 !important;
-    border-color: #484848 !important;
+.peripherique-paper.weather-fog,
+.peripherique-paper.weather-mist {
+    background-color: #282828;
+    border-color: #484848;
 }
 
-#newspaper-strip.weather-fog .shivers-quip,
-#newspaper-strip.weather-mist .shivers-quip {
-    color: #b8b8b8 !important;
+.peripherique-paper.weather-fog .shivers-quip,
+.peripherique-paper.weather-mist .shivers-quip {
+    color: #b8b8b8;
 }
 
 /* ═══════════════════════════════════════════════════════════════
    PERIOD-SPECIFIC STYLING
    ═══════════════════════════════════════════════════════════════ */
 
-#newspaper-strip.period-night,
-#newspaper-strip.period-late-night {
-    background-color: #1a1815 !important;
-    border-color: #3a3530 !important;
+.peripherique-paper.period-night,
+.peripherique-paper.period-late-night {
+    background-color: #1a1815;
+    border-color: #3a3530;
 }
 
-#newspaper-strip.period-night .peripherique-header,
-#newspaper-strip.period-late-night .peripherique-header {
-    background: #252220 !important;
+.peripherique-paper.period-night .peripherique-header,
+.peripherique-paper.period-late-night .peripherique-header {
+    background: #252220;
 }
 
-#newspaper-strip.period-dawn,
-#newspaper-strip.period-morning {
-    border-color: #5a5550 !important;
+.peripherique-paper.period-dawn,
+.peripherique-paper.period-morning {
+    border-color: #5a5550;
 }
 
-#newspaper-strip.period-dawn .masthead-title,
-#newspaper-strip.period-morning .masthead-title {
-    color: #e0d8c8 !important;
+.peripherique-paper.period-dawn .masthead-title,
+.peripherique-paper.period-morning .masthead-title {
+    color: #e0d8c8;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -601,54 +564,54 @@ export const NEWSPAPER_STRIP_CSS = `
    ═══════════════════════════════════════════════════════════════ */
 
 @media (max-width: 480px) {
-    #newspaper-strip.peripherique-paper {
+    .peripherique-paper {
         margin: -8px -10px 10px -10px;
     }
     
-    #newspaper-strip .masthead-title {
+    .masthead-title {
         font-size: 14px;
         letter-spacing: 2px;
     }
     
-    #newspaper-strip .shivers-quip {
+    .shivers-quip {
         font-size: 12px;
         padding: 0 8px;
     }
     
-    #newspaper-strip .dateline-location {
+    .dateline-location {
         font-size: 9px;
         letter-spacing: 1px;
     }
     
-    #newspaper-strip .issue-number,
-    #newspaper-strip .paper-price {
+    .issue-number,
+    .paper-price {
         font-size: 9px;
     }
     
-    #newspaper-strip .peripherique-header {
+    .peripherique-header {
         padding: 6px 8px;
     }
     
-    #newspaper-strip .peripherique-dateline {
+    .peripherique-dateline {
         padding: 4px 8px;
     }
 }
 
 @media (max-width: 360px) {
-    #newspaper-strip .masthead-title {
+    .masthead-title {
         font-size: 12px;
         letter-spacing: 1px;
     }
     
-    #newspaper-strip .masthead-bracket {
+    .masthead-bracket {
         font-size: 8px;
     }
     
-    #newspaper-strip .peripherique-weather-box {
+    .peripherique-weather-box {
         display: none;
     }
     
-    #newspaper-strip .peripherique-header {
+    .peripherique-header {
         grid-template-columns: 1fr;
         justify-items: center;
     }
@@ -700,8 +663,7 @@ let currentState = {
     weather: 'overcast',
     period: 'afternoon',
     location: null,
-    investigationSeed: null,  // Hidden seed for Perception to use
-    lastQuip: null             // Last generated Shivers quip text
+    investigationSeed: null  // NEW: Hidden seed for Perception to use
 };
 
 let weatherSubscription = null;
@@ -1082,7 +1044,6 @@ function updateShiversQuip(weather, period) {
     // Step 1: Show fallback quip immediately (no loading delay for user)
     const fallbackQuip = getShiversQuip(effectiveWeather, effectivePeriod);
     quipEl.textContent = fallbackQuip;
-    currentState.lastQuip = fallbackQuip;
     
     // Also set a fallback seed immediately
     currentState.investigationSeed = getFallbackSeed(effectiveWeather);
@@ -1101,7 +1062,6 @@ function updateShiversQuip(weather, period) {
             quipEl.classList.add('shivers-loading');
             setTimeout(() => {
                 quipEl.textContent = aiQuip;
-                currentState.lastQuip = aiQuip;
                 quipEl.classList.remove('shivers-loading');
             }, 300);
         } else {
@@ -1175,14 +1135,11 @@ async function connectToWeatherSystem() {
                 const state = weatherModule.getState();
                 if (state.weather || state.period) {
                     onWeatherChange(state);
-                    return true;
                 }
             }
         }
-        return false;
     } catch (e) {
         console.warn('[Périphérique] Weather integration not available:', e.message);
-        return false;
     }
 }
 
@@ -1204,18 +1161,16 @@ export function initNewspaperStrip() {
         return;
     }
     
-    // Only inject HTML if not already present (template may have baked it in)
-    if (!document.getElementById('newspaper-strip')) {
-        mapContent.insertAdjacentHTML('afterbegin', NEWSPAPER_STRIP_HTML);
-        console.log('[Périphérique] Injected newspaper HTML');
-    } else {
-        console.log('[Périphérique] Newspaper HTML already in template');
+    if (document.getElementById('newspaper-strip')) {
+        console.log('[Périphérique] Already initialized');
+        return;
     }
     
-    // Wire refresh button (always — template HTML won't have listeners)
+    mapContent.insertAdjacentHTML('afterbegin', NEWSPAPER_STRIP_HTML);
+    
+    // Wire refresh button
     const refreshBtn = document.getElementById('shivers-refresh');
-    if (refreshBtn && !refreshBtn.dataset.wired) {
-        refreshBtn.dataset.wired = 'true';
+    if (refreshBtn) {
         refreshBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             refreshBtn.classList.add('refreshing');
@@ -1228,17 +1183,8 @@ export function initNewspaperStrip() {
     
     // Small delay to ensure DOM is ready
     setTimeout(async () => {
-        // Try to connect to the weather system first (respects RP mode)
-        const connected = await connectToWeatherSystem();
-        
-        // Only use IRL fallback if weather system didn't provide data
-        if (!connected || (!currentState.weather && !currentState.period)) {
-            console.log('[Périphérique] No weather data from system, using IRL fallback');
-            updateNewspaperFromWatch();
-        } else {
-            console.log('[Périphérique] Using weather system data:', currentState.weather, currentState.period);
-        }
-        
+        connectToWeatherSystem();
+        updateNewspaperFromWatch();
         await ensureSkillName();
         updateShiversAttribution();
     }, 50);
@@ -1249,7 +1195,7 @@ export function initNewspaperStrip() {
         updateShiversAttribution();
     });
     
-    console.log('[Périphérique] ✓ Newspaper initialized (v1.3 — template-aware)');
+    console.log('[Périphérique] ✓ Newspaper initialized (v1.2 with genre-aware Shivers)');
 }
 
 // ═══════════════════════════════════════════════════════════════
