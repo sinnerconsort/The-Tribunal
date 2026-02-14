@@ -262,6 +262,36 @@ export const NEWSPAPER_STRIP_CSS = `
     box-shadow: 
         0 4px 16px rgba(0,0,0,0.4),
         inset 0 0 60px rgba(0,0,0,0.4);
+    /* Defensive: prevent parent from collapsing us */
+    display: block !important;
+    visibility: visible !important;
+    min-height: 120px !important;
+    opacity: 1 !important;
+}
+
+/* Defensive: ensure all direct children are visible */
+#newspaper-strip.peripherique-paper > .peripherique-header {
+    display: grid !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+#newspaper-strip.peripherique-paper > .peripherique-dateline {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+#newspaper-strip.peripherique-paper > .peripherique-shivers {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+#newspaper-strip.peripherique-paper > .peripherique-edition {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -1169,16 +1199,18 @@ export function initNewspaperStrip() {
         return;
     }
     
-    if (document.getElementById('newspaper-strip')) {
-        console.log('[Périphérique] Already initialized');
-        return;
+    // Only inject HTML if not already present (template may have baked it in)
+    if (!document.getElementById('newspaper-strip')) {
+        mapContent.insertAdjacentHTML('afterbegin', NEWSPAPER_STRIP_HTML);
+        console.log('[Périphérique] Injected newspaper HTML');
+    } else {
+        console.log('[Périphérique] Newspaper HTML already in template');
     }
     
-    mapContent.insertAdjacentHTML('afterbegin', NEWSPAPER_STRIP_HTML);
-    
-    // Wire refresh button
+    // Wire refresh button (always — template HTML won't have listeners)
     const refreshBtn = document.getElementById('shivers-refresh');
-    if (refreshBtn) {
+    if (refreshBtn && !refreshBtn.dataset.wired) {
+        refreshBtn.dataset.wired = 'true';
         refreshBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             refreshBtn.classList.add('refreshing');
@@ -1203,7 +1235,7 @@ export function initNewspaperStrip() {
         updateShiversAttribution();
     });
     
-    console.log('[Périphérique] ✓ Newspaper initialized (v1.2 with genre-aware Shivers)');
+    console.log('[Périphérique] ✓ Newspaper initialized (v1.3 — template-aware)');
 }
 
 // ═══════════════════════════════════════════════════════════════
