@@ -75,11 +75,26 @@ function openInvestigationPanel() {
     // Use the global helper that index.js exposes
     if (typeof window.tribunalOpenInv === 'function') {
         window.tribunalOpenInv();
-    } else {
-        console.warn('[Tribunal] Investigation panel not available - tribunalOpenInv not found');
-        if (typeof toastr !== 'undefined') {
-            toastr.warning('Investigation not ready yet', 'The Tribunal');
-        }
+        return;
+    }
+    
+    // Fallback: try clicking the investigation FAB directly
+    const fab = document.getElementById('tribunal-investigation-fab');
+    if (fab) {
+        fab.click();
+        return;
+    }
+    
+    // Last resort: try to open panel directly
+    const panel = document.getElementById('tribunal-inv-panel');
+    if (panel) {
+        panel.style.display = 'flex';
+        return;
+    }
+    
+    console.warn('[Tribunal] Investigation panel not available');
+    if (typeof toastr !== 'undefined') {
+        toastr.warning('Investigation not ready yet', 'The Tribunal');
     }
 }
 
