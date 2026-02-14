@@ -2,7 +2,7 @@
  * The Tribunal - Panel Helpers
  * Panel controls, tab switching, and event binding
  * Extracted from rebuild v0.3.0
- * v0.3.2 - Accordion refresh on tab switch, removed stale status/copotype handlers
+ * v0.3.3 - Genre change triggers accordion + status refresh
  */
 
 import { toggleWatchMode } from './watch.js';
@@ -187,6 +187,13 @@ export function bindEvents() {
 
     // Build skill accordion on voices tab
     buildSkillAccordion();
+
+    // Rebuild accordion + refresh status when genre changes
+    window.addEventListener('tribunal:genreChanged', () => {
+        buildSkillAccordion();
+        // Refresh status display for genre-adapted skill names in Active Conditions
+        window.TribunalStatus?.refreshStatusFromState?.();
+    });
 }
 
 /**
