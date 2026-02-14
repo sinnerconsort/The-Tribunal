@@ -780,6 +780,65 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   INVENTORY TRASH/DISCARD BUTTON - Add to inventory.css
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Action buttons container in detail panel */
+.inv-evidence-detail-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+/* Trash/Discard button */
+.inv-evidence-trash-btn {
+    background: transparent;
+    border: 1px solid rgba(180, 60, 60, 0.4);
+    color: rgba(180, 100, 100, 0.8);
+    padding: 6px 12px;
+    font-size: 0.7rem;
+    font-family: inherit;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.inv-evidence-trash-btn:hover {
+    background: rgba(180, 60, 60, 0.15);
+    border-color: rgba(180, 60, 60, 0.6);
+    color: rgba(200, 80, 80, 1);
+}
+
+/* Confirming state — pulsing warning */
+.inv-evidence-trash-btn.confirming {
+    background: rgba(180, 60, 60, 0.2);
+    border-color: rgba(200, 60, 60, 0.8);
+    color: rgba(220, 100, 100, 1);
+    animation: trash-pulse 0.8s ease-in-out infinite alternate;
+    font-size: 0.65rem;
+}
+
+@keyframes trash-pulse {
+    from { border-color: rgba(200, 60, 60, 0.5); }
+    to   { border-color: rgba(220, 80, 80, 1); }
+}
+
+/* Make consume and trash sit side by side nicely */
+.inv-evidence-consume-btn {
+    flex: 1;
+    min-width: 0;
+}
+
+.inv-evidence-trash-btn {
+    flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    EQUIP TAB - DRY CLEANER'S TICKET (FULL HEIGHT)
    ═══════════════════════════════════════════════════════════════ */
 
