@@ -1149,6 +1149,12 @@
     padding-bottom: 20px;
 }
 
+/* Let newspaper expand naturally within map tab */
+[data-ledger-content="map"] #newspaper-strip {
+    flex-shrink: 0;
+    overflow: visible;
+}
+
 /* Sub-content visibility - now they ARE the papers */
 .ledger-subcontent {
     display: none;
