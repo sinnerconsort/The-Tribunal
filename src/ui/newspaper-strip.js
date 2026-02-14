@@ -707,7 +707,8 @@ let weatherSubscription = null;
 let issueNumber = Math.floor(Math.random() * 9000) + 1000;
 let shiversGenerating = false;
 let shiversDebounceTimer = null;
-let lastShiversKey = null;  // Tracks weather+period+location to avoid regenerating same combo
+let lastShiversKey = null;  // Tracks weather+period to avoid regenerating same combo
+let lastShiversGenTime = 0; // Timestamp of last generation start — hard 30s cooldown
 
 // ═══════════════════════════════════════════════════════════════
 // INVESTIGATION SEED ACCESS (for investigation.js)
@@ -1073,8 +1074,9 @@ function updateShiversQuip(weather, period) {
     const effectivePeriod = period || currentState.period;
     const effectiveLocation = currentState.location;
     
-    // Dedup: don't regenerate for the same weather+period+location combo
-    const shiversKey = `${effectiveWeather}|${effectivePeriod}|${effectiveLocation}`;
+    // Dedup: don't regenerate for the same weather+period combo
+    // (location changes should NOT trigger a new quip — only weather/period matter)
+    const shiversKey = `${effectiveWeather}|${effectivePeriod}`;
     if (shiversKey === lastShiversKey) return;
     lastShiversKey = shiversKey;
     
@@ -1087,9 +1089,17 @@ function updateShiversQuip(weather, period) {
     currentState.investigationSeed = getFallbackSeed(effectiveWeather);
     
     // Step 2: Debounce AI generation (weather can change rapidly during scan)
+    // Hard cooldown: don't regenerate within 30 seconds of last generation
+    const now = Date.now();
+    if (now - lastShiversGenTime < 30000) {
+        console.log('[Périphérique] Shivers cooldown active, keeping fallback quip');
+        return;
+    }
+    
     if (shiversDebounceTimer) clearTimeout(shiversDebounceTimer);
     
     shiversDebounceTimer = setTimeout(async () => {
+        lastShiversGenTime = Date.now();
         // Show subtle loading state
         quipEl.classList.add('shivers-loading');
         
@@ -1219,6 +1229,7 @@ export function initNewspaperStrip() {
             e.stopPropagation();
             refreshBtn.classList.add('refreshing');
             lastShiversKey = null;  // Clear dedup key
+            lastShiversGenTime = 0; // Reset cooldown for manual refresh
             updateShiversQuip(currentState.weather, currentState.period);
             // Remove spin after generation settles (debounce is 500ms + generation time)
             setTimeout(() => refreshBtn.classList.remove('refreshing'), 2000);
@@ -1272,6 +1283,7 @@ export function debugNewspaper() {
  */
 export function regenerateShiversQuip() {
     lastShiversKey = null;  // Clear dedup key
+    lastShiversGenTime = 0; // Reset cooldown for explicit regeneration
     updateShiversQuip(currentState.weather, currentState.period);
 }
 
