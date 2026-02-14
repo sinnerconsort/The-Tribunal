@@ -1,7 +1,19 @@
 /**
  * The Tribunal - Wallet Profiles Template
  * Leather wallet with flipping RCM ID card, persona slots, and money pocket
+ * 
+ * @version 1.1.0 - Genre-adapted labels: stat abbreviations, build editor names,
+ *                   card org line, archetype label, genre selector on card back
  */
+
+import {
+    getActiveProfile,
+    getActiveProfileId,
+    getCategoryName,
+    getAvailableProfiles
+} from '../data/setting-profiles.js';
+
+import { getSettings } from '../core/state.js';
 
 // ═══════════════════════════════════════════════════════════════
 // COPOTYPE DISPLAY NAMES (Profile-Aware)
@@ -36,6 +48,74 @@ const COPOTYPE_DE_NAMES = {
 };
 
 // ═══════════════════════════════════════════════════════════════
+// ABBREVIATION HELPER
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get a short abbreviation for a category name (for the card front stats)
+ * Uses first 3-4 chars, uppercased. Short names (≤4 chars) are used as-is.
+ */
+function getCategoryAbbrev(categoryId) {
+    const name = getCategoryName(categoryId, null);
+    if (!name) {
+        // Fallback to DE defaults
+        const defaults = { intellect: 'INT', psyche: 'PSY', physique: 'PHY', motorics: 'MOT' };
+        return defaults[categoryId] || categoryId.slice(0, 3).toUpperCase();
+    }
+    // Short names used directly (Head, Body, etc.)
+    if (name.length <= 4) return name.toUpperCase();
+    // Otherwise abbreviate to 3 chars
+    return name.slice(0, 3).toUpperCase();
+}
+
+/**
+ * Get the full category name for the build editor
+ */
+function getCategoryFullName(categoryId) {
+    const defaults = { intellect: 'Intellect', psyche: 'Psyche', physique: 'Physique', motorics: 'Motorics' };
+    return getCategoryName(categoryId, defaults[categoryId] || categoryId);
+}
+
+/**
+ * Get the card org line (header text) based on active profile
+ */
+function getCardOrgLine() {
+    const profile = getActiveProfile();
+    const id = getActiveProfileId();
+    
+    if (id === 'disco_elysium') {
+        return 'RCM • Revachol Citizens Militia';
+    }
+    
+    // Use profile name as a subtle org header for other genres
+    return profile?.name || 'The Tribunal';
+}
+
+/**
+ * Get the archetype label based on active profile
+ */
+function getArchetypeLabel() {
+    const profile = getActiveProfile();
+    return profile?.archetypeLabel || 'Archetype';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GENRE SELECTOR HTML
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Build genre selector dropdown options
+ */
+function buildGenreOptions() {
+    const profiles = getAvailableProfiles();
+    const currentId = getActiveProfileId();
+    
+    return profiles.map(p => 
+        `<option value="${p.id}"${p.id === currentId ? ' selected' : ''}>${escapeHtml(p.name)}</option>`
+    ).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
 // MAIN PROFILES TAB HTML
 // ═══════════════════════════════════════════════════════════════
 
@@ -66,7 +146,7 @@ export const PROFILES_TAB_HTML = `
                                 </div>
                             </div>
                             
-                            <div class="card-org">RCM • Revachol Citizens Militia</div>
+                            <div class="card-org" id="tribunal-card-org">RCM • Revachol Citizens Militia</div>
                             
                             <div class="card-header">
                                 <div class="card-photo">
@@ -100,25 +180,25 @@ export const PROFILES_TAB_HTML = `
                             
                             <div class="card-stats">
                                 <div class="card-stat">
-                                    <div class="card-stat-label">INT</div>
+                                    <div class="card-stat-label" id="tribunal-stat-label-int">INT</div>
                                     <div class="card-stat-value" id="tribunal-stat-int">3</div>
                                 </div>
                                 <div class="card-stat">
-                                    <div class="card-stat-label">PSY</div>
+                                    <div class="card-stat-label" id="tribunal-stat-label-psy">PSY</div>
                                     <div class="card-stat-value" id="tribunal-stat-psy">3</div>
                                 </div>
                                 <div class="card-stat">
-                                    <div class="card-stat-label">PHY</div>
+                                    <div class="card-stat-label" id="tribunal-stat-label-fys">PHY</div>
                                     <div class="card-stat-value" id="tribunal-stat-fys">3</div>
                                 </div>
                                 <div class="card-stat">
-                                    <div class="card-stat-label">MOT</div>
+                                    <div class="card-stat-label" id="tribunal-stat-label-mot">MOT</div>
                                     <div class="card-stat-value" id="tribunal-stat-mot">3</div>
                                 </div>
                             </div>
                             
                             <div class="card-copotype">
-                                <div class="copotype-label">Copotype</div>
+                                <div class="copotype-label" id="tribunal-archetype-label">Copotype</div>
                                 <div class="copotype-value" id="tribunal-copotype">Unknown</div>
                             </div>
                             
@@ -134,6 +214,14 @@ export const PROFILES_TAB_HTML = `
                             <div class="form-header">
                                 <span>// Personnel File</span>
                                 <button class="btn btn-flip" id="tribunal-flip-back">↻ Flip</button>
+                            </div>
+                            
+                            <!-- Genre Profile Selector -->
+                            <div class="form-group">
+                                <label class="form-label">Genre Profile</label>
+                                <select class="form-select" id="tribunal-genre-selector">
+                                    <!-- Options populated by updateGenreSelector() -->
+                                </select>
                             </div>
                             
                             <div class="form-group">
@@ -161,7 +249,7 @@ export const PROFILES_TAB_HTML = `
                                 <div class="build-points">Points: <span id="tribunal-build-points">12</span> / 12</div>
                                 
                                 <div class="stat-row">
-                                    <span class="stat-name">Intellect</span>
+                                    <span class="stat-name" id="tribunal-build-label-int">Intellect</span>
                                     <div class="stat-controls">
                                         <button class="stat-btn" data-action="dec" data-attr="int">−</button>
                                         <span class="stat-val" id="tribunal-edit-int">3</span>
@@ -169,7 +257,7 @@ export const PROFILES_TAB_HTML = `
                                     </div>
                                 </div>
                                 <div class="stat-row">
-                                    <span class="stat-name">Psyche</span>
+                                    <span class="stat-name" id="tribunal-build-label-psy">Psyche</span>
                                     <div class="stat-controls">
                                         <button class="stat-btn" data-action="dec" data-attr="psy">−</button>
                                         <span class="stat-val" id="tribunal-edit-psy">3</span>
@@ -177,7 +265,7 @@ export const PROFILES_TAB_HTML = `
                                     </div>
                                 </div>
                                 <div class="stat-row">
-                                    <span class="stat-name">Physique</span>
+                                    <span class="stat-name" id="tribunal-build-label-fys">Physique</span>
                                     <div class="stat-controls">
                                         <button class="stat-btn" data-action="dec" data-attr="fys">−</button>
                                         <span class="stat-val" id="tribunal-edit-fys">3</span>
@@ -185,7 +273,7 @@ export const PROFILES_TAB_HTML = `
                                     </div>
                                 </div>
                                 <div class="stat-row">
-                                    <span class="stat-name">Motorics</span>
+                                    <span class="stat-name" id="tribunal-build-label-mot">Motorics</span>
                                     <div class="stat-controls">
                                         <button class="stat-btn" data-action="dec" data-attr="mot">−</button>
                                         <span class="stat-val" id="tribunal-edit-mot">3</span>
@@ -300,13 +388,14 @@ function getBuildType(stats) {
     
     if (atMax.length > 1) return 'Balanced Build';
     
-    switch (atMax[0]) {
-        case 'int': return 'Thinker Build';
-        case 'psy': return 'Sensitive Build';
-        case 'fys': return 'Physical Build';
-        case 'mot': return 'Motorik Build';
-        default: return 'Balanced Build';
-    }
+    // Genre-adapted build type names
+    const catName = getCategoryFullName(
+        atMax[0] === 'int' ? 'intellect' :
+        atMax[0] === 'psy' ? 'psyche' :
+        atMax[0] === 'fys' ? 'physique' : 'motorics'
+    );
+    
+    return `${catName} Build`;
 }
 
 /**
@@ -507,6 +596,9 @@ export function updateCardDisplay(persona) {
     
     const notesArea = document.getElementById('tribunal-scene-notes');
     if (notesArea) notesArea.value = persona.sceneNotes || '';
+    
+    // Also update genre-adapted labels
+    updateCardLabelsForGenre();
 }
 
 /**
@@ -526,6 +618,68 @@ export function updateMoneyDisplay(amount = 0) {
     if (amount >= 70 && bill2) bill2.textContent = '20';
     else if (amount >= 50 && bill2) bill2.textContent = amount - 50;
     else if (bill2) bill2.textContent = Math.max(0, amount - 20);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GENRE-ADAPTED LABEL UPDATES
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Update all genre-dependent labels on the card and build editor.
+ * Call on init, on genre change, and after updateCardDisplay.
+ */
+export function updateCardLabelsForGenre() {
+    // Card front — stat abbreviations
+    const labelMap = {
+        'tribunal-stat-label-int': 'intellect',
+        'tribunal-stat-label-psy': 'psyche',
+        'tribunal-stat-label-fys': 'physique',
+        'tribunal-stat-label-mot': 'motorics'
+    };
+    
+    for (const [elId, catId] of Object.entries(labelMap)) {
+        const el = document.getElementById(elId);
+        if (el) el.textContent = getCategoryAbbrev(catId);
+    }
+    
+    // Build editor — full names
+    const buildLabelMap = {
+        'tribunal-build-label-int': 'intellect',
+        'tribunal-build-label-psy': 'psyche',
+        'tribunal-build-label-fys': 'physique',
+        'tribunal-build-label-mot': 'motorics'
+    };
+    
+    for (const [elId, catId] of Object.entries(buildLabelMap)) {
+        const el = document.getElementById(elId);
+        if (el) el.textContent = getCategoryFullName(catId);
+    }
+    
+    // Card org line
+    const orgEl = document.getElementById('tribunal-card-org');
+    if (orgEl) orgEl.textContent = getCardOrgLine();
+    
+    // Archetype label
+    const archEl = document.getElementById('tribunal-archetype-label');
+    if (archEl) archEl.textContent = getArchetypeLabel();
+    
+    // Genre selector — refresh options & selection
+    updateGenreSelector();
+}
+
+/**
+ * Populate the genre selector dropdown with available profiles
+ */
+export function updateGenreSelector() {
+    const selector = document.getElementById('tribunal-genre-selector');
+    if (!selector) return;
+    
+    const currentId = getActiveProfileId();
+    const profiles = getAvailableProfiles();
+    
+    selector.innerHTML = profiles.map(p =>
+        `<option value="${escapeHtml(p.id)}"${p.id === currentId ? ' selected' : ''}>${escapeHtml(p.name)}</option>`
+    ).join('');
 }
 
 /**
