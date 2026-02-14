@@ -131,16 +131,16 @@ export const STATUS_EFFECTS = {
     the_pale: {
         id: 'the_pale',
         name: 'The Pale',
-        simpleName: 'Dissociated',
+        simpleName: 'Unconscious',
         icon: 'fa-solid fa-battery-empty',
         iconActive: 'fa-solid fa-battery-empty',
         iconInactive: 'fa-solid fa-battery-full',
         category: 'mental',
-        description: 'Reality dissolves. The void between worlds seeps into your consciousness. The ancient voices wake.',
+        description: 'Lost to the waking world. Blacked out, fainted, or fallen into deep unconsciousness. The ancient voices speak from the deep.',
         boosts: ['inland_empire', 'shivers', 'pain_threshold', 'conceptualization'],
         debuffs: ['perception', 'reaction_speed', 'empathy', 'logic', 'authority'],
         difficultyMod: 3,
-        keywords: ['dissociate', 'unreal', 'floating', 'numb', 'detached', 'distant', 'unconscious', 'blackout', 'void', 'pale', 'coma', 'asleep', 'passed out', 'fading', 'dreaming'],
+        keywords: ['unconscious', 'blacked out', 'passed out', 'fainted', 'knocked out', 'asleep', 'coma', 'collapsed', 'out cold', 'falls unconscious', 'dozing', 'deep sleep', 'blacks out', 'eyes roll back', 'crumples'],
         ancientVoice: 'both', // Triggers BOTH Ancient Reptilian Brain + Limbic System
         intrusiveBoost: ['inland_empire', 'shivers', 'conceptualization']
     },
