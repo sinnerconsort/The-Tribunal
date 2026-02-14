@@ -821,13 +821,13 @@ CRITICAL RULES:
 - Do NOT repeat the weather condition literally. Don't say "it's snowing." SHOW it through sensory detail specific to THIS place.
 - Reference textures that belong to THIS world. A cave has crystal and stone. A ship has hull and bulkhead. A forest has bark and loam.
 
-OUTPUT FORMAT - Respond with ONLY valid JSON:
+OUTPUT FORMAT - Respond with ONLY valid JSON. Do NOT deliberate or brainstorm. Output the JSON immediately:
 {
   "quip": "2-3 sentences of atmospheric Shivers prose. No more.",
   "seed": "A brief environmental detail that could be investigated — something Shivers noticed that might be a clue, an anomaly, or simply interesting. 5-15 words. Examples: 'disturbed snow near the lamp post', 'a door left slightly ajar', 'scratch marks on the stone floor', 'something metallic glinting in the gutter'. Make it specific to THIS scene and weather."
 }
 
-The "quip" is what the user sees. The "seed" is hidden metadata for the investigation system — it should be a concrete, discoverable detail that fits naturally with what Shivers is describing.`;
+IMPORTANT: Output ONLY the JSON object. No thinking, no drafts, no alternatives. One quip, one seed, done.`;
 
     const weatherDesc = weather || 'overcast';
     const periodDesc = period || 'afternoon';
@@ -915,7 +915,7 @@ function extractShiversJSON(response) {
 
 /**
  * Generate an AI Shivers quip + investigation seed, falling back to static on failure.
- * Uses callAPIWithTokens with a moderate budget (400 tokens for JSON response).
+ * Uses callAPIWithTokens (600 tokens — GLM needs headroom for reasoning overhead).
  * Pulls scene context directly from SillyTavern chat for world-accurate prose.
  * 
  * NEW v1.1: Returns { quip, seed } and stores seed in currentState
@@ -946,7 +946,7 @@ async function generateShiversQuip(weather, period, location) {
         });
         
         const prompt = buildShiversPrompt(weather, period, location, sceneContext);
-        const response = await callAPIWithTokens(prompt.system, prompt.user, 400);
+        const response = await callAPIWithTokens(prompt.system, prompt.user, 600);
         
         const parsed = extractShiversJSON(response);
         
