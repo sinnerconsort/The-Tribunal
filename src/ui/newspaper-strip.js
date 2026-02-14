@@ -2,7 +2,10 @@
  * The Tribunal - PÉRIPHÉRIQUE Newspaper Component
  * Full newspaper display matching Disco Elysium's aesthetic
  * 
- * @version 1.1.1
+ * @version 1.1.2
+ * CHANGES v1.1.2:
+ * - FIXED: Weather updates were blocked when horror/pale special effects were active
+ *   (newspaper showed stale "Overcast" while radio correctly showed storm)
  * CHANGES v1.1.1:
  * - Added enabled check to prevent API calls when extension is disabled
  * CHANGES v1.1.0:
@@ -1016,7 +1019,12 @@ function onWeatherChange(data) {
     
     const { weather, period, special, temp, location } = data;
     
-    if (special) return;
+    // FIXED: Don't skip updates when special effects are active!
+    // Weather and time should still update even during horror/pale.
+    // The newspaper shows weather data, not special effect state.
+    
+    // Only skip if there's literally no weather or period data
+    if (!weather && !period) return;
     
     updateNewspaperStrip({
         weather: weather,
