@@ -925,6 +925,8 @@ function updateContextDisplay() {
 // ═══════════════════════════════════════════════════════════════
 
 function updateAtmosphereDisplay() {
+    const state = getShiversState();
+    
     // Update date
     const dateEl = document.getElementById('tribunal-inv-date');
     if (dateEl) {
@@ -934,26 +936,19 @@ function updateAtmosphereDisplay() {
         dateEl.textContent = `${month} ${day}, '51`;
     }
     
-    // Update weather from shivers-weather module
+    // Update weather from shivers-weather (which gets it from weather-integration, respecting RP mode)
     const weatherEl = document.getElementById('tribunal-inv-weather-label');
     if (weatherEl) {
-        const weather = getCurrentWeather()
+        const weather = (state.weather || getCurrentWeather())
             .replace('-day', '').replace('-night', '')
             .toUpperCase();
         weatherEl.textContent = weather;
     }
     
-    // Update period — compute from actual clock
+    // Update period from shivers-weather state (respects RP mode)
     const periodEl = document.getElementById('tribunal-inv-period');
     if (periodEl) {
-        const hour = new Date().getHours();
-        let period = 'AFTERNOON';
-        if (hour >= 5 && hour < 7) period = 'DAWN';
-        else if (hour >= 7 && hour < 12) period = 'MORNING';
-        else if (hour >= 12 && hour < 17) period = 'AFTERNOON';
-        else if (hour >= 17 && hour < 20) period = 'EVENING';
-        else if (hour >= 20 && hour < 23) period = 'NIGHT';
-        else period = 'LATE NIGHT';
+        const period = (state.period || 'AFTERNOON').toUpperCase().replace('_', ' ');
         periodEl.textContent = period;
     }
 }
