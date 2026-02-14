@@ -252,21 +252,17 @@ export const NEWSPAPER_STRIP_CSS = `
 
 #newspaper-strip.peripherique-paper {
     position: relative;
-    margin: -10px -12px 12px -12px;
+    margin: 0 -12px 12px -12px;
     background-color: #2a2520 !important;
     color: #c8b8a0 !important;
     font-family: 'Times New Roman', Georgia, 'Noto Serif', serif;
     user-select: none;
     border: 3px solid #4a4035 !important;
-    overflow: visible;
+    overflow: hidden;
     box-shadow: 
         0 4px 16px rgba(0,0,0,0.4),
         inset 0 0 60px rgba(0,0,0,0.4);
-    /* Defensive: prevent parent from collapsing us */
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    /* Prevent flex column from shrinking us */
+    /* Flex item behavior */
     flex-shrink: 0 !important;
     /* Beat the ledger-paper ::before overlay */
     z-index: 2 !important;
