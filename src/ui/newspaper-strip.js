@@ -2,10 +2,10 @@
  * The Tribunal - PÉRIPHÉRIQUE Newspaper Component
  * Full newspaper display matching Disco Elysium's aesthetic
  * 
- * @version 1.1.2
- * CHANGES v1.1.2:
- * - FIXED: Weather updates were blocked when horror/pale special effects were active
- *   (newspaper showed stale "Overcast" while radio correctly showed storm)
+ * @version 1.2.0
+ * CHANGES v1.2.0:
+ * - Shivers name and attribution now genre-aware via getSkillName()
+ * - Attribution updates on genre change
  * CHANGES v1.1.1:
  * - Added enabled check to prevent API calls when extension is disabled
  * CHANGES v1.1.0:
@@ -15,6 +15,32 @@
  */
 
 import { getSettings } from '../core/persistence.js';
+import { getSkillName } from '../data/setting-profiles.js';
+
+// ═══════════════════════════════════════════════════════════════
+// GENRE-AWARE SHIVERS NAME
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get the genre-adapted name for Shivers (e.g. "The Signal" in cyberpunk)
+ */
+function getShiversName() {
+    return getSkillName('shivers', 'Shivers');
+}
+
+/**
+ * Update the Shivers attribution text for current genre
+ */
+function updateShiversAttribution() {
+    const attrSpan = document.querySelector('.shivers-attribution span');
+    if (attrSpan) {
+        attrSpan.textContent = `— ${getShiversName().toUpperCase()} SPEAKS`;
+    }
+    const refreshBtn = document.getElementById('shivers-refresh');
+    if (refreshBtn) {
+        refreshBtn.title = `${getShiversName()} speaks again...`;
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════
 // SHIVERS FALLBACK QUIPS
@@ -730,7 +756,8 @@ function getSceneContext() {
  * that Perception might notice when the player investigates.
  */
 function buildShiversPrompt(weather, period, location, sceneContext = {}) {
-    const system = `You are SHIVERS — the psychic voice of the environment itself. You feel every raindrop on every rooftop, every crack in every wall, every footstep on every street. You speak in short, evocative, melancholic prose. You are the SETTING made conscious.
+    const shiversName = getShiversName();
+    const system = `You are ${shiversName.toUpperCase()} — the psychic voice of the environment itself. You feel every raindrop on every rooftop, every crack in every wall, every footstep on every street. You speak in short, evocative, melancholic prose. You are the SETTING made conscious.
 
 CRITICAL RULES:
 - ABSORB the scene context below. If the setting is an underground snow town full of monsters, you are THAT place — not a generic city. If it's a neon-drenched megacity, you are acid rain on chrome. If it's a medieval village, you are hearthsmoke and cobblestone.
@@ -780,7 +807,7 @@ The "quip" is what the user sees. The "seed" is hidden metadata for the investig
         userParts.push(`\nRecent scene:\n${sceneContext.sceneExcerpt}`);
     }
     
-    userParts.push('\nGenerate the Shivers observation as JSON with "quip" and "seed" fields.');
+    userParts.push(`\nGenerate the ${shiversName} observation as JSON with "quip" and "seed" fields.`);
 
     return { system, user: userParts.join('\n') };
 }
@@ -1141,9 +1168,15 @@ export function initNewspaperStrip() {
     setTimeout(() => {
         connectToWeatherSystem();
         updateNewspaperFromWatch();
+        updateShiversAttribution();
     }, 50);
     
-    console.log('[Périphérique] ✓ Newspaper initialized (v1.1 with investigation seeds)');
+    // Refresh attribution when genre changes
+    window.addEventListener('tribunal:genreChanged', () => {
+        updateShiversAttribution();
+    });
+    
+    console.log('[Périphérique] ✓ Newspaper initialized (v1.2 with genre-aware Shivers)');
 }
 
 // ═══════════════════════════════════════════════════════════════

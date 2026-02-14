@@ -32,7 +32,7 @@ const EFFECT_ID_TO_UI_STATUS = {
     
     // Mental states
     tequila_sunset: 'manic',
-    the_pale: 'dissociated',
+    the_pale: 'unconscious',
     the_expression: 'grieving',
     homo_sexual_underground: 'infatuated',
     jamrock_shuffle: 'lucky',

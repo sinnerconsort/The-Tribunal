@@ -2,7 +2,7 @@
  * The Tribunal - Status Handlers
  * Wires the RCM Medical Form (Status tab) to state persistence
  * 
- * @version 1.0.2 - Added copotype label swapping (DE names on check, generic on uncheck)
+ * @version 1.0.3 - Renamed Dissociated→Unconscious, DE-only label swapping
  */
 
 import { 
@@ -14,7 +14,7 @@ import {
     removeActiveEffect 
 } from '../core/state.js';
 
-import { getSkillName } from '../data/setting-profiles.js';
+import { getSkillName, getActiveProfile } from '../data/setting-profiles.js';
 
 import { STATUS_EFFECTS } from '../data/statuses.js';
 
@@ -106,7 +106,7 @@ const STATUS_UI_TO_ID = {
     'dying': 'white_mourning',
     // Mental
     'manic': 'tequila_sunset',
-    'dissociated': 'the_pale',
+    'unconscious': 'the_pale',
     'infatuated': 'homo_sexual_underground',
     'lucky': 'jamrock_shuffle',
     'terrified': 'caustic_echo',
@@ -157,6 +157,47 @@ const COPOTYPE_DISPLAY_NAMES = {
     'human_can_opener': 'Human Can-Opener',
     'innocence': 'Innocence'
 };
+
+// ═══════════════════════════════════════════════════════════════
+// GENRE-AWARE LABEL HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Check if the active genre profile is Disco Elysium
+ * DE names (Révachol Courage, The Pale, etc.) only show on DE theme
+ */
+function isDiscoElysiumTheme() {
+    try {
+        const profile = getActiveProfile();
+        return profile?.id === 'disco_elysium';
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Get the appropriate label for a status checkbox
+ * DE theme: shows DE name (data-label-on) when active
+ * Other themes: always shows generic name (data-label-off)
+ */
+function getStatusLabel(element, isActive) {
+    if (isActive && isDiscoElysiumTheme()) {
+        return element.dataset.labelOn || element.dataset.labelOff;
+    }
+    return element.dataset.labelOff;
+}
+
+/**
+ * Get the appropriate label for a copotype item
+ * DE theme: shows DE name (data-label-on) when active
+ * Other themes: always shows generic name (data-label-off)
+ */
+function getCopotypeLabel(element, isActive) {
+    if (isActive && isDiscoElysiumTheme()) {
+        return element.dataset.labelOn || element.dataset.copotype;
+    }
+    return element.dataset.labelOff || element.dataset.copotype;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // CHAT SWITCH HANDLING (FIX)
@@ -243,7 +284,7 @@ export function refreshStatusFromState() {
         checkbox.classList.toggle('rcm-checked', isActive);
         const label = checkbox.querySelector('.rcm-checkbox-label');
         if (label) {
-            label.textContent = isActive ? checkbox.dataset.labelOn : checkbox.dataset.labelOff;
+            label.textContent = getStatusLabel(checkbox, isActive);
         }
     });
     
@@ -262,7 +303,7 @@ export function refreshStatusFromState() {
         // Swap label to DE name when active, generic when inactive
         const label = item.querySelector('.rcm-copotype-label');
         if (label) {
-            label.textContent = isActive ? (item.dataset.labelOn || item.dataset.copotype) : (item.dataset.labelOff || item.dataset.copotype);
+            label.textContent = getCopotypeLabel(item, isActive);
         }
     });
     
@@ -480,16 +521,20 @@ function checkAncientVoiceActivation() {
     
     // Show toasts only for newly activated voices
     if (newlyActivated.length > 0 && typeof toastr !== 'undefined') {
-        // Check for The Pale trigger (ARB + Limbic together)
+        // Check for The Pale / Unconscious trigger (ARB + Limbic together)
         const paleVoice = newlyActivated.find(v => v.triggerType === 'pale');
         if (paleVoice) {
-            toastr.warning('🧠 ANCIENT VOICES STIR - Reality dissolves...', 'The Pale', { timeOut: 3000 });
+            const isDE = isDiscoElysiumTheme();
+            const paleTitle = isDE ? 'The Pale' : 'Unconscious';
+            const paleMsg = isDE ? '🧠 ANCIENT VOICES STIR - Reality dissolves...' : '🧠 ANCIENT VOICES STIR - The deep speaks...';
+            toastr.warning(paleMsg, paleTitle, { timeOut: 3000 });
         }
         
         // Check for Spinal Cord (party combo)
         const spinalVoice = newlyActivated.find(v => v.id === 'spinal_cord');
         if (spinalVoice) {
-            toastr.warning('⚡ SPINAL CORD AWAKENS - The party never stops!', 'DISCO', { timeOut: 3000 });
+            const spinalName = getSkillName('spinal_cord', 'Spinal Cord');
+            toastr.warning(`⚡ ${spinalName.toUpperCase()} AWAKENS`, 'ANCIENT VOICE', { timeOut: 3000 });
         }
     }
 }
@@ -523,7 +568,7 @@ function bindStatusCheckboxes() {
                 removeActiveEffect(statusId);
                 newCheckbox.classList.remove('rcm-checked');
                 const label = newCheckbox.querySelector('.rcm-checkbox-label');
-                if (label) label.textContent = newCheckbox.dataset.labelOff;
+                if (label) label.textContent = getStatusLabel(newCheckbox, false);
                 console.log(`[Tribunal] Removed status: ${statusId}`);
             } else {
                 // Add effect - pass object with id, name, type
@@ -536,7 +581,7 @@ function bindStatusCheckboxes() {
                 });
                 newCheckbox.classList.add('rcm-checked');
                 const label = newCheckbox.querySelector('.rcm-checkbox-label');
-                if (label) label.textContent = newCheckbox.dataset.labelOn;
+                if (label) label.textContent = getStatusLabel(newCheckbox, true);
                 console.log(`[Tribunal] Added status: ${statusId}`);
             }
             
@@ -584,7 +629,7 @@ function bindCopotypeSelection() {
                 if (box) box.textContent = '□';
                 // Reset label to generic name
                 const label = newItem.querySelector('.rcm-copotype-label');
-                if (label) label.textContent = newItem.dataset.labelOff || newItem.dataset.copotype;
+                if (label) label.textContent = getCopotypeLabel(newItem, false);
                 console.log(`[Tribunal] Cleared copotype`);
             } else {
                 // Select this copotype - clear others first
@@ -594,7 +639,7 @@ function bindCopotypeSelection() {
                     if (otherBox) otherBox.textContent = '□';
                     // Reset other labels to generic names
                     const otherLabel = other.querySelector('.rcm-copotype-label');
-                    if (otherLabel) otherLabel.textContent = other.dataset.labelOff || other.dataset.copotype;
+                    if (otherLabel) otherLabel.textContent = getCopotypeLabel(other, false);
                 });
                 
                 // Set new copotype
@@ -602,9 +647,9 @@ function bindCopotypeSelection() {
                 newItem.classList.add('rcm-copotype-active');
                 const box = newItem.querySelector('.rcm-copotype-box');
                 if (box) box.textContent = '☒';
-                // Swap label to DE name
+                // Swap label to DE name (only on DE theme)
                 const label = newItem.querySelector('.rcm-copotype-label');
-                if (label) label.textContent = newItem.dataset.labelOn || newItem.dataset.copotype;
+                if (label) label.textContent = getCopotypeLabel(newItem, true);
                 console.log(`[Tribunal] Set copotype: ${copytypeId}`);
             }
             

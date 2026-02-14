@@ -115,9 +115,9 @@ export const STATUS_TAB_HTML = `
                             <span class="rcm-checkbox-box"></span>
                             <span class="rcm-checkbox-label">Manic</span>
                         </div>
-                        <div class="rcm-checkbox" data-status="dissociated" data-label-off="Dissociated" data-label-on="The Pale">
+                        <div class="rcm-checkbox" data-status="unconscious" data-label-off="Unconscious" data-label-on="The Pale">
                             <span class="rcm-checkbox-box"></span>
-                            <span class="rcm-checkbox-label">Dissociated</span>
+                            <span class="rcm-checkbox-label">Unconscious</span>
                         </div>
                         <div class="rcm-checkbox" data-status="infatuated" data-label-off="Infatuated" data-label-on="Homo-Sexual Underground">
                             <span class="rcm-checkbox-box"></span>
