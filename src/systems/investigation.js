@@ -43,7 +43,6 @@ import {
 let getInvestigationSeed = () => null;
 let clearInvestigationSeed = () => {};
 let getNewspaperState = () => ({ weather: 'overcast', period: 'afternoon', lastQuip: null });
-let regenerateShiversQuip = () => {};
 
 // Dynamic import to avoid circular dependency
 import('../ui/newspaper-strip.js')
@@ -51,7 +50,6 @@ import('../ui/newspaper-strip.js')
         if (m.getInvestigationSeed) getInvestigationSeed = m.getInvestigationSeed;
         if (m.clearInvestigationSeed) clearInvestigationSeed = m.clearInvestigationSeed;
         if (m.getNewspaperState) getNewspaperState = m.getNewspaperState;
-        if (m.regenerateShiversQuip) regenerateShiversQuip = m.regenerateShiversQuip;
         console.log('[Investigation] ✓ Shivers seed + atmosphere integration loaded');
     })
     .catch(() => {
@@ -757,7 +755,7 @@ function createPanel() {
         
         <div style="${STYLES.actions}">
             <button id="tribunal-inv-scan" style="${STYLES.btnPrimary}">⬤ INVESTIGATE</button>
-            <button id="tribunal-inv-shivers-refresh" style="${STYLES.btnSecondary}" title="Shivers speaks again...">↻</button>
+            <button id="tribunal-inv-rescan" style="${STYLES.btnSecondary}">↻</button>
         </div>
         
         <div id="tribunal-inv-results" style="${STYLES.results}">
@@ -774,7 +772,7 @@ function createPanel() {
     
     panel.querySelector('#tribunal-inv-close').addEventListener('click', close);
     panel.querySelector('#tribunal-inv-scan').addEventListener('click', doInvestigate);
-    panel.querySelector('#tribunal-inv-shivers-refresh').addEventListener('click', handleShiversRefresh);
+    panel.querySelector('#tribunal-inv-rescan').addEventListener('click', doInvestigate);
     
     return panel;
 }
@@ -904,8 +902,21 @@ function updateContextDisplay() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ATMOSPHERE DISPLAY (weather/date/period for investigation panel)
+// ATMOSPHERE DISPLAY (weather/date/period from newspaper)
 // ═══════════════════════════════════════════════════════════════
+
+const PERIOD_LABELS = {
+    'DAWN': 'DAWN',
+    'MORNING': 'MORNING',
+    'AFTERNOON': 'AFTERNOON',
+    'EVENING': 'EVENING',
+    'NIGHT': 'NIGHT',
+    'LATE_NIGHT': 'LATE NIGHT',
+    'day': 'DAY',
+    'city-night': 'NIGHT',
+    'quiet-night': 'LATE NIGHT',
+    'indoor': 'INDOOR'
+};
 
 function updateAtmosphereDisplay() {
     const state = getNewspaperState();
@@ -919,75 +930,22 @@ function updateAtmosphereDisplay() {
         dateEl.textContent = `${month} ${day}, '51`;
     }
     
-    // Update weather — use getCurrentWeather() which already has fallback logic
+    // Update weather
     const weatherEl = document.getElementById('tribunal-inv-weather-label');
     if (weatherEl) {
-        const weather = getCurrentWeather()
+        const weather = (state.weather || 'overcast')
             .replace('-day', '').replace('-night', '')
-            .replace('clear', 'clear').replace('overcast', 'overcast')
             .toUpperCase();
         weatherEl.textContent = weather;
     }
     
-    // Update period — compute from actual clock, don't rely on newspaper state
+    // Update period
     const periodEl = document.getElementById('tribunal-inv-period');
     if (periodEl) {
-        const hour = new Date().getHours();
-        let period = 'AFTERNOON';
-        if (hour >= 5 && hour < 7) period = 'DAWN';
-        else if (hour >= 7 && hour < 12) period = 'MORNING';
-        else if (hour >= 12 && hour < 17) period = 'AFTERNOON';
-        else if (hour >= 17 && hour < 20) period = 'EVENING';
-        else if (hour >= 20 && hour < 23) period = 'NIGHT';
-        else period = 'LATE NIGHT';
+        const period = PERIOD_LABELS[state.period] || 
+                       (state.period || 'AFTERNOON').toUpperCase().replace('_', ' ');
         periodEl.textContent = period;
     }
-}
-
-/**
- * Handle Shivers refresh button — regenerate atmospheric quip
- * Then update the context area with the new quip after a delay
- */
-async function handleShiversRefresh() {
-    const btn = document.getElementById('tribunal-inv-shivers-refresh');
-    const contextEl = document.getElementById('tribunal-inv-context');
-    
-    if (btn) {
-        btn.disabled = true;
-        btn.style.opacity = '0.4';
-        btn.textContent = '◌';
-    }
-    
-    // Show loading state in context if we're currently showing a quip (no scene context)
-    if (contextEl && !sceneContext) {
-        contextEl.style.opacity = '0.5';
-        contextEl.textContent = 'Shivers reaching out...';
-    }
-    
-    // Trigger regeneration in newspaper module
-    regenerateShiversQuip();
-    
-    // Wait for generation to settle (debounce 500ms + API time)
-    setTimeout(() => {
-        // Update context display with new quip
-        if (!sceneContext) {
-            const state = getNewspaperState();
-            if (contextEl && state.lastQuip) {
-                contextEl.textContent = state.lastQuip;
-            }
-            if (contextEl) contextEl.style.opacity = '1';
-        }
-        
-        // Update seed display too
-        updateSeedDisplay();
-        updateAtmosphereDisplay();
-        
-        if (btn) {
-            btn.disabled = false;
-            btn.style.opacity = '1';
-            btn.textContent = '↻';
-        }
-    }, 3000);
 }
 
 function updateSeedDisplay() {
