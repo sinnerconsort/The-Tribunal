@@ -1,8 +1,6 @@
 /**
  * The Tribunal - Profiles Handlers
- * Wires the wallet/ID card UI to the state persistence layer
- * 
- * @version 1.1.0 - Genre selector wiring, genre change event dispatch
+ * @version 1.1.0 - Genre selector wiring + genre change events
  */
 
 import { 
@@ -15,7 +13,8 @@ import {
     initCardFlip, flipCard,
     updateCardLabelsForGenre, updateGenreSelector
 } from './profiles-template.js';
-import { getActiveProfileId } from '../data/setting-profiles.js';
+// Use named import for confirmed named export only
+import { getActiveProfile } from '../data/setting-profiles.js';
 
 // ═══════════════════════════════════════════════════════════════
 // INITIALIZATION
@@ -65,51 +64,27 @@ export function refreshProfilesFromState() {
 function bindProfileInputs() {
     const nameInput = document.getElementById('tribunal-card-name');
     if (nameInput) {
-        nameInput.addEventListener('change', (e) => {
-            setPersona({ name: e.target.value });
-        });
-        nameInput.addEventListener('blur', (e) => {
-            setPersona({ name: e.target.value });
-        });
+        nameInput.addEventListener('change', (e) => setPersona({ name: e.target.value }));
+        nameInput.addEventListener('blur', (e) => setPersona({ name: e.target.value }));
     }
-    
     const pronounsSelect = document.getElementById('tribunal-card-pronouns');
-    if (pronounsSelect) {
-        pronounsSelect.addEventListener('change', (e) => {
-            setPersona({ pronouns: e.target.value });
-        });
-    }
-    
+    if (pronounsSelect) pronounsSelect.addEventListener('change', (e) => setPersona({ pronouns: e.target.value }));
     const povSelect = document.getElementById('tribunal-pov-style');
-    if (povSelect) {
-        povSelect.addEventListener('change', (e) => {
-            setPersona({ povStyle: e.target.value });
-        });
-    }
-    
+    if (povSelect) povSelect.addEventListener('change', (e) => setPersona({ povStyle: e.target.value }));
     const contextArea = document.getElementById('tribunal-char-context');
     if (contextArea) {
-        contextArea.addEventListener('change', (e) => {
-            setPersona({ context: e.target.value });
-        });
-        contextArea.addEventListener('blur', (e) => {
-            setPersona({ context: e.target.value });
-        });
+        contextArea.addEventListener('change', (e) => setPersona({ context: e.target.value }));
+        contextArea.addEventListener('blur', (e) => setPersona({ context: e.target.value }));
     }
-    
     const notesArea = document.getElementById('tribunal-scene-notes');
     if (notesArea) {
-        notesArea.addEventListener('change', (e) => {
-            setPersona({ sceneNotes: e.target.value });
-        });
-        notesArea.addEventListener('blur', (e) => {
-            setPersona({ sceneNotes: e.target.value });
-        });
+        notesArea.addEventListener('change', (e) => setPersona({ sceneNotes: e.target.value }));
+        notesArea.addEventListener('blur', (e) => setPersona({ sceneNotes: e.target.value }));
     }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// STAT BUTTONS - Build Editor
+// STAT BUTTONS
 // ═══════════════════════════════════════════════════════════════
 
 function bindStatButtons() {
@@ -118,31 +93,21 @@ function bindStatButtons() {
             const action = btn.dataset.action;
             const attr = btn.dataset.attr;
             if (!action || !attr) return;
-            
             const attrMap = { 'int': 'intellect', 'psy': 'psyche', 'fys': 'physique', 'mot': 'motorics' };
             const stateName = attrMap[attr];
             if (!stateName) return;
-            
             const current = getAttributes()[stateName] || 3;
             const newValue = action === 'inc' ? current + 1 : current - 1;
-            
             if (newValue < 1 || newValue > 6) return;
-            
             const attrs = getAttributes();
-            const currentTotal = attrs.intellect + attrs.psyche + attrs.physique + attrs.motorics;
-            const newTotal = currentTotal + (action === 'inc' ? 1 : -1);
-            
+            const newTotal = attrs.intellect + attrs.psyche + attrs.physique + attrs.motorics + (action === 'inc' ? 1 : -1);
             setAttribute(stateName, newValue);
-            
             const displayEl = document.getElementById(`tribunal-stat-${attr}`);
             const editEl = document.getElementById(`tribunal-edit-${attr}`);
             if (displayEl) displayEl.textContent = newValue;
             if (editEl) editEl.textContent = newValue;
-            
             const pointsEl = document.getElementById('tribunal-build-points');
             if (pointsEl) pointsEl.textContent = newTotal;
-            
-            console.log(`[Tribunal] ${stateName}: ${current} → ${newValue}`);
         });
     });
 }
@@ -154,27 +119,16 @@ function bindStatButtons() {
 function bindGenreSelector() {
     const selector = document.getElementById('tribunal-genre-selector');
     if (!selector) return;
-    
     updateGenreSelector();
-    
     selector.addEventListener('change', (e) => {
         const newProfileId = e.target.value;
         if (!newProfileId) return;
-        
-        // Update setting in state
         const settings = getSettings();
-        if (settings) {
-            settings.genreProfile = newProfileId;
-        }
-        
-        // Update all genre-dependent labels
+        if (settings) settings.genreProfile = newProfileId;
         updateCardLabelsForGenre();
-        
-        // Dispatch so other modules react (accordion, status tab, MEF labels, etc.)
         window.dispatchEvent(new CustomEvent('tribunal:genreChanged', {
             detail: { profileId: newProfileId }
         }));
-        
         console.log(`[Tribunal] Genre profile changed to: ${newProfileId}`);
     });
 }
@@ -185,26 +139,13 @@ function bindGenreSelector() {
 
 function bindActionButtons() {
     const flipBackBtn = document.getElementById('tribunal-flip-back');
-    if (flipBackBtn) {
-        flipBackBtn.addEventListener('click', () => flipCard(false));
-    }
-    
+    if (flipBackBtn) flipBackBtn.addEventListener('click', () => flipCard(false));
     const saveBtn = document.getElementById('tribunal-save-persona');
-    if (saveBtn) {
-        saveBtn.addEventListener('click', () => {
-            flipCard(false);
-            console.log('[Tribunal] Persona saved');
-        });
-    }
-    
+    if (saveBtn) saveBtn.addEventListener('click', () => { flipCard(false); });
     const deleteBtn = document.getElementById('tribunal-delete-persona');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', () => {
-            if (confirm('Reset persona to defaults?')) {
-                resetPersonaToDefaults();
-            }
-        });
-    }
+    if (deleteBtn) deleteBtn.addEventListener('click', () => {
+        if (confirm('Reset persona to defaults?')) resetPersonaToDefaults();
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -216,10 +157,7 @@ function bindCardSlots() {
         slot.addEventListener('click', () => {
             resetPersonaToDefaults();
             flipCard(true);
-            setTimeout(() => {
-                document.getElementById('tribunal-card-name')?.focus();
-            }, 400);
-            console.log('[Tribunal] New identity started');
+            setTimeout(() => document.getElementById('tribunal-card-name')?.focus(), 400);
         });
     });
 }
@@ -256,7 +194,6 @@ export function onGenreChanged() {
     refreshProfilesFromState();
 }
 
-// Listen for genre changes from other modules (e.g. settings tab)
 window.addEventListener('tribunal:genreChanged', () => {
     updateCardLabelsForGenre();
 });
