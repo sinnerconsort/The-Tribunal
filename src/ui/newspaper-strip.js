@@ -915,7 +915,7 @@ function extractShiversJSON(response) {
 
 /**
  * Generate an AI Shivers quip + investigation seed, falling back to static on failure.
- * Uses callAPIWithTokens with a small budget (200 tokens for JSON response).
+ * Uses callAPIWithTokens with a moderate budget (400 tokens for JSON response).
  * Pulls scene context directly from SillyTavern chat for world-accurate prose.
  * 
  * NEW v1.1: Returns { quip, seed } and stores seed in currentState
@@ -946,7 +946,7 @@ async function generateShiversQuip(weather, period, location) {
         });
         
         const prompt = buildShiversPrompt(weather, period, location, sceneContext);
-        const response = await callAPIWithTokens(prompt.system, prompt.user, 200);
+        const response = await callAPIWithTokens(prompt.system, prompt.user, 400);
         
         const parsed = extractShiversJSON(response);
         
