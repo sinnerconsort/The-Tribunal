@@ -96,6 +96,10 @@ THE GOTHIC [Shivers] - The nursery is cold. It's always cold. Even in August. Th
         savoir_faire: 'The Scream Queen',
         interfacing: 'The Signal',
         composure: 'The Mask',
+        // Ancient voices
+        ancient_reptilian_brain: 'The Old God',
+        limbic_system: 'The Final Tape',
+        spinal_cord: 'The Infection',
     },
 
     skillPersonalities: {
