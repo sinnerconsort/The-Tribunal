@@ -2,6 +2,8 @@
  * The Tribunal - Watch Functionality
  * Real-time / RP-time toggle with weather display
  * 
+ * v2.1.0 - Removed competing newspaper DOM writes (newspaper-strip.js is sole owner)
+ *        - updateNewspaper() is now a no-op for compatibility
  * v2.0.2 - Added enabled checks to prevent idle scanning when extension is disabled
  * v2.0.1 - Fixed import path for weather-integration.js
  *        - Added fallback weather detection
@@ -318,64 +320,14 @@ export async function updateWatch() {
 
 /**
  * Update newspaper strip to match watch
+ * DEPRECATED v2.1 — newspaper-strip.js now owns its own display via
+ * weather-integration subscription. This is kept as a no-op for compatibility.
  */
 export function updateNewspaper() {
-    const strip = document.getElementById('newspaper-strip');
-    if (!strip) {
-        console.log('[Watch] Newspaper strip not found');
-        return;
-    }
-    
-    const now = new Date();
-    const hour = watchMode === 'real' ? now.getHours() : rpTime.hours;
-    
-    // Determine period
-    let period = 'AFTERNOON';
-    if (hour >= 5 && hour < 7) period = 'DAWN';
-    else if (hour >= 7 && hour < 12) period = 'MORNING';
-    else if (hour >= 12 && hour < 17) period = 'AFTERNOON';
-    else if (hour >= 17 && hour < 20) period = 'EVENING';
-    else if (hour >= 20 && hour < 23) period = 'NIGHT';
-    else period = 'LATE_NIGHT';
-    
-    // Get weather text
-    const weather = watchMode === 'real' ? (realWeatherCache?.weather || 'clear') : rpWeather;
-    const weatherText = weather.replace('-day', '').replace('-night', '');
-    
-    console.log('[Watch] Updating newspaper - weather:', weather, 'period:', period);
-    
-    // Update elements
-    const dateEl = document.getElementById('newspaper-date');
-    const periodEl = document.getElementById('newspaper-period');
-    const weatherTextEl = document.getElementById('newspaper-weather-text');
-    const weatherIconEl = document.getElementById('newspaper-weather-icon');
-    const tempEl = document.getElementById('newspaper-weather-temp');
-    
-    if (dateEl) {
-        if (watchMode === 'real') {
-            dateEl.textContent = `${now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()} ${now.getDate()}`;
-        } else {
-            dateEl.textContent = '??? ??';
-        }
-    }
-    
-    if (periodEl) periodEl.textContent = period;
-    if (weatherTextEl) weatherTextEl.textContent = weatherText.charAt(0).toUpperCase() + weatherText.slice(1);
-    if (weatherIconEl) weatherIconEl.className = 'fa-solid ' + (WEATHER_ICONS[weather] || 'fa-cloud');
-    
-    if (tempEl) {
-        if (watchMode === 'real' && realWeatherCache?.temp) {
-            tempEl.textContent = `${realWeatherCache.temp}°`;
-            tempEl.style.display = '';
-        } else {
-            tempEl.style.display = 'none';
-        }
-    }
-    
-    // Update strip classes
-    strip.className = 'newspaper-strip';
-    strip.classList.add('weather-' + weather.replace('-day', '').replace('-night', ''));
-    strip.classList.add('period-' + period.toLowerCase().replace('_', '-'));
+    // No-op: newspaper-strip.js handles its own weather display
+    // via its subscription to weather-integration events.
+    // Watch was previously competing with newspaper-strip, causing
+    // weather display to flip between IRL and RP values.
 }
 
 // ═══════════════════════════════════════════════════════════════
