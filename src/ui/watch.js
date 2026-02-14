@@ -354,9 +354,8 @@ export function updateNewspaper() {
     if (dateEl) {
         if (watchMode === 'real') {
             dateEl.textContent = `${now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()} ${now.getDate()}`;
-        } else {
-            dateEl.textContent = '??? ??';
         }
+        // In RP mode, leave the date as-is — newspaper-strip.js handles it
     }
     
     if (periodEl) periodEl.textContent = period;
@@ -372,8 +371,8 @@ export function updateNewspaper() {
         }
     }
     
-    // Update strip classes
-    strip.className = 'newspaper-strip';
+    // Update strip classes (preserve peripherique-paper base class)
+    strip.className = 'peripherique-paper';
     strip.classList.add('weather-' + weather.replace('-day', '').replace('-night', ''));
     strip.classList.add('period-' + period.toLowerCase().replace('_', '-'));
 }
