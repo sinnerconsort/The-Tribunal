@@ -2,7 +2,7 @@
  * The Tribunal - SillyTavern Extension
  * A standalone text based Disco Elysium system
  * 
- * v0.12.2 - Fixed enabled check, removed startup toast
+ * v0.12.3 - Fixed dead napkin score IDs, accordion rebuilds on chat load
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -672,17 +672,10 @@ function refreshAllPanels() {
         setRCMCopotype(state.vitals.copotype, true);
     }
     
-    if (state.attributes) {
-        const a = state.attributes;
-        const intEl = document.getElementById('napkin-int-score');
-        const psyEl = document.getElementById('napkin-psy-score');
-        const fysEl = document.getElementById('napkin-fys-score');
-        const motEl = document.getElementById('napkin-mot-score');
-        if (intEl) intEl.textContent = a.intellect || 3;
-        if (psyEl) psyEl.textContent = a.psyche || 3;
-        if (fysEl) fysEl.textContent = a.physique || 3;
-        if (motEl) motEl.textContent = a.motorics || 3;
-    }
+    // Rebuild skill accordion with loaded state values
+    import('./src/ui/voices-template.js').then(module => {
+        module.buildSkillAccordion();
+    }).catch(() => {});
     
     refreshProfilesFromState();
     refreshStatusFromState();
