@@ -755,7 +755,7 @@ function createFAB() {
     fab.title = 'Investigation - La Revacholière';
     fab.innerHTML = '<span class="ie-fab-icon"><i class="fa-solid fa-magnifying-glass"></i></span>';
     
-    fab.style.display = 'flex';
+    fab.style.display = 'none';  // Start hidden — visibility watcher shows it when a chat is open
     fab.style.top = '155px';
     fab.style.left = '10px';
     fab.style.zIndex = '9998';  // Below main FAB (9999)
@@ -889,6 +889,7 @@ function updateInvestigationFABVisibility() {
     const fab = document.getElementById('tribunal-investigation-fab');
     if (!fab) return;
     
+    // Hide if user turned it off in settings
     if (fab.dataset.settingsHidden === 'true') {
         fab.style.display = 'none';
         return;
@@ -900,6 +901,18 @@ function updateInvestigationFABVisibility() {
     if (!showFab) {
         fab.dataset.settingsHidden = 'true';
         fab.style.display = 'none';
+        return;
+    }
+    
+    // Only show FAB when a chat is actually open with a character
+    const ctx = window.SillyTavern?.getContext?.() ||
+                (typeof getContext === 'function' ? getContext() : null);
+    const hasActiveChat = ctx && (ctx.characterId !== undefined || ctx.groupId);
+    
+    if (!hasActiveChat) {
+        fab.style.display = 'none';
+        // Also close the panel if it's open and chat was closed
+        if (isOpen) close();
         return;
     }
     
@@ -916,6 +929,27 @@ function setupFABVisibilityWatcher() {
         attributeFilter: ['class'],
         subtree: true 
     });
+    
+    // React immediately to SillyTavern chat open/close/switch events
+    const chatEvents = [
+        'CHAT_CHANGED', 'chat_id_changed', 'chatLoaded',
+        'characterSelected', 'groupSelected'
+    ];
+    for (const evt of chatEvents) {
+        try {
+            window.addEventListener(evt, () => setTimeout(updateInvestigationFABVisibility, 200));
+            document.addEventListener(evt, () => setTimeout(updateInvestigationFABVisibility, 200));
+        } catch { /* some events may not exist */ }
+    }
+    
+    // Also try the SillyTavern eventSource if available
+    try {
+        const { eventSource, event_types } = window.SillyTavern?.getContext?.() || {};
+        if (eventSource && event_types) {
+            eventSource.on(event_types.CHAT_CHANGED, () => setTimeout(updateInvestigationFABVisibility, 200));
+            eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, () => setTimeout(updateInvestigationFABVisibility, 200));
+        }
+    } catch { /* silent */ }
     
     setTimeout(updateInvestigationFABVisibility, 500);
     setInterval(updateInvestigationFABVisibility, 5000);
