@@ -60,6 +60,54 @@ export const LEDGER_TAB_HTML = `
     
     <!-- MAP sub-content - Grid paper -->
     <div class="ledger-subcontent ledger-paper grid-paper" data-ledger-content="map">
+        <!-- PÉRIPHÉRIQUE Newspaper (baked into template for reliable rendering) -->
+        <div class="peripherique-paper" id="newspaper-strip">
+            <!-- Header Row -->
+            <div class="peripherique-header">
+                <!-- Weather Box -->
+                <div class="peripherique-weather-box">
+                    <div class="weather-label">WEATHER</div>
+                    <div class="weather-condition" id="newspaper-weather-text">Overcast</div>
+                    <div class="weather-temp" id="newspaper-weather-temp"></div>
+                    <i class="weather-icon fa-solid fa-cloud" id="newspaper-weather-icon"></i>
+                </div>
+                
+                <!-- Masthead -->
+                <div class="peripherique-masthead">
+                    <span class="masthead-bracket">═╡</span>
+                    <span class="masthead-title">PÉRIPHÉRIQUE</span>
+                    <span class="masthead-bracket">╞═</span>
+                </div>
+                
+                <!-- Publication Info -->
+                <div class="peripherique-pub-info">
+                    <div>The Jamrock</div>
+                    <div>News Company</div>
+                </div>
+            </div>
+            
+            <!-- Date Line -->
+            <div class="peripherique-dateline">
+                <span class="issue-number">No. <span id="newspaper-issue">3847</span></span>
+                <span class="dateline-location">REVACHOL, <span id="newspaper-date">JANUARY 28, '51</span></span>
+                <span class="paper-price">◉ 1.5</span>
+            </div>
+            
+            <!-- Shivers Section -->
+            <div class="peripherique-shivers">
+                <p class="shivers-quip" id="shivers-quip">The city watches. It always watches. Even now, it feels your footsteps on its skin.</p>
+                <div class="shivers-attribution">
+                    <span>— THE CITY SPEAKS</span>
+                    <button class="shivers-refresh-btn" id="shivers-refresh" title="The city speaks again...">↻</button>
+                </div>
+            </div>
+            
+            <!-- Period Tag -->
+            <div class="peripherique-edition">
+                <span id="newspaper-period">AFTERNOON EDITION</span>
+            </div>
+        </div>
+
         <!-- District Map -->
         <div class="district-map">
             <div class="map-sticky-note" id="map-sticky-note">

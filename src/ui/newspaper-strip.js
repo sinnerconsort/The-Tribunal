@@ -2,7 +2,10 @@
  * The Tribunal - PÉRIPHÉRIQUE Newspaper Component
  * Full newspaper display matching Disco Elysium's aesthetic
  * 
- * @version 1.2.0
+ * @version 1.2.1
+ * CHANGES v1.2.1:
+ * - HTML now baked into ledger-template.js (no more injection timing issues)
+ * - initNewspaperStrip() just wires events and starts updates
  * CHANGES v1.2.0:
  * - Shivers name and attribution now genre-aware via getSkillName()
  * - Attribution updates on genre change
@@ -1147,7 +1150,15 @@ async function connectToWeatherSystem() {
 // INITIALIZATION
 // ═══════════════════════════════════════════════════════════════
 
+let _newspaperInitialized = false;
+
 export function initNewspaperStrip() {
+    if (_newspaperInitialized) {
+        console.log('[Périphérique] Already initialized');
+        return;
+    }
+    
+    // Inject styles if not already present
     if (!document.getElementById('peripherique-styles')) {
         const styleEl = document.createElement('style');
         styleEl.id = 'peripherique-styles';
@@ -1155,18 +1166,12 @@ export function initNewspaperStrip() {
         document.head.appendChild(styleEl);
     }
     
-    const mapContent = document.querySelector('[data-ledger-content="map"]');
-    if (!mapContent) {
-        console.warn('[Périphérique] Map content area not found');
+    // Newspaper HTML is now baked into ledger-template.js — no injection needed
+    const strip = document.getElementById('newspaper-strip');
+    if (!strip) {
+        console.warn('[Périphérique] Newspaper element not found in DOM');
         return;
     }
-    
-    if (document.getElementById('newspaper-strip')) {
-        console.log('[Périphérique] Already initialized');
-        return;
-    }
-    
-    mapContent.insertAdjacentHTML('afterbegin', NEWSPAPER_STRIP_HTML);
     
     // Wire refresh button
     const refreshBtn = document.getElementById('shivers-refresh');
@@ -1195,7 +1200,8 @@ export function initNewspaperStrip() {
         updateShiversAttribution();
     });
     
-    console.log('[Périphérique] ✓ Newspaper initialized (v1.2 with genre-aware Shivers)');
+    _newspaperInitialized = true;
+    console.log('[Périphérique] ✓ Newspaper initialized (v1.2.1 - baked into template)');
 }
 
 // ═══════════════════════════════════════════════════════════════
