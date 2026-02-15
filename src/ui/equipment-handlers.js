@@ -324,6 +324,7 @@ function renderItem(item) {
                 ${quipsHtml ? `<div class="equip-quips">${quipsHtml}</div>` : ''}
                 <div class="equip-actions">
                     <button class="equip-btn equip-toggle">${item.equipped ? 'Store' : 'Equip'}</button>
+                    <button class="equip-btn equip-refresh" title="Regenerate with current genre"><i class="fa-solid fa-rotate"></i></button>
                     <button class="equip-btn equip-remove">Remove</button>
                 </div>
             </div>
@@ -334,6 +335,30 @@ function renderItem(item) {
             e.stopPropagation();
             toggleItemEquipped(item.id);
             refreshDisplay();
+        });
+        
+        div.querySelector('.equip-refresh').addEventListener('click', async (e) => {
+            e.stopPropagation();
+            toast(`Regenerating ${item.name}...`, 'info');
+            try {
+                const freshData = await generateSingleItem(item.name);
+                if (freshData) {
+                    const state = getEquipmentState();
+                    const existing = state.items.find(i => i.id === item.id);
+                    if (existing) {
+                        existing.description = freshData.description;
+                        existing.bonuses = freshData.bonuses;
+                        existing.voiceQuips = freshData.voiceQuips;
+                        saveState();
+                        saveToWardrobe({ ...existing });
+                        toast(`Refreshed: ${item.name}`, 'success');
+                        refreshDisplay();
+                    }
+                }
+            } catch (err) {
+                console.warn('[Equipment] Refresh failed:', err.message);
+                toast('Refresh failed', 'error');
+            }
         });
         
         div.querySelector('.equip-remove').addEventListener('click', (e) => {
