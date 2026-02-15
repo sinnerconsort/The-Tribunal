@@ -8,10 +8,8 @@
  * - First generation: API call, save to stash
  * - Re-add same item: Instant from cache, no API
  * 
- * v1.1.0 - Genre-aware skill names in prompts
- *   FIXED: SKILL_REFERENCE now built dynamically from active genre profile
- *   AI receives genre display names (e.g. "The Oracle" not "Inland Empire")
- *   Stored skill IDs remain as DE IDs for cross-genre compatibility
+ * v1.1.0 - Genre-aware: skill references and fallbacks now pull from
+ *          active genre profile via item-genre-rewriter.js
  * v1.0.1 - Removed unused createInventoryItem import
  * FIXED: parseItems() now handles parentheses correctly
  * "Pack of Astras (3x)" stays as ONE item
@@ -19,6 +17,7 @@
 
 import { callAPIWithTokens } from './api-helpers.js';
 import { getProfileValue } from '../data/setting-profiles.js';
+import { getGenreSkillReference, getGenreFallbackDescription, getGenreFallbackQuips } from './item-genre-rewriter.js';
 import { 
     INVENTORY_TYPES, 
     inferInventoryType, 
@@ -33,56 +32,6 @@ import {
 
 const INVENTORY_MAX_TOKENS = 2000;  // Less than equipment since simpler items
 
-// ── Genre-aware skill reference (replaces old hardcoded DE-only constant) ──
-// Shows AI both the ID (for JSON output) and the genre display name (for voice tone)
-// e.g. "inland_empire (The Oracle)" in Fantasy, "inland_empire (Inland Empire)" in DE
-
-const SKILL_IDS_BY_CATEGORY = {
-    intellect: ['logic', 'encyclopedia', 'rhetoric', 'drama', 'conceptualization', 'visual_calculus'],
-    psyche: ['volition', 'inland_empire', 'empathy', 'authority', 'esprit_de_corps', 'suggestion'],
-    physique: ['endurance', 'pain_threshold', 'physical_instrument', 'electrochemistry', 'shivers', 'half_light'],
-    motorics: ['hand_eye_coordination', 'perception', 'reaction_speed', 'savoir_faire', 'interfacing', 'composure']
-};
-
-function getSkillReference() {
-    try {
-        const skillNames = getProfileValue('skillNames', null);
-        const catNames = getProfileValue('categoryNames', null);
-        
-        if (skillNames && typeof skillNames === 'object') {
-            let ref = '';
-            for (const [category, skills] of Object.entries(SKILL_IDS_BY_CATEGORY)) {
-                const catName = catNames?.[category] || category.toUpperCase();
-                const skillList = skills.map(id => {
-                    const displayName = skillNames[id] || id.replace(/_/g, ' ');
-                    return `${id} (${displayName})`;
-                }).join(', ');
-                ref += `${catName}: ${skillList}\n`;
-            }
-            return ref;
-        }
-    } catch (e) {
-        // Fall through to default
-    }
-    
-    // Fallback: plain DE IDs
-    return `INTELLECT: logic, encyclopedia, rhetoric, drama, conceptualization, visual_calculus
-PSYCHE: volition, inland_empire, empathy, authority, esprit_de_corps, suggestion
-PHYSIQUE: endurance, pain_threshold, physical_instrument, electrochemistry, shivers, half_light
-MOTORICS: hand_eye_coordination, perception, reaction_speed, savoir_faire, interfacing, composure
-`;
-}
-
-/**
- * Get genre-aware voice name for a skill ID (for use in prompt text)
- */
-function getVoiceName(skillId) {
-    try {
-        const skillNames = getProfileValue('skillNames', null);
-        if (skillNames?.[skillId]) return skillNames[skillId];
-    } catch (e) { /* fall through */ }
-    return skillId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-}
 const VALID_EFFECT_IDS = {
     // Alcohol
     revacholian_courage: 'Alcohol - beer, wine, spirits. Boosts social skills, debuffs coordination.',
@@ -563,11 +512,12 @@ export async function generateSingleItem(itemName, context = '') {
     
     const genreIntro = getProfileValue('systemIntro', 
         'You are channeling the internal skill voices of a character.');
+    const invFrame = getProfileValue('promptFrames.inventory') || '';
     
     const systemPrompt = `${genreIntro} Every item tells a story. The skills in your head all have opinions about what you carry.
 
-${addictive ? `This is an ADDICTIVE substance. ${getVoiceName('electrochemistry')} should be EXCITED about it. ${getVoiceName('volition')} should DISAPPROVE.` : ''}
-
+${addictive ? 'This is an ADDICTIVE substance. Electrochemistry should be EXCITED about it. Volition should DISAPPROVE.' : ''}
+${invFrame ? `\nSTYLE:\n${invFrame}\n` : ''}
 Output ONLY valid JSON, no markdown, no explanation.`;
 
     const userPrompt = `Generate rich data for this inventory item, matching the tone of the setting:
@@ -579,11 +529,8 @@ CONTEXT: ${context || 'Found in the character\'s possession'}
 ${addictive ? `ADDICTIVE: Yes - this item feeds an addiction` : ''}
 
 <skills>
-${getSkillReference()}
+${getGenreSkillReference()}
 </skills>
-
-IMPORTANT: Use the skill IDs (the part BEFORE the parentheses) in your JSON output.
-The names in parentheses show you each voice's personality for this setting.
 
 <effect_ids>
 ${EFFECT_ID_REFERENCE}
@@ -613,14 +560,14 @@ EFFECT ID RULES:
 
 QUIP GUIDELINES:
 ${addictive ? `
-- ${getVoiceName('electrochemistry')} MUST approve enthusiastically
-- ${getVoiceName('volition')} or ${getVoiceName('logic')} SHOULD disapprove
+- electrochemistry MUST approve enthusiastically
+- volition or logic SHOULD disapprove
 ` : `
 - Pick skills that would have opinions on this item
 - One approving, one disapproving (or both can approve/disapprove based on item)
 `}
 - Keep quips short and punchy (under 15 words)
-- Channel each voice's personality as shown in the skill names above
+- Channel the voice's personality
 
 Generate 2 voice quips from different skills.`;
 
@@ -668,8 +615,11 @@ export async function generateMultipleItems(itemNames, context = '') {
     
     const batchGenreIntro = getProfileValue('systemIntro', 
         'You are channeling the internal skill voices of a character.');
+    const invFrame = getProfileValue('promptFrames.inventory') || '';
     
-    const systemPrompt = `${batchGenreIntro} Generate data for multiple inventory items. Output ONLY valid JSON array, no markdown.`;
+    const systemPrompt = `${batchGenreIntro} Generate data for multiple inventory items.
+${invFrame ? `\nSTYLE:\n${invFrame}\n` : ''}
+Output ONLY valid JSON array, no markdown.`;
     
     const userPrompt = `Generate data for these inventory items, matching the tone of the setting:
 
@@ -678,10 +628,8 @@ ${itemList}
 CONTEXT: ${context || 'Items in the character\'s possession'}
 
 <skills>
-${getSkillReference()}
+${getGenreSkillReference()}
 </skills>
-
-IMPORTANT: Use the skill IDs (the part BEFORE the parentheses) in your JSON output.
 
 Respond with ONLY a JSON array:
 [
@@ -696,8 +644,7 @@ Respond with ONLY a JSON array:
   }
 ]
 
-Generate 2 voice quips per item. Keep quips short (under 15 words).
-Channel each voice's personality as shown in the skill names above.`;
+Generate 2 voice quips per item. Keep quips short (under 15 words).`;
 
     try {
         const response = await callInventoryAPI(systemPrompt, userPrompt);
@@ -887,57 +834,15 @@ function createFallbackItem(name) {
         effectId: inferEffectIdFromType(type),
         addictive: isAddictive(type),
         addictionType: getAddictionData(type)?.type || null,
-        description: `A ${name.toLowerCase()}. It's yours now.`,
-        voiceQuips: generateFallbackQuips(type),
+        description: getGenreFallbackDescription(name, type, 'inventory'),
+        voiceQuips: getGenreFallbackQuips(type),
         source: 'fallback',
         generatedAt: Date.now()
     };
 }
 
-function generateFallbackQuips(type) {
-    const quips = {
-        cigarettes: [
-            { skill: 'electrochemistry', text: 'Light one up. You know you want to.', approves: true },
-            { skill: 'volition', text: 'You\'re better than this dependency.', approves: false }
-        ],
-        alcohol: [
-            { skill: 'electrochemistry', text: 'The good stuff. Pour one out for yourself.', approves: true },
-            { skill: 'logic', text: 'Your liver would like a word.', approves: false }
-        ],
-        stimulants: [
-            { skill: 'electrochemistry', text: 'Oh YES. This is the ticket.', approves: true },
-            { skill: 'endurance', text: 'Your heart is already racing.', approves: false }
-        ],
-        medicine: [
-            { skill: 'logic', text: 'Follow the dosage instructions.', approves: true },
-            { skill: 'electrochemistry', text: 'Boring. No recreational potential.', approves: false }
-        ],
-        food: [
-            { skill: 'endurance', text: 'Calories. Your body needs them.', approves: true },
-            { skill: 'composure', text: 'Eat with some dignity, at least.', approves: false }
-        ],
-        key: [
-            { skill: 'logic', text: 'Keep this safe. It opens something.', approves: true },
-            { skill: 'inland_empire', text: 'What secrets does it guard?', approves: true }
-        ],
-        document: [
-            { skill: 'encyclopedia', text: 'Read it carefully. Knowledge is power.', approves: true },
-            { skill: 'rhetoric', text: 'Words on paper. Someone wanted these preserved.', approves: true }
-        ],
-        weapon: [
-            { skill: 'half_light', text: 'You might need this. Keep it ready.', approves: true },
-            { skill: 'empathy', text: 'Violence leaves marks on everyone.', approves: false }
-        ],
-        tool: [
-            { skill: 'interfacing', text: 'A useful implement. Keep it handy.', approves: true },
-            { skill: 'conceptualization', text: 'Function over form. Practical.', approves: true }
-        ]
-    };
-    
-    return quips[type] || [
-        { skill: 'perception', text: 'An object. Yours now.', approves: true }
-    ];
-}
+// NOTE: Fallback quips now handled by getGenreFallbackQuips() from item-genre-rewriter.js
+// Genre profiles provide themed quips; neutral defaults used when no genre is active.
 
 // ═══════════════════════════════════════════════════════════════
 // LOSS EXTRACTION - Items being consumed/lost/taken
