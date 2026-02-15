@@ -2,6 +2,12 @@
  * The Tribunal - Contact Dossier System
  * Generates voice-written dossiers for NPCs
  * 
+ * v1.4.0 - Genre-aware dossier generation
+ *   - Dossier prompt includes genre frame from promptFrames.contactDossier
+ *   - Default voices pulled from genre profile instead of hardcoded DE trio
+ *   - Type labels themed via contact-genre-rewriter.js (UI layer)
+ *   - Fallback consensus text themed per genre
+ * 
  * v1.3.0 - Context-aware dossier generation
  *   - Integrates context-gatherer.js for deep intel scanning
  *   - Scans chat history, character card, persona, world info
@@ -30,6 +36,7 @@ import { callAPI } from '../voice/api-helpers.js';
 import { SKILLS } from '../data/skills.js';
 import { getSkillPersonality, getProfileValue } from '../data/setting-profiles.js';
 import { getSettings } from '../core/state.js';
+import { getGenreDossierFrame, getGenreDefaultDossierVoices, getGenreFallbackConsensus } from '../voice/contact-genre-rewriter.js';
 
 // Lazy import — context-gatherer is optional, dossiers work without it
 let _gatherAndSummarizeIntel = null;
@@ -174,6 +181,7 @@ function buildDossierPrompt(contact, quipVoices) {
         'You generate internal mental voices for a roleplayer.');
     const thoughtTone = getProfileValue('thoughtToneGuide',
         'Match the tone to the story.');
+    const dossierFrame = getGenreDossierFrame();
     
     const system = `${systemIntro}
 
@@ -181,6 +189,7 @@ You are generating a dossier entry about an NPC as seen through the PROTAGONIST'
 
 ## TONE
 ${thoughtTone}
+${dossierFrame ? `\n## GENRE STYLE\n${dossierFrame}\n` : ''}
 
 ## FORMAT
 The dossier has two parts:
@@ -364,13 +373,9 @@ export async function generateDossier(contact, contactId) {
         const quipVoices = selectQuipVoices(contact.voiceOpinions);
         
         if (quipVoices.length === 0) {
-            console.log('[Dossier] No voice opinions yet, using default voices');
-            // Generate with default voices if no opinions yet
-            quipVoices.push(
-                { voiceId: 'logic', score: 0, stance: 'neutral' },
-                { voiceId: 'inland_empire', score: 0, stance: 'neutral' },
-                { voiceId: 'half_light', score: 0, stance: 'neutral' }
-            );
+            console.log('[Dossier] No voice opinions yet, using genre default voices');
+            // Use genre-appropriate defaults instead of hardcoded DE trio
+            quipVoices.push(...getGenreDefaultDossierVoices());
         }
         
         // Build and send prompt (uses static imports for skills + profiles)
@@ -379,6 +384,12 @@ export async function generateDossier(contact, contactId) {
         
         // Parse response
         const dossier = parseDossierResponse(response, quipVoices);
+        
+        // If consensus came back empty, use genre-themed fallback
+        if (!dossier.consensus) {
+            dossier.consensus = getGenreFallbackConsensus(contact.name, contact.disposition);
+        }
+        
         dossier.generatedAt = Date.now();
         dossier.triggerDisposition = contact.disposition;
         
