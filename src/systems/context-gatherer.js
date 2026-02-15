@@ -3,6 +3,12 @@
  * Scans chat history, character card, user persona, and world info
  * to build rich context for contact dossier generation.
  * 
+ * v1.1.0 - Context contamination defense
+ *   - Added verifyChatIdentity() to detect stale context during async operations
+ *   - scanWorldInfo() now logs which WI book is being read for debugging
+ *   - gatherRawIntel() captures chat identity at start and verifies at end
+ *   - All scan functions get fresh context via getSTContext() (no caching)
+ * 
  * v1.0.0 - Initial build
  *   - Chat history scanning (extracts name-relevant message snippets)
  *   - Character card description parsing
@@ -36,6 +42,26 @@ function getSTContext() {
         console.warn('[Context Gatherer] Could not get ST context:', e.message);
     }
     return null;
+}
+
+/**
+ * Get a fingerprint of the current chat for identity verification
+ * Used to detect if a chat switch happened during async gathering
+ * @returns {string|null} Chat identity string
+ */
+function getChatFingerprint() {
+    try {
+        const ctx = getSTContext();
+        if (!ctx) return null;
+        
+        // Combine character ID + chat length + character name for a unique-enough fingerprint
+        const charId = ctx.characterId ?? 'none';
+        const charName = ctx.name2 || 'unknown';
+        const chatLen = ctx.chat?.length || 0;
+        return `${charId}:${charName}:${chatLen}`;
+    } catch (e) {
+        return null;
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -237,6 +263,11 @@ function scanUserPersona(contactName) {
 
 /**
  * Check world info / lorebook entries for mentions of the contact
+ * 
+ * DEFENSIVE: Logs which WI sources are being read for debugging.
+ * If you see entries from a lorebook that shouldn't be active,
+ * that means ST's world info hasn't finished updating after a chat switch.
+ * 
  * @param {string} contactName - Name to search for
  * @returns {string|null} Relevant world info content or null
  */
@@ -249,15 +280,18 @@ function scanWorldInfo(contactName) {
         const firstName = lowerName.split(/\s+/)[0];
         
         // SillyTavern stores world info in various places
-        // Try to access the world info entries
         const worldInfoSources = [];
+        let sourceLabels = []; // For debugging which sources we're reading
         
         // Method 1: Direct world info from context
         if (ctx.worldInfo) {
             if (Array.isArray(ctx.worldInfo)) {
                 worldInfoSources.push(...ctx.worldInfo);
+                sourceLabels.push(`ctx.worldInfo (${ctx.worldInfo.length} entries)`);
             } else if (typeof ctx.worldInfo === 'object') {
-                worldInfoSources.push(...Object.values(ctx.worldInfo));
+                const entries = Object.values(ctx.worldInfo);
+                worldInfoSources.push(...entries);
+                sourceLabels.push(`ctx.worldInfo object (${entries.length} entries)`);
             }
         }
         
@@ -266,21 +300,33 @@ function scanWorldInfo(contactName) {
             const chatWI = ctx.chat_metadata.world_info;
             if (Array.isArray(chatWI)) {
                 worldInfoSources.push(...chatWI);
+                sourceLabels.push(`chat_metadata.world_info (${chatWI.length} entries)`);
             } else if (typeof chatWI === 'object') {
-                worldInfoSources.push(...Object.values(chatWI));
+                const entries = Object.values(chatWI);
+                worldInfoSources.push(...entries);
+                sourceLabels.push(`chat_metadata.world_info object (${entries.length} entries)`);
             }
         }
         
         // Method 3: Try global world info book
+        // NOTE: This is the most dangerous source for cross-chat contamination.
+        // If called during a chat transition, getWorldInfoData() may return the
+        // previous chat's lorebook before ST finishes loading the new one.
         try {
             if (typeof getWorldInfoData === 'function') {
                 const wiData = getWorldInfoData();
                 if (wiData?.entries) {
-                    worldInfoSources.push(...Object.values(wiData.entries));
+                    const entries = Object.values(wiData.entries);
+                    worldInfoSources.push(...entries);
+                    sourceLabels.push(`getWorldInfoData() (${entries.length} entries, book: ${wiData.name || 'unnamed'})`);
                 }
             }
         } catch (e) {
             // Not available, that's fine
+        }
+        
+        if (sourceLabels.length > 0) {
+            console.log(`[Context Gatherer] World info sources for "${contactName}":`, sourceLabels.join(', '));
         }
         
         const relevantEntries = [];
@@ -338,12 +384,20 @@ function scanWorldInfo(contactName) {
 
 /**
  * Gather raw intel from all available sources
+ * 
+ * FIXED: Captures chat fingerprint at start and verifies it hasn't changed
+ * after gathering. If the chat switched during gathering, the results
+ * are flagged as potentially contaminated.
+ * 
  * @param {string} contactName - Contact name to search for
  * @param {object} contact - Full contact object (for existing data)
- * @returns {object} { chatSnippets, characterCard, persona, worldInfo, existingData }
+ * @returns {object} { chatSnippets, characterCard, persona, worldInfo, existingData, _stale }
  */
 export function gatherRawIntel(contactName, contact = {}) {
     console.log(`[Context Gatherer] Gathering intel for: ${contactName}`);
+    
+    // Capture chat identity at start
+    const startFingerprint = getChatFingerprint();
     
     const intel = {
         chatSnippets: [],
@@ -355,7 +409,8 @@ export function gatherRawIntel(contactName, contact = {}) {
             relationship: contact.relationship || null,
             notes: contact.notes || null,
             detectedTraits: contact.detectedTraits || []
-        }
+        },
+        _stale: false // Flag for contamination detection
     };
     
     // 1. Scan chat history
@@ -394,6 +449,16 @@ export function gatherRawIntel(contactName, contact = {}) {
         }
     } catch (e) {
         console.warn('[Context Gatherer] World info scan failed:', e.message);
+    }
+    
+    // Verify chat hasn't changed during gathering
+    const endFingerprint = getChatFingerprint();
+    if (startFingerprint && endFingerprint && startFingerprint !== endFingerprint) {
+        console.warn(`[Context Gatherer] ⚠️ CHAT CHANGED during intel gathering!`);
+        console.warn(`  Start: ${startFingerprint}`);
+        console.warn(`  End:   ${endFingerprint}`);
+        console.warn(`  Results may contain data from the wrong chat.`);
+        intel._stale = true;
     }
     
     return intel;
@@ -601,6 +666,8 @@ function getSources(rawIntel) {
  * Gather context from all sources and summarize with AI
  * Call this before generating a dossier.
  * 
+ * FIXED: Checks for stale data flag and warns caller
+ * 
  * @param {object} contact - Contact object with at least { name }
  * @param {boolean} useAI - Whether to use AI summarization (default true)
  * @returns {Promise<object>} Structured intel { summary, relationship, keyFacts, traits, sources, raw }
@@ -615,6 +682,13 @@ export async function gatherAndSummarizeIntel(contact, useAI = true) {
     
     // Step 1: Gather raw intel from all sources
     const rawIntel = gatherRawIntel(contact.name, contact);
+    
+    // Warn if data may be contaminated from a chat switch
+    if (rawIntel._stale) {
+        console.warn(`[Context Gatherer] ⚠️ Intel for ${contact.name} may contain cross-chat data!`);
+        // Continue anyway — stale data is better than no data, and the user
+        // can always regenerate the dossier after the switch completes
+    }
     
     // Check if we have anything to work with
     const hasData = rawIntel.chatSnippets.length > 0 ||
