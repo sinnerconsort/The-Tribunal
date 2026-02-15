@@ -8,6 +8,12 @@
  * - First generation: API call, save to wardrobe
  * - Re-equip same item: Instant from cache, no API
  * 
+ * v1.1.0 - Genre-aware skill names in prompts
+ *   FIXED: SKILL_REFERENCE now built dynamically from active genre profile
+ *   AI receives genre display names (e.g. "The Oracle" not "Inland Empire")
+ *   Bonus guidelines use genre-aware voice names
+ *   Stored skill IDs remain as DE IDs for cross-genre compatibility
+ * 
  * FIXED: parseItems() now handles parentheses correctly
  * "Leather Jacket (worn, vintage)" stays as ONE item
  */
@@ -21,12 +27,53 @@ import { getProfileValue } from '../data/setting-profiles.js';
 
 const EQUIPMENT_MAX_TOKENS = 3000;  // Much higher than voice's 600
 
-const SKILL_REFERENCE = `
-INTELLECT: logic, encyclopedia, rhetoric, drama, conceptualization, visual_calculus
+// ── Genre-aware skill reference (replaces old hardcoded DE-only constant) ──
+
+const SKILL_IDS_BY_CATEGORY = {
+    intellect: ['logic', 'encyclopedia', 'rhetoric', 'drama', 'conceptualization', 'visual_calculus'],
+    psyche: ['volition', 'inland_empire', 'empathy', 'authority', 'esprit_de_corps', 'suggestion'],
+    physique: ['endurance', 'pain_threshold', 'physical_instrument', 'electrochemistry', 'shivers', 'half_light'],
+    motorics: ['hand_eye_coordination', 'perception', 'reaction_speed', 'savoir_faire', 'interfacing', 'composure']
+};
+
+function getSkillReference() {
+    try {
+        const skillNames = getProfileValue('skillNames', null);
+        const catNames = getProfileValue('categoryNames', null);
+        
+        if (skillNames && typeof skillNames === 'object') {
+            let ref = '';
+            for (const [category, skills] of Object.entries(SKILL_IDS_BY_CATEGORY)) {
+                const catName = catNames?.[category] || category.toUpperCase();
+                const skillList = skills.map(id => {
+                    const displayName = skillNames[id] || id.replace(/_/g, ' ');
+                    return `${id} (${displayName})`;
+                }).join(', ');
+                ref += `${catName}: ${skillList}\n`;
+            }
+            return ref;
+        }
+    } catch (e) {
+        // Fall through to default
+    }
+    
+    return `INTELLECT: logic, encyclopedia, rhetoric, drama, conceptualization, visual_calculus
 PSYCHE: volition, inland_empire, empathy, authority, esprit_de_corps, suggestion
 PHYSIQUE: endurance, pain_threshold, physical_instrument, electrochemistry, shivers, half_light
 MOTORICS: hand_eye_coordination, perception, reaction_speed, savoir_faire, interfacing, composure
 `;
+}
+
+/**
+ * Get genre-aware voice name for a skill ID (for prompt text)
+ */
+function getVoiceName(skillId) {
+    try {
+        const skillNames = getProfileValue('skillNames', null);
+        if (skillNames?.[skillId]) return skillNames[skillId];
+    } catch (e) { /* fall through */ }
+    return skillId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
 
 const VALID_SKILLS = [
     'logic', 'encyclopedia', 'rhetoric', 'drama', 'conceptualization', 'visual_calculus',
@@ -408,6 +455,9 @@ export async function generateSingleItem(itemName, context = '') {
         'You are channeling the internal skill voices of a character.');
     const equipSection = getProfileValue('equipmentSectionName', 'The Wardrobe');
     
+    // Build genre-aware skill reference dynamically
+    const skillRef = getSkillReference();
+    
     const systemPrompt = `${genreIntro} Every item of clothing tells a story. The skills in your head all have opinions about what you wear.
 
 Output ONLY valid JSON, no markdown, no explanation.`;
@@ -418,8 +468,11 @@ ITEM: ${itemName}
 CONTEXT: ${context || 'Part of the character\'s outfit'}
 
 <skills>
-${SKILL_REFERENCE}
+${skillRef}
 </skills>
+
+IMPORTANT: Use the skill IDs (the part BEFORE the parentheses) in your JSON output.
+The names in parentheses show you each voice's personality for this setting.
 
 Respond with ONLY this JSON structure:
 {
@@ -428,22 +481,23 @@ Respond with ONLY this JSON structure:
   "bonuses": {
     "skill_id": modifier
   },
-  "description": "[SKILL_NAME] 2-3 sentence evocative description from that skill's perspective. Make it poetic and strange.",
+  "description": "[SKILL_ID] 2-3 sentence evocative description from that skill's perspective. Make it poetic and strange.",
   "voiceQuips": [
-    {"skill": "skill_id", "text": "Approving one-liner", "approves": true},
-    {"skill": "other_skill", "text": "Disapproving one-liner", "approves": false}
+    {"skill": "skill_id", "text": "Approving one-liner in that voice's personality", "approves": true},
+    {"skill": "other_skill_id", "text": "Disapproving one-liner in that voice's personality", "approves": false}
   ]
 }
 
 BONUS GUIDELINES (1-3 skills, values -2 to +2):
-- Intimidating/tough → physical_instrument, authority, half_light
-- Stylish/flashy → savoir_faire, drama, composure
-- Worn/rugged → endurance, shivers, pain_threshold
-- Tech/gadgets → interfacing, visual_calculus
-- Weird/mystical → inland_empire, shivers, conceptualization
-- Revealing/bold → drama, composure, electrochemistry
+- Intimidating/tough → ${getVoiceName('physical_instrument')}, ${getVoiceName('authority')}, ${getVoiceName('half_light')}
+- Stylish/flashy → ${getVoiceName('savoir_faire')}, ${getVoiceName('drama')}, ${getVoiceName('composure')}
+- Worn/rugged → ${getVoiceName('endurance')}, ${getVoiceName('shivers')}, ${getVoiceName('pain_threshold')}
+- Tech/gadgets → ${getVoiceName('interfacing')}, ${getVoiceName('visual_calculus')}
+- Weird/mystical → ${getVoiceName('inland_empire')}, ${getVoiceName('shivers')}, ${getVoiceName('conceptualization')}
+- Revealing/bold → ${getVoiceName('drama')}, ${getVoiceName('composure')}, ${getVoiceName('electrochemistry')}
 
-Generate 2 voice quips from different skills (one approving, one disapproving).`;
+Generate 2 voice quips from different skills (one approving, one disapproving).
+Channel each voice's personality as shown in the skill names above.`;
 
     try {
         const response = await callEquipmentAPI(systemPrompt, userPrompt);
@@ -485,6 +539,9 @@ export async function generateMultipleItems(itemNames, context = '') {
     const genreIntro = getProfileValue('systemIntro', 
         'You are channeling the internal skill voices of a character.');
     
+    // Build genre-aware skill reference dynamically
+    const skillRef = getSkillReference();
+    
     const systemPrompt = `${genreIntro} Every item of clothing tells a story.
 
 Output ONLY valid JSON array, no markdown, no explanation.`;
@@ -495,8 +552,11 @@ ITEMS: ${itemNames.join(', ')}
 CONTEXT: ${context || 'Part of the character\'s outfit'}
 
 <skills>
-${SKILL_REFERENCE}
+${skillRef}
 </skills>
+
+IMPORTANT: Use the skill IDs (the part BEFORE the parentheses) in your JSON output.
+The names in parentheses show you each voice's personality for this setting.
 
 Respond with ONLY a JSON array:
 [
@@ -505,7 +565,7 @@ Respond with ONLY a JSON array:
     "type": "hat/glasses/jacket/coat/shirt/pants/shoes/boots/gloves/ring/necklace/watch/tie/scarf/belt/bag/badge/mask/vest/other",
     "bonuses": {"skill_id": modifier},
     "description": "[SKILL_NAME] Evocative description.",
-    "voiceQuips": [{"skill": "skill_id", "text": "Quote", "approves": true}]
+    "voiceQuips": [{"skill": "skill_id", "text": "Quote in that voice's personality", "approves": true}]
   }
 ]`;
 
