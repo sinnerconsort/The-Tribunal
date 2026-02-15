@@ -2,13 +2,27 @@
  * The Tribunal - Event Handlers
  * Hooks into SillyTavern's event system
  * 
- * @version 4.6.0 - AI-primary vitals/status detection
+ * @version 5.0.0 - Context contamination fix
+ *   - FIXED: Removed destructured `chat` import (was holding stale reference after chat switch)
+ *   - FIXED: All chat access now goes through getContext().chat (always fresh)
+ *   - FIXED: Player name resolution uses dedicated getPlayerCharacterName() 
+ *   - FIXED: Async operations guarded by chat ID check (prevents cross-chat writes)
+ *   - FIXED: Contact-intelligence pending contacts reset on chat switch
+ *   - FIXED: Added _processingLocked flag during chat transitions
  *   - Wired processMessageStatuses into message flow
  *   - Regex vitals/status skipped when AI extraction is active (prevents double-processing)
  *   - AI extractor now applies vitals + condition-to-status mapping as primary source
  */
 
-import { eventSource, event_types, chat } from '../../../../../../script.js';
+// ═══════════════════════════════════════════════════════════════
+// CRITICAL FIX: Do NOT destructure `chat` from script.js!
+// Destructured imports can hold stale references after chat switch.
+// persistence.js already documents this exact bug with chat_metadata.
+// Instead, always access chat via getContext().chat for a fresh reference.
+// ═══════════════════════════════════════════════════════════════
+import { eventSource, event_types } from '../../../../../../script.js';
+import { getContext } from '../../../../../extensions.js';
+
 import { 
     loadChatState, 
     saveChatState, 
@@ -33,7 +47,63 @@ import { advanceResearch, trackThemesInMessage } from '../systems/cabinet.js';
 // Callback registry for UI refresh
 let refreshCallbacks = [];
 
-// Lazy-loaded modules (won't break if missing)
+// ═══════════════════════════════════════════════════════════════
+// CHAT SWITCH PROTECTION
+// Prevents cross-chat contamination during async operations
+// ═══════════════════════════════════════════════════════════════
+
+/** Tracks the current chat ID so async operations can detect stale context */
+let _currentChatId = null;
+
+/** When true, message processing is blocked (during chat transition) */
+let _processingLocked = false;
+
+/**
+ * Get a unique identifier for the current chat
+ * Uses chat_id from context, falls back to character + timestamp
+ * @returns {string|null}
+ */
+function getCurrentChatId() {
+    try {
+        const ctx = getContext();
+        // ST provides a chat_id or we can derive one from character + chat file
+        return ctx?.chatId || ctx?.chat_id || 
+               (ctx?.characterId !== undefined ? `${ctx.characterId}_${ctx.chat?.length || 0}` : null);
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Check if the chat has changed since an async operation started
+ * @param {string} startChatId - The chat ID when the operation began
+ * @returns {boolean} True if the chat is STILL the same
+ */
+function isSameChat(startChatId) {
+    if (!startChatId) return true; // Can't verify, assume same
+    const currentId = getCurrentChatId();
+    if (!currentId) return true; // Can't verify, assume same
+    return startChatId === currentId;
+}
+
+/**
+ * Get the current chat array — ALWAYS fresh from context
+ * Never use a cached/imported reference
+ * @returns {Array}
+ */
+function getFreshChat() {
+    try {
+        const ctx = getContext();
+        return ctx?.chat || [];
+    } catch (e) {
+        return [];
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LAZY-LOADED MODULES (won't break if missing)
+// ═══════════════════════════════════════════════════════════════
+
 let _contactIntel = null;
 let _contactIntelLoaded = false;
 
@@ -203,31 +273,85 @@ function isEnabled() {
 // ═══════════════════════════════════════════════════════════════
 
 /**
- * Get player + AI character names for NPC detection filtering
- * Prevents user persona and AI character from being added as contacts
- * Checks multiple sources since ctx.name1 may be the ST username, not the persona name
- * @returns {string[]}
+ * Get the player character's name — the persona name, not the ST username
+ * This is what the AI extraction prompt uses to identify the player
+ * 
+ * Priority order:
+ * 1. power_user.persona_name (the active persona)
+ * 2. ctx.name1 (user-facing name, might be persona or ST username)
+ * 3. 'the player' (fallback)
+ * 
+ * @returns {string} The player character's name
  */
-function getCharacterNames() {
-    const names = new Set();
+function getPlayerCharacterName() {
     try {
-        const ctx = window.SillyTavern?.getContext?.() ||
-                     (typeof getContext === 'function' ? getContext() : null);
-        if (ctx) {
-            if (ctx.name1) names.add(ctx.name1);
-            if (ctx.name2) names.add(ctx.name2);
+        const ctx = getContext();
+        
+        // Best source: the active persona name (what {{user}} resolves to)
+        if (window.power_user?.persona_name) {
+            return window.power_user.persona_name;
         }
         
-        // Also check persona name — this is what {{user}} resolves to
-        // ctx.name1 might be the ST username, not the character being played
-        if (window.power_user?.persona_name) {
-            names.add(window.power_user.persona_name);
+        // Fallback: ctx.name1 (may be persona name or ST username)
+        if (ctx?.name1) {
+            return ctx.name1;
         }
+        
+        return 'the player';
+    } catch (e) {
+        return 'the player';
+    }
+}
+
+/**
+ * Get player + AI character names for NPC detection filtering
+ * Prevents user persona and AI character from being added as contacts
+ * 
+ * FIXED: Returns player character name as [0] for reliable extraction prompt use
+ * Also includes ST username, persona name, default persona, and AI character name
+ * 
+ * @returns {string[]} Names to exclude, with player character name as first element
+ */
+function getCharacterNames() {
+    const names = [];
+    const seen = new Set();
+    
+    function addName(name) {
+        if (!name || typeof name !== 'string') return;
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        const lower = trimmed.toLowerCase();
+        if (seen.has(lower)) return;
+        seen.add(lower);
+        names.push(trimmed);
+    }
+    
+    try {
+        const ctx = getContext();
+        
+        // FIRST: Add the player character name (must be [0] for extraction prompt)
+        // This is the persona name — what the AI sees as the player character
+        if (window.power_user?.persona_name) {
+            addName(window.power_user.persona_name);
+        }
+        
+        // Then add ctx.name1 (may be same as persona_name, or ST username)
+        if (ctx?.name1) {
+            addName(ctx.name1);
+        }
+        
+        // Add the AI character name
+        if (ctx?.name2) {
+            addName(ctx.name2);
+        }
+        
+        // Add default persona if different
         if (window.power_user?.default_persona) {
-            names.add(window.power_user.default_persona);
+            addName(window.power_user.default_persona);
         }
     } catch (e) { /* silent */ }
-    return [...names].filter(Boolean);
+    
+    return names;
 }
 
 /**
@@ -238,7 +362,6 @@ let _looksLikeName = null;
 async function getLooksLikeName() {
     if (_looksLikeName) return _looksLikeName;
     try {
-        // FIX: Corrected import path (was './contact-intelligence.js')
         const mod = await import('../systems/contact-intelligence.js');
         _looksLikeName = mod.looksLikeName || (() => true);
     } catch (e) {
@@ -321,7 +444,12 @@ async function onChatChanged() {
         return;
     }
     
-    console.log('[Tribunal] Chat changed - resetting and loading state');
+    // ═══════════════════════════════════════════════════════════════
+    // STEP 0: Lock processing to prevent in-flight operations
+    // from writing results to the wrong chat
+    // ═══════════════════════════════════════════════════════════════
+    _processingLocked = true;
+    console.log('[Tribunal] Chat changed - LOCKED processing, resetting modules');
     
     // ═══════════════════════════════════════════════════════════════
     // STEP 1: Reset ALL module states BEFORE loading new chat
@@ -387,22 +515,55 @@ async function onChatChanged() {
     }
     
     // ═══════════════════════════════════════════════════════════════
+    // STEP 1b: Reset contact-intelligence pending contacts
+    // Without this, pending names from the previous chat carry over
+    // and can get promoted into the new chat's contacts
+    // ═══════════════════════════════════════════════════════════════
+    try {
+        const contactIntel = await getContactIntelligence();
+        if (contactIntel) {
+            // Clear pending contacts accumulated from previous chat
+            if (typeof contactIntel.clearAllPendingContacts === 'function') {
+                contactIntel.clearAllPendingContacts();
+                console.log('[Tribunal] Contact intelligence pending contacts cleared');
+            } else if (typeof contactIntel.resetPendingContacts === 'function') {
+                contactIntel.resetPendingContacts();
+                console.log('[Tribunal] Contact intelligence pending contacts reset');
+            } else if (contactIntel.pendingContacts instanceof Map) {
+                // Direct access fallback
+                contactIntel.pendingContacts.clear();
+                console.log('[Tribunal] Contact intelligence pending map cleared (direct)');
+            }
+        }
+    } catch (e) {
+        console.log('[Tribunal] Contact intel reset skipped:', e.message);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
     // STEP 2: Load new chat state
     // ═══════════════════════════════════════════════════════════════
     if (hasActiveChat()) {
         loadChatState();
         
+        // Update the tracked chat ID
+        _currentChatId = getCurrentChatId();
+        console.log('[Tribunal] Chat ID set:', _currentChatId);
+        
         // STEP 3: Refresh ledger (cases + contacts) for new chat
         await refreshLedger();
         
-        // STEP 4: Delay refresh to ensure state is fully loaded
-        // This prevents the UI from rendering stale data
+        // STEP 4: Unlock processing and refresh UI
+        _processingLocked = false;
+        
+        // Delay refresh to ensure state is fully loaded
         setTimeout(() => {
             triggerRefresh();
             console.log('[Tribunal] Delayed refresh complete');
-        }, 100);
+        }, 150);
     } else {
-        // No active chat - still trigger refresh to clear UI
+        // No active chat - unlock and clear UI
+        _currentChatId = null;
+        _processingLocked = false;
         triggerRefresh();
     }
 }
@@ -412,6 +573,7 @@ async function onChatChanged() {
  */
 function onMessageSent() {
     if (!isEnabled()) return;
+    if (_processingLocked) return;
     console.log('[Tribunal] Message sent');
     // Could set flags here for generation
 }
@@ -421,20 +583,29 @@ function onMessageSent() {
  * @param {number} messageId - The message index
  */
 async function onMessageReceived(messageId) {
-    // Skip ALL processing if extension is disabled
-    if (!isEnabled()) {
+    // Skip ALL processing if extension is disabled or locked
+    if (!isEnabled()) return;
+    if (_processingLocked) {
+        console.log('[Tribunal] Message received while processing locked - SKIPPING');
         return;
     }
+    
+    // Snapshot the chat ID at the start of this async operation
+    const startChatId = getCurrentChatId();
     
     console.log('[Tribunal] Message received:', messageId);
     
     incrementMessageCount();
     
-    // Get the message text
+    // ═══════════════════════════════════════════════════════════════
+    // CRITICAL FIX: Get fresh chat reference every time
+    // Never use the module-level imported `chat` — it can be stale
+    // ═══════════════════════════════════════════════════════════════
     let messageText = '';
     
     try {
-        const message = chat[messageId];
+        const freshChat = getFreshChat();
+        const message = freshChat[messageId];
         if (message && !message.is_user && message.mes) {
             messageText = message.mes;
             
@@ -449,9 +620,6 @@ async function onMessageReceived(messageId) {
     // ═══════════════════════════════════════════════════════════════
     // VITALS & STATUS DETECTION (Regex Fallback)
     // Only runs if AI extraction is NOT active for this message.
-    // When AI extraction runs, it handles vitals + condition→status
-    // mapping more accurately (understands metaphors, NPC context).
-    // Regex serves as the fallback for when AI extraction is disabled.
     // ═══════════════════════════════════════════════════════════════
     const settings = getSettings();
     
@@ -520,16 +688,21 @@ async function onMessageReceived(messageId) {
         const completed = advanceResearch(messageText);
         if (completed.length > 0) {
             console.log('[Tribunal] Research completed:', completed);
-            // The advanceResearch function auto-internalizes
-            // UI refresh happens via triggerRefresh below
         }
     } catch (error) {
         console.error('[Tribunal] Failed to advance research:', error);
     }
     
     // ═══════════════════════════════════════════════════════════════
+    // CHAT SWITCH CHECK: Abort if chat changed during sync operations
+    // ═══════════════════════════════════════════════════════════════
+    if (!isSameChat(startChatId)) {
+        console.warn('[Tribunal] Chat changed during message processing — ABORTING remaining async operations');
+        return;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
     // CONTACT INTELLIGENCE - Basic NPC tracking (optional feature)
-    // Full analysis happens after voice generation via analyzeVoiceSentimentForNPCs()
     // ═══════════════════════════════════════════════════════════════
     try {
         const contactIntel = await getContactIntelligence();
@@ -558,9 +731,15 @@ async function onMessageReceived(messageId) {
     }
     
     // ═══════════════════════════════════════════════════════════════
+    // CHAT SWITCH CHECK: Abort before expensive AI extraction
+    // ═══════════════════════════════════════════════════════════════
+    if (!isSameChat(startChatId) || _processingLocked) {
+        console.warn('[Tribunal] Chat changed before AI extraction — ABORTING');
+        return;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
     // AI EXTRACTION - Extract ALL game state using AI
-    // Handles: cases, contacts, locations, equipment, inventory,
-    //          vitals (HP/Morale), and condition→status detection
     // ═══════════════════════════════════════════════════════════════
     try {
         if (aiWillHandle && messageText) {
@@ -587,6 +766,15 @@ async function onMessageReceived(messageId) {
                     excludeNames: getCharacterNames()
                 });
                 
+                // ═══════════════════════════════════════════════════════════════
+                // CRITICAL: Check AGAIN after async API call
+                // The extraction takes seconds — chat could have switched
+                // ═══════════════════════════════════════════════════════════════
+                if (!isSameChat(startChatId) || _processingLocked) {
+                    console.warn('[Tribunal] Chat changed DURING AI extraction — DISCARDING results');
+                    return;
+                }
+                
                 if (results.error) {
                     console.warn('[Tribunal] AI extraction error:', results.error);
                 } else {
@@ -608,6 +796,12 @@ async function onMessageReceived(messageId) {
                             }
                         } : null
                     });
+                    
+                    // Final safety check before applying UI updates
+                    if (!isSameChat(startChatId) || _processingLocked) {
+                        console.warn('[Tribunal] Chat changed after processing results — skipping UI refresh');
+                        return;
+                    }
                     
                     // Log what was extracted
                     const extracted = [];
@@ -683,6 +877,13 @@ async function onMessageReceived(messageId) {
     // ═══════════════════════════════════════════════════════════════
     // THOUGHT CABINET - Check for theme spikes and auto-suggest/generate
     // ═══════════════════════════════════════════════════════════════
+    
+    // Final chat check before thought generation
+    if (!isSameChat(startChatId) || _processingLocked) {
+        console.warn('[Tribunal] Chat changed — skipping thought generation');
+        return;
+    }
+    
     try {
         const thoughtSettings = settings?.thoughts || {};
         
@@ -701,6 +902,9 @@ async function onMessageReceived(messageId) {
                     const thoughtGen = await import('../voice/thought-generation.js');
                     if (thoughtGen?.autoGenerateFromTheme) {
                         console.log('[Tribunal] Auto-generating thought from theme:', spikingTheme.name);
+                        
+                        // One more check before generating
+                        if (!isSameChat(startChatId) || _processingLocked) return;
                         
                         const thought = await thoughtGen.autoGenerateFromTheme(
                             spikingTheme,
@@ -735,18 +939,19 @@ async function onMessageReceived(messageId) {
         console.log('[Tribunal] Thought spike check skipped:', error.message);
     }
     
-    saveChatState();
-    triggerRefresh();
+    // Only save/refresh if we're still on the same chat
+    if (isSameChat(startChatId) && !_processingLocked) {
+        saveChatState();
+        triggerRefresh();
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════
 // CONTACT PROMOTION
-// Promotes pending contacts that have hit the mention threshold
 // ═══════════════════════════════════════════════════════════════
 
 /**
  * Check for pending contacts ready to be promoted to real contacts
- * Creates them in state.relationships so they appear in the UI
  * @param {object} contactIntel - Contact intelligence module
  */
 async function promoteReadyContacts(contactIntel) {
@@ -913,16 +1118,18 @@ async function fallbackRegexExtraction(messageText, settings) {
  */
 function onMessageSwiped(data) {
     if (!isEnabled()) return;
+    if (_processingLocked) return;
     
     console.log('[Tribunal] Message swiped');
     
-    // Update scene context when swiping to a different AI response
+    // FIXED: Use fresh chat reference, not stale import
     try {
-        if (chat && chat.length > 0) {
+        const freshChat = getFreshChat();
+        if (freshChat.length > 0) {
             // Get the last AI message after swipe
-            for (let i = chat.length - 1; i >= 0; i--) {
-                if (!chat[i].is_user && chat[i].mes) {
-                    updateSceneContext(chat[i].mes);
+            for (let i = freshChat.length - 1; i >= 0; i--) {
+                if (!freshChat[i].is_user && freshChat[i].mes) {
+                    updateSceneContext(freshChat[i].mes);
                     break;
                 }
             }
@@ -968,16 +1175,12 @@ function onGenerationEnded() {
  */
 export async function analyzeVoiceSentimentForNPCs(voiceResults, messageText) {
     if (!isEnabled()) return;
+    if (_processingLocked) return;
     
     try {
         const contactIntel = await getContactIntelligence();
         if (!contactIntel) return;
         
-        // This is the main entry point that handles everything:
-        // - Detects NPCs in the message
-        // - Tracks pending contacts
-        // - Updates voice opinions on existing contacts
-        // - Checks for disposition shifts
         await contactIntel.updateContactIntelligence(voiceResults, { message: messageText });
         
     } catch (error) {
@@ -999,6 +1202,9 @@ export function registerEvents() {
     eventSource.on(event_types.MESSAGE_SWIPED, onMessageSwiped);
     eventSource.on(event_types.GENERATION_STARTED, onGenerationStarted);
     eventSource.on(event_types.GENERATION_ENDED, onGenerationEnded);
+    
+    // Initialize chat ID tracking
+    _currentChatId = getCurrentChatId();
     
     console.log('[Tribunal] Event handlers registered');
 }
