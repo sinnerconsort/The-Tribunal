@@ -4,7 +4,9 @@
  * 
  * FIXED: Added resetLocalState() and onChatChanged() for proper chat switching
  * NEW: AI-powered scan that checks persona + chat context (like RPG Companion)
- * v2.1.0 - Added trash/discard button, genre-aware effect names and currency
+ * v2.2.0 - Genre-aware skill display names
+ * FIXED: formatSkillName uses active genre profile (e.g. "The Oracle" not "Inland Empire")
+ * FIXED: [SKILL_TAG] description parser uses formatSkillName for consistency
  * 
  * Mirrors equipment-handlers.js patterns
  */
@@ -32,62 +34,8 @@ async function loadEvents() {
 // AI Extractor - direct import like equipment-handlers.js
 import { extractInventoryFromContext } from '../systems/ai-extractor.js';
 
-// ═══════════════════════════════════════════════════════════════
-// GENRE-AWARE HELPERS
-// ═══════════════════════════════════════════════════════════════
-
-/**
- * Get genre-aware currency label for display
- */
-function getGenreCurrencyLabel() {
-    try {
-        const { getProfileValue } = window.TribunalProfiles || {};
-        return getProfileValue?.('currency', 'Réal') || 'Réal';
-    } catch {
-        return 'Réal';
-    }
-}
-
-/**
- * Get genre-aware effect display names
- * Maps internal IDs to genre-appropriate names
- */
-function getGenreEffectName(effectId) {
-    // Try genre profile first
-    try {
-        const { getActiveProfileId } = window.TribunalProfiles || {};
-        const genreId = getActiveProfileId?.() || 'disco_elysium';
-        
-        // DE-specific names
-        if (genreId === 'disco_elysium') {
-            const deNames = {
-                revacholian_courage: 'Revacholian Courage',
-                nicotine_rush: 'Nicotine Rush',
-                pyrholidon: 'Pyrholidon',
-                speed_freaks_delight: 'Speed Freak\'s Delight',
-                the_expression: 'The Expression',
-                satiated: 'Satiated',
-                medicated: 'Medicated'
-            };
-            return deNames[effectId] || formatSkillName(effectId);
-        }
-    } catch { /* fall through */ }
-    
-    // Generic names for non-DE genres
-    const genericNames = {
-        revacholian_courage: 'Liquid Courage',
-        nicotine_rush: 'Nicotine Rush',
-        pyrholidon: 'Chemical High',
-        speed_freaks_delight: 'Stimulant Rush',
-        the_expression: 'Altered State',
-        satiated: 'Satiated',
-        medicated: 'Medicated',
-        volumetric_shit_compressor: 'Hangover',
-        waste_land: 'Exhaustion',
-        finger_on_the_eject_button: 'Wounded'
-    };
-    return genericNames[effectId] || formatSkillName(effectId);
-}
+// Genre-aware skill display names
+import { getProfileValue } from '../data/setting-profiles.js';
 
 // ═══════════════════════════════════════════════════════════════
 // PERSONA + CHAT CONTEXT HELPERS
@@ -228,7 +176,7 @@ async function loadStateModule() {
 let localState = {
     items: [],           // Active inventory items
     stash: {},           // Cached item data (like wardrobe)
-    currency: 0,         // Currency
+    currency: 0,         // Réal
     addictions: {}       // { type: { level, lastFix, withdrawing } }
 };
 
@@ -293,7 +241,7 @@ function getInventoryState() {
                     stored: [],     // Stashed
                     stash: {},      // Item data cache
                     money: 0,
-                    moneyUnit: getGenreCurrencyLabel(),
+                    moneyUnit: 'Réal',
                     addictions: {}
                 };
             }
@@ -450,32 +398,6 @@ export function removeInventoryItemByName(name) {
     saveState();
     console.log('[Inventory] Removed:', removed.name);
     return { ...removed, removed: true };
-}
-
-/**
- * Trash/discard an item completely (regardless of quantity)
- * Unlike removeInventoryItem which just splices, this also signals the change
- */
-export function trashItem(itemId) {
-    const state = getInventoryState();
-    if (!state.items) state.items = [];
-    
-    const idx = state.items.findIndex(i => i.id === itemId);
-    if (idx === -1) return null;
-    
-    const trashed = state.items.splice(idx, 1)[0];
-    saveState();
-    
-    console.log('[Inventory] Trashed:', trashed.name, trashed.quantity > 1 ? `(x${trashed.quantity})` : '');
-    
-    // Signal external listeners
-    try {
-        document.dispatchEvent(new CustomEvent('tribunal:inventoryChanged', {
-            detail: { source: 'trash', item: trashed.name }
-        }));
-    } catch (e) { /* silent */ }
-    
-    return trashed;
 }
 
 /**
@@ -669,7 +591,6 @@ function selectItem(itemId) {
 function updateDetailPanel() {
     const panel = document.getElementById('ie-item-detail');
     const consumeBtn = document.getElementById('ie-consume-btn');
-    const trashBtn = document.getElementById('ie-trash-btn');
     
     if (!panel) return;
     
@@ -701,7 +622,7 @@ function updateDetailPanel() {
         let html = '';
         if (parts[0]?.trim()) html += parts[0].trim();
         for (let i = 1; i < parts.length; i += 2) {
-            const skill = parts[i].replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+            const skill = formatSkillName(parts[i].toLowerCase());
             const text = (parts[i + 1] || '').trim();
             if (text) html += `<br><strong style="color: var(--SmartThemeQuoteColor, #8ab88a);">${skill}:</strong> ${text}`;
         }
@@ -737,14 +658,9 @@ function updateDetailPanel() {
         effectEl.innerHTML = '';
     }
     
-    // Consume button - only for consumables
+    // Consume button
     if (consumeBtn) {
         consumeBtn.style.display = item.category === 'consumable' ? 'block' : 'none';
-    }
-    
-    // Trash button - always visible
-    if (trashBtn) {
-        trashBtn.style.display = 'block';
     }
     
     panel.style.display = 'block';
@@ -769,17 +685,14 @@ function getEffectPreview(itemType) {
     // Use message count (duration field is now message count)
     const messages = effectConfig.duration || effectConfig.messages || 6;
     
-    // Genre-aware effect name
-    const effectName = getGenreEffectName(effectConfig.statusId) || status.name;
-    
     // Show what this clears if anything
     const clearsText = (effectConfig.clears && effectConfig.clears.length > 0) 
-        ? `<div class="inv-effect-clears">Clears: ${effectConfig.clears.map(id => getGenreEffectName(id)).join(', ')}</div>` 
+        ? `<div class="inv-effect-clears">Clears: ${effectConfig.clears.map(getWithdrawalName).join(', ')}</div>` 
         : '';
     
     return `
         <div class="inv-effect-preview">
-            <div class="inv-effect-name">${effectName}</div>
+            <div class="inv-effect-name">${status.name}</div>
             <div class="inv-effect-duration">${messages} messages</div>
             ${clearsText}
             <div class="inv-effect-stats">
@@ -801,12 +714,12 @@ function getInlineStatusEffects() {
             debuffs: ['endurance']
         },
         revacholian_courage: {
-            name: 'Liquid Courage',
+            name: 'Revacholian Courage',
             boosts: ['electrochemistry', 'inland_empire', 'drama', 'suggestion', 'physical_instrument'],
             debuffs: ['logic', 'hand_eye_coordination', 'reaction_speed', 'composure']
         },
         pyrholidon: {
-            name: 'Chemical High',
+            name: 'Pyrholidon',
             boosts: ['reaction_speed', 'perception', 'logic', 'visual_calculus', 'volition'],
             debuffs: ['composure', 'empathy', 'inland_empire']
         }
@@ -814,7 +727,15 @@ function getInlineStatusEffects() {
 }
 
 function formatSkillName(skill) {
-    return skill.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    if (!skill) return '';
+    const normalizedId = skill.toLowerCase().replace(/\s+/g, '_');
+    // Try genre-aware display name first
+    try {
+        const skillNames = getProfileValue('skillNames', null);
+        if (skillNames?.[normalizedId]) return skillNames[normalizedId];
+    } catch (e) { /* fall through */ }
+    // Fallback: Title Case from snake_case
+    return normalizedId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -837,12 +758,13 @@ function initDetailPanelHandlers() {
             // Show cleared effects toast first
             const clearedEffects = result.effect?.clearedEffects || [];
             if (clearedEffects.length > 0) {
-                const clearedNames = clearedEffects.map(id => getGenreEffectName(id)).join(', ');
+                const clearedNames = clearedEffects.map(getWithdrawalName).join(', ');
                 toast(`${clearedNames} cleared`, 'success');
             }
             
-            // Show effect toast with voice quote
+            // Show effect toast with Electrochemistry quote
             if (result.effect?.electrochemistryQuote) {
+                // Fancy DE-style toast
                 setTimeout(() => {
                     toastWithVoice(
                         result.effect.electrochemistryQuote,
@@ -856,9 +778,8 @@ function initDetailPanelHandlers() {
             
             // Show remaining messages info
             if (result.effect?.remainingMessages) {
-                const effectName = getGenreEffectName(result.effect.statusId) || result.effect.effect?.name || result.effect.statusId;
                 setTimeout(() => {
-                    toast(`${effectName} (${result.effect.remainingMessages} msgs)`, 'info');
+                    toast(`${result.effect.effect?.name || result.effect.statusId} (${result.effect.remainingMessages} msgs)`, 'info');
                 }, 600);
             }
             
@@ -868,61 +789,18 @@ function initDetailPanelHandlers() {
             refreshDisplay();
         }
     });
-    
-    // ═══════════════════════════════════════════════════════════
-    // TRASH / DISCARD BUTTON
-    // ═══════════════════════════════════════════════════════════
-    document.getElementById('ie-trash-btn')?.addEventListener('click', () => {
-        if (!selectedItemId) return;
-        
-        const state = getInventoryState();
-        const item = state.items.find(i => i.id === selectedItemId);
-        if (!item) return;
-        
-        // For items with quantity > 1, show count in confirmation
-        const qtyText = item.quantity > 1 ? ` (x${item.quantity})` : '';
-        const itemName = item.name + qtyText;
-        
-        // Simple confirmation via a second tap pattern:
-        // First tap changes button text to "TAP AGAIN TO CONFIRM"
-        // Second tap within 3 seconds actually discards
-        const trashBtn = document.getElementById('ie-trash-btn');
-        
-        if (trashBtn.dataset.confirming === 'true') {
-            // Second tap — actually discard
-            trashBtn.dataset.confirming = 'false';
-            trashBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> DISCARD';
-            trashBtn.classList.remove('confirming');
-            
-            const trashed = trashItem(selectedItemId);
-            if (trashed) {
-                selectedItemId = null;
-                refreshDisplay();
-                toast(`Discarded: ${trashed.name}${trashed.quantity > 1 ? ` (x${trashed.quantity})` : ''}`, 'warning');
-            }
-        } else {
-            // First tap — ask for confirmation
-            trashBtn.dataset.confirming = 'true';
-            trashBtn.innerHTML = `<i class="fa-solid fa-exclamation-triangle"></i> DISCARD ${itemName}?`;
-            trashBtn.classList.add('confirming');
-            
-            // Auto-reset after 3 seconds
-            setTimeout(() => {
-                if (trashBtn.dataset.confirming === 'true') {
-                    trashBtn.dataset.confirming = 'false';
-                    trashBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i> DISCARD';
-                    trashBtn.classList.remove('confirming');
-                }
-            }, 3000);
-        }
-    });
 }
 
 /**
- * Get human-readable name for status effects (genre-aware)
+ * Get human-readable name for status effects
  */
 function getWithdrawalName(statusId) {
-    return getGenreEffectName(statusId);
+    const names = {
+        'volumetric_shit_compressor': 'Hangover',
+        'waste_land': 'Exhaustion',
+        'finger_on_the_eject_button': 'Wounded'
+    };
+    return names[statusId] || statusId;
 }
 
 /**
@@ -1170,7 +1048,6 @@ export default {
     addInventoryItem,
     removeInventoryItem,
     removeInventoryItemByName,
-    trashItem,
     consumeItem,
     
     // Currency
