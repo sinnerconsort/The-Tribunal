@@ -6,13 +6,51 @@
  * Approaches:
  * 1. Pattern matching - looks for quest-like phrases
  * 2. Discovery matching - links investigation finds to active cases
- * 3. (Future) AI extraction - asks model to identify objectives
+ * 3. Theme inference - auto-tags cases by emotional territory
+ * 4. Genre rewriting - cases get themed presentation via applyTemplateRewrite
  * 
+ * @version 3.0.0 - Genre-aware case creation:
+ *   - Auto-created cases get theme-tagged via inferTheme()
+ *   - applyTemplateRewrite() gives genre presentation on creation
+ *   - Completion matching checks both title AND rawTitle
+ *   - Duplicate detection checks both title AND rawTitle
  * @version 2.0.1 - Removed unused addHint import
  */
 
-import { createCase, createHint, CASE_PRIORITY } from '../data/cases.js';
+import { createCase, createHint, inferTheme, CASE_PRIORITY } from '../data/cases.js';
 import { getChatState, saveChatState } from '../core/persistence.js';
+
+// Genre-aware case theming — rewrites titles for active setting profile
+let _applyTemplateRewrite = null;
+async function getRewriter() {
+    if (!_applyTemplateRewrite) {
+        try {
+            const mod = await import('../voice/case-genre-rewriter.js');
+            _applyTemplateRewrite = mod.applyTemplateRewrite;
+        } catch (e) {
+            console.warn('[CaseIntel] case-genre-rewriter not available, cases will use raw titles');
+            _applyTemplateRewrite = (c) => c; // passthrough fallback
+        }
+    }
+    return _applyTemplateRewrite;
+}
+
+// Description generation — skill voices write case briefings
+let _generateCaseDescription = null;
+let _descGenLoaded = false;
+async function getDescriptionGenerator() {
+    if (_descGenLoaded) return _generateCaseDescription;
+    try {
+        const mod = await import('./case-description-generator.js');
+        _generateCaseDescription = mod.generateCaseDescription;
+        console.log('[CaseIntel] Description generator loaded');
+    } catch (e) {
+        console.warn('[CaseIntel] Description generator not available, cases will use detection context');
+        _generateCaseDescription = null;
+    }
+    _descGenLoaded = true;
+    return _generateCaseDescription;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // QUEST DETECTION PATTERNS
@@ -544,6 +582,9 @@ export async function processMessageForQuests(messageText, options = {}) {
         if (!state) return results;
         if (!state.cases) state.cases = {};
         
+        // Lazy-load genre rewriter
+        const rewrite = await getRewriter();
+        
         for (const quest of quests) {
             // Check for duplicates (recent or existing)
             const titleLower = quest.title.toLowerCase();
@@ -554,14 +595,16 @@ export async function processMessageForQuests(messageText, options = {}) {
                 continue;
             }
             
-            // Skip if similar case already exists
-            const existingTitles = Object.values(state.cases).map(c => c.title.toLowerCase());
-            if (existingTitles.some(t => similarity(t, titleLower) > 0.7)) {
-                continue;
-            }
+            // Skip if similar case already exists — check BOTH title and rawTitle
+            const isDuplicate = Object.values(state.cases).some(c => {
+                const titleMatch = similarity(c.title?.toLowerCase() || '', titleLower) > 0.7;
+                const rawMatch = c.rawTitle ? similarity(c.rawTitle.toLowerCase(), titleLower) > 0.7 : false;
+                return titleMatch || rawMatch;
+            });
+            if (isDuplicate) continue;
             
-            // Create the case
-            const newCase = createCase({
+            // Create the case (inferTheme auto-tags from content)
+            const rawCase = createCase({
                 title: quest.title,
                 priority: quest.priority,
                 description: `Detected from: "${quest.source.substring(0, 80)}..."`,
@@ -569,18 +612,42 @@ export async function processMessageForQuests(messageText, options = {}) {
                 aiGenerated: true
             });
             
-            state.cases[newCase.id] = newCase;
-            results.created.push(newCase);
+            // Genre-rewrite: themes the title for the active setting profile
+            // e.g. "Find the missing key" → "THE MISSING KEY — a door that shouldn't be locked"
+            const themedCase = rewrite(rawCase);
+            
+            state.cases[themedCase.id] = themedCase;
+            results.created.push(themedCase);
             recentlyDetected.set(titleLower, Date.now());
+            
+            console.log(`[CaseIntel] Created case: "${themedCase.title}" (theme: ${themedCase.theme || 'none'}, raw: "${themedCase.rawTitle || quest.title}")`);
             
             // Notify if callback provided
             if (notifyCallback) {
-                notifyCallback(`New task detected: ${quest.title}`);
+                notifyCallback(`New task detected: ${themedCase.title}`);
             }
         }
         
         if (results.created.length > 0) {
             saveChatState();
+            
+            // Fire off description generation for new cases (async, non-blocking)
+            // Each case gets its description written by the theme-matched skill voice
+            const genDesc = await getDescriptionGenerator();
+            if (genDesc) {
+                for (const themedCase of results.created) {
+                    // Don't await — let it happen in background
+                    genDesc(themedCase, { forceRegenerate: true }).then(desc => {
+                        if (desc && state.cases[themedCase.id]) {
+                            state.cases[themedCase.id].description = desc;
+                            saveChatState();
+                            console.log(`[CaseIntel] Description generated for "${themedCase.title}"`);
+                        }
+                    }).catch(e => {
+                        console.warn(`[CaseIntel] Description generation failed for "${themedCase.title}":`, e.message);
+                    });
+                }
+            }
         }
     }
     
@@ -607,9 +674,13 @@ export function matchCompletionsToCase(completionHints, cases) {
             if (caseObj.status !== 'active') continue;
             
             const titleLower = caseObj.title.toLowerCase();
+            const rawTitleLower = caseObj.rawTitle?.toLowerCase() || '';
             
-            // Check if the subject matches the case title
-            if (titleLower.includes(subjectLower) || subjectLower.includes(titleLower)) {
+            // Check if the subject matches EITHER the themed title or the raw title
+            const matchesTitle = titleLower.includes(subjectLower) || subjectLower.includes(titleLower);
+            const matchesRaw = rawTitleLower && (rawTitleLower.includes(subjectLower) || subjectLower.includes(rawTitleLower));
+            
+            if (matchesTitle || matchesRaw) {
                 potentialMatches.push({
                     caseId: id,
                     caseTitle: caseObj.title,
