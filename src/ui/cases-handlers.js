@@ -5,6 +5,11 @@
  * Layout mirrors Disco Elysium:
  * - Left side: Task list grouped by day
  * - Right side (or expanded): Task details
+ * 
+ * @version 2.0.0 - Theme + source thought display:
+ *   - Theme badge shown in case detail header
+ *   - Source thought name shown for thought-spawned cases
+ *   - Theme badge shown in task list items
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -13,6 +18,8 @@
 
 let _persistence = null;
 let _casesData = null;
+let _descGenerator = null;
+let _profiles = null;
 
 async function getPersistence() {
     if (!_persistence) {
@@ -46,6 +53,30 @@ async function getCasesData() {
         }
     }
     return _casesData;
+}
+
+async function getDescGenerator() {
+    if (!_descGenerator) {
+        try {
+            _descGenerator = await import('../systems/case-description-generator.js');
+        } catch (e) {
+            console.warn('[Cases] Description generator not available:', e.message);
+            _descGenerator = { generateCaseDescription: null, getVoiceForTheme: () => null };
+        }
+    }
+    return _descGenerator;
+}
+
+async function getProfiles() {
+    if (!_profiles) {
+        try {
+            _profiles = await import('../data/setting-profiles.js');
+        } catch (e) {
+            console.warn('[Cases] Setting profiles not available:', e.message);
+            _profiles = { getSkillName: (id) => id };
+        }
+    }
+    return _profiles;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -98,6 +129,7 @@ function renderTaskItem(caseObj, casesData) {
     const statusClass = isCompleted ? 'completed' : isFailed ? 'failed' : '';
     const selectedClass = isSelected ? 'selected' : '';
     const priorityClass = `priority-${caseObj.priority || 'side'}`;
+    const themeClass = caseObj.theme ? `case-theme-${caseObj.theme}` : '';
     
     // Timed icon for tasks with deadlines
     const timedIcon = isTimed ? '<span class="case-timed-icon">⏱</span>' : '';
@@ -105,12 +137,20 @@ function renderTaskItem(caseObj, casesData) {
     // Main task marker (like DE's clock icon for important tasks)
     const mainMarker = caseObj.priority === 'main' ? '<span class="case-main-marker">◉</span>' : '';
     
+    // Theme dot — subtle colored indicator
+    const themeDot = caseObj.theme ? `<span class="case-theme-dot ${themeClass}" title="${caseObj.theme}"></span>` : '';
+    
+    // Source thought indicator
+    const thoughtIcon = caseObj.sourceThoughtId ? '<span class="case-thought-icon" title="From thought cabinet">🧠</span>' : '';
+    
     return `
         <div class="case-item ${statusClass} ${selectedClass} ${priorityClass}" 
              data-case-id="${caseObj.id}"
-             data-priority="${caseObj.priority || 'side'}">
-            ${mainMarker}${timedIcon}
+             data-priority="${caseObj.priority || 'side'}"
+             data-theme="${caseObj.theme || ''}">
+            ${mainMarker}${timedIcon}${themeDot}
             <span class="case-title">${caseObj.title}</span>
+            ${thoughtIcon}
         </div>
     `;
 }
@@ -230,18 +270,79 @@ async function renderCaseDetail(caseId) {
         `;
     }
     
+    // Theme badge
+    let themeBadgeHtml = '';
+    if (caseObj.theme) {
+        themeBadgeHtml = `<span class="case-theme-badge case-theme-${caseObj.theme}">${caseObj.theme}</span>`;
+    }
+    
+    // Source thought link (for cases spawned from thought cabinet)
+    let sourceHtml = '';
+    if (caseObj.sourceThoughtName) {
+        sourceHtml = `
+            <div class="case-detail-source">
+                <i class="fa-solid fa-brain"></i> From thought: <em>${caseObj.sourceThoughtName}</em>
+            </div>
+        `;
+    }
+    
+    // Description with voice attribution and regenerate
+    let descriptionHtml = '';
+    const hasDescription = caseObj.description && !caseObj.description.startsWith('Detected from:');
+    
+    if (hasDescription) {
+        // Get voice attribution if available
+        let voiceAttrHtml = '';
+        if (caseObj.descriptionVoice) {
+            const profiles = await getProfiles();
+            const voiceName = profiles.getSkillName 
+                ? profiles.getSkillName(caseObj.descriptionVoice, caseObj.descriptionVoice.toUpperCase())
+                : caseObj.descriptionVoice.toUpperCase();
+            voiceAttrHtml = `<span class="case-desc-voice">— ${voiceName}</span>`;
+        }
+        
+        descriptionHtml = `
+            <div class="case-detail-description">
+                <div class="case-desc-text">${caseObj.description}</div>
+                <div class="case-desc-footer">
+                    ${voiceAttrHtml}
+                    ${!isClosed ? `<button class="case-regen-btn" data-case-id="${caseId}" title="Regenerate description">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>` : ''}
+                </div>
+            </div>
+        `;
+    } else if (!isClosed && caseObj.aiGenerated) {
+        // AI-generated case without a real description — offer to generate one
+        descriptionHtml = `
+            <div class="case-detail-description case-desc-pending">
+                <button class="case-gen-desc-btn" data-case-id="${caseId}">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Generate briefing
+                </button>
+            </div>
+        `;
+    } else if (caseObj.description) {
+        // Fallback: show raw description (e.g. "Detected from: ...")
+        descriptionHtml = `
+            <div class="case-detail-description case-desc-raw">
+                ${caseObj.description}
+            </div>
+        `;
+    }
+    
     return `
         <div class="case-detail ${isClosed ? 'case-detail-closed' : ''}" data-case-id="${caseId}">
             <div class="case-detail-header">
                 <h3 class="case-detail-title">${caseObj.title}</h3>
-                <div class="case-detail-filed">FILED — ${filedTime}</div>
+                <div class="case-detail-meta">
+                    <span class="case-detail-filed">FILED — ${filedTime}</span>
+                    ${themeBadgeHtml}
+                </div>
             </div>
             
-            ${caseObj.description ? `
-                <div class="case-detail-description">
-                    ${caseObj.description}
-                </div>
-            ` : ''}
+            ${sourceHtml}
+            
+            ${descriptionHtml}
             
             ${hintsHtml}
             ${addHintHtml}
@@ -443,6 +544,67 @@ function attachDetailHandlers() {
             showEditCaseForm(caseId);
         });
     });
+    
+    // Regenerate description button
+    document.querySelectorAll('.case-regen-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const caseId = btn.dataset.caseId;
+            await handleGenerateDescription(caseId, btn, true);
+        });
+    });
+    
+    // Generate briefing button (for cases without descriptions)
+    document.querySelectorAll('.case-gen-desc-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const caseId = btn.dataset.caseId;
+            await handleGenerateDescription(caseId, btn, true);
+        });
+    });
+}
+
+/**
+ * Handle description generation (or regeneration) for a case.
+ * Shows loading state, calls API, saves result, re-renders.
+ */
+async function handleGenerateDescription(caseId, btnEl, forceRegenerate = false) {
+    const cases = await getCases();
+    const caseObj = cases[caseId];
+    if (!caseObj) return;
+    
+    // Loading state
+    const origHtml = btnEl.innerHTML;
+    btnEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+    btnEl.disabled = true;
+    
+    try {
+        const descGen = await getDescGenerator();
+        if (!descGen?.generateCaseDescription) {
+            console.warn('[Cases] Description generator not available');
+            btnEl.innerHTML = origHtml;
+            btnEl.disabled = false;
+            return;
+        }
+        
+        const description = await descGen.generateCaseDescription(caseObj, { forceRegenerate });
+        
+        if (description) {
+            // Save description + voice attribution
+            caseObj.description = description;
+            if (descGen.getVoiceForTheme) {
+                caseObj.descriptionVoice = descGen.getVoiceForTheme(caseObj.theme);
+            }
+            await saveCase(caseObj);
+            await renderSelectedCaseDetail();
+        } else {
+            // Failed — restore button
+            btnEl.innerHTML = origHtml;
+            btnEl.disabled = false;
+        }
+    } catch (e) {
+        console.error('[Cases] Description generation error:', e);
+        btnEl.innerHTML = origHtml;
+        btnEl.disabled = false;
+    }
 }
 
 /**
