@@ -2,6 +2,8 @@
  * The Tribunal - Settings Handlers
  * Wires the Settings tab inputs to state persistence
  * 
+ * @version 6.1.0 - Quest seed settings (Section VI):
+ *                  questSeeds toggle, questCooldown, questFrequency multiplier
  * @version 6.0.0 - Consolidated settings layout
  *                  Merged Cases + Contacts into Auto-Detection (Section V)
  *                  Merged Weather Effects + Source into single section (VII)
@@ -58,6 +60,9 @@ const SETTINGS_IDS = {
     themeThreshold: 'cfg-theme-threshold',
     themeDecay: 'cfg-theme-decay',
     internalizeDischarge: 'cfg-internalize-discharge',
+    questSeeds: 'cfg-quest-seeds',
+    questCooldown: 'cfg-quest-cooldown',
+    questFrequency: 'cfg-quest-frequency',
     
     // Weather (Section VII - merged effects + source)
     weatherSourceRP: 'cfg-weather-source-rp',
@@ -366,6 +371,9 @@ export function refreshSettingsFromState() {
     setInputValue(SETTINGS_IDS.themeThreshold, settings.thoughts?.spikeThreshold ?? 8);
     setCheckbox(SETTINGS_IDS.themeDecay, settings.thoughts?.enableDecay ?? true);
     setInputValue(SETTINGS_IDS.internalizeDischarge, settings.thoughts?.internalizeDischarge ?? 5);
+    setCheckbox(SETTINGS_IDS.questSeeds, settings.thoughts?.questSeeds ?? true);
+    setInputValue(SETTINGS_IDS.questCooldown, settings.thoughts?.questCooldown ?? 15);
+    setInputValue(SETTINGS_IDS.questFrequency, settings.thoughts?.questFrequency ?? 1.0);
     
     // UI settings
     setCheckbox(SETTINGS_IDS.globalNotify, settings.ui?.showNotifications ?? true);
@@ -504,6 +512,9 @@ export function saveAllSettings() {
     settings.thoughts.spikeThreshold = getInputNumber(SETTINGS_IDS.themeThreshold, 8);
     settings.thoughts.enableDecay = getCheckbox(SETTINGS_IDS.themeDecay, true);
     settings.thoughts.internalizeDischarge = getInputNumber(SETTINGS_IDS.internalizeDischarge, 5);
+    settings.thoughts.questSeeds = getCheckbox(SETTINGS_IDS.questSeeds, true);
+    settings.thoughts.questCooldown = getInputNumber(SETTINGS_IDS.questCooldown, 15);
+    settings.thoughts.questFrequency = getInputFloat(SETTINGS_IDS.questFrequency, 1.0);
     
     // UI settings
     settings.ui.showNotifications = getCheckbox(SETTINGS_IDS.globalNotify, true);
@@ -974,7 +985,10 @@ export function getThoughtSettings() {
         autoGenerate: settings?.thoughts?.autoGenerate ?? false,
         spikeThreshold: settings?.thoughts?.spikeThreshold ?? 8,
         enableDecay: settings?.thoughts?.enableDecay ?? true,
-        internalizeDischarge: settings?.thoughts?.internalizeDischarge ?? 5
+        internalizeDischarge: settings?.thoughts?.internalizeDischarge ?? 5,
+        questSeeds: settings?.thoughts?.questSeeds ?? true,
+        questCooldown: settings?.thoughts?.questCooldown ?? 15,
+        questFrequency: settings?.thoughts?.questFrequency ?? 1.0
     };
 }
 
