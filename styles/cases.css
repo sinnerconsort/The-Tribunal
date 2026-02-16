@@ -1,6 +1,15 @@
 /**
  * The Tribunal - Cases Styles
  * Disco Elysium journal/task list aesthetic
+ * 
+ * v2.0.0 - Theme-aware cases:
+ *   - Theme dots (colored indicators) in task list
+ *   - Theme badges in detail header
+ *   - Thought cabinet source icon (🧠) in task list
+ *   - Source thought attribution in detail view
+ *   - Description voice attribution ("— The Profiler")
+ *   - Regenerate / Generate briefing buttons
+ *   - 12 theme color definitions
  */
 
 /* ═══════════════════════════════════════════════════════════════
@@ -112,6 +121,29 @@
     line-height: 1.3;
 }
 
+/* Theme dot — colored indicator in task list */
+.case-theme-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+    opacity: 0.85;
+}
+
+/* Thought cabinet source icon */
+.case-thought-icon {
+    font-size: 0.65em;
+    margin-left: auto;
+    flex-shrink: 0;
+    opacity: 0.6;
+    filter: grayscale(0.3);
+}
+
+.case-item:hover .case-thought-icon {
+    opacity: 0.9;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    TASK DETAIL PANEL - DE Style
    ═══════════════════════════════════════════════════════════════ */
@@ -164,6 +196,93 @@
     margin-bottom: 14px;
 }
 
+/* Description text block */
+.case-desc-text {
+    margin-bottom: 6px;
+}
+
+/* Footer: voice attribution + regenerate */
+.case-desc-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 6px;
+    padding-top: 4px;
+}
+
+.case-desc-voice {
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 0.75em;
+    font-style: italic;
+    color: #8a9aaa;
+    letter-spacing: 0.3px;
+    opacity: 0.8;
+}
+
+/* Regenerate description button */
+.case-regen-btn {
+    background: transparent;
+    border: 1px solid rgba(100, 120, 140, 0.3);
+    border-radius: 3px;
+    color: #6a8aaa;
+    font-size: 0.7em;
+    padding: 3px 7px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    opacity: 0.6;
+}
+
+.case-regen-btn:hover {
+    opacity: 1;
+    background: rgba(106, 138, 170, 0.1);
+    border-color: #6a8aaa;
+}
+
+.case-regen-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+/* Generate briefing button (for cases without descriptions) */
+.case-desc-pending {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+}
+
+.case-gen-desc-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px dashed rgba(212, 154, 106, 0.4);
+    border-radius: 3px;
+    color: #d49a6a;
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 0.75em;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.case-gen-desc-btn:hover {
+    background: rgba(212, 154, 106, 0.1);
+    border-color: #d49a6a;
+}
+
+.case-gen-desc-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* Raw/fallback description (e.g. "Detected from: ...") */
+.case-desc-raw {
+    font-size: 0.8em;
+    opacity: 0.6;
+    font-style: italic;
+}
+
 .case-detail-completed {
     font-family: 'Courier Prime', 'Courier New', monospace;
     font-size: 0.8em;
@@ -183,6 +302,63 @@
     color: #8a8580;
     font-style: italic;
     padding: 20px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THEME BADGES & DETAIL META
+   ═══════════════════════════════════════════════════════════════ */
+
+.case-detail-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.case-theme-badge {
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 0.65em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 2px 7px;
+    border-radius: 2px;
+    opacity: 0.9;
+    color: #1a1a1a;
+}
+
+/* ── Theme colors ── */
+.case-theme-mystery      { background: #4a9eff; }
+.case-theme-violence     { background: #e05555; }
+.case-theme-love         { background: #e07090; }
+.case-theme-death        { background: #8a8a9a; }
+.case-theme-authority    { background: #d4a030; }
+.case-theme-paranoia     { background: #90c060; }
+.case-theme-money        { background: #c0a050; }
+.case-theme-identity     { background: #a080d0; }
+.case-theme-substance    { background: #d07040; }
+.case-theme-supernatural { background: #70b0c0; }
+.case-theme-failure      { background: #8a7060; color: #d4d4d4; }
+.case-theme-philosophy   { background: #9090b0; }
+
+/* Source thought link */
+.case-detail-source {
+    font-family: 'Courier Prime', 'Courier New', monospace;
+    font-size: 0.75em;
+    color: #8a9aaa;
+    margin-bottom: 10px;
+    padding: 4px 0;
+    opacity: 0.8;
+}
+
+.case-detail-source i {
+    margin-right: 4px;
+    font-size: 0.9em;
+}
+
+.case-detail-source em {
+    color: #a0b0c0;
+    font-style: italic;
 }
 
 /* ═══════════════════════════════════════════════════════════════
