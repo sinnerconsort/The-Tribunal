@@ -4,6 +4,11 @@
  * Builds prompts for AI to generate thoughts dynamically
  * based on persona, themes, and chat context.
  * 
+ * @version 4.6.0 - Theme quest seeds:
+ *   - THEME_QUEST_PROFILES: per-theme quest chance + flavor guidance
+ *   - All three prompt builders accept includeQuestSeed flag
+ *   - parseThoughtResponse preserves questSeed field
+ *   - Quest seeds are stashed on thought, surfaced at internalization
  * @version 4.5.0 - Prompt tightening overhaul:
  *   - Style guide now pulled from active setting profile (genre-adaptive)
  *   - Added theme→skill affinity guide (model picks thematically relevant bonuses)
@@ -53,6 +58,67 @@ const COPOTYPES = [
 const ANCIENT_VOICES = [
     'ancient_reptilian_brain', 'limbic_system', 'spinal_cord'
 ];
+
+// ═══════════════════════════════════════════════════════════════
+// THEME QUEST PROFILES
+// Per-theme probability and flavor for quest seed generation.
+// Higher chance = theme naturally produces actionable objectives.
+// Lower chance = theme is more introspective/passive.
+// ═══════════════════════════════════════════════════════════════
+
+const THEME_QUEST_PROFILES = {
+    mystery: {
+        chance: 0.65,
+        guidance: 'Investigate, uncover, or verify something. "Find out what X really meant." "Search for the missing Y." The protagonist can\'t let this go.'
+    },
+    paranoia: {
+        chance: 0.60,
+        guidance: 'Verify a threat, expose a lie, or confirm a suspicion. "Follow X and find out where they go." "Check if Y was telling the truth." Trust issues made actionable.'
+    },
+    authority: {
+        chance: 0.55,
+        guidance: 'Assert control, challenge a hierarchy, or prove dominance. "Confront X about their defiance." "Make Y respect the badge." Power must be exercised.'
+    },
+    violence: {
+        chance: 0.50,
+        guidance: 'Settle a score, prepare for a fight, or protect someone. "Find X before they find you." "Arm yourself for what\'s coming." Violence demands resolution.'
+    },
+    money: {
+        chance: 0.50,
+        guidance: 'Secure a deal, find a score, or settle a debt. "Track down the missing payment." "Find a way to afford X." Money talks — and it\'s saying something specific.'
+    },
+    identity: {
+        chance: 0.40,
+        guidance: 'Discover something about yourself, find a missing piece of the past, or confront who you\'ve become. "Find out what happened that night." "Revisit the place where it started."'
+    },
+    love: {
+        chance: 0.35,
+        guidance: 'Pursue someone, resolve feelings, or make a gesture. "Talk to X alone." "Find something meaningful for Y." The heart wants what it wants — and it wants you to DO something.'
+    },
+    death: {
+        chance: 0.35,
+        guidance: 'Confront mortality, honor the dead, or investigate a loss. "Visit the grave." "Find out how they really died." Death leaves loose ends.'
+    },
+    supernatural: {
+        chance: 0.35,
+        guidance: 'Seek answers about the unexplainable, investigate a phenomenon, or follow a vision. "Return to where you saw it." "Find someone who knows about X." The unknown calls.'
+    },
+    substance: {
+        chance: 0.25,
+        guidance: 'Find a fix, resist temptation, or deal with consequences. "Score before the shakes start." "Find something to take the edge off." Or: "Stay clean until morning." Cravings are quests too.'
+    },
+    failure: {
+        chance: 0.20,
+        guidance: 'Make amends, prove yourself, or confront a mistake. "Apologize to X." "Do the thing you said you\'d never try again." Failure demands a response — eventually.'
+    },
+    philosophy: {
+        chance: 0.10,
+        guidance: 'Philosophy rarely demands action, but when it does: "Ask X what they think the point of all this is." "Find a quiet place and just... think." Rare, contemplative, almost accidental.'
+    }
+};
+
+// Export for settings UI / external access
+export { THEME_QUEST_PROFILES };
 
 // ═══════════════════════════════════════════════════════════════
 // CONTEXT GATHERING
@@ -209,6 +275,70 @@ function formatPronounGuidance(pronouns) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// QUEST SEED HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Build quest seed instructions for injection into thought prompts.
+ * Only called when the probability gate has already passed.
+ * @param {string} themeId - The thought's theme
+ * @returns {string} Prompt block to append, or empty string
+ */
+function buildQuestSeedBlock(themeId) {
+    const profile = THEME_QUEST_PROFILES[themeId];
+    if (!profile) return '';
+    
+    return `
+## QUEST SEED (optional but encouraged for this theme)
+This thought's theme ("${themeId}") sometimes produces an actionable objective — a task the protagonist
+feels compelled to pursue after internalizing the thought. If this thought naturally suggests one,
+include a questSeed. If not, use null.
+
+Quest guidance for ${themeId}: ${profile.guidance}
+
+Add to your JSON output:
+  "questSeed": { "title": "Short imperative task (3-8 words)", "description": "One sentence — what to do and why" }
+  OR
+  "questSeed": null
+
+The title should feel like a personal task, not an epic quest name. Examples:
+- "Talk to her alone" not "The Romance Quest"
+- "Find out what he's hiding" not "Investigate the Conspiracy"
+- "Go back to the bridge" not "Return to the Scene of the Crime"
+Keep it grounded, specific to THIS story, something the protagonist would actually think to themselves.`;
+}
+
+/**
+ * Get the quest chance for a theme
+ * @param {string} themeId 
+ * @returns {number} 0.0-1.0
+ */
+export function getThemeQuestChance(themeId) {
+    return THEME_QUEST_PROFILES[themeId]?.chance ?? 0.15;
+}
+
+/**
+ * Build generic quest seed instructions when theme is not yet known.
+ * Used by buildThoughtPrompt (context-based) and buildQuickThoughtPrompt.
+ * @returns {string}
+ */
+function buildGenericQuestSeedBlock() {
+    return `
+## QUEST SEED (optional)
+If this thought naturally suggests something the protagonist should DO — an actionable task,
+a place to visit, a person to confront — include a questSeed. Most introspective thoughts
+(philosophy, failure) won't have one. Action-oriented themes (mystery, paranoia, violence) often do.
+
+Add to your JSON output:
+  "questSeed": { "title": "Short imperative task (3-8 words)", "description": "One sentence — what to do and why" }
+  OR
+  "questSeed": null
+
+Keep titles grounded and personal: "Find out what she meant" not "The Great Investigation".
+Only include a questSeed if it feels like a NATURAL consequence of this thought — not forced.`;
+}
+
+// ═══════════════════════════════════════════════════════════════
 // PROMPT BUILDING
 // ═══════════════════════════════════════════════════════════════
 
@@ -221,7 +351,7 @@ function formatPronounGuidance(pronouns) {
  * @param {string} playerPronouns - Player's pronouns from profile
  * @returns {string}
  */
-function buildSystemPrompt(perspective, themes, personaContext, existingThoughts, playerPronouns = 'they/them') {
+function buildSystemPrompt(perspective, themes, personaContext, existingThoughts, playerPronouns = 'they/them', questSeedBlock = '') {
     const themeList = themes.length > 0
         ? themes.map(t => `- **${t.name}**: intensity ${t.count}/10`).join('\n')
         : '- No strong themes detected yet - infer from context';
@@ -322,7 +452,7 @@ ${getProfileValue('thoughtToneGuide', 'Match the tone to the story. Read the roo
   Example: ${getProfileValue('thoughtExampleSolution', '"You already knew. You were just hoping someone would talk you out of it."')}
 - Reference SPECIFIC moments from the chat. Don't be generic.
 - The thought should feel like internalizing it genuinely changes how you approach the story —
-  the bonuses and penalties should feel like CONSEQUENCES of accepting this truth about yourself.`;
+  the bonuses and penalties should feel like CONSEQUENCES of accepting this truth about yourself.${questSeedBlock}`;
 }
 
 /**
@@ -353,6 +483,7 @@ Generate a thought about what the PROTAGONIST is going through. What did THEY do
  * @returns {Object} { system, user, meta }
  */
 export function buildThoughtPrompt(options = {}) {
+    const { includeQuestSeed = false } = options;
     const persona = getPersona();
     const personaContext = persona?.context || '';
     const playerPronouns = persona?.pronouns || 'they';
@@ -373,8 +504,11 @@ export function buildThoughtPrompt(options = {}) {
     const recentMessages = getRecentMessages(options.messageCount || 10);
     const characterName = getCharacterName();
     
+    // Quest seed block — theme unknown at this point, use generic guidance
+    const questSeedBlock = includeQuestSeed ? buildGenericQuestSeedBlock() : '';
+    
     return {
-        system: buildSystemPrompt(perspective, themes, personaContext, existingThoughts, playerPronouns),
+        system: buildSystemPrompt(perspective, themes, personaContext, existingThoughts, playerPronouns, questSeedBlock),
         user: buildUserPrompt(recentMessages, characterName),
         
         // Metadata for debugging
@@ -385,7 +519,8 @@ export function buildThoughtPrompt(options = {}) {
             topThemes: themes.map(t => t.id),
             messageCount: recentMessages.length,
             hasPersona: !!personaContext,
-            existingThoughts: existingThoughts.length
+            existingThoughts: existingThoughts.length,
+            questSeedRequested: includeQuestSeed
         }
     };
 }
@@ -443,7 +578,8 @@ export function parseThoughtResponse(response) {
             solutionText: thought.solutionText,
             researchBonus: thought.researchBonus || {},
             internalizedBonus: thought.internalizedBonus || {},
-            specialEffect: thought.specialEffect || null
+            specialEffect: thought.specialEffect || null,
+            questSeed: thought.questSeed || null
         };
         
     } catch (e) {
@@ -462,7 +598,7 @@ export function parseThoughtResponse(response) {
  * @param {string} concept - The concept/question to build a thought around
  * @returns {Object} { system, user, meta }
  */
-export function buildQuickThoughtPrompt(concept) {
+export function buildQuickThoughtPrompt(concept, includeQuestSeed = false) {
     const persona = getPersona();
     const perspective = getThoughtPerspective();
     const playerPronouns = formatPronounGuidance(persona?.pronouns || 'they');
@@ -473,6 +609,7 @@ export function buildQuickThoughtPrompt(concept) {
         : '';
 
     const styleDesc = getProfileValue('thoughtStyleDescription');
+    const questBlock = includeQuestSeed ? buildGenericQuestSeedBlock() : '';
     
     // NOTE: No "icon" field requested - we derive it from theme
     const system = `You generate ${styleDesc}s. The player is a ${perspective.type} (${perspective.description}).
@@ -498,7 +635,7 @@ Generate ONE thought about the concept provided. Output ONLY valid JSON:
 
 BONUS RULES: Research: 1-2 skills at -1. Internalized: 1-4 skills, MIX of +1 and -1 (the thought changes you, not just rewards you). Flavor is a 2-4 word label like "Sober" or "Bad PR".
 
-Skills: logic, encyclopedia, rhetoric, drama, conceptualization, visual_calculus, volition, inland_empire, empathy, authority, esprit_de_corps, suggestion, endurance, pain_threshold, physical_instrument, electrochemistry, shivers, half_light, hand_eye_coordination, perception, reaction_speed, savoir_faire, interfacing, composure`;
+Skills: logic, encyclopedia, rhetoric, drama, conceptualization, visual_calculus, volition, inland_empire, empathy, authority, esprit_de_corps, suggestion, endurance, pain_threshold, physical_instrument, electrochemistry, shivers, half_light, hand_eye_coordination, perception, reaction_speed, savoir_faire, interfacing, composure${questBlock}`;
 
     const user = `${persona?.context ? `The protagonist: ${persona.context}\n\n` : ''}Generate a thought the PROTAGONIST is having about: "${concept}"`;
     
@@ -509,7 +646,8 @@ Skills: logic, encyclopedia, rhetoric, drama, conceptualization, visual_calculus
             perspective: perspective.type,
             playerPronouns,
             concept,
-            existingThoughts: existingThoughts.length
+            existingThoughts: existingThoughts.length,
+            questSeedRequested: includeQuestSeed
         }
     };
 }
@@ -524,7 +662,7 @@ Skills: logic, encyclopedia, rhetoric, drama, conceptualization, visual_calculus
  * @param {Object} spikingTheme - { id, name, icon, count }
  * @returns {Object} { system, user, meta }
  */
-export function buildThemeTriggeredPrompt(spikingTheme) {
+export function buildThemeTriggeredPrompt(spikingTheme, includeQuestSeed = false) {
     const persona = getPersona();
     const perspective = getThoughtPerspective();
     const playerPronouns = formatPronounGuidance(persona?.pronouns || 'they');
@@ -533,6 +671,7 @@ export function buildThemeTriggeredPrompt(spikingTheme) {
     const existingThoughts = [...getInternalizedThoughtNames(), ...getResearchingThoughtNames()];
 
     const styleDesc = getProfileValue('thoughtStyleDescription');
+    const questBlock = includeQuestSeed ? buildQuestSeedBlock(spikingTheme.id) : '';
     
     // NOTE: No "icon" field requested - theme is pre-determined
     const system = `You generate ${styleDesc}s. The player is a ${perspective.type}.
@@ -564,7 +703,7 @@ Output ONLY valid JSON:
   "specialEffect": null
 }
 
-BONUS RULES: Research: 1-2 skills at -1. Internalized: 1-4 skills, MIX of +1 and -1 (the thought changes you, not just rewards you). Flavor is a 2-4 word label.`;
+BONUS RULES: Research: 1-2 skills at -1. Internalized: 1-4 skills, MIX of +1 and -1 (the thought changes you, not just rewards you). Flavor is a 2-4 word label.${questBlock}`;
 
     const chatContext = recentMessages.length > 0
         ? recentMessages.join('\n\n')
@@ -588,7 +727,8 @@ Pick ONE specific moment where "${spikingTheme.name.toLowerCase()}" hit the PROT
             playerPronouns,
             triggeredTheme: spikingTheme.id,
             themeIntensity: spikingTheme.count,
-            existingThoughts: existingThoughts.length
+            existingThoughts: existingThoughts.length,
+            questSeedRequested: includeQuestSeed
         }
     };
 }
