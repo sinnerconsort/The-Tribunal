@@ -4,6 +4,10 @@
  * Bridge module: re-exports functions from state.js and thoughts.js
  * with the names that cabinet-handler.js expects.
  * 
+ * @version 4.6.0 - Quest seed → case spawning at internalization:
+ *   - internalizeThought() checks for questSeed, creates ledger case
+ *   - Tracks lastQuestSeedMessage for cooldown system
+ *   - Uses applyTemplateRewrite for genre-aware case titles
  * @version 4.5.0 - Theme math rebalance:
  *   - Spike threshold 8 → 5 (themes respond faster)
  *   - Decay default 0 → 1 (themes cool off when not mentioned)
@@ -54,6 +58,9 @@ import {
     getTopThemes as _getTopThemes,
     detectThemes
 } from '../data/thoughts.js';
+
+// Genre-aware case theming for quest seeds
+import { applyTemplateRewrite } from '../voice/case-genre-rewriter.js';
 
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -524,8 +531,85 @@ export function internalizeThought(thoughtId) {
     // DISCHARGE THE THOUGHT'S THEME
     dischargeThoughtTheme(thought);
     
+    // ═══════════════════════════════════════════════════════════
+    // QUEST SEED → CASE SPAWNING
+    // If the thought carries a questSeed, create a ledger case
+    // ═══════════════════════════════════════════════════════════
+    if (thought.questSeed?.title) {
+        const spawnedCase = spawnCaseFromThought(state, thought, thoughtId);
+        if (spawnedCase) {
+            console.log(`[Tribunal] Quest spawned from thought: "${spawnedCase.title}"`);
+        }
+    }
+    
     saveChatState();
     return thought;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// QUEST SEED → CASE SPAWNING
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Create a ledger case from a thought's quest seed.
+ * Called during internalization. Uses the same case structure as ai-extractor.js.
+ * 
+ * @param {Object} state - Full chat state (from getChatState)
+ * @param {Object} thought - The internalized thought with questSeed
+ * @param {string} thoughtId - The thought's ID
+ * @returns {Object|null} Created case or null
+ */
+function spawnCaseFromThought(state, thought, thoughtId) {
+    if (!thought.questSeed?.title) return null;
+    
+    // Ensure ledger exists
+    if (!state.ledger) state.ledger = {};
+    if (!state.ledger.cases) state.ledger.cases = [];
+    
+    // Duplicate check — compare against both title and rawTitle
+    const seedTitle = thought.questSeed.title.toLowerCase();
+    const isDuplicate = state.ledger.cases.some(c => {
+        const titleMatch = c.title?.toLowerCase() === seedTitle;
+        const rawMatch = c.rawTitle?.toLowerCase() === seedTitle;
+        return titleMatch || rawMatch;
+    });
+    
+    if (isDuplicate) {
+        console.log(`[Tribunal] Quest seed "${thought.questSeed.title}" already exists as a case — skipping`);
+        return null;
+    }
+    
+    // Build raw case
+    const rawCase = {
+        id: `case_thought_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+        title: thought.questSeed.title,
+        description: thought.questSeed.description || '',
+        status: 'active',
+        priority: 'side',
+        hints: [],
+        notes: [],
+        discovered: new Date().toISOString(),
+        aiGenerated: true,
+        sourceThoughtId: thoughtId,
+        sourceThoughtName: thought.name
+    };
+    
+    // Apply genre theming (adds rawTitle, themes display title)
+    const themedCase = applyTemplateRewrite(rawCase);
+    
+    // Add to ledger
+    state.ledger.cases.push(themedCase);
+    
+    // Track for cooldown — store current message count
+    const cabinet = state.thoughtCabinet;
+    if (cabinet) {
+        cabinet.lastQuestSeedMessage = cabinet.messageCount || state?.meta?.messageCount || 0;
+    }
+    
+    // Cross-link: thought knows its case
+    thought.spawnedCaseId = themedCase.id;
+    
+    return themedCase;
 }
 
 /**
