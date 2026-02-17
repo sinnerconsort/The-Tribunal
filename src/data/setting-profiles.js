@@ -109,7 +109,6 @@ const BASE_SKILL_DESCRIPTIONS = {
     composure: 'The mask that never slips. Even alone.',
 };
 
-// ── Genre-specific skill descriptions (inline, no external import needed) ──
 const GENRE_SKILL_DESCRIPTIONS = {
     disco_elysium: {
         logic: 'The cold rationalist. If A, then B, therefore C.',
@@ -157,7 +156,7 @@ const GENRE_SKILL_DESCRIPTIONS = {
         half_light: 'Sees every red flag. Finds them attractive anyway.',
         shivers: 'Butterflies in the stomach. The electric feeling.',
         hand_eye_coordination: 'The outfit. The hair. Every detail matters.',
-        perception: "Noticed them across the room. Hasn't stopped looking.",
+        perception: 'Noticed them across the room. Can not stop looking.',
         reaction_speed: 'The involuntary blush. Cannot be controlled.',
         savoir_faire: 'Main character energy. Dramatic entrance specialist.',
         interfacing: 'Staring at the phone. Composing the perfect text.',
@@ -167,27 +166,27 @@ const GENRE_SKILL_DESCRIPTIONS = {
         logic: 'Connect the dots. Follow the money. Trust nobody.',
         encyclopedia: 'The files go deep. Cross-reference everything.',
         rhetoric: 'Argue like a lawyer. Win like a shark.',
-        drama: "Everyone's hiding something. She's hiding more.",
+        drama: 'Everyone is hiding something. She is hiding more.',
         conceptualization: 'Sees poetry in the gutter. Meaning in the rain.',
         visual_calculus: 'Reads the crime scene like a book. A bloody one.',
-        volition: "The good in you. It's still in there somewhere.",
+        volition: 'The good in you. Still in there somewhere.',
         inland_empire: 'A hunch. A feeling. The case whispers to you.',
-        empathy: "You hear what they're not saying. The confession beneath.",
+        empathy: 'You hear what they are not saying. The confession beneath.',
         authority: 'You run this precinct. Act like it.',
         suggestion: 'A favor here, a deal there. Everyone owes someone.',
-        esprit_de_corps: "The boys in blue. They'd take a bullet for you.",
-        endurance: "Three days on the stakeout. Coffee's cold. Keep going.",
+        esprit_de_corps: 'The boys in blue. They would take a bullet for you.',
+        endurance: 'Three days on the stakeout. Coffee is cold. Keep going.',
         pain_threshold: 'Takes a beating and keeps asking questions.',
         physical_instrument: 'Sometimes the case needs a fist, not a question.',
         electrochemistry: 'The bottle. The fix. The thing that keeps you up.',
-        half_light: "Something's wrong. Hand on the piece. Trust the gut.",
+        half_light: 'Something is wrong. Hand on the piece. Trust the gut.',
         shivers: 'The city talks to you. Rain on concrete. A siren far off.',
-        hand_eye_coordination: "Steady hands. The trigger's always an option.",
+        hand_eye_coordination: 'Steady hands. The trigger is always an option.',
         perception: 'You see everything. The missing thread. The wrong detail.',
         reaction_speed: 'Duck first, think second. Instinct over intellect.',
         savoir_faire: 'Cool under fire. Smooth in a crisis.',
         interfacing: 'The wiretap. The safe. The locked room. All talk to you.',
-        composure: "Face like stone. They'll never see you sweat."
+        composure: 'Face like stone. They will never see you sweat.'
     },
     cyberpunk: {
         logic: 'Data cruncher. Pattern recognition in the noise.',
@@ -206,10 +205,10 @@ const GENRE_SKILL_DESCRIPTIONS = {
         pain_threshold: 'More chrome than flesh. Pain is just a signal.',
         physical_instrument: 'Combat-grade muscle. Wetware at its finest.',
         electrochemistry: 'Every synapse a marketplace. Synthetic bliss.',
-        half_light: "Paranoia keeps you alive. Everyone's compromised.",
+        half_light: 'Paranoia keeps you alive. Everyone is compromised.',
         shivers: 'The city hums through your implants. Neon and static.',
         hand_eye_coordination: 'Smart-linked targeting. The shot never misses.',
-        perception: "Enhanced optics. See everything the meat eyes can't.",
+        perception: 'Enhanced optics. See everything the meat eyes miss.',
         reaction_speed: 'Wired reflexes. The world moves in slow motion.',
         savoir_faire: 'Living on the edge. Style over substance. Mostly.',
         interfacing: 'Jacked in. The net is your native language.',
@@ -242,13 +241,13 @@ const GENRE_SKILL_DESCRIPTIONS = {
         composure: 'Grace under pressure. The courtly mask.'
     },
     space_opera: {
-        logic: "Processing. Calculating. The math doesn't lie.",
+        logic: 'Processing. Calculating. The math never lies.',
         encyclopedia: 'Ancient civilizations and alien artifacts. The galaxy is old.',
         rhetoric: 'Peace between worlds starts with the right words.',
         drama: 'The charming rogue. Half-truths and full smiles.',
         conceptualization: 'Quantum theory and wild hypotheses. What if...?',
-        visual_calculus: "Three-dimensional tactics. The fleet is your chessboard.",
-        volition: "The captain's burden. The crew is counting on you.",
+        visual_calculus: 'Three-dimensional tactics. The fleet is your chessboard.',
+        volition: 'The captain carries the burden. The crew is counting on you.',
         inland_empire: 'The force. The warp. The thing beyond sensors.',
         empathy: 'Tend the wounded. Steady the shaken. Hold them together.',
         authority: 'Fleets obey. Worlds listen. Your word is law.',
@@ -269,52 +268,52 @@ const GENRE_SKILL_DESCRIPTIONS = {
     },
     thriller_horror: {
         logic: 'The psychological profile. What makes the monster tick.',
-        encyclopedia: "Case files and folklore. You've seen this pattern before.",
+        encyclopedia: 'Case files and folklore. You have seen this pattern before.',
         rhetoric: 'Talk them down. Talk them in circles. Buy time.',
         drama: 'Nothing is what it seems. Trust is a liability.',
-        conceptualization: "The director's eye. The symbolism is the message.",
+        conceptualization: 'The director eye. The symbolism is the message.',
         visual_calculus: 'Crime scene reconstruction. What happened here.',
         volition: 'The last voice that says RUN. And you should listen.',
-        inland_empire: "The wrongness. The thing you feel but can't explain.",
+        inland_empire: 'The wrongness. The thing you feel but cannot explain.',
         empathy: 'You feel the haunting. The residue of what happened here.',
         authority: 'Take control. Before IT does.',
         suggestion: 'Lure them in. Or lure them out. Either way, a trap.',
-        esprit_de_corps: "They're out there too. You're not alone. Probably.",
-        endurance: "Keep going. Don't stop. It's still behind you.",
-        pain_threshold: "Pain is information. You're still alive. Use it.",
-        physical_instrument: "Brute force. The door doesn't matter. Get through.",
+        esprit_de_corps: 'They are out there too. You are not alone. Probably.',
+        endurance: 'Keep going. Do not stop. It is still behind you.',
+        pain_threshold: 'Pain is information. You are still alive. Use it.',
+        physical_instrument: 'Brute force. The door does not matter. Get through.',
         electrochemistry: 'The body rebels. Nausea. Adrenaline. Something worse.',
         half_light: 'Every shadow is a threat. You are correct.',
         shivers: 'The house breathes. The woods watch. Something ancient.',
         hand_eye_coordination: 'Aim steady. One shot is all you get.',
         perception: 'The creak upstairs. The shape in the mirror. You noticed.',
-        reaction_speed: "MOVE. Now. Don't think. MOVE.",
+        reaction_speed: 'MOVE. Now. Do not think. MOVE.',
         savoir_faire: 'Scream and scramble with style. Improbable escape.',
         interfacing: 'The signal. The frequency. The message in the static.',
-        composure: "Don't let them see you shake. Fear is a weapon."
+        composure: 'Do not let them see you shake. Fear is a weapon.'
     },
     post_apocalyptic: {
         logic: 'Rationing. Probability. How long until the food runs out.',
-        encyclopedia: "Remembers the old world. Sometimes that's useful.",
+        encyclopedia: 'Remembers the old world. Sometimes that is useful.',
         rhetoric: 'Negotiate at the gate. Words save bullets.',
         drama: 'Everyone lies about their supplies. Read them.',
         conceptualization: 'Murals on the bunker walls. Beauty in the waste.',
         visual_calculus: 'Maps the terrain. Calculates the ambush angles.',
         volition: 'Build. Defend. Endure. Someone has to.',
         inland_empire: 'Visions in the rad-storms. Prophecy or brain damage.',
-        empathy: "Heal what you can. Mourn what you can't.",
+        empathy: 'Heal what you can. Mourn what you cannot.',
         authority: 'Someone needs to lead. Might as well be you.',
-        suggestion: "Trade, barter, persuade. Currency is dead. Words aren't.",
+        suggestion: 'Trade, barter, persuade. Currency is dead. Words are not.',
         esprit_de_corps: 'The convoy. The settlement. The ones who stayed.',
         endurance: 'Mile after mile. Dust and ruin. Keep walking.',
-        pain_threshold: "Every scar has a lesson. You've learned a lot.",
+        pain_threshold: 'Every scar has a lesson. You have learned a lot.',
         physical_instrument: 'Take what you need. Strength is survival.',
         electrochemistry: 'Scavenge anything useful. Hoarding is a skill now.',
-        half_light: "Something in the rubble. Don't turn your back.",
+        half_light: 'Something in the rubble. Do not turn your back.',
         shivers: 'The ruins remember what was here. You can feel it.',
         hand_eye_coordination: 'Ammo is precious. Make every round count.',
         perception: 'Movement on the ridge. Smoke to the east. Eyes up.',
-        reaction_speed: "Ambush reflexes. The wasteland doesn't give warnings.",
+        reaction_speed: 'Ambush reflexes. The wasteland gives no warnings.',
         savoir_faire: 'Reckless, resourceful, still alive somehow.',
         interfacing: 'If it has an engine, you can make it run. Probably.',
         composure: 'Calm under fire. Panic kills faster than bullets.'
@@ -338,10 +337,10 @@ const GENRE_SKILL_DESCRIPTIONS = {
         electrochemistry: 'Rob the graves. Someone should profit.',
         half_light: 'The dread before battle. The truth your body knows.',
         shivers: 'The battlefield wind. It carries the screams of the dead.',
-        hand_eye_coordination: "Aim for the gap in the armor. There's always one.",
+        hand_eye_coordination: 'Aim for the gap in the armor. There is always one.',
         perception: 'The witch-sign. The hidden blade. The wrong shadow.',
         reaction_speed: 'Flee or die. No shame in living.',
-        savoir_faire: "A sellsword's grace. Practical. Lethal.",
+        savoir_faire: 'A sellsword grace. Practical. Lethal.',
         interfacing: 'The rack. The mechanism. Tools serve those who understand.',
         composure: 'Stone face. Show nothing. Feeling is weakness.'
     },
@@ -367,7 +366,7 @@ const GENRE_SKILL_DESCRIPTIONS = {
         hand_eye_coordination: 'Knife skills. The perfect dice. The clean chop.',
         perception: 'Notices the weird stain. The funny noise. The vibe shift.',
         reaction_speed: 'Catches the falling mug. Dad reflexes are real.',
-        savoir_faire: "The host who makes it look effortless. It's not.",
+        savoir_faire: 'The host who makes it look effortless. It is not.',
         interfacing: 'The dishwasher, the router, the thermostat. All speak to you.',
         composure: 'Smile at the in-laws. Everything is fine. Everything.'
     },
@@ -502,12 +501,12 @@ export function getSkillDescription(skillId) {
         return profile.skillDescriptions[skillId];
     }
     
-    // 2. Genre-specific descriptions (inline map)
+    // 2. Centralized genre descriptions
     const genreId = getActiveProfileId();
     const genreDesc = GENRE_SKILL_DESCRIPTIONS[genreId]?.[skillId];
     if (genreDesc) return genreDesc;
     
-    // 3. Base descriptions (DE defaults)
+    // 3. Base descriptions (Disco Elysium defaults)
     return BASE_SKILL_DESCRIPTIONS[skillId] || '';
 }
 
