@@ -146,7 +146,7 @@ export const SETTING_PROFILES = {
 export function getActiveProfile() {
     try {
         const settings = getSettings();
-        const profileId = settings?.activeProfile || 'disco_elysium';
+        const profileId = settings?.activeProfile || settings?.genreProfile || 'disco_elysium';
         return SETTING_PROFILES[profileId] || SETTING_PROFILES.disco_elysium;
     } catch {
         return SETTING_PROFILES.disco_elysium;
@@ -159,7 +159,7 @@ export function getActiveProfile() {
 export function getActiveProfileId() {
     try {
         const settings = getSettings();
-        return settings?.activeProfile || 'disco_elysium';
+        return settings?.activeProfile || settings?.genreProfile || 'disco_elysium';
     } catch {
         return 'disco_elysium';
     }
