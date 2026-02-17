@@ -27,7 +27,7 @@ import {
 import { EQUIPMENT_TYPES } from './src/data/equipment.js';
 
 import { registerEvents, onStateRefresh } from './src/core/events.js';
-import { getSettings, saveSettings, setPersona, getVoiceState, setLastGeneratedVoices, getEquipmentItems, addEquipment, setWeather, setTime, setCurrentLocation, addLocation } from './src/core/state.js';
+import { getSettings, saveSettings, setPersona, getVoiceState, setLastGeneratedVoices, getEquipmentItems, addEquipment } from './src/core/state.js';
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - UI Components
@@ -81,12 +81,8 @@ let generateEquipmentFromMessage = async () => ({ equipment: [], removed: [] });
 
 // World State Parser (lazy loaded)
 let processWorldTag = () => ({ updated: false, noTag: true });
+let extractAndApplyAIWorldState = async () => null;
 let worldParserLoaded = false;
-
-// World State AI Extractor (lazy loaded)
-let extractWorldState = async () => null;
-let applyWorldState = () => {};
-let worldStateAILoaded = false;
 
 import { generateVoicesForMessage } from './src/voice/generation.js';
 import { renderVoices, appendVoicesToChat, clearVoices } from './src/voice/render-voices.js';
@@ -421,27 +417,17 @@ function onNewAIMessage(messageIndex) {
     
     // ═══════════════════════════════════════════════════════════════
     // AI WORLD STATE - Ask the model for weather, time, location
-    // Runs async, WORLD tag results take priority over AI inference
+    // Fills gaps the WORLD tag didn't provide. Same pipeline.
     // ═══════════════════════════════════════════════════════════════
     
-    if (worldStateAILoaded && settings?.worldState?.useAIWorldState !== false) {
+    if (worldParserLoaded && settings?.worldState?.useAIWorldState !== false) {
         setTimeout(async () => {
             try {
-                const aiState = await extractWorldState(message.mes, worldTagResult);
-                if (aiState) {
-                    applyWorldState(aiState, {
-                        setRPTime,
-                        setRPWeather,
-                        setWeather,
-                        setTime,
-                        setCurrentLocation,
-                        addLocation
-                    });
-                }
+                await extractAndApplyAIWorldState(message.mes, worldTagResult);
             } catch (e) {
                 console.warn('[Tribunal] AI world state extraction failed:', e.message);
             }
-        }, 800); // Small delay — let WORLD tag + weather effects settle first
+        }, 800);
     }
     
     // Small delay to ensure message is fully rendered
@@ -911,22 +897,12 @@ async function init() {
     try {
         const worldParser = await import('./src/systems/world-parser.js');
         processWorldTag = worldParser.processWorldTag;
+        extractAndApplyAIWorldState = worldParser.extractAndApplyAIWorldState;
         worldParserLoaded = true;
-        console.log('[Tribunal] World Parser loaded');
+        console.log('[Tribunal] World Parser loaded (with AI extraction)');
         window.tribunalWorldParser = worldParser.debugWorldParser;
     } catch (e) {
         console.warn('[Tribunal] World Parser not loaded:', e.message);
-    }
-    
-    // World State AI Extractor
-    try {
-        const worldAI = await import('./src/systems/world-state-ai.js');
-        extractWorldState = worldAI.extractWorldState;
-        applyWorldState = worldAI.applyWorldState;
-        worldStateAILoaded = true;
-        console.log('[Tribunal] World State AI loaded');
-    } catch (e) {
-        console.warn('[Tribunal] World State AI not loaded:', e.message);
     }
     
     // Weather Effects System
