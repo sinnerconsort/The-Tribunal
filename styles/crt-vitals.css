@@ -1,0 +1,361 @@
+/**
+ * The Tribunal - CRT Vitals Monitor
+ * Amber phosphor terminal display for HP/MP vitals
+ * REBUILD v0.1.0
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   CRT COLOR VARIABLES
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+    --crt-amber: #ffb000;
+    --crt-amber-dim: rgba(255, 176, 0, 0.6);
+    --crt-amber-glow: rgba(255, 176, 0, 0.4);
+    --crt-screen-bg: #0a0a0a;
+    --crt-bezel: #2a2a2a;
+    --crt-housing: #1a1a1a;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CRT MONITOR HOUSING
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-crt-monitor {
+    position: relative;
+    background: var(--crt-housing);
+    border: 2px solid var(--crt-bezel);
+    border-radius: 6px;
+    padding: 6px;
+    box-shadow:
+        inset 0 0 15px rgba(0, 0, 0, 0.5),
+        0 3px 6px rgba(0, 0, 0, 0.4);
+    /* Slight curvature illusion */
+    background-image: radial-gradient(
+        ellipse at center,
+        #1a1a1a 0%,
+        #141414 100%
+    );
+}
+
+/* Inner bezel edge */
+.ie-crt-monitor::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border: 1px solid #333;
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CRT SCREEN
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-crt-screen {
+    position: relative;
+    padding: 6px 8px;
+    background: var(--crt-screen-bg);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+/* Scanlines overlay */
+.ie-crt-screen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent 0px,
+        transparent 2px,
+        rgba(0, 0, 0, 0.3) 2px,
+        rgba(0, 0, 0, 0.3) 4px
+    );
+    pointer-events: none;
+    border-radius: 4px;
+}
+
+/* Subtle screen flicker */
+@keyframes crt-flicker {
+    0%, 100% { opacity: 1; }
+    92% { opacity: 1; }
+    93% { opacity: 0.95; }
+    94% { opacity: 1; }
+}
+
+.ie-crt-screen {
+    animation: crt-flicker 4s infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CRT TEXT STYLING
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-crt-text {
+    font-family: 'Courier New', monospace;
+    color: var(--crt-amber);
+    text-shadow: 
+        0 0 5px var(--crt-amber-glow),
+        0 0 10px rgba(255, 176, 0, 0.2);
+}
+
+/* Character name display */
+.ie-crt-name {
+    font-size: 9px;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    opacity: 0.9;
+}
+
+.ie-crt-name::before {
+    content: '> ';
+    opacity: 0.7;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VITAL ROWS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-crt-vital-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 3px;
+}
+
+.ie-crt-vital-row:last-of-type {
+    margin-bottom: 0;
+}
+
+.ie-crt-vital-label {
+    font-size: 10px;
+    min-width: 18px;
+    text-align: center;
+    color: var(--crt-amber);
+    text-shadow: 0 0 4px var(--crt-amber-glow);
+}
+
+.ie-crt-vital-label i {
+    font-size: 9px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   VITAL BARS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-crt-vital-bar {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 176, 0, 0.08);
+    border: 1px solid rgba(255, 176, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.ie-crt-vital-fill {
+    height: 100%;
+    background: var(--crt-amber);
+    box-shadow: 
+        0 0 6px var(--crt-amber-glow),
+        inset 0 0 4px rgba(255, 255, 255, 0.2);
+    transition: width 0.4s ease;
+    position: relative;
+}
+
+/* Bar segment lines (optional retro look) */
+.ie-crt-vital-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        90deg,
+        transparent 0px,
+        transparent 6px,
+        rgba(0, 0, 0, 0.3) 6px,
+        rgba(0, 0, 0, 0.3) 7px
+    );
+    z-index: 1;
+    pointer-events: none;
+}
+
+.ie-crt-vital-value {
+    font-size: 9px;
+    min-width: 20px;
+    text-align: right;
+    color: var(--crt-amber);
+    text-shadow: 0 0 4px var(--crt-amber-glow);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOW/CRITICAL STATES
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Low vitals (< 30%) - slower pulse */
+.ie-crt-vital-row.ie-vital-low .ie-crt-vital-fill {
+    animation: crt-pulse-low 1.5s ease-in-out infinite;
+}
+
+.ie-crt-vital-row.ie-vital-low .ie-crt-vital-label,
+.ie-crt-vital-row.ie-vital-low .ie-crt-vital-value {
+    animation: crt-text-pulse 1.5s ease-in-out infinite;
+}
+
+/* Critical vitals (< 15%) - fast pulse */
+.ie-crt-vital-row.ie-vital-critical .ie-crt-vital-fill {
+    animation: crt-pulse-critical 0.6s ease-in-out infinite;
+}
+
+.ie-crt-vital-row.ie-vital-critical .ie-crt-vital-label,
+.ie-crt-vital-row.ie-vital-critical .ie-crt-vital-value {
+    animation: crt-text-pulse-critical 0.6s ease-in-out infinite;
+}
+
+@keyframes crt-pulse-low {
+    0%, 100% { 
+        opacity: 1; 
+        box-shadow: 0 0 6px var(--crt-amber-glow);
+    }
+    50% { 
+        opacity: 0.5; 
+        box-shadow: 0 0 2px var(--crt-amber-glow);
+    }
+}
+
+@keyframes crt-pulse-critical {
+    0%, 100% { 
+        opacity: 1; 
+        box-shadow: 0 0 10px var(--crt-amber-glow);
+    }
+    50% { 
+        opacity: 0.3; 
+        box-shadow: 0 0 2px var(--crt-amber-glow);
+    }
+}
+
+@keyframes crt-text-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+@keyframes crt-text-pulse-critical {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EKG HEARTBEAT LINE
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-crt-ekg {
+    height: 14px;
+    margin-top: 4px;
+    border-top: 1px solid rgba(255, 176, 0, 0.15);
+    padding-top: 3px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ie-ekg-line {
+    flex: 1;
+    height: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+.ie-ekg-line svg {
+    position: absolute;
+    width: 200%;
+    height: 100%;
+    animation: ekg-scroll 2s linear infinite;
+}
+
+.ie-ekg-line path {
+    fill: none;
+    stroke: var(--crt-amber);
+    stroke-width: 1.5;
+    filter: drop-shadow(0 0 3px var(--crt-amber-glow));
+}
+
+@keyframes ekg-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* EKG speed changes with health state */
+.ie-crt-monitor.ie-vital-low .ie-ekg-line svg {
+    animation-duration: 2.5s;
+}
+
+.ie-crt-monitor.ie-vital-critical .ie-ekg-line svg {
+    animation-duration: 1s;
+}
+
+/* Flatline when dead */
+.ie-crt-monitor.ie-vital-dead .ie-ekg-line path {
+    d: path('M0,7 L200,7');
+}
+
+.ie-crt-monitor.ie-vital-dead .ie-ekg-line svg {
+    animation: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DAMAGE/HEAL FLASH EFFECTS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-crt-monitor.ie-crt-damage {
+    animation: crt-damage-flash 0.3s ease-out;
+}
+
+.ie-crt-monitor.ie-crt-heal {
+    animation: crt-heal-flash 0.3s ease-out;
+}
+
+@keyframes crt-damage-flash {
+    0% { 
+        box-shadow: 
+            inset 0 0 30px rgba(255, 50, 50, 0.6),
+            0 4px 8px rgba(0, 0, 0, 0.4);
+    }
+    100% { 
+        box-shadow: 
+            inset 0 0 20px rgba(0, 0, 0, 0.5),
+            0 4px 8px rgba(0, 0, 0, 0.4);
+    }
+}
+
+@keyframes crt-heal-flash {
+    0% { 
+        box-shadow: 
+            inset 0 0 30px rgba(100, 255, 100, 0.4),
+            0 4px 8px rgba(0, 0, 0, 0.4);
+    }
+    100% { 
+        box-shadow: 
+            inset 0 0 20px rgba(0, 0, 0, 0.5),
+            0 4px 8px rgba(0, 0, 0, 0.4);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SCREEN GLARE (optional subtle effect)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-crt-screen::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 50%;
+    bottom: 50%;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.03) 0%,
+        transparent 50%
+    );
+    border-radius: 4px 0 0 0;
+    pointer-events: none;
+    z-index: 2;
+}

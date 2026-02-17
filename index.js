@@ -2,7 +2,7 @@
  * The Tribunal - SillyTavern Extension
  * A standalone text based Disco Elysium system
  * 
- * v0.12.2 - Fixed enabled check, removed startup toast
+ * v0.12.4 - Fixed TribunalState race condition killing watch + weather init
  */
 
 // ═══════════════════════════════════════════════════════════════
@@ -203,6 +203,11 @@ function updateFABVisibility() {
             (settings?.ui?.showInvestigationFab !== false) && 
             inChatView;
         invFab.style.display = showInvFab ? 'flex' : 'none';
+        // Also close investigation panel if FAB is being hidden
+        if (!showInvFab) {
+            const invPanel = document.getElementById('tribunal-inv-panel');
+            if (invPanel) invPanel.style.display = 'none';
+        }
     }
 }
 
@@ -672,17 +677,10 @@ function refreshAllPanels() {
         setRCMCopotype(state.vitals.copotype, true);
     }
     
-    if (state.attributes) {
-        const a = state.attributes;
-        const intEl = document.getElementById('napkin-int-score');
-        const psyEl = document.getElementById('napkin-psy-score');
-        const fysEl = document.getElementById('napkin-fys-score');
-        const motEl = document.getElementById('napkin-mot-score');
-        if (intEl) intEl.textContent = a.intellect || 3;
-        if (psyEl) psyEl.textContent = a.psyche || 3;
-        if (fysEl) fysEl.textContent = a.physique || 3;
-        if (motEl) motEl.textContent = a.motorics || 3;
-    }
+    // Rebuild skill accordion with loaded state values
+    import('./src/ui/voices-template.js').then(module => {
+        module.buildSkillAccordion();
+    }).catch(() => {});
     
     refreshProfilesFromState();
     refreshStatusFromState();
@@ -704,8 +702,8 @@ function refreshAllPanels() {
         }
     }
     
-    // Sync weather effects with current state (if loaded)
-    if (weatherLoaded) {
+    // Sync weather effects with current state (if loaded AND extension enabled)
+    if (weatherLoaded && getSettings()?.enabled !== false) {
         syncWithWeatherTime();
     }
     
@@ -773,6 +771,12 @@ async function addExtensionSettings() {
                 } else {
                     if (fab) fab.style.display = 'none';
                     if (panel) panel.classList.remove('ie-panel-open');
+                    // Hide investigation FAB too
+                    const invFab = document.getElementById('tribunal-investigation-fab');
+                    if (invFab) invFab.style.display = 'none';
+                    // Clean up weather effects when disabling
+                    if (setEffectsEnabled) setEffectsEnabled(false);
+                    document.querySelectorAll('.tribunal-weather-layer').forEach(l => l.remove());
                     toastr.info('The Tribunal disabled', 'Extension');
                 }
             });
@@ -843,6 +847,16 @@ async function init() {
     initVoiceEngine();
     initDeathHandler(getContext);
     initLocationHandlers();
+
+    // Expose state module globally BEFORE startWatch/weather need it
+    // (state.js is already statically imported so this resolves instantly)
+    try {
+        const stateModule = await import('./src/core/state.js');
+        window.TribunalState = stateModule;
+    } catch (e) {
+        console.warn('[Tribunal] State module not exposed:', e.message);
+    }
+
     startWatch();
 
     // ═══════════════════════════════════════════════════════════════
@@ -886,15 +900,19 @@ async function init() {
         setEffectsIntensity = weatherModule.setEffectsIntensity;
         debugWeather = weatherModule.debugWeather;
         
-        initWeatherSystem({
+        const weatherInitOk = initWeatherSystem({
             effectsEnabled: true,
             autoDetect: true,
             intensity: 'light',
             syncWithTimeOfDay: true,
             skipEventListeners: false
         });
-        weatherLoaded = true;
-        console.log('[Tribunal] Weather effects system initialized');
+        weatherLoaded = !!weatherInitOk;
+        if (weatherLoaded) {
+            console.log('[Tribunal] Weather effects system initialized');
+        } else {
+            console.log('[Tribunal] Weather init skipped (extension disabled or already init)');
+        }
     } catch (e) {
         console.warn('[Tribunal] Weather system not loaded:', e.message);
         window.tribunalWeatherError = e.message || String(e);
@@ -1037,12 +1055,7 @@ async function init() {
         console.warn('[Tribunal] Compartment unlock not loaded:', err.message);
     });
 
-    // Expose state module globally
-    import('./src/core/state.js').then(stateModule => {
-        window.TribunalState = stateModule;
-    }).catch(err => {
-        console.warn('[Tribunal] State module not exposed:', err.message);
-    });
+    // TribunalState already exposed before startWatch() above
 
     // ═══════════════════════════════════════════════════════════════
     // EVENT REGISTRATION
@@ -1159,7 +1172,7 @@ async function init() {
 
 jQuery(async () => {
     try {
-        init();
+        await init();
     } catch (error) {
         console.error('[The Tribunal] Failed to initialize:', error);
         if (typeof toastr !== 'undefined') {

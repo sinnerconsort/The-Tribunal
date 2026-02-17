@@ -1,0 +1,731 @@
+/**
+ * The Tribunal - Toast Notifications
+ * Sticky note style with skill attribute colors
+ * v2.0 - Added skill colors + ledger voices + compartment reveals
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10020;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+    max-width: 320px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STICKY NOTE BASE - Clean post-it look
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast {
+    position: relative;
+    padding: 14px 16px 16px 16px;
+    min-width: 200px;
+    max-width: 300px;
+    pointer-events: auto;
+    
+    /* Default yellow post-it */
+    background: linear-gradient(
+        160deg,
+        #fff9b1 0%,
+        #fff59d 40%,
+        #ffee58 100%
+    );
+    
+    /* Sticky note shape - slightly rounded corners */
+    border: none;
+    border-radius: 1px 1px 1px 1px;
+    
+    /* Stuck-on shadow with slight lift at corner */
+    box-shadow: 
+        1px 1px 1px rgba(0,0,0,0.05),
+        2px 4px 10px rgba(0, 0, 0, 0.12),
+        -1px -1px 0 rgba(255,255,255,0.5) inset;
+    
+    /* Slight casual tilt */
+    transform: rotate(-1.5deg);
+    transform-origin: top center;
+    
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Alternating tilts for stacked notes */
+.ie-toast:nth-child(even) {
+    transform: rotate(1.5deg);
+}
+
+.ie-toast:nth-child(3n) {
+    transform: rotate(-0.8deg);
+}
+
+.ie-toast:nth-child(4n+1) {
+    transform: rotate(2deg);
+}
+
+/* Hover lifts the note */
+.ie-toast:hover {
+    transform: rotate(0deg) translateY(-2px) scale(1.02);
+    box-shadow: 
+        4px 8px 20px rgba(0, 0, 0, 0.18),
+        -1px -1px 0 rgba(255,255,255,0.5) inset;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STICKY TAPE EFFECT (translucent tape at top)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-1deg);
+    width: 70px;
+    height: 14px;
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.6) 0%,
+        rgba(255, 255, 255, 0.3) 50%,
+        rgba(255, 255, 255, 0.4) 100%
+    );
+    border-radius: 1px;
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255,255,255,0.5);
+    opacity: 0.85;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CORNER CURL EFFECT (bottom right lift)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 25px;
+    height: 25px;
+    background: linear-gradient(
+        135deg,
+        transparent 60%,
+        rgba(0, 0, 0, 0.02) 60%,
+        rgba(0, 0, 0, 0.06) 100%
+    );
+    border-radius: 0 0 2px 0;
+    pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST CONTENT
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.ie-toast-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1));
+}
+
+.ie-toast-text {
+    flex: 1;
+    font-size: 13px;
+    line-height: 1.45;
+    color: #3d3520;
+    font-family: var(--ie-font-body, system-ui, -apple-system, sans-serif);
+}
+
+.ie-toast-title {
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 4px;
+    color: #2d2510;
+}
+
+.ie-toast-message {
+    color: #4a4030;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DISMISS BUTTON
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-dismiss {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 18px;
+    height: 18px;
+    border: none;
+    background: transparent;
+    color: rgba(60, 50, 30, 0.3);
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.15s ease;
+    opacity: 0;
+}
+
+.ie-toast:hover .ie-toast-dismiss {
+    opacity: 1;
+}
+
+.ie-toast-dismiss:hover {
+    color: rgba(60, 50, 30, 0.8);
+    background: rgba(0, 0, 0, 0.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SKILL ATTRIBUTE COLORS - The Four Categories
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ───────────────────────────────────────────────────────────────
+   INTELLECT - Sky Blue
+   Logic, Encyclopedia, Rhetoric, Drama, Conceptualization, Visual Calculus
+   ─────────────────────────────────────────────────────────────── */
+
+.ie-toast.ie-toast-intellect,
+.ie-toast[data-attribute="intellect"] {
+    background: linear-gradient(160deg, #e3f2fd 0%, #bbdefb 40%, #90caf9 100%);
+}
+
+.ie-toast.ie-toast-intellect .ie-toast-icon,
+.ie-toast[data-attribute="intellect"] .ie-toast-icon { color: #1565c0; }
+
+.ie-toast.ie-toast-intellect .ie-toast-title,
+.ie-toast[data-attribute="intellect"] .ie-toast-title { color: #0d47a1; }
+
+.ie-toast.ie-toast-intellect .ie-toast-message,
+.ie-toast[data-attribute="intellect"] .ie-toast-message { color: #1a3a5c; }
+
+.ie-toast.ie-toast-intellect .ie-intrusive-signature { color: #0d47a1; }
+.ie-toast.ie-toast-intellect .ie-intrusive-content { color: #1a3a5c; }
+
+/* ───────────────────────────────────────────────────────────────
+   PSYCHE - Lavender Purple
+   Volition, Inland Empire, Empathy, Authority, Esprit de Corps, Suggestion
+   ─────────────────────────────────────────────────────────────── */
+
+.ie-toast.ie-toast-psyche,
+.ie-toast[data-attribute="psyche"] {
+    background: linear-gradient(160deg, #f3e5f5 0%, #e1bee7 40%, #ce93d8 100%);
+}
+
+.ie-toast.ie-toast-psyche .ie-toast-icon,
+.ie-toast[data-attribute="psyche"] .ie-toast-icon { color: #7b1fa2; }
+
+.ie-toast.ie-toast-psyche .ie-toast-title,
+.ie-toast[data-attribute="psyche"] .ie-toast-title { color: #4a148c; }
+
+.ie-toast.ie-toast-psyche .ie-toast-message,
+.ie-toast[data-attribute="psyche"] .ie-toast-message { color: #4a3050; }
+
+.ie-toast.ie-toast-psyche .ie-intrusive-signature { color: #4a148c; }
+.ie-toast.ie-toast-psyche .ie-intrusive-content { color: #4a3050; }
+
+/* ───────────────────────────────────────────────────────────────
+   PHYSIQUE - Coral/Salmon Pink  
+   Endurance, Pain Threshold, Physical Instrument, Electrochemistry, Shivers, Half Light
+   ─────────────────────────────────────────────────────────────── */
+
+.ie-toast.ie-toast-physique,
+.ie-toast[data-attribute="physique"] {
+    background: linear-gradient(160deg, #ffebee 0%, #ffcdd2 40%, #ef9a9a 100%);
+}
+
+.ie-toast.ie-toast-physique .ie-toast-icon,
+.ie-toast[data-attribute="physique"] .ie-toast-icon { color: #c62828; }
+
+.ie-toast.ie-toast-physique .ie-toast-title,
+.ie-toast[data-attribute="physique"] .ie-toast-title { color: #b71c1c; }
+
+.ie-toast.ie-toast-physique .ie-toast-message,
+.ie-toast[data-attribute="physique"] .ie-toast-message { color: #5d2a2a; }
+
+.ie-toast.ie-toast-physique .ie-intrusive-signature { color: #b71c1c; }
+.ie-toast.ie-toast-physique .ie-intrusive-content { color: #5d2a2a; }
+
+/* ───────────────────────────────────────────────────────────────
+   MOTORICS - Pale Yellow/Cream
+   Hand/Eye, Perception, Reaction Speed, Savoir Faire, Interfacing, Composure
+   ─────────────────────────────────────────────────────────────── */
+
+.ie-toast.ie-toast-motorics,
+.ie-toast[data-attribute="motorics"] {
+    background: linear-gradient(160deg, #fffde7 0%, #fff9c4 40%, #fff176 100%);
+}
+
+.ie-toast.ie-toast-motorics .ie-toast-icon,
+.ie-toast[data-attribute="motorics"] .ie-toast-icon { color: #f9a825; }
+
+.ie-toast.ie-toast-motorics .ie-toast-title,
+.ie-toast[data-attribute="motorics"] .ie-toast-title { color: #f57f17; }
+
+.ie-toast.ie-toast-motorics .ie-toast-message,
+.ie-toast[data-attribute="motorics"] .ie-toast-message { color: #5d4a1a; }
+
+.ie-toast.ie-toast-motorics .ie-intrusive-signature { color: #f57f17; }
+.ie-toast.ie-toast-motorics .ie-intrusive-content { color: #5d4a1a; }
+
+/* ═══════════════════════════════════════════════════════════════
+   UTILITY COLORS (Success, Error, Warning, Info)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Success - Mint Green */
+.ie-toast.ie-toast-success {
+    background: linear-gradient(160deg, #e8f5e9 0%, #c8e6c9 40%, #a5d6a7 100%);
+}
+.ie-toast.ie-toast-success .ie-toast-icon { color: #2e7d32; }
+.ie-toast.ie-toast-success .ie-toast-title { color: #1b5e20; }
+.ie-toast.ie-toast-success .ie-toast-message { color: #2e5a32; }
+
+/* Error - Light Red */
+.ie-toast.ie-toast-error {
+    background: linear-gradient(160deg, #ffebee 0%, #ffcdd2 40%, #f48490 100%);
+}
+.ie-toast.ie-toast-error .ie-toast-icon { color: #c62828; }
+.ie-toast.ie-toast-error .ie-toast-title { color: #b71c1c; }
+.ie-toast.ie-toast-error .ie-toast-message { color: #6d2a2a; }
+
+/* Warning - Peach/Orange */
+.ie-toast.ie-toast-warning {
+    background: linear-gradient(160deg, #fff3e0 0%, #ffe0b2 40%, #ffcc80 100%);
+}
+.ie-toast.ie-toast-warning .ie-toast-icon { color: #ef6c00; }
+.ie-toast.ie-toast-warning .ie-toast-title { color: #e65100; }
+.ie-toast.ie-toast-warning .ie-toast-message { color: #5d3a1a; }
+
+/* Info - Light Cyan */
+.ie-toast.ie-toast-info {
+    background: linear-gradient(160deg, #e0f7fa 0%, #b2ebf2 40%, #80deea 100%);
+}
+.ie-toast.ie-toast-info .ie-toast-icon { color: #00838f; }
+.ie-toast.ie-toast-info .ie-toast-title { color: #006064; }
+.ie-toast.ie-toast-info .ie-toast-message { color: #1a4a5e; }
+
+/* Morale - Teal */
+.ie-toast.ie-toast-morale {
+    background: linear-gradient(160deg, #e0f2f1 0%, #b2dfdb 40%, #80cbc4 100%);
+}
+.ie-toast.ie-toast-morale .ie-toast-icon { color: #00695c; }
+.ie-toast.ie-toast-morale .ie-toast-title { color: #004d40; }
+.ie-toast.ie-toast-morale .ie-toast-message { color: #1d4a44; }
+
+/* ═══════════════════════════════════════════════════════════════
+   LEDGER VOICE TOASTS
+   For the three ledger personalities in the secret compartment
+   ═══════════════════════════════════════════════════════════════ */
+
+/* The Damaged Ledger - Aged parchment/orange */
+.ie-toast.ie-toast-ledger-damaged {
+    background: linear-gradient(160deg, #fff8e1 0%, #ffe4b5 40%, #ddb892 100%);
+    box-shadow: 
+        2px 4px 12px rgba(0, 0, 0, 0.15),
+        inset 0 0 30px rgba(139, 90, 43, 0.08);
+}
+.ie-toast.ie-toast-ledger-damaged .ie-toast-title { color: #8b5a2b; font-style: italic; }
+.ie-toast.ie-toast-ledger-damaged .ie-toast-message { color: #5d4a30; font-style: italic; }
+
+/* The Ledger of Oblivion - Deep purple */
+.ie-toast.ie-toast-ledger-oblivion {
+    background: linear-gradient(160deg, #ede7f6 0%, #d1c4e9 40%, #b39ddb 100%);
+    box-shadow: 
+        2px 4px 12px rgba(0, 0, 0, 0.15),
+        inset 0 0 20px rgba(103, 58, 183, 0.08);
+}
+.ie-toast.ie-toast-ledger-oblivion .ie-toast-title { color: #4527a0; letter-spacing: 1px; }
+.ie-toast.ie-toast-ledger-oblivion .ie-toast-message { color: #311b6b; }
+
+/* The Ledger of Failure and Hatred - Dark red */
+.ie-toast.ie-toast-ledger-failure {
+    background: linear-gradient(160deg, #ffebee 0%, #ffcdd2 40%, #e57373 100%);
+    box-shadow: 
+        2px 4px 12px rgba(0, 0, 0, 0.18),
+        inset 0 0 20px rgba(183, 28, 28, 0.08);
+}
+.ie-toast.ie-toast-ledger-failure .ie-toast-title { color: #b71c1c; }
+.ie-toast.ie-toast-ledger-failure .ie-toast-message { color: #4a1a1a; }
+
+/* ═══════════════════════════════════════════════════════════════
+   SECRET COMPARTMENT TOASTS
+   For the unlock hints and final reveal
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Hint toasts - dark, mysterious */
+.ie-toast.ie-toast-compartment-hint {
+    background: linear-gradient(160deg, #37474f 0%, #263238 50%, #1a1a1a 100%);
+    color: #d4a574;
+    border: 1px solid rgba(212, 165, 116, 0.2);
+    box-shadow: 
+        2px 4px 16px rgba(0, 0, 0, 0.35),
+        inset 0 0 30px rgba(212, 165, 116, 0.03);
+}
+
+.ie-toast.ie-toast-compartment-hint::before {
+    /* No tape - emerges from darkness */
+    display: none;
+}
+
+.ie-toast.ie-toast-compartment-hint .ie-toast-title {
+    color: #d4a574;
+    font-style: italic;
+    letter-spacing: 1px;
+}
+
+.ie-toast.ie-toast-compartment-hint .ie-toast-message {
+    color: rgba(212, 165, 116, 0.85);
+    font-style: italic;
+}
+
+/* Final reveal toast - glowing */
+.ie-toast.ie-toast-compartment-reveal {
+    background: linear-gradient(160deg, #2a2018 0%, #3d3225 50%, #1f1812 100%);
+    color: #d4a574;
+    border: 1px solid rgba(212, 165, 116, 0.4);
+    box-shadow: 
+        2px 4px 20px rgba(0, 0, 0, 0.4),
+        0 0 40px rgba(212, 165, 116, 0.12),
+        inset 0 0 40px rgba(212, 165, 116, 0.05);
+    animation: compartmentRevealPulse 3s ease-in-out infinite;
+}
+
+@keyframes compartmentRevealPulse {
+    0%, 100% { box-shadow: 2px 4px 20px rgba(0,0,0,0.4), 0 0 30px rgba(212,165,116,0.1); }
+    50% { box-shadow: 2px 4px 20px rgba(0,0,0,0.4), 0 0 50px rgba(212,165,116,0.2); }
+}
+
+.ie-toast.ie-toast-compartment-reveal::before { display: none; }
+
+.ie-toast.ie-toast-compartment-reveal .ie-toast-title {
+    color: #d4a574;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 10px;
+}
+
+.ie-toast.ie-toast-compartment-reveal .ie-toast-message {
+    color: #d4a574;
+    font-style: italic;
+    line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Slide in and stick */
+@keyframes ie-toast-stick {
+    0% {
+        opacity: 0;
+        transform: translateX(80px) rotate(8deg);
+    }
+    60% {
+        opacity: 1;
+        transform: translateX(-6px) rotate(-2deg);
+    }
+    80% {
+        transform: translateX(3px) rotate(1deg);
+    }
+    100% {
+        transform: translateX(0) rotate(-1.5deg);
+    }
+}
+
+/* Peel off and fly away */
+@keyframes ie-toast-peel {
+    0% {
+        opacity: 1;
+        transform: rotate(-1.5deg);
+    }
+    25% {
+        transform: rotate(-3deg) translateY(-4px);
+    }
+    100% {
+        opacity: 0;
+        transform: rotate(12deg) translateX(100px) translateY(-30px);
+    }
+}
+
+.ie-toast.ie-toast-enter {
+    animation: ie-toast-stick 0.35s ease-out forwards;
+}
+
+.ie-toast.ie-toast-exit {
+    animation: ie-toast-peel 0.3s ease-in forwards;
+}
+
+/* Alt animation for even notes */
+.ie-toast:nth-child(even).ie-toast-enter {
+    animation-name: ie-toast-stick-alt;
+}
+
+@keyframes ie-toast-stick-alt {
+    0% {
+        opacity: 0;
+        transform: translateX(80px) rotate(-6deg);
+    }
+    60% {
+        opacity: 1;
+        transform: translateX(-6px) rotate(2deg);
+    }
+    80% {
+        transform: translateX(3px) rotate(-1deg);
+    }
+    100% {
+        transform: translateX(0) rotate(1.5deg);
+    }
+}
+
+/* Legacy classes */
+.ie-toast-show { animation: ie-toast-stick 0.35s ease-out forwards; }
+.ie-toast-hide { animation: ie-toast-peel 0.3s ease-in forwards; }
+
+/* ═══════════════════════════════════════════════════════════════
+   PROGRESS BAR (auto-dismiss timer)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: 0 0 2px 2px;
+}
+
+.ie-toast-progress.ie-toast-progress-animate {
+    animation: ie-toast-progress-shrink var(--toast-duration, 4s) linear forwards;
+}
+
+@keyframes ie-toast-progress-shrink {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INTRUSIVE THOUGHT / VOICE TOASTS
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-intrusive {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.ie-toast-intrusive .ie-toast-content {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.ie-intrusive-header,
+.ie-object-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ie-intrusive-signature,
+.ie-object-name {
+    font-family: var(--ie-font-header, Georgia, serif);
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ie-intrusive-content,
+.ie-object-content {
+    font-size: 13px;
+    font-style: italic;
+    margin: 8px 0;
+    line-height: 1.5;
+}
+
+.ie-intrusive-dismiss,
+.ie-object-dismiss {
+    align-self: flex-end;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 8px;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+    opacity: 0.6;
+}
+
+.ie-intrusive-dismiss:hover,
+.ie-object-dismiss:hover {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OBJECT VOICE TOAST
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-object {
+    background: linear-gradient(160deg, #fff8e1 0%, #ffecb3 40%, #ffe082 100%);
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.ie-toast-object .ie-object-name { color: #e65100; }
+.ie-toast-object .ie-object-content { color: #5d4a1a; }
+.ie-toast-object .ie-object-dismiss { color: rgba(230, 81, 0, 0.6); }
+.ie-toast-object .ie-object-dismiss:hover { color: #e65100; }
+
+/* ═══════════════════════════════════════════════════════════════
+   THOUGHT DISCOVERY TOAST
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-discovery {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.ie-toast-discovery-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ie-toast-discovery-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.ie-toast-discovery-name {
+    font-weight: 700;
+    margin: 6px 0;
+}
+
+.ie-toast-discovery-desc {
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+.ie-toast-discovery-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INTERNALIZED THOUGHT TOAST
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast-internalized {
+    background: linear-gradient(160deg, #fffde7 0%, #fff9c4 40%, #ffd54f 100%);
+    flex-direction: column;
+    align-items: stretch;
+    box-shadow: 
+        2px 4px 12px rgba(0, 0, 0, 0.12),
+        inset 0 0 25px rgba(255, 215, 0, 0.15);
+}
+
+.ie-internalized-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #f57f17;
+}
+
+.ie-internalized-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.ie-internalized-name {
+    font-weight: 700;
+    margin: 6px 0;
+    color: #5d4a00;
+}
+
+.ie-internalized-flavor {
+    font-size: 12px;
+    font-style: italic;
+    color: #6d5a1a;
+    margin-bottom: 6px;
+}
+
+.ie-internalized-bonuses {
+    font-size: 11px;
+    color: #2e7d32;
+    font-weight: 600;
+}
+
+.ie-internalized-caps {
+    font-size: 11px;
+    color: #c62828;
+    font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ANCIENT VOICE TOASTS (Limbic System, Reptilian Brain, etc)
+   ═══════════════════════════════════════════════════════════════ */
+
+.ie-toast.ie-toast-ancient {
+    background: linear-gradient(160deg, #455a64 0%, #37474f 50%, #263238 100%);
+    color: #90a4ae;
+    border: 1px solid rgba(144, 164, 174, 0.15);
+}
+
+.ie-toast.ie-toast-ancient::before { opacity: 0.3; }
+
+.ie-toast.ie-toast-ancient .ie-toast-title {
+    color: #78909c;
+    letter-spacing: 2px;
+    font-size: 10px;
+}
+
+.ie-toast.ie-toast-ancient .ie-toast-message {
+    color: #90a4ae;
+    font-style: italic;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MOBILE ADJUSTMENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .ie-toast-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .ie-toast {
+        max-width: none;
+        transform: rotate(0deg) !important;
+    }
+    
+    .ie-toast:hover {
+        transform: none !important;
+    }
+    
+    .ie-toast-dismiss {
+        opacity: 1;
+    }
+}

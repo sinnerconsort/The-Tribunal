@@ -1,0 +1,634 @@
+/**
+ * The Tribunal - Settings CSS
+ * RCM Configuration Form - Typewriter aesthetic with LIFE
+ * v4.3.0 - Added visual character, fixed checkbox styling, fixed overflow
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   CSS VARIABLES
+   ═══════════════════════════════════════════════════════════════ */
+
+.settings-page {
+    --paper-cream: #f4f1e8;
+    --paper-aged: #e8e4d4;
+    --paper-shadow: #d4d0c0;
+    --paper-stain: #d4c4a8;
+    --ink-black: #1a1a1a;
+    --ink-faded: #3a3a3a;
+    --ink-light: #5a5a5a;
+    --ink-blue: #2a3d52;
+    --pencil-gray: #6b6b6b;
+    --typewriter-font: 'Special Elite', 'Courier New', Courier, monospace;
+    --handwriting-font: 'Caveat', 'Comic Sans MS', cursive;
+    --stamp-red: #8b2020;
+    --stamp-blue: #1a3a5c;
+    --carbon-blue: #2a4a6a;
+    --coffee-ring: rgba(139, 90, 43, 0.15);
+    --coffee-dark: rgba(101, 67, 33, 0.25);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PAGE CONTAINER - Fixed to respect boundaries
+   ═══════════════════════════════════════════════════════════════ */
+
+.settings-page {
+    padding: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: none;
+    /* Ensure we don't bleed into FELD DEVICE */
+    position: relative;
+    contain: layout paint;
+}
+
+.settings-page.ie-tab-content-active {
+    display: block !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THE FORM (Paper with character)
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-config-form {
+    background: var(--paper-cream);
+    margin: 12px;
+    padding: 24px 20px;
+    border-radius: 2px;
+    position: relative;
+    min-height: 600px;
+    /* Keep it contained */
+    overflow: visible;
+    
+    /* Paper shadow - slightly more dramatic */
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.12),
+        0 4px 8px rgba(0, 0, 0, 0.08),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.05),
+        /* Subtle fold shadow on left */
+        inset 4px 0 8px -4px rgba(0, 0, 0, 0.06);
+    
+    /* Slight paper curl - reduced to prevent clipping */
+    transform: rotate(-0.2deg);
+    transform-origin: center center;
+}
+
+/* Paper texture overlay */
+.rcm-config-form::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    z-index: 0;
+    border-radius: 2px;
+}
+
+/* Coffee ring stain - top right area */
+.rcm-config-form::after {
+    content: '';
+    position: absolute;
+    top: 45px;
+    right: 25px;
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background: transparent;
+    box-shadow: 
+        inset 0 0 8px 3px var(--coffee-ring),
+        0 0 4px 1px var(--coffee-dark);
+    opacity: 0.7;
+    pointer-events: none;
+    z-index: 1;
+    transform: rotate(12deg);
+}
+
+/* Vertical fold crease */
+.settings-page .rcm-config-form {
+    background-image: 
+        /* Vertical fold line */
+        linear-gradient(
+            90deg,
+            transparent 0%,
+            transparent calc(50% - 1px),
+            rgba(0, 0, 0, 0.03) calc(50% - 1px),
+            rgba(0, 0, 0, 0.05) 50%,
+            rgba(0, 0, 0, 0.03) calc(50% + 1px),
+            transparent calc(50% + 1px),
+            transparent 100%
+        ),
+        /* Aged paper gradient */
+        linear-gradient(
+            180deg,
+            var(--paper-cream) 0%,
+            var(--paper-aged) 100%
+        );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STAPLE - Top left corner (simpler than paperclip)
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-config-form .rcm-form-header::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 25px;
+    width: 18px;
+    height: 4px;
+    background: linear-gradient(180deg, #b0b0b0 0%, #888888 50%, #a0a0a0 100%);
+    border-radius: 1px;
+    transform: rotate(-15deg);
+    z-index: 10;
+    box-shadow: 
+        0 1px 2px rgba(0,0,0,0.3),
+        inset 0 -1px 0 rgba(255,255,255,0.3);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-form-header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--ink-black);
+    position: relative;
+    z-index: 2;
+}
+
+.rcm-form-title {
+    font-family: var(--typewriter-font);
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--ink-black);
+    letter-spacing: 2px;
+    line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SECTIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-section {
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 2;
+}
+
+.rcm-section-header {
+    font-family: var(--typewriter-font);
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--ink-black);
+    letter-spacing: 1.5px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    margin-bottom: 12px;
+    padding-bottom: 4px;
+    /* Section marker bullet */
+    padding-left: 12px;
+    position: relative;
+}
+
+.rcm-section-header::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: var(--ink-faded);
+    font-size: 10px;
+}
+
+.rcm-section-content {
+    padding-left: 8px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FORM FIELDS
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-field-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 12px;
+}
+
+.rcm-field-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.rcm-field-label {
+    font-family: var(--typewriter-font);
+    font-size: 10px;
+    color: var(--ink-faded);
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+.rcm-field-note {
+    font-family: var(--typewriter-font);
+    font-size: 9px;
+    color: var(--ink-light);
+    margin-top: 4px;
+    margin-bottom: 12px;
+    padding-left: 28px;
+    font-style: italic;
+}
+
+/* Text/Number inputs */
+.rcm-input {
+    width: 100%;
+    font-family: var(--typewriter-font);
+    font-size: 12px;
+    color: var(--ink-black);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--ink-faded);
+    padding: 4px 2px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.rcm-input:focus {
+    border-bottom-color: var(--ink-black);
+    border-bottom-width: 2px;
+}
+
+.rcm-input::placeholder {
+    color: var(--ink-light);
+    font-style: italic;
+}
+
+/* Number inputs - narrower */
+.rcm-input[type="number"] {
+    width: 80px;
+    text-align: center;
+}
+
+/* Select dropdowns - FIXED overflow */
+.rcm-select {
+    font-family: var(--typewriter-font);
+    font-size: 11px;
+    color: var(--ink-black);
+    background: var(--paper-aged);
+    border: 1px solid var(--ink-light);
+    padding: 6px 28px 6px 8px;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%233a3a3a' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    position: relative;
+    z-index: 5;
+    /* CONSTRAIN THE WIDTH */
+    max-width: 160px;
+    min-width: 0;
+    box-sizing: border-box;
+    /* Text overflow handling */
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.rcm-select:focus {
+    border-color: var(--ink-black);
+    z-index: 10;
+}
+
+/* Field row with select - wrap on small screens */
+.rcm-field-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+/* Specifically for label + select rows */
+.rcm-field-row .rcm-field-label {
+    flex-shrink: 0;
+}
+
+.rcm-field-row .rcm-select {
+    flex: 1 1 auto;
+    max-width: 160px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CHECKBOXES - Typewriter/RCM style (NO BLUE!)
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-checkbox-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    font-family: var(--typewriter-font);
+    font-size: 11px;
+    color: var(--ink-black);
+    letter-spacing: 0.5px;
+    line-height: 1.4;
+}
+
+/* Base checkbox - empty box */
+.rcm-checkbox-row input[type="checkbox"] {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    width: 16px !important;
+    height: 16px !important;
+    min-width: 16px !important;
+    min-height: 16px !important;
+    border: 2px solid var(--ink-faded) !important;
+    border-radius: 0 !important;
+    background-color: #f4f1e8 !important;
+    background-image: none !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative !important;
+    box-shadow: inset 1px 1px 2px rgba(0,0,0,0.05) !important;
+    outline: none !important;
+}
+
+/* KILL any pseudo-element checkmarks from themes */
+.rcm-checkbox-row input[type="checkbox"]::before,
+.rcm-checkbox-row input[type="checkbox"]::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    border: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* Checked state - X mark using SVG, black on cream */
+.rcm-checkbox-row input[type="checkbox"]:checked {
+    background-color: #e8e4d4 !important;
+    /* SVG X mark - BLACK stroke */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath stroke='%231a1a1a' stroke-width='2.5' stroke-linecap='round' fill='none' d='M3 3L13 13M13 3L3 13'/%3E%3C/svg%3E") !important;
+    background-size: 10px 10px !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    box-shadow: none !important;
+}
+
+/* KILL pseudo-elements on checked state too */
+.rcm-checkbox-row input[type="checkbox"]:checked::before,
+.rcm-checkbox-row input[type="checkbox"]:checked::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    border: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* Hover state */
+.rcm-checkbox-row:hover input[type="checkbox"] {
+    border-color: var(--ink-black) !important;
+    background-color: #e8e4d4 !important;
+}
+
+/* Focus state */
+.rcm-checkbox-row input[type="checkbox"]:focus {
+    border-color: var(--ink-black) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MARGIN ANNOTATIONS - Handwritten notes feel
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Add a pencil scribble near Investigation section */
+.rcm-section:nth-child(3)::after {
+    content: '← important!';
+    position: absolute;
+    right: -5px;
+    top: 0;
+    font-family: var(--handwriting-font);
+    font-size: 10px;
+    color: var(--pencil-gray);
+    transform: rotate(-8deg);
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BUTTONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-btn {
+    font-family: var(--typewriter-font);
+    font-size: 11px;
+    letter-spacing: 1px;
+    padding: 10px 16px;
+    border: 1px solid var(--ink-faded);
+    background: var(--paper-cream);
+    color: var(--ink-black);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.15s;
+    width: 100%;
+    position: relative;
+}
+
+.rcm-btn:hover {
+    background: var(--paper-aged);
+    border-color: var(--ink-black);
+}
+
+.rcm-btn:active {
+    transform: translateY(1px);
+}
+
+.rcm-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Dashed button (Reset) */
+.rcm-btn-dashed {
+    border-style: dashed;
+    margin-top: 8px;
+}
+
+/* Primary action button - stamp blue */
+.rcm-btn-primary {
+    background: var(--stamp-blue);
+    color: var(--paper-cream);
+    border-color: var(--stamp-blue);
+}
+
+.rcm-btn-primary:hover {
+    background: #0d1f2d;
+    border-color: #0d1f2d;
+}
+
+/* Button icons */
+.rcm-btn .btn-icon {
+    font-size: 14px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ACTIONS SECTION
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px solid var(--ink-light);
+    position: relative;
+    z-index: 2;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FOOTER
+   ═══════════════════════════════════════════════════════════════ */
+
+.rcm-form-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px solid var(--ink-light);
+    position: relative;
+    z-index: 2;
+}
+
+.rcm-form-id,
+.rcm-form-rev {
+    font-family: var(--typewriter-font);
+    font-size: 8px;
+    color: var(--ink-light);
+    letter-spacing: 1px;
+}
+
+.rcm-internal-stamp {
+    font-family: var(--typewriter-font);
+    font-size: 9px;
+    font-weight: bold;
+    color: var(--stamp-red);
+    letter-spacing: 2px;
+    padding: 3px 8px;
+    border: 2px solid var(--stamp-red);
+    opacity: 0.7;
+    transform: rotate(-3deg);
+    /* Rubber stamp texture */
+    background: 
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 1px,
+            rgba(255,255,255,0.3) 1px,
+            rgba(255,255,255,0.3) 2px
+        );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   WORN EDGES / PAPER DAMAGE
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Top right corner dog-ear */
+.rcm-config-form .rcm-form-header::after {
+    content: '';
+    position: absolute;
+    top: -24px;
+    right: -20px;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 0 25px 25px;
+    border-color: transparent transparent var(--paper-shadow) transparent;
+    transform: rotate(0deg);
+    opacity: 0.5;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 380px) {
+    .rcm-config-form {
+        margin: 8px;
+        padding: 16px 14px;
+        /* Remove rotation on small screens to prevent clipping */
+        transform: none;
+    }
+    
+    .rcm-form-title {
+        font-size: 12px;
+    }
+    
+    .rcm-field-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .rcm-field-row {
+        flex-wrap: wrap;
+    }
+    
+    .rcm-select {
+        width: 100%;
+        min-width: 0;
+    }
+    
+    /* Hide decorative elements on small screens */
+    .rcm-config-form::after,
+    .rcm-section:nth-child(3)::after,
+    .rcm-config-form .rcm-form-header::before {
+        display: none;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FORCED OVERRIDES - Nuclear option for stubborn themes
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Kill ALL checkbox pseudo-elements from any source */
+.settings-page input[type="checkbox"]::before,
+.settings-page input[type="checkbox"]::after,
+.settings-page input[type="checkbox"]:checked::before,
+.settings-page input[type="checkbox"]:checked::after,
+.rcm-config-form input[type="checkbox"]::before,
+.rcm-config-form input[type="checkbox"]::after,
+.rcm-config-form input[type="checkbox"]:checked::before,
+.rcm-config-form input[type="checkbox"]:checked::after {
+    content: none !important;
+    display: none !important;
+    background: transparent !important;
+    background-image: none !important;
+    border: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Force checkbox colors */
+.settings-page input[type="checkbox"],
+.rcm-config-form input[type="checkbox"] {
+    accent-color: transparent !important;
+    color-scheme: light !important;
+}
+
+/* Ensure checked state has cream background, not dark */
+.settings-page input[type="checkbox"]:checked,
+.rcm-config-form input[type="checkbox"]:checked {
+    background-color: #e8e4d4 !important;
+}
