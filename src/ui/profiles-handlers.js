@@ -126,7 +126,7 @@ function bindGenreSelector() {
         const settings = getSettings();
         if (settings) {
             settings.activeProfile = newProfileId;
-            settings.genreProfile = newProfileId; // Keep in sync for legacy readers
+            settings.genreProfile = newProfileId;
         }
         updateCardLabelsForGenre();
         window.dispatchEvent(new CustomEvent('tribunal:genreChanged', {
