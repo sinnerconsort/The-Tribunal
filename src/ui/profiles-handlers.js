@@ -124,10 +124,7 @@ function bindGenreSelector() {
         const newProfileId = e.target.value;
         if (!newProfileId) return;
         const settings = getSettings();
-        if (settings) {
-            settings.activeProfile = newProfileId;
-            settings.genreProfile = newProfileId;
-        }
+        if (settings) settings.genreProfile = newProfileId;
         updateCardLabelsForGenre();
         window.dispatchEvent(new CustomEvent('tribunal:genreChanged', {
             detail: { profileId: newProfileId }
