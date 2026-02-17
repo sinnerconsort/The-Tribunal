@@ -667,27 +667,31 @@ function refreshAllPanels() {
     
     if (state.ledger?.time?.display) {
         const { hours, minutes } = parseTimeString(state.ledger.time.display);
-        setRPTime(hours, minutes);
+        const day = state.ledger?.time?.day || new Date().getDate();
+        setRPTime(hours, minutes, day);
     }
     if (state.ledger?.weather?.condition) {
         setRPWeather(state.ledger.weather.condition);
     }
     
     // Update newspaper strip with time/weather data
-    const now = new Date();
-    const hour = now.getHours();
+    // Use RP time (from state) for period, not real clock
+    const rpHour = state.ledger?.time?.display 
+        ? parseTimeString(state.ledger.time.display).hours 
+        : new Date().getHours();
     let period = 'AFTERNOON';
-    if (hour >= 5 && hour < 7) period = 'DAWN';
-    else if (hour >= 7 && hour < 12) period = 'MORNING';
-    else if (hour >= 12 && hour < 17) period = 'AFTERNOON';
-    else if (hour >= 17 && hour < 20) period = 'EVENING';
-    else if (hour >= 20 && hour < 23) period = 'NIGHT';
+    if (rpHour >= 5 && rpHour < 7) period = 'DAWN';
+    else if (rpHour >= 7 && rpHour < 12) period = 'MORNING';
+    else if (rpHour >= 12 && rpHour < 17) period = 'AFTERNOON';
+    else if (rpHour >= 17 && rpHour < 20) period = 'EVENING';
+    else if (rpHour >= 20 && rpHour < 23) period = 'NIGHT';
     else period = 'LATE_NIGHT';
     
+    const now = new Date();
     updateNewspaperStrip({
         dayOfWeek: state.ledger?.time?.dayOfWeek || now.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
         day: state.ledger?.time?.day || now.getDate(),
-        weather: state.ledger?.weather?.type || (hour >= 6 && hour < 20 ? 'clear-day' : 'clear-night'),
+        weather: state.ledger?.weather?.type || (rpHour >= 6 && rpHour < 20 ? 'clear-day' : 'clear-night'),
         weatherText: state.ledger?.weather?.condition || 'Clear',
         temp: state.ledger?.weather?.temp,
         period: state.ledger?.time?.period || period
