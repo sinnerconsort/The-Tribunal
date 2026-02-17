@@ -3,6 +3,11 @@
  * Parses <!--- WORLD{...} ---> tags from messages
  * Updates location, weather, time, and player condition without API calls
  * 
+ * @version 3.0.0 - Merged AI world state extraction
+ *   - AI infers weather, time, location from chat context (no regex)
+ *   - Runs after WORLD tag; only fills gaps WORLD tag didn't provide
+ *   - Same applyWorldState() pipeline for both sources
+ * 
  * @version 2.0.0 - Added PC condition fields (pc_physical, pc_mental)
  *   - WORLD tag now carries player physical/mental state
  *   - Maps conditions to status effect IDs (same mapping as ai-extractor)
@@ -23,6 +28,35 @@ import {
 import { getChatState, saveChatState } from '../core/persistence.js';
 import { setRPTime, setRPWeather } from '../ui/watch.js';
 import { refreshLocations } from '../ui/location-handlers.js';
+
+// ═══════════════════════════════════════════════════════════════
+// AI API HELPERS (lazy loaded for AI world state extraction)
+// ═══════════════════════════════════════════════════════════════
+
+let apiModule = null;
+
+async function getAPI() {
+    if (!apiModule) {
+        try {
+            apiModule = await import('../voice/api-helpers.js');
+        } catch (e) {
+            console.warn('[WorldParser] Could not load api-helpers for AI extraction:', e.message);
+        }
+    }
+    return apiModule;
+}
+
+function getSTContext() {
+    try {
+        if (typeof SillyTavern !== 'undefined' && SillyTavern.getContext) {
+            return SillyTavern.getContext();
+        }
+        if (typeof window !== 'undefined' && window.SillyTavern?.getContext) {
+            return window.SillyTavern.getContext();
+        }
+    } catch { /* silent */ }
+    return null;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // CONDITION → STATUS MAPPING
@@ -553,6 +587,191 @@ pc_physical/pc_mental = PLAYER only, not NPCs.]`;
 }
 
 // ═══════════════════════════════════════════════════════════════
+// AI WORLD STATE EXTRACTION
+// Asks the model to infer weather, time, location from chat context.
+// Replaces regex weather pattern matching — the model wrote the scene,
+// just ask it what's happening.
+// ═══════════════════════════════════════════════════════════════
+
+let lastAICallTime = 0;
+const AI_DEBOUNCE_MS = 3000;
+
+const AI_WORLD_STATE_PROMPT = `You are a scene analysis tool. Given recent roleplay chat messages, infer the current world state. Output ONLY valid JSON — no reasoning, no markdown, no backticks.
+
+Return this exact structure:
+{
+  "weather": "<value or null>",
+  "time": "<H:MM AM/PM or null>",
+  "location": "<string or null>"
+}
+
+WEATHER must be one of: clear, cloudy, rain, storm, snow, fog, wind — or null if truly unclear.
+TIME: Your best estimate of in-story time in 12h format with AM/PM. Use context clues (morning light, midnight, dinner time, etc). null only if absolutely no indication.
+LOCATION: The current scene location as a short name. null if unknown.
+
+Be decisive. Make your best inference from context — "the evening air" means ~7:00 PM. "Moonlight" = night. "After lunch" = ~1:00 PM. A bar scene with no time cues = default to ~8:00 PM. Pick something reasonable rather than returning null.`;
+
+/**
+ * Build concise context from recent chat for AI extraction
+ */
+function buildAIContextPrompt(skipFields = {}) {
+    const ctx = getSTContext();
+    if (!ctx?.chat?.length) return null;
+    
+    const recentMessages = ctx.chat.slice(-5);
+    
+    const chatExcerpt = recentMessages.map(msg => {
+        const speaker = msg.is_user ? 'USER' : (msg.name || 'AI');
+        const text = (msg.mes || '').replace(/<[^>]*>/g, '').substring(0, 300);
+        return `[${speaker}]: ${text}`;
+    }).join('\n');
+    
+    let knownState = '';
+    if (skipFields.weather) knownState += `\nWeather already known: ${skipFields.weather}`;
+    if (skipFields.time) knownState += `\nTime already known: ${skipFields.time}`;
+    if (skipFields.location) knownState += `\nLocation already known: ${skipFields.location}`;
+    
+    const skipNote = knownState
+        ? `\n\nALREADY KNOWN (return null for these):${knownState}`
+        : '';
+    
+    return `Recent chat:\n${chatExcerpt}${skipNote}\n\nWhat is the current weather, time, and location?`;
+}
+
+/**
+ * Parse AI response JSON with fallback for formatting issues
+ */
+function parseAIResponse(responseText) {
+    if (!responseText) return null;
+    
+    let cleaned = responseText
+        .replace(/```json\s*/gi, '')
+        .replace(/```\s*/g, '')
+        .trim();
+    
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    
+    try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        
+        // Build a WORLD-tag-compatible shape so applyWorldState() can consume it directly
+        const result = {};
+        
+        // Weather — normalize to watch-compatible key
+        if (parsed.weather && parsed.weather !== 'null') {
+            const w = parsed.weather.toLowerCase().trim();
+            // Quick normalize — applyWorldState will run normalizeWeatherForWatch on it
+            result.weather = w;
+        }
+        
+        // Time — pass through as string, parseTimeString() handles it
+        if (parsed.time && parsed.time !== 'null') {
+            result.time = parsed.time;
+        }
+        
+        // Location — pass through as string
+        if (parsed.location && parsed.location !== 'null' && parsed.location !== 'unknown') {
+            result.location = parsed.location.trim();
+        }
+        
+        return Object.keys(result).length > 0 ? result : null;
+    } catch (e) {
+        console.warn('[WorldParser/AI] JSON parse failed:', e.message);
+        return null;
+    }
+}
+
+/**
+ * Extract world state from chat context using AI, then apply gaps.
+ * Call this after processWorldTag() — it only fills in missing fields.
+ * 
+ * @param {string} messageText - Latest message text
+ * @param {object} worldTagResult - Result from processWorldTag() (fields already set)
+ * @returns {Promise<object|null>} What was applied, or null if skipped
+ */
+export async function extractAndApplyAIWorldState(messageText, worldTagResult = {}) {
+    // Debounce
+    const now = Date.now();
+    if (now - lastAICallTime < AI_DEBOUNCE_MS) {
+        console.log('[WorldParser/AI] Debounced');
+        return null;
+    }
+    lastAICallTime = now;
+    
+    // Check settings
+    const settings = window.TribunalState?.getSettings?.();
+    if (!settings?.enabled) return null;
+    if (settings?.worldState?.useAIWorldState === false) return null;
+    
+    // Build skip fields from what WORLD tag already provided
+    const skipFields = {};
+    if (worldTagResult.weather) skipFields.weather = worldTagResult.weather.condition || worldTagResult.weather;
+    if (worldTagResult.time) skipFields.time = worldTagResult.time.display || worldTagResult.time;
+    if (worldTagResult.location) skipFields.location = worldTagResult.location?.name || worldTagResult.location;
+    
+    // If WORLD tag provided everything, skip AI entirely
+    if (skipFields.weather && skipFields.time && skipFields.location) {
+        console.log('[WorldParser/AI] WORLD tag provided all fields, skipping');
+        return null;
+    }
+    
+    const userPrompt = buildAIContextPrompt(skipFields);
+    if (!userPrompt) return null;
+    
+    const api = await getAPI();
+    if (!api?.callAPIWithTokens) {
+        console.warn('[WorldParser/AI] API not available');
+        return null;
+    }
+    
+    try {
+        console.log('[WorldParser/AI] Extracting world state from chat context...');
+        const response = await api.callAPIWithTokens(AI_WORLD_STATE_PROMPT, userPrompt, 150);
+        
+        if (!response) return null;
+        
+        const aiWorldData = parseAIResponse(response);
+        if (!aiWorldData) {
+            console.warn('[WorldParser/AI] Could not parse:', response.substring(0, 200));
+            return null;
+        }
+        
+        // Remove fields WORLD tag already provided
+        if (skipFields.weather) delete aiWorldData.weather;
+        if (skipFields.time) delete aiWorldData.time;
+        if (skipFields.location) delete aiWorldData.location;
+        
+        if (Object.keys(aiWorldData).length === 0) {
+            console.log('[WorldParser/AI] No new fields to apply');
+            return null;
+        }
+        
+        console.log('[WorldParser/AI] Applying AI-inferred state:', aiWorldData);
+        
+        // Feed directly into the same applyWorldState() used by WORLD tags
+        const result = applyWorldState(aiWorldData, {
+            updateLocation: !!aiWorldData.location,
+            updateWeather: !!aiWorldData.weather,
+            updateTime: !!aiWorldData.time,
+            updateCondition: false,  // AI doesn't infer PC condition
+            notify: false,           // Don't toast for AI inferences
+            refreshUI: true
+        });
+        
+        if (result.updated) {
+            result.source = 'ai';
+        }
+        
+        return result;
+        
+    } catch (e) {
+        console.warn('[WorldParser/AI] Extraction failed:', e.message);
+        return null;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // DEBUG
 // ═══════════════════════════════════════════════════════════════
 
@@ -571,6 +790,7 @@ export default {
     parseWorldTag,
     applyWorldState,
     processWorldTag,
+    extractAndApplyAIWorldState,
     getWorldTagInjectionText,
     getWorldTagInjectionShort,
     debugWorldParser
