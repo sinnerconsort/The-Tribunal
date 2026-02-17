@@ -27,7 +27,7 @@ import {
 import { EQUIPMENT_TYPES } from './src/data/equipment.js';
 
 import { registerEvents, onStateRefresh } from './src/core/events.js';
-import { getSettings, saveSettings, setPersona, getVoiceState, setLastGeneratedVoices, getEquipmentItems, addEquipment } from './src/core/state.js';
+import { getSettings, saveSettings, setPersona, getVoiceState, setLastGeneratedVoices, getEquipmentItems, addEquipment, setWeather, setTime, setCurrentLocation, addLocation } from './src/core/state.js';
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTS - UI Components
@@ -82,6 +82,11 @@ let generateEquipmentFromMessage = async () => ({ equipment: [], removed: [] });
 // World State Parser (lazy loaded)
 let processWorldTag = () => ({ updated: false, noTag: true });
 let worldParserLoaded = false;
+
+// World State AI Extractor (lazy loaded)
+let extractWorldState = async () => null;
+let applyWorldState = () => {};
+let worldStateAILoaded = false;
 
 import { generateVoicesForMessage } from './src/voice/generation.js';
 import { renderVoices, appendVoicesToChat, clearVoices } from './src/voice/render-voices.js';
@@ -388,6 +393,8 @@ function onNewAIMessage(messageIndex) {
     // Parses <!--- WORLD{"weather":"...","location":"...",...} --->
     // ═══════════════════════════════════════════════════════════════
     
+    let worldTagResult = {};
+    
     if (worldParserLoaded && settings?.worldState?.parseWorldTags !== false) {
         try {
             const worldResult = processWorldTag(message.mes, {
@@ -399,6 +406,8 @@ function onNewAIMessage(messageIndex) {
             
             if (worldResult.updated) {
                 console.log('[Tribunal] World state updated from WORLD tag:', worldResult);
+                // Track what WORLD tag provided so AI extraction can skip those fields
+                worldTagResult = worldResult;
             }
         } catch (e) {
             console.warn('[Tribunal] World tag processing failed:', e.message);
@@ -408,6 +417,31 @@ function onNewAIMessage(messageIndex) {
     // Process message for weather/horror/pale keywords (if weather loaded)
     if (weatherLoaded && processWeatherMessage) {
         processWeatherMessage(message.mes, `msg-${messageIndex}`);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
+    // AI WORLD STATE - Ask the model for weather, time, location
+    // Runs async, WORLD tag results take priority over AI inference
+    // ═══════════════════════════════════════════════════════════════
+    
+    if (worldStateAILoaded && settings?.worldState?.useAIWorldState !== false) {
+        setTimeout(async () => {
+            try {
+                const aiState = await extractWorldState(message.mes, worldTagResult);
+                if (aiState) {
+                    applyWorldState(aiState, {
+                        setRPTime,
+                        setRPWeather,
+                        setWeather,
+                        setTime,
+                        setCurrentLocation,
+                        addLocation
+                    });
+                }
+            } catch (e) {
+                console.warn('[Tribunal] AI world state extraction failed:', e.message);
+            }
+        }, 800); // Small delay — let WORLD tag + weather effects settle first
     }
     
     // Small delay to ensure message is fully rendered
@@ -882,6 +916,17 @@ async function init() {
         window.tribunalWorldParser = worldParser.debugWorldParser;
     } catch (e) {
         console.warn('[Tribunal] World Parser not loaded:', e.message);
+    }
+    
+    // World State AI Extractor
+    try {
+        const worldAI = await import('./src/systems/world-state-ai.js');
+        extractWorldState = worldAI.extractWorldState;
+        applyWorldState = worldAI.applyWorldState;
+        worldStateAILoaded = true;
+        console.log('[Tribunal] World State AI loaded');
+    } catch (e) {
+        console.warn('[Tribunal] World State AI not loaded:', e.message);
     }
     
     // Weather Effects System
