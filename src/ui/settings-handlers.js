@@ -105,6 +105,7 @@ const SETTINGS_IDS = {
     worldSyncWeather: 'cfg-world-sync-weather',
     worldSyncTime: 'cfg-world-sync-time',
     useAIExtractor: 'cfg-use-ai-extractor',
+    useAIWorldState: 'cfg-use-ai-world-state',
     injectWorldTag: 'cfg-inject-world-tag',
     copyWorldInject: 'cfg-copy-world-inject',
     
@@ -366,6 +367,7 @@ export function refreshSettingsFromState() {
     setCheckbox(SETTINGS_IDS.worldSyncWeather, settings.worldState?.syncWeather ?? true);
     setCheckbox(SETTINGS_IDS.worldSyncTime, settings.worldState?.syncTime ?? true);
     setCheckbox(SETTINGS_IDS.useAIExtractor, settings.worldState?.useAIExtractor ?? false);
+    setCheckbox(SETTINGS_IDS.useAIWorldState, settings.worldState?.useAIWorldState ?? true);
     setCheckbox(SETTINGS_IDS.injectWorldTag, settings.worldState?.injectWorldTag ?? false);
     
     // Update inject preview visibility
@@ -510,6 +512,7 @@ export function saveAllSettings() {
     settings.worldState.syncWeather = getCheckbox(SETTINGS_IDS.worldSyncWeather, true);
     settings.worldState.syncTime = getCheckbox(SETTINGS_IDS.worldSyncTime, true);
     settings.worldState.useAIExtractor = getCheckbox(SETTINGS_IDS.useAIExtractor, false);
+    settings.worldState.useAIWorldState = getCheckbox(SETTINGS_IDS.useAIWorldState, true);
     settings.worldState.injectWorldTag = getCheckbox(SETTINGS_IDS.injectWorldTag, false);
     
     // Thought Cabinet
@@ -806,7 +809,8 @@ function bindWorldStateHandlers() {
         'cfg-parse-world-tags',
         'cfg-world-sync-weather', 
         'cfg-world-sync-time',
-        'cfg-use-ai-extractor'
+        'cfg-use-ai-extractor',
+        'cfg-use-ai-world-state'
     ];
     
     worldStateIds.forEach(id => {
@@ -820,6 +824,7 @@ function bindWorldStateHandlers() {
                 settings.worldState.syncWeather = document.getElementById('cfg-world-sync-weather')?.checked ?? true;
                 settings.worldState.syncTime = document.getElementById('cfg-world-sync-time')?.checked ?? true;
                 settings.worldState.useAIExtractor = document.getElementById('cfg-use-ai-extractor')?.checked ?? false;
+                settings.worldState.useAIWorldState = document.getElementById('cfg-use-ai-world-state')?.checked ?? true;
                 
                 saveSettings();
                 console.log('[Tribunal] World state settings saved');

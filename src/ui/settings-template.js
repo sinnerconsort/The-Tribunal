@@ -160,6 +160,16 @@ export const SETTINGS_TAB_HTML = `
                 
                 <div style="border-top: 1px dashed rgba(255,255,255,0.2); margin: 12px 0; padding-top: 12px;">
                     <label class="rcm-checkbox-row">
+                        <input type="checkbox" id="cfg-use-ai-world-state" checked>
+                        <span>AI scene awareness</span>
+                    </label>
+                    <div class="rcm-field-note">
+                        <em>🧠 Ask the model for weather, time & location each message</em>
+                    </div>
+                </div>
+                
+                <div style="border-top: 1px dashed rgba(255,255,255,0.2); margin: 12px 0; padding-top: 12px;">
+                    <label class="rcm-checkbox-row">
                         <input type="checkbox" id="cfg-use-ai-extractor">
                         <span>AI location extraction</span>
                     </label>
