@@ -1,0 +1,1052 @@
+/**
+ * The Tribunal - Wallet Profiles
+ * Leather wallet with RCM ID card, card slots, and money pocket
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   CSS VARIABLES
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+    /* Wallet (leather) colors */
+    --wallet-brown-dark: #2a1a0f;
+    --wallet-brown-mid: #3d2817;
+    --wallet-brown-light: #5c4033;
+    --wallet-stitch: rgba(139, 119, 92, 0.4);
+    
+    /* RCM ID Card colors */
+    --rcm-blue-dark: #152a45;
+    --rcm-blue-mid: #1e3a5f;
+    --rcm-blue-border: #2a4a6f;
+    --rcm-blue-accent: #4a7a9f;
+    --rcm-blue-text: #7a9cc4;
+    --rcm-blue-text-dim: #5a7a9a;
+    
+    /* Gold/accent */
+    --rcm-gold: #c4a77d;
+    --rcm-gold-dim: rgba(196, 167, 125, 0.6);
+    
+    /* Text */
+    --rcm-text: #e8e8e8;
+    --rcm-text-info: #b0c4d8;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PROFILES PAGE CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+
+.profiles-page {
+    padding: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+}
+
+.profiles-page.ie-tab-content-active {
+    display: flex !important;
+    flex-direction: column;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THE WALLET
+   ═══════════════════════════════════════════════════════════════ */
+
+.tribunal-wallet {
+    background: linear-gradient(145deg, 
+        var(--wallet-brown-light) 0%, 
+        var(--wallet-brown-mid) 50%, 
+        var(--wallet-brown-dark) 100%
+    );
+    border-radius: 12px;
+    padding: 20px;
+    margin: 12px;
+    position: relative;
+    box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+    
+    /* Fill available height */
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 500px;
+}
+
+/* Leather texture overlay */
+.tribunal-wallet::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 12px;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='leather'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23leather)' opacity='0.15'/%3E%3C/svg%3E");
+    pointer-events: none;
+}
+
+/* Stitching border */
+.tribunal-wallet::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    border: 2px dashed var(--wallet-stitch);
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+/* Coffee stain */
+.wallet-coffee-stain {
+    position: absolute;
+    top: 15px;
+    right: 25px;
+    width: 40px;
+    height: 40px;
+    background: radial-gradient(ellipse, rgba(80, 50, 30, 0.3) 0%, transparent 70%);
+    border-radius: 50%;
+    transform: rotate(-15deg);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Frittte brand (yes, three T's - trademark reasons) */
+.wallet-brand {
+    position: absolute;
+    bottom: 12px;
+    right: 20px;
+    font-family: 'Special Elite', var(--ie-font-body, monospace);
+    font-size: 10px;
+    color: rgba(139, 119, 92, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    z-index: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ID WINDOW (plastic sleeve)
+   ═══════════════════════════════════════════════════════════════ */
+
+.wallet-id-window {
+    background: linear-gradient(145deg, 
+        rgba(255, 255, 255, 0.15) 0%, 
+        rgba(255, 255, 255, 0.05) 100%
+    );
+    border-radius: 8px;
+    padding: 4px;
+    margin-bottom: 15px;
+    position: relative;
+    z-index: 1;
+    box-shadow: 
+        inset 0 1px 3px rgba(0, 0, 0, 0.3),
+        0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.wallet-id-window::before {
+    content: 'ACTIVE IDENTITY';
+    position: absolute;
+    top: -8px;
+    left: 15px;
+    font-size: 8px;
+    color: rgba(196, 167, 125, 0.6);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    background: #4a3525;
+    padding: 0 5px;
+    font-family: 'Special Elite', var(--ie-font-body, monospace);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD FLIP MECHANISM
+   ═══════════════════════════════════════════════════════════════ */
+
+.card-flip {
+    perspective: 1000px;
+    height: 270px;
+}
+
+.card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+}
+
+.card-flip.flipped .card-inner {
+    transform: rotateY(180deg);
+}
+
+.card-front,
+.card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.card-back {
+    transform: rotateY(180deg);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ID CARD FRONT
+   ═══════════════════════════════════════════════════════════════ */
+
+.id-card {
+    background: linear-gradient(145deg, var(--rcm-blue-mid) 0%, var(--rcm-blue-dark) 100%);
+    height: 100%;
+    padding: 15px;
+    position: relative;
+    border: 1px solid var(--rcm-blue-border);
+}
+
+/* Noise texture */
+.id-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+}
+
+/* Organization header */
+.card-org {
+    font-size: 8px;
+    color: var(--rcm-blue-text);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+/* Card header with photo and info */
+.card-header {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+/* Photo area */
+.card-photo {
+    width: 60px;
+    height: 75px;
+    background: #0d1f30;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3a5a7a;
+    font-size: 28px;
+    border: 1px solid var(--rcm-blue-border);
+    flex-shrink: 0;
+}
+
+/* Info area */
+.card-info {
+    flex: 1;
+    padding-right: 50px; /* Room for hologram */
+}
+
+/* Editable name field */
+.card-name-wrapper {
+    margin-bottom: 4px;
+}
+
+.card-name {
+    color: var(--rcm-text);
+    font-family: 'Playfair Display', var(--ie-font-header, Georgia), serif;
+    font-size: 18px;
+    font-weight: 700;
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed transparent;
+    padding: 2px 0;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.card-name:hover,
+.card-name:focus {
+    border-bottom-color: rgba(196, 167, 125, 0.5);
+}
+
+.card-name:focus {
+    border-bottom-style: solid;
+    border-bottom-color: var(--rcm-gold);
+}
+
+.card-name::placeholder {
+    color: var(--rcm-blue-text-dim);
+}
+
+/* Pronouns dropdown */
+.card-pronouns-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+}
+
+.pronouns-label {
+    font-size: 9px;
+    color: var(--rcm-blue-text-dim);
+    text-transform: uppercase;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+.card-pronouns-select {
+    color: var(--rcm-gold);
+    font-size: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(196, 167, 125, 0.3);
+    border-radius: 3px;
+    padding: 3px 6px;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    cursor: pointer;
+    outline: none;
+}
+
+.card-pronouns-select:hover,
+.card-pronouns-select:focus {
+    background: rgba(196, 167, 125, 0.15);
+    border-color: rgba(196, 167, 125, 0.5);
+}
+
+.card-pronouns-select option {
+    background: var(--rcm-blue-mid);
+    color: var(--rcm-gold);
+}
+
+/* Badge/Precinct details */
+.card-details {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+}
+
+.card-detail {
+    font-size: 9px;
+}
+
+.card-detail-label {
+    color: var(--rcm-blue-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+.card-detail-value {
+    color: var(--rcm-text-info);
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+/* Stats row */
+.card-stats {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-top: 1px solid var(--rcm-blue-border);
+    border-bottom: 1px solid var(--rcm-blue-border);
+    margin: 10px 0;
+}
+
+.card-stat {
+    text-align: center;
+}
+
+.card-stat-label {
+    font-size: 8px;
+    color: var(--rcm-blue-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+.card-stat-value {
+    font-size: 16px;
+    color: var(--rcm-gold);
+    font-weight: bold;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+/* Copotype */
+.card-copotype {
+    text-align: center;
+    padding: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.copotype-label {
+    font-size: 8px;
+    color: var(--rcm-blue-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+.copotype-value {
+    font-size: 12px;
+    color: var(--rcm-gold);
+    font-family: 'Special Elite', var(--ie-font-body, monospace);
+}
+
+/* Tap hint */
+.tap-hint {
+    position: absolute;
+    bottom: 8px;
+    right: 10px;
+    font-size: 8px;
+    color: var(--rcm-blue-text-dim);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HOLOGRAPHIC SHIELD
+   ═══════════════════════════════════════════════════════════════ */
+
+.hologram-shield {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 52px;
+    height: 58px;
+    opacity: 0.6;
+    animation: hologramShift 6s ease-in-out infinite;
+}
+
+.hologram-shield::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    clip-path: polygon(50% 0%, 100% 10%, 100% 60%, 50% 100%, 0% 60%, 0% 10%);
+    background: conic-gradient(
+        from 0deg,
+        rgba(255, 100, 150, 0.5),
+        rgba(100, 200, 255, 0.5),
+        rgba(255, 230, 100, 0.5),
+        rgba(180, 100, 255, 0.5),
+        rgba(100, 255, 180, 0.5),
+        rgba(255, 100, 150, 0.5)
+    );
+}
+
+.hologram-shield::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    clip-path: polygon(50% 0%, 100% 10%, 100% 60%, 50% 100%, 0% 60%, 0% 10%);
+    background: linear-gradient(
+        135deg,
+        transparent 20%,
+        rgba(255, 255, 255, 0.5) 45%,
+        rgba(255, 255, 255, 0.8) 50%,
+        rgba(255, 255, 255, 0.5) 55%,
+        transparent 80%
+    );
+    animation: hologramShine 4s ease-in-out infinite;
+}
+
+.hologram-shield-inner {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    right: 4px;
+    bottom: 4px;
+    clip-path: polygon(50% 0%, 100% 10%, 100% 60%, 50% 100%, 0% 60%, 0% 10%);
+    background: rgba(15, 35, 55, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: 5px;
+}
+
+.hologram-text {
+    font-family: 'Special Elite', var(--ie-font-body, monospace);
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.85);
+    letter-spacing: 2px;
+    text-shadow: 0 0 8px rgba(100, 200, 255, 0.4);
+}
+
+.hologram-year {
+    font-size: 8px;
+    color: rgba(196, 167, 125, 0.7);
+    margin-top: 2px;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+/* Hologram animations */
+@keyframes hologramShift {
+    0%, 100% { 
+        filter: hue-rotate(0deg) brightness(1);
+    }
+    50% { 
+        filter: hue-rotate(25deg) brightness(1.1);
+    }
+}
+
+@keyframes hologramShine {
+    0%, 100% {
+        background-position: -100% -100%;
+        opacity: 0.4;
+    }
+    50% {
+        background-position: 100% 100%;
+        opacity: 0.8;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ID CARD BACK (Edit Form)
+   ═══════════════════════════════════════════════════════════════ */
+
+.id-card-back {
+    background: linear-gradient(145deg, var(--rcm-blue-mid) 0%, var(--rcm-blue-dark) 100%);
+    height: 100%;
+    padding: 12px;
+    position: relative;
+    overflow-y: auto;
+    border: 1px solid var(--rcm-blue-border);
+}
+
+/* Noise texture */
+.id-card-back::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+}
+
+/* RCM watermark */
+.id-card-back::after {
+    content: 'RCM';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-15deg);
+    font-family: 'Special Elite', var(--ie-font-body, monospace);
+    font-size: 80px;
+    color: rgba(42, 74, 111, 0.3);
+    letter-spacing: 10px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Form header */
+.form-header {
+    font-family: 'Special Elite', var(--ie-font-body, monospace);
+    font-size: 10px;
+    color: var(--rcm-blue-text);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--rcm-blue-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+/* Form groups */
+.form-group {
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+}
+
+.form-label {
+    font-size: 8px;
+    color: var(--rcm-blue-text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 3px;
+    display: block;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    width: 100%;
+    background: rgba(13, 31, 48, 0.8);
+    border: 1px solid var(--rcm-blue-border);
+    border-radius: 3px;
+    padding: 8px 10px;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+    font-size: 11px;
+    color: var(--rcm-text-info);
+    box-sizing: border-box;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+    color: #4a6a8a;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--rcm-blue-accent);
+    background: rgba(13, 31, 48, 0.95);
+}
+
+.form-select {
+    cursor: pointer;
+}
+
+.form-select option {
+    background: var(--rcm-blue-dark);
+    color: var(--rcm-text-info);
+}
+
+.form-textarea {
+    min-height: 45px;
+    resize: none;
+    line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BUILD EDITOR (Card Back)
+   ═══════════════════════════════════════════════════════════════ */
+
+.build-editor {
+    background: rgba(13, 31, 48, 0.6);
+    border: 1px solid var(--rcm-blue-border);
+    border-radius: 4px;
+    padding: 10px;
+    margin: 8px 0;
+    position: relative;
+    z-index: 1;
+}
+
+.build-title {
+    font-size: 8px;
+    color: var(--rcm-blue-text);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+    text-align: center;
+    font-family: 'Special Elite', var(--ie-font-body, monospace);
+}
+
+.build-points {
+    text-align: center;
+    font-size: 10px;
+    color: var(--rcm-blue-text-dim);
+    margin-bottom: 8px;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+.build-points span {
+    color: var(--rcm-gold);
+    font-weight: bold;
+}
+
+.stat-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(42, 74, 111, 0.5);
+}
+
+.stat-row:last-child {
+    border-bottom: none;
+}
+
+.stat-name {
+    font-size: 10px;
+    color: #8aa4c4;
+    flex: 1;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+.stat-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.stat-btn {
+    width: 22px;
+    height: 22px;
+    background: rgba(196, 167, 125, 0.2);
+    border: 1px solid var(--rcm-gold);
+    border-radius: 3px;
+    color: var(--rcm-gold);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    transition: all 0.2s;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+.stat-btn:hover:not(:disabled) {
+    background: rgba(196, 167, 125, 0.4);
+}
+
+.stat-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.stat-val {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--rcm-gold);
+    min-width: 20px;
+    text-align: center;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FORM ACTION BUTTONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.form-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    position: relative;
+    z-index: 1;
+}
+
+.btn {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 4px;
+    font-family: 'Special Elite', var(--ie-font-body, monospace);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: all 0.2s;
+}
+
+.btn-save {
+    background: rgba(74, 124, 74, 0.8);
+    border: 1px solid #5a9c5a;
+    color: #c4e8c4;
+}
+
+.btn-save:hover {
+    background: rgba(74, 124, 74, 1);
+}
+
+.btn-delete {
+    background: rgba(139, 68, 68, 0.8);
+    border: 1px solid #9c5a5a;
+    color: #e8c4c4;
+}
+
+.btn-delete:hover {
+    background: rgba(139, 68, 68, 1);
+}
+
+.btn-flip {
+    background: rgba(58, 90, 122, 0.8);
+    border: 1px solid var(--rcm-blue-accent);
+    color: var(--rcm-text-info);
+    padding: 4px 10px;
+    font-size: 9px;
+    flex: 0;
+}
+
+.btn-flip:hover {
+    background: rgba(58, 90, 122, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CARD SLOTS
+   ═══════════════════════════════════════════════════════════════ */
+
+.card-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 15px;
+    position: relative;
+    z-index: 1;
+    
+    /* Expand to fill available space */
+    flex: 1;
+    min-height: 120px;
+}
+
+.card-slot {
+    background: linear-gradient(90deg, 
+        var(--wallet-brown-dark) 0%, 
+        var(--wallet-brown-mid) 50%, 
+        var(--wallet-brown-dark) 100%
+    );
+    height: 45px;
+    border-radius: 4px;
+    position: relative;
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.4),
+        0 1px 0 rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+}
+
+.slot-card {
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    right: 10px;
+    height: 60px;
+    background: linear-gradient(145deg, var(--rcm-blue-mid) 0%, var(--rcm-blue-dark) 100%);
+    border-radius: 4px 4px 0 0;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    border: 1px solid var(--rcm-blue-border);
+    border-bottom: none;
+}
+
+.slot-card:hover {
+    transform: translateY(-8px);
+}
+
+.slot-card-name {
+    color: var(--rcm-text);
+    font-family: 'Playfair Display', var(--ie-font-header, Georgia), serif;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.slot-card-meta {
+    font-size: 9px;
+    color: var(--rcm-blue-text);
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+/* Empty slot */
+.slot-empty {
+    position: absolute;
+    top: 5px;
+    left: 10px;
+    right: 10px;
+    height: 60px;
+    border: 2px dashed #4a3a2a;
+    border-radius: 4px 4px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #5a4a3a;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Special Elite', var(--ie-font-body, monospace);
+}
+
+.slot-empty:hover {
+    border-color: #7a6a5a;
+    color: #8a7a6a;
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* Holographic star for slot cards */
+.hologram-star {
+    position: absolute;
+    top: 3px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    opacity: 0.5;
+    animation: hologramShift 6s ease-in-out infinite;
+}
+
+.hologram-star::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    background: conic-gradient(
+        from 0deg,
+        rgba(255, 100, 150, 0.5),
+        rgba(100, 200, 255, 0.5),
+        rgba(255, 230, 100, 0.5),
+        rgba(180, 100, 255, 0.5),
+        rgba(100, 255, 180, 0.5),
+        rgba(255, 100, 150, 0.5)
+    );
+}
+
+.hologram-star::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    background: linear-gradient(
+        135deg,
+        transparent 20%,
+        rgba(255, 255, 255, 0.6) 50%,
+        transparent 80%
+    );
+    animation: hologramShine 4s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MONEY POCKET
+   ═══════════════════════════════════════════════════════════════ */
+
+.money-pocket {
+    margin-top: auto; /* Push to bottom */
+    padding-top: 15px;
+    background: linear-gradient(90deg, 
+        var(--wallet-brown-dark) 0%, 
+        var(--wallet-brown-mid) 50%, 
+        var(--wallet-brown-dark) 100%
+    );
+    height: 50px;
+    border-radius: 4px;
+    position: relative;
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.4),
+        0 1px 0 rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    z-index: 1;
+}
+
+.money-bills {
+    position: absolute;
+    top: -15px;
+    left: 20px;
+    display: flex;
+}
+
+.bill {
+    width: 80px;
+    height: 35px;
+    background: linear-gradient(145deg, #7a9a6a, #5a7a4a);
+    border-radius: 2px;
+    transform: rotate(-5deg);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #2a3a2a;
+    font-weight: bold;
+    position: relative;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+.bill::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='money'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23money)' opacity='0.1'/%3E%3C/svg%3E");
+    pointer-events: none;
+}
+
+.bill:nth-child(2) {
+    transform: rotate(3deg);
+    margin-left: -30px;
+}
+
+.money-label {
+    position: absolute;
+    bottom: 8px;
+    right: 15px;
+    font-size: 10px;
+    color: #5a4a3a;
+    font-family: var(--ie-font-body, 'IBM Plex Mono', monospace);
+}
+
+.money-amount {
+    color: #8a9a6a;
+    font-weight: bold;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 380px) {
+    .tribunal-wallet {
+        padding: 15px;
+        margin: 8px;
+    }
+    
+    .card-flip {
+        height: 290px; /* Taller for smaller screens */
+    }
+    
+    .card-photo {
+        width: 50px;
+        height: 65px;
+    }
+    
+    .card-name {
+        font-size: 16px;
+    }
+    
+    .card-info {
+        padding-right: 45px;
+    }
+    
+    .hologram-shield {
+        width: 42px;
+        height: 48px;
+    }
+    
+    .hologram-text {
+        font-size: 8px;
+    }
+    
+    .bill {
+        width: 65px;
+        height: 30px;
+        font-size: 10px;
+    }
+}

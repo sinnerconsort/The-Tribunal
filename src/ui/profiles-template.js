@@ -1,0 +1,714 @@
+/**
+ * The Tribunal - Wallet Profiles Template
+ * Leather wallet with flipping RCM ID card, persona slots, and money pocket
+ * 
+ * @version 1.1.0 - Genre-adapted labels: stat abbreviations, build editor names,
+ *                   card org line, archetype label, genre selector on card back
+ */
+
+import {
+    getActiveProfile,
+    getActiveProfileId,
+    getCategoryName,
+    getAvailableProfiles
+} from '../data/setting-profiles.js';
+
+import { getSettings } from '../core/state.js';
+
+// ═══════════════════════════════════════════════════════════════
+// COPOTYPE DISPLAY NAMES (Profile-Aware)
+// ═══════════════════════════════════════════════════════════════
+
+// Simple/generic names (default for all non-DE profiles)
+const COPOTYPE_SIMPLE_NAMES = {
+    'apocalypse_cop': 'Nihilist',
+    'sorry_cop': 'Apologetic',
+    'boring_cop': 'Professional',
+    'honour_cop': 'Honourable',
+    'art_cop': 'Artistic',
+    'hobocop': 'Vagrant',
+    'superstar_cop': 'Showoff',
+    'dick_mullen': 'Detective',
+    'human_can_opener': 'Charming',
+    'innocence': 'Innocent'
+};
+
+// DE-specific names (only when Disco Elysium profile active)
+const COPOTYPE_DE_NAMES = {
+    'apocalypse_cop': 'Apocalypse Cop',
+    'sorry_cop': 'Sorry Cop',
+    'boring_cop': 'Boring Cop',
+    'honour_cop': 'Honour Cop',
+    'art_cop': 'Art Cop',
+    'hobocop': 'Hobocop',
+    'superstar_cop': 'Superstar Cop',
+    'dick_mullen': 'Dick Mullen',
+    'human_can_opener': 'Human Can-Opener',
+    'innocence': 'Innocence'
+};
+
+// ═══════════════════════════════════════════════════════════════
+// ABBREVIATION HELPER
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get a short abbreviation for a category name (for the card front stats)
+ * Uses first 3-4 chars, uppercased. Short names (≤4 chars) are used as-is.
+ */
+function getCategoryAbbrev(categoryId) {
+    const name = getCategoryName(categoryId, null);
+    if (!name) {
+        // Fallback to DE defaults
+        const defaults = { intellect: 'INT', psyche: 'PSY', physique: 'PHY', motorics: 'MOT' };
+        return defaults[categoryId] || categoryId.slice(0, 3).toUpperCase();
+    }
+    // Short names used directly (Head, Body, etc.)
+    if (name.length <= 4) return name.toUpperCase();
+    // Otherwise abbreviate to 3 chars
+    return name.slice(0, 3).toUpperCase();
+}
+
+/**
+ * Get the full category name for the build editor
+ */
+function getCategoryFullName(categoryId) {
+    const defaults = { intellect: 'Intellect', psyche: 'Psyche', physique: 'Physique', motorics: 'Motorics' };
+    return getCategoryName(categoryId, defaults[categoryId] || categoryId);
+}
+
+/**
+ * Get the card org line (header text) based on active profile
+ */
+function getCardOrgLine() {
+    const profile = getActiveProfile();
+    const id = getActiveProfileId();
+    
+    if (id === 'disco_elysium') {
+        return 'RCM • Revachol Citizens Militia';
+    }
+    
+    // Use profile name as a subtle org header for other genres
+    return profile?.name || 'The Tribunal';
+}
+
+/**
+ * Get the archetype label based on active profile
+ */
+function getArchetypeLabel() {
+    const profile = getActiveProfile();
+    return profile?.archetypeLabel || 'Archetype';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GENRE SELECTOR HTML
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Build genre selector dropdown options
+ */
+function buildGenreOptions() {
+    const profiles = getAvailableProfiles();
+    const currentId = getActiveProfileId();
+    
+    return profiles.map(p => 
+        `<option value="${p.id}"${p.id === currentId ? ' selected' : ''}>${escapeHtml(p.name)}</option>`
+    ).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MAIN PROFILES TAB HTML
+// ═══════════════════════════════════════════════════════════════
+
+export const PROFILES_TAB_HTML = `
+<div class="ie-tab-content profiles-page" data-tab-content="profiles">
+    
+    <!-- THE WALLET -->
+    <div class="tribunal-wallet">
+        <div class="wallet-coffee-stain"></div>
+        
+        <!-- ═══════════════════════════════════════════════════════════════
+             ACTIVE IDENTITY WINDOW
+             ═══════════════════════════════════════════════════════════════ -->
+        <div class="wallet-id-window">
+            <div class="card-flip" id="tribunal-active-card">
+                <div class="card-inner">
+                    
+                    <!-- ═══════════════════════════════════════════════════
+                         CARD FRONT - Display View
+                         ═══════════════════════════════════════════════════ -->
+                    <div class="card-front">
+                        <div class="id-card">
+                            <!-- Holographic Shield -->
+                            <div class="hologram-shield">
+                                <div class="hologram-shield-inner">
+                                    <span class="hologram-text">RCM</span>
+                                    <span class="hologram-year">'51</span>
+                                </div>
+                            </div>
+                            
+                            <div class="card-org" id="tribunal-card-org">RCM • Revachol Citizens Militia</div>
+                            
+                            <div class="card-header">
+                                <div class="card-photo">
+                                    <i class="fa-solid fa-user"></i>
+                                </div>
+                                <div class="card-info">
+                                    <div class="card-name-wrapper">
+                                        <input type="text" class="card-name" id="tribunal-card-name" value="" placeholder="NAME">
+                                    </div>
+                                    <div class="card-pronouns-wrapper">
+                                        <span class="pronouns-label">Pronouns:</span>
+                                        <select class="card-pronouns-select" id="tribunal-card-pronouns">
+                                            <option value="they">They/Them</option>
+                                            <option value="he">He/Him</option>
+                                            <option value="she">She/Her</option>
+                                            <option value="it">It/Its</option>
+                                        </select>
+                                    </div>
+                                    <div class="card-details">
+                                        <div class="card-detail">
+                                            <div class="card-detail-label">Badge</div>
+                                            <div class="card-detail-value" id="tribunal-badge-num">LTN-????</div>
+                                        </div>
+                                        <div class="card-detail">
+                                            <div class="card-detail-label">Precinct</div>
+                                            <div class="card-detail-value" id="tribunal-precinct">41st</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card-stats">
+                                <div class="card-stat">
+                                    <div class="card-stat-label" id="tribunal-stat-label-int">INT</div>
+                                    <div class="card-stat-value" id="tribunal-stat-int">3</div>
+                                </div>
+                                <div class="card-stat">
+                                    <div class="card-stat-label" id="tribunal-stat-label-psy">PSY</div>
+                                    <div class="card-stat-value" id="tribunal-stat-psy">3</div>
+                                </div>
+                                <div class="card-stat">
+                                    <div class="card-stat-label" id="tribunal-stat-label-fys">PHY</div>
+                                    <div class="card-stat-value" id="tribunal-stat-fys">3</div>
+                                </div>
+                                <div class="card-stat">
+                                    <div class="card-stat-label" id="tribunal-stat-label-mot">MOT</div>
+                                    <div class="card-stat-value" id="tribunal-stat-mot">3</div>
+                                </div>
+                            </div>
+                            
+                            <div class="card-copotype">
+                                <div class="copotype-label" id="tribunal-archetype-label">Copotype</div>
+                                <div class="copotype-value" id="tribunal-copotype">Unknown</div>
+                            </div>
+                            
+                            <div class="tap-hint">tap card to edit ↻</div>
+                        </div>
+                    </div>
+                    
+                    <!-- ═══════════════════════════════════════════════════
+                         CARD BACK - Edit Form
+                         ═══════════════════════════════════════════════════ -->
+                    <div class="card-back">
+                        <div class="id-card-back">
+                            <div class="form-header">
+                                <span>// Personnel File</span>
+                                <button class="btn btn-flip" id="tribunal-flip-back">↻ Flip</button>
+                            </div>
+                            
+                            <!-- Genre Profile Selector -->
+                            <div class="form-group">
+                                <label class="form-label">Genre Profile</label>
+                                <select class="form-select" id="tribunal-genre-selector">
+                                    <!-- Options populated by updateGenreSelector() -->
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">POV Style</label>
+                                <select class="form-select" id="tribunal-pov-style">
+                                    <option value="second">Second Person (you/your)</option>
+                                    <option value="first">First Person (I/my)</option>
+                                    <option value="third">Third Person (they/their)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Character Context</label>
+                                <textarea class="form-textarea" id="tribunal-char-context" placeholder="Describe who YOU are - the character whose head these voices are in."></textarea>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Scene Perspective Notes</label>
+                                <textarea class="form-textarea" id="tribunal-scene-notes" placeholder="Help voices convert POV correctly."></textarea>
+                            </div>
+                            
+                            <!-- Build Editor -->
+                            <div class="build-editor">
+                                <div class="build-title">// Build Editor</div>
+                                <div class="build-points">Points: <span id="tribunal-build-points">12</span> / 12</div>
+                                
+                                <div class="stat-row">
+                                    <span class="stat-name" id="tribunal-build-label-int">Intellect</span>
+                                    <div class="stat-controls">
+                                        <button class="stat-btn" data-action="dec" data-attr="int">−</button>
+                                        <span class="stat-val" id="tribunal-edit-int">3</span>
+                                        <button class="stat-btn" data-action="inc" data-attr="int">+</button>
+                                    </div>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-name" id="tribunal-build-label-psy">Psyche</span>
+                                    <div class="stat-controls">
+                                        <button class="stat-btn" data-action="dec" data-attr="psy">−</button>
+                                        <span class="stat-val" id="tribunal-edit-psy">3</span>
+                                        <button class="stat-btn" data-action="inc" data-attr="psy">+</button>
+                                    </div>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-name" id="tribunal-build-label-fys">Physique</span>
+                                    <div class="stat-controls">
+                                        <button class="stat-btn" data-action="dec" data-attr="fys">−</button>
+                                        <span class="stat-val" id="tribunal-edit-fys">3</span>
+                                        <button class="stat-btn" data-action="inc" data-attr="fys">+</button>
+                                    </div>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-name" id="tribunal-build-label-mot">Motorics</span>
+                                    <div class="stat-controls">
+                                        <button class="stat-btn" data-action="dec" data-attr="mot">−</button>
+                                        <span class="stat-val" id="tribunal-edit-mot">3</span>
+                                        <button class="stat-btn" data-action="inc" data-attr="mot">+</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button class="btn btn-save" id="tribunal-save-persona">💾 Save</button>
+                                <button class="btn btn-delete" id="tribunal-delete-persona">🗑 Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+        
+        <!-- ═══════════════════════════════════════════════════════════════
+             CARD SLOTS (Saved Personas)
+             ═══════════════════════════════════════════════════════════════ -->
+        
+        <!-- ═══════════════════════════════════════════════════════════════
+             CARD SLOTS (Saved Personas)
+             ═══════════════════════════════════════════════════════════════ -->
+        <div class="card-slots" id="tribunal-card-slots">
+            <!-- New Identity button -->
+            <div class="card-slot">
+                <div class="slot-empty" data-action="create-persona">+ New Identity</div>
+            </div>
+            <!-- Decorative empty slots for wallet look -->
+            <div class="card-slot">
+                <div class="slot-decorative"></div>
+            </div>
+            <div class="card-slot">
+                <div class="slot-decorative"></div>
+            </div>
+        </div>
+        
+        <!-- ═══════════════════════════════════════════════════════════════
+             MONEY POCKET
+             ═══════════════════════════════════════════════════════════════ -->
+        <div class="money-pocket">
+            <div class="money-bills">
+                <div class="bill"><span id="tribunal-bill-1">50</span> ʁ</div>
+                <div class="bill"><span id="tribunal-bill-2">20</span> ʁ</div>
+            </div>
+            <div class="money-label"><span class="money-amount" id="tribunal-money-total">0</span> ʁ on hand</div>
+        </div>
+        
+        <div class="wallet-brand">Frittte™</div>
+    </div>
+    
+</div>`;
+
+// ═══════════════════════════════════════════════════════════════
+// SLOT CARD TEMPLATE (For saved personas)
+// ═══════════════════════════════════════════════════════════════
+
+export const SLOT_CARD_TEMPLATE = (persona) => `
+<div class="card-slot">
+    <div class="slot-card${persona.active ? ' active' : ''}" data-persona-id="${escapeHtml(persona.id)}">
+        <div class="hologram-star"></div>
+        <div class="slot-card-name">${escapeHtml(persona.name) || 'UNNAMED'}</div>
+        <div class="slot-card-meta">${getBuildType(persona.stats)} • ${formatPronouns(persona.pronouns)}</div>
+    </div>
+</div>`;
+
+// ═══════════════════════════════════════════════════════════════
+// EMPTY SLOT TEMPLATE
+// ═══════════════════════════════════════════════════════════════
+
+export const EMPTY_SLOT_TEMPLATE = `
+<div class="card-slot">
+    <div class="slot-empty" data-action="create-persona">+ New Identity</div>
+</div>`;
+
+// ═══════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Escape HTML to prevent XSS
+ */
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+/**
+ * Get build type from stats
+ */
+function getBuildType(stats) {
+    if (!stats) return 'Balanced Build';
+    
+    const { int = 3, psy = 3, fys = 3, mot = 3 } = stats;
+    const max = Math.max(int, psy, fys, mot);
+    
+    // Check for ties at max
+    const atMax = [
+        int === max ? 'int' : null,
+        psy === max ? 'psy' : null,
+        fys === max ? 'fys' : null,
+        mot === max ? 'mot' : null
+    ].filter(Boolean);
+    
+    if (atMax.length > 1) return 'Balanced Build';
+    
+    // Genre-adapted build type names
+    const catName = getCategoryFullName(
+        atMax[0] === 'int' ? 'intellect' :
+        atMax[0] === 'psy' ? 'psyche' :
+        atMax[0] === 'fys' ? 'physique' : 'motorics'
+    );
+    
+    return `${catName} Build`;
+}
+
+/**
+ * Format pronouns for display
+ */
+function formatPronouns(pronouns) {
+    if (!pronouns) return 'They/Them';
+    
+    const map = {
+        'they': 'They/Them',
+        'he': 'He/Him',
+        'she': 'She/Her',
+        'it': 'It/Its'
+    };
+    
+    return map[pronouns] || pronouns;
+}
+
+/**
+ * Generate badge number from persona ID
+ */
+export function generateBadgeNumber(personaId) {
+    if (!personaId) return 'LTN-????';
+    const hash = personaId.slice(-4).toUpperCase();
+    return `LTN-${hash.replace(/[^A-Z0-9]/g, '0').padEnd(4, '0').slice(0, 4)}`;
+}
+
+/**
+ * Get copotype display name from ID or scores
+ * @param {string|object|null} copotype - Either a copotype ID string or score object
+ * @param {boolean} useDE - Whether to use DE-specific names (default: false)
+ * @returns {string} Display name
+ */
+export function getCopotypeDisplayName(copotype, useDE = false) {
+    // If null/undefined
+    if (!copotype) return 'Unknown';
+    
+    const nameMap = useDE ? COPOTYPE_DE_NAMES : COPOTYPE_SIMPLE_NAMES;
+    
+    // If it's a direct ID string (from vitals.copotype)
+    if (typeof copotype === 'string') {
+        return nameMap[copotype] || COPOTYPE_SIMPLE_NAMES[copotype] || formatCopotypeId(copotype);
+    }
+    
+    // If it's a scores object (legacy/fallback)
+    if (typeof copotype === 'object') {
+        return determineCopotypeFromScores(copotype, useDE);
+    }
+    
+    return 'Unknown';
+}
+
+/**
+ * Format a copotype ID as display name (fallback)
+ * e.g., 'human_can_opener' -> 'Human Can-Opener'
+ */
+function formatCopotypeId(id) {
+    if (!id) return 'Unknown';
+    return id
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+        .replace('Can Opener', 'Can-Opener');
+}
+
+/**
+ * Determine copotype from scores (legacy)
+ * @deprecated Use direct copotype ID instead
+ */
+function determineCopotypeFromScores(scores, useDE = false) {
+    if (!scores) return 'Unknown';
+    
+    const { superstar = 0, sorry = 0, hobo = 0, apocalypse = 0 } = scores;
+    const max = Math.max(superstar, sorry, hobo, apocalypse);
+    
+    if (max === 0) return 'Unknown';
+    
+    const nameMap = useDE ? COPOTYPE_DE_NAMES : COPOTYPE_SIMPLE_NAMES;
+    
+    if (superstar === max) return nameMap['superstar_cop'];
+    if (sorry === max) return nameMap['sorry_cop'];
+    if (hobo === max) return nameMap['hobocop'];
+    if (apocalypse === max) return nameMap['apocalypse_cop'];
+    
+    return 'Unknown';
+}
+
+/**
+ * Render all persona slots
+ */
+export function renderPersonaSlots(personas = [], activeId = null) {
+    const slots = personas.map(persona => 
+        SLOT_CARD_TEMPLATE({ ...persona, active: persona.id === activeId })
+    );
+    
+    // Always add empty slot at end
+    slots.push(EMPTY_SLOT_TEMPLATE);
+    
+    return slots.join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CARD FLIP INTERACTION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Initialize card flip behavior
+ * Call this after the template is added to DOM
+ */
+export function initCardFlip() {
+    const cardFlip = document.getElementById('tribunal-active-card');
+    const idCard = cardFlip?.querySelector('.id-card');
+    const flipBackBtn = document.getElementById('tribunal-flip-back');
+    
+    if (!cardFlip) return;
+    
+    // Click card front to flip to back (edit mode)
+    idCard?.addEventListener('click', (e) => {
+        // Don't flip if clicking inputs
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
+            return;
+        }
+        cardFlip.classList.add('flipped');
+    });
+    
+    // Flip back button
+    flipBackBtn?.addEventListener('click', () => {
+        cardFlip.classList.remove('flipped');
+    });
+}
+
+/**
+ * Flip card programmatically
+ */
+export function flipCard(toBack = true) {
+    const cardFlip = document.getElementById('tribunal-active-card');
+    if (!cardFlip) return;
+    
+    if (toBack) {
+        cardFlip.classList.add('flipped');
+    } else {
+        cardFlip.classList.remove('flipped');
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DATA BINDING HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Update card front display from persona data
+ */
+export function updateCardDisplay(persona) {
+    if (!persona) return;
+    
+    // Name
+    const nameInput = document.getElementById('tribunal-card-name');
+    if (nameInput) nameInput.value = persona.name || '';
+    
+    // Pronouns
+    const pronounsSelect = document.getElementById('tribunal-card-pronouns');
+    if (pronounsSelect) pronounsSelect.value = persona.pronouns || 'they';
+    
+    // Badge
+    const badge = document.getElementById('tribunal-badge-num');
+    if (badge) badge.textContent = generateBadgeNumber(persona.id);
+    
+    // Stats
+    const stats = persona.stats || { int: 3, psy: 3, fys: 3, mot: 3 };
+    ['int', 'psy', 'fys', 'mot'].forEach(attr => {
+        const el = document.getElementById(`tribunal-stat-${attr}`);
+        if (el) el.textContent = stats[attr] || 3;
+        
+        // Also update edit fields
+        const editEl = document.getElementById(`tribunal-edit-${attr}`);
+        if (editEl) editEl.textContent = stats[attr] || 3;
+    });
+    
+    // Build points
+    const total = (stats.int || 3) + (stats.psy || 3) + (stats.fys || 3) + (stats.mot || 3);
+    const pointsEl = document.getElementById('tribunal-build-points');
+    if (pointsEl) pointsEl.textContent = total;
+    
+    // Copotype - now handles both ID string (from vitals) and score object (legacy)
+    const copotypeEl = document.getElementById('tribunal-copotype');
+    if (copotypeEl) {
+        // Prefer direct copotype ID, fall back to scores-based
+        const displayName = getCopotypeDisplayName(persona.copotype || persona.copotypes);
+        copotypeEl.textContent = displayName;
+    }
+    
+    // POV and context (back of card)
+    const povSelect = document.getElementById('tribunal-pov-style');
+    if (povSelect) povSelect.value = persona.povStyle || 'second';
+    
+    const contextArea = document.getElementById('tribunal-char-context');
+    if (contextArea) contextArea.value = persona.context || '';
+    
+    const notesArea = document.getElementById('tribunal-scene-notes');
+    if (notesArea) notesArea.value = persona.sceneNotes || '';
+    
+    // Also update genre-adapted labels
+    updateCardLabelsForGenre();
+}
+
+/**
+ * Update money display
+ */
+export function updateMoneyDisplay(amount = 0) {
+    const total = document.getElementById('tribunal-money-total');
+    if (total) total.textContent = amount;
+    
+    // Update bill denominations (visual flair)
+    const bill1 = document.getElementById('tribunal-bill-1');
+    const bill2 = document.getElementById('tribunal-bill-2');
+    
+    if (amount >= 50 && bill1) bill1.textContent = '50';
+    else if (bill1) bill1.textContent = Math.min(amount, 20);
+    
+    if (amount >= 70 && bill2) bill2.textContent = '20';
+    else if (amount >= 50 && bill2) bill2.textContent = amount - 50;
+    else if (bill2) bill2.textContent = Math.max(0, amount - 20);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GENRE-ADAPTED LABEL UPDATES
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Update all genre-dependent labels on the card and build editor.
+ * Call on init, on genre change, and after updateCardDisplay.
+ */
+export function updateCardLabelsForGenre() {
+    // Card front — stat abbreviations
+    const labelMap = {
+        'tribunal-stat-label-int': 'intellect',
+        'tribunal-stat-label-psy': 'psyche',
+        'tribunal-stat-label-fys': 'physique',
+        'tribunal-stat-label-mot': 'motorics'
+    };
+    
+    for (const [elId, catId] of Object.entries(labelMap)) {
+        const el = document.getElementById(elId);
+        if (el) el.textContent = getCategoryAbbrev(catId);
+    }
+    
+    // Build editor — full names
+    const buildLabelMap = {
+        'tribunal-build-label-int': 'intellect',
+        'tribunal-build-label-psy': 'psyche',
+        'tribunal-build-label-fys': 'physique',
+        'tribunal-build-label-mot': 'motorics'
+    };
+    
+    for (const [elId, catId] of Object.entries(buildLabelMap)) {
+        const el = document.getElementById(elId);
+        if (el) el.textContent = getCategoryFullName(catId);
+    }
+    
+    // Card org line
+    const orgEl = document.getElementById('tribunal-card-org');
+    if (orgEl) orgEl.textContent = getCardOrgLine();
+    
+    // Archetype label
+    const archEl = document.getElementById('tribunal-archetype-label');
+    if (archEl) archEl.textContent = getArchetypeLabel();
+    
+    // Genre selector — refresh options & selection
+    updateGenreSelector();
+}
+
+/**
+ * Populate the genre selector dropdown with available profiles
+ */
+export function updateGenreSelector() {
+    const selector = document.getElementById('tribunal-genre-selector');
+    if (!selector) return;
+    
+    const currentId = getActiveProfileId();
+    const profiles = getAvailableProfiles();
+    
+    selector.innerHTML = profiles.map(p =>
+        `<option value="${escapeHtml(p.id)}"${p.id === currentId ? ' selected' : ''}>${escapeHtml(p.name)}</option>`
+    ).join('');
+}
+
+/**
+ * Update MEF form labels based on active profile
+ * Swaps copotype names and status effect names between DE and generic
+ * @param {boolean} useDE - Whether to use Disco Elysium-specific names
+ */
+export function updateMEFLabelsForProfile(useDE = false) {
+    // Update copotype labels
+    const copotypes = document.querySelectorAll('.rcm-copotype-item[data-label-off][data-label-on]');
+    copotypes.forEach(item => {
+        const label = item.querySelector('.rcm-copotype-label');
+        if (label) {
+            label.textContent = useDE ? item.dataset.labelOn : item.dataset.labelOff;
+        }
+    });
+    
+    // Update status effect labels (when unchecked, show simple; when checked, show DE or simple)
+    const statuses = document.querySelectorAll('.rcm-checkbox[data-label-off][data-label-on]');
+    statuses.forEach(item => {
+        const label = item.querySelector('.rcm-checkbox-label');
+        if (!label) return;
+        const isActive = item.classList.contains('rcm-checkbox-checked');
+        if (useDE && isActive) {
+            label.textContent = item.dataset.labelOn;
+        } else {
+            label.textContent = item.dataset.labelOff;
+        }
+    });
+    
+    console.log('[Profiles] MEF labels updated, useDE:', useDE);
+}
