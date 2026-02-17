@@ -2,13 +2,14 @@
  * The Tribunal - Location Handlers
  * Field Notebook style with INLINE forms (no modals!)
  * 
- * @version 2.3.0 - STEP 3: Investigate button now wired to Investigation panel
+ * @version 2.4.0 - Fixed investigate button using dynamic import fallback
  * 
  * CHANGE LOG:
  * - Step 1: Added CSS for .notebook-investigate-btn
  * - Step 2: Added button HTML (disabled when no location)
  * - Step 3: Wired button to open Investigation panel via window.tribunalOpenInv
  *           (Uses global helper to avoid circular import issues)
+ * - Step 4: Added dynamic import fallback when window global not available
  */
 
 import { 
@@ -72,30 +73,22 @@ function escapeHtml(str) {
 // ═══════════════════════════════════════════════════════════════
 
 function openInvestigationPanel() {
-    // Use the global helper that index.js exposes
+    // Fast path: Use the global helper that index.js exposes
     if (typeof window.tribunalOpenInv === 'function') {
         window.tribunalOpenInv();
         return;
     }
     
-    // Fallback: try clicking the investigation FAB directly
-    const fab = document.getElementById('tribunal-investigation-fab');
-    if (fab) {
-        fab.click();
-        return;
-    }
-    
-    // Last resort: try to open panel directly
-    const panel = document.getElementById('tribunal-inv-panel');
-    if (panel) {
-        panel.style.display = 'flex';
-        return;
-    }
-    
-    console.warn('[Tribunal] Investigation panel not available');
-    if (typeof toastr !== 'undefined') {
-        toastr.warning('Investigation not ready yet', 'The Tribunal');
-    }
+    // Fallback: Direct dynamic import (investigation.js doesn't import us, so no circular dep)
+    import('../systems/investigation.js').then(mod => {
+        if (mod.openInvestigation) {
+            mod.openInvestigation();
+        } else {
+            console.warn('[Tribunal] Investigation module has no openInvestigation export');
+        }
+    }).catch(e => {
+        console.warn('[Tribunal] Could not open investigation:', e.message);
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════
