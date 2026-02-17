@@ -19,7 +19,7 @@
  */
 
 import { SKILLS } from '../data/skills.js';
-import { getSettings, getSkillLevel } from '../core/state.js';
+import { getSettings, getSkillLevel, getCurrentLocation, addLocationEvent } from '../core/state.js';
 import { getChatState, saveChatState } from '../core/persistence.js';
 import { callAPI } from '../voice/api-helpers.js';
 import { rollSkillCheck } from './dice.js';
@@ -1744,6 +1744,8 @@ function storeDiscoveredObjects(discoveries, context) {
         };
     }
     
+    const currentLoc = getCurrentLocation();
+    
     for (const disc of discoveries) {
         if (!disc || !disc.name) continue;
         
@@ -1763,6 +1765,19 @@ function storeDiscoveredObjects(discoveries, context) {
             });
             
             console.log('[Investigation] Stored discovered object:', disc.name);
+            
+            // Also add as a location note so it shows in the Field Notebook
+            if (currentLoc?.id) {
+                const noteText = disc.peek
+                    ? `🔍 ${disc.name} — ${disc.peek}`
+                    : `🔍 Found: ${disc.name}`;
+                addLocationEvent(currentLoc.id, {
+                    text: noteText,
+                    timestamp: disc.timestamp || new Date().toISOString(),
+                    aiGenerated: true,
+                    source: 'investigation'
+                });
+            }
         }
     }
     

@@ -21,6 +21,7 @@ import {
     getCurrentLocation,
     setCurrentLocation,
     addLocation,
+    addLocationEvent,
     getLedger,
     setWeather,
     setTime
@@ -28,6 +29,20 @@ import {
 import { getChatState, saveChatState } from '../core/persistence.js';
 import { setRPTime, setRPWeather } from '../ui/watch.js';
 import { refreshLocations } from '../ui/location-handlers.js';
+
+// Location memory generator (lazy loaded)
+let locationMemoryModule = null;
+
+async function getLocationMemoryGenerator() {
+    if (!locationMemoryModule) {
+        try {
+            locationMemoryModule = await import('../voice/location-memory.js');
+        } catch (e) {
+            console.warn('[WorldParser] Location memory generator not available:', e.message);
+        }
+    }
+    return locationMemoryModule;
+}
 
 // ═══════════════════════════════════════════════════════════════
 // AI API HELPERS (lazy loaded for AI world state extraction)
@@ -383,6 +398,58 @@ function applyConditionFromWorldTag(physical, mental, notify = true) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// LOCATION MEMORY GENERATION
+// Fires async after location changes — generates a themed
+// memory/impression and stores it in the location's events.
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Generate a location memory and store it in the location's events array.
+ * Fire-and-forget — does not block the caller.
+ */
+async function generateAndStoreLocationMemory(location, isReturning = false) {
+    if (!location?.id || !location?.name) return;
+    
+    // Check if enabled
+    const settings = window.TribunalState?.getSettings?.();
+    if (settings?.worldState?.useAIWorldState === false) return;
+    
+    try {
+        const memGen = await getLocationMemoryGenerator();
+        if (!memGen?.generateLocationMemory) return;
+        
+        // Determine mode: is this a place the character has visited before?
+        const hasExistingEvents = location.events && location.events.length > 0;
+        const mode = (hasExistingEvents || location.visited) ? 'familiar' : 'new';
+        
+        const memory = await memGen.generateLocationMemory({
+            locationName: location.name,
+            district: location.district,
+            mode,
+            chatDepth: 5
+        });
+        
+        if (memory?.text) {
+            addLocationEvent(location.id, {
+                text: memory.text,
+                timestamp: memory.timestamp,
+                aiGenerated: true,
+                source: 'location-memory'
+            });
+            
+            saveChatState();
+            
+            // Refresh notebook UI to show the new memory
+            try { refreshLocations(); } catch { /* silent */ }
+            
+            console.log(`[WorldParser] Stored ${mode} memory for ${location.name}`);
+        }
+    } catch (e) {
+        console.warn('[WorldParser] Location memory generation failed:', e.message);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // STATE UPDATER
 // ═══════════════════════════════════════════════════════════════
 
@@ -422,6 +489,7 @@ export function applyWorldState(worldData, options = {}) {
         // Only update if location actually changed
         if (!currentLoc || currentLoc.name.toLowerCase() !== name.toLowerCase()) {
             const loc = findOrCreateLocation(name, district);
+            const isReturning = !!currentLoc; // Had a previous location
             setCurrentLocation(loc);
             result.location = loc;
             result.updated = true;
@@ -434,6 +502,9 @@ export function applyWorldState(worldData, options = {}) {
             if (notify && typeof toastr !== 'undefined') {
                 toastr.info(`📍 ${name}`, 'Location', { timeOut: 2000 });
             }
+            
+            // Fire-and-forget: Generate a location memory for the notebook
+            generateAndStoreLocationMemory(loc, isReturning);
         }
     }
     
