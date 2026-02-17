@@ -858,22 +858,25 @@ export function addLocationEvent(locationId, event) {
     const state = getChatState();
     if (!state?.ledger?.locations) return;
     
+    // Build the event, preserving all properties
+    const eventObj = {
+        text: event.text,
+        timestamp: event.timestamp || new Date().toISOString()
+    };
+    // Preserve optional metadata
+    if (event.aiGenerated) eventObj.aiGenerated = true;
+    if (event.source) eventObj.source = event.source;
+    
     const loc = state.ledger.locations.find(l => l.id === locationId);
     if (loc) {
         if (!loc.events) loc.events = [];
-        loc.events.push({
-            text: event.text,
-            timestamp: event.timestamp || new Date().toISOString()
-        });
+        loc.events.push(eventObj);
     }
     
     // Also update currentLocation if it matches
     if (state.ledger.currentLocation?.id === locationId) {
         if (!state.ledger.currentLocation.events) state.ledger.currentLocation.events = [];
-        state.ledger.currentLocation.events.push({
-            text: event.text,
-            timestamp: event.timestamp || new Date().toISOString()
-        });
+        state.ledger.currentLocation.events.push({ ...eventObj });
     }
     
     saveChatState();
