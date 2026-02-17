@@ -278,6 +278,7 @@ export const DEFAULT_GLOBAL_SETTINGS = {
         
         // AI extraction (active, uses API)
         useAIExtractor: false,      // Use AI to detect locations (costs API)
+        useAIWorldState: true,      // AI-infer weather/time/location from chat context
         
         // World tag injection
         injectWorldTag: true        // Inject WORLD tags into AI context
