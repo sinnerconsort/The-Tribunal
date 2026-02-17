@@ -1,0 +1,74 @@
+The Tribunal - License
+
+Copyright (c) 2025 sinnerconsort
+
+This project contains two types of material under different terms:
+
+
+═══════════════════════════════════════════════════════════════
+1. CODE (Structure, Logic, Architecture)
+═══════════════════════════════════════════════════════════════
+
+Licensed under the MIT License.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+═══════════════════════════════════════════════════════════════
+2. CREATIVE CONTENT (Written Prose, Personalities, Prompts)
+═══════════════════════════════════════════════════════════════
+
+The following are considered authored creative content and are licensed under
+Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+(CC BY-NC-SA 4.0):
+
+  - Voice personality descriptions and dialogue
+  - Genre tone guides and system introductions
+  - Skill personality overrides per genre
+  - Ledger voice personas, fortune text, and atmospheric writing
+  - Investigation prompt templates and narrative framing
+  - Any other prose, flavor text, or authored written content
+
+You are free to:
+  - Share: copy and redistribute the material in any medium or format
+  - Adapt: remix, transform, and build upon the material
+
+Under the following terms:
+  - Attribution: You must give appropriate credit to The Tribunal
+    (sinnerconsort), provide a link to the original repository, and
+    indicate if changes were made.
+  - NonCommercial: You may not use the material for commercial purposes.
+  - ShareAlike: If you remix, transform, or build upon the material, you
+    must distribute your contributions under the same license.
+
+Full license text: https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+
+═══════════════════════════════════════════════════════════════
+IN PLAIN ENGLISH
+═══════════════════════════════════════════════════════════════
+
+Want to learn from the code and build your own thing? Go for it.
+Want to reference the architecture for your own extension? Absolutely.
+Want to copy-paste the voice personalities, genre writing, or prompt
+content verbatim into your project? That needs attribution and the same
+share-alike license.
+
+The ideas are free. The implementation patterns are free. The words I
+wrote are mine — just credit me if you use them.
