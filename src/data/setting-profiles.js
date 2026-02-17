@@ -11,7 +11,7 @@
  *   2. Import it here and add to SETTING_PROFILES
  *   3. Done — it appears in the settings dropdown
  * 
- * @version 2.2.0 - Modular genre architecture + 11 genres
+ * @version 2.3.0 - Added categoryNames, skillDescriptions, ancientNames accessors
  */
 
 import { getSettings } from '../core/state.js';
@@ -69,6 +69,44 @@ const BASE_SKILL_PERSONALITIES = {
     savoir_faire: `You are SAVOIR FAIRE, the King of Cool. Style, panache, effortless grace. Your failures are spectacular.`,
     interfacing: `You are INTERFACING, you talk to machines. Technical, tactile, more comfortable with devices than people. Almost supernatural bond with technology.`,
     composure: `You are COMPOSURE, the mask that never slips. Poker face, posture commands, quiet control. Even alone, the mask stays on.`,
+};
+
+const BASE_CATEGORY_NAMES = {
+    intellect: 'Intellect',
+    psyche: 'Psyche',
+    physique: 'Physique',
+    motorics: 'Motorics'
+};
+
+const BASE_SKILL_DESCRIPTIONS = {
+    // ─── INTELLECT ───
+    logic: 'The cold rationalist. If A, then B, therefore C.',
+    encyclopedia: 'Unsolicited trivia ranging from brilliant to useless.',
+    rhetoric: 'The political beast. Nitpicking and winning arguments.',
+    drama: 'Theatrical deception detector. Addresses you as "sire."',
+    conceptualization: 'The pretentious Art Cop. Punishes mediocrity.',
+    visual_calculus: 'Forensic precision. Measurements and trajectories.',
+    // ─── PSYCHE ───
+    volition: 'The defiant spirit of self. Guardian of morale.',
+    inland_empire: 'Gut feelings and the liminal. Objects whisper to you.',
+    empathy: 'You feel what others feel. The weight of everyone.',
+    authority: 'You DEMAND respect. Every interaction is power.',
+    suggestion: 'Soft manipulation. You know what people want.',
+    esprit_de_corps: 'Group psychic. Flash-sideways visions of allies.',
+    // ─── PHYSIQUE ───
+    endurance: 'The body\'s stubbornness. Keep going through everything.',
+    pain_threshold: 'Meaning in suffering. Pain strips away the false.',
+    physical_instrument: 'Raw muscle. Solve it with the body.',
+    electrochemistry: 'Pleasure and excess. One more. Always one more.',
+    half_light: 'Fight-or-flight. Something is wrong here.',
+    shivers: 'You feel the city itself. The bridge to something deeper.',
+    // ─── MOTORICS ───
+    hand_eye_coordination: 'Trigger-happy. Disturbingly eager about projectiles.',
+    perception: 'You notice everything. The wrong detail, the missing piece.',
+    reaction_speed: 'Quick reflexes. Not every bullet can be dodged.',
+    savoir_faire: 'The King of Cool. Spectacular failures.',
+    interfacing: 'You talk to machines. Almost supernatural bond.',
+    composure: 'The mask that never slips. Even alone.',
 };
 
 const BASE_ANCIENT_PERSONALITIES = {
@@ -151,6 +189,79 @@ export function getSkillName(skillId, defaultName) {
 }
 
 /**
+ * Get a category's themed display name
+ * Priority: Active Profile categoryNames → base category name
+ */
+export function getCategoryName(categoryId, defaultName) {
+    const profile = getActiveProfile();
+    if (profile.categoryNames?.[categoryId]) {
+        return profile.categoryNames[categoryId];
+    }
+    return BASE_CATEGORY_NAMES[categoryId] || defaultName || categoryId;
+}
+
+/**
+ * Get a skill's short flavor/description text for the accordion
+ * Priority: Active Profile skillDescriptions → genre descriptions file → base DE description
+ */
+let _genreDescCache = null;
+let _genreDescLoading = false;
+
+export function getSkillDescription(skillId) {
+    const profile = getActiveProfile();
+    
+    // 1. Profile's own override (if any genre file adds skillDescriptions directly)
+    if (profile.skillDescriptions?.[skillId]) {
+        return profile.skillDescriptions[skillId];
+    }
+    
+    // 2. Centralized genre descriptions (lazy-loaded once)
+    if (!_genreDescLoading) {
+        _genreDescLoading = true;
+        import('./genre-skill-descriptions.js').then(mod => {
+            _genreDescCache = mod;
+            // Refresh flavor text in existing accordion rows without full rebuild
+            _refreshFlavorText();
+        }).catch(() => { /* silent — fallback to base */ });
+    }
+    
+    if (_genreDescCache) {
+        const genreId = getActiveProfileId();
+        const desc = _genreDescCache.getGenreSkillDescription(genreId, skillId);
+        if (desc) return desc;
+    }
+    
+    return BASE_SKILL_DESCRIPTIONS[skillId] || '';
+}
+
+/** Update flavor text in-place after genre descriptions module loads */
+function _refreshFlavorText() {
+    const genreId = getActiveProfileId();
+    document.querySelectorAll('.skill-row[data-skill]').forEach(row => {
+        const skillId = row.dataset.skill;
+        const flavorEl = row.querySelector('.skill-flavor');
+        const desc = _genreDescCache?.getGenreSkillDescription(genreId, skillId);
+        if (flavorEl && desc) {
+            flavorEl.textContent = desc;
+        }
+    });
+}
+
+/**
+ * Get an ancient voice's themed display name
+ * Checks skillNames first (where ancient names live alongside skill names)
+ * Priority: Active Profile skillNames → default ancient name
+ */
+export function getAncientName(voiceId, defaultName) {
+    const profile = getActiveProfile();
+    // Ancient names stored in skillNames alongside regular skills
+    if (profile.skillNames?.[voiceId]) {
+        return profile.skillNames[voiceId];
+    }
+    return defaultName || voiceId;
+}
+
+/**
  * Get an ancient voice's personality text
  */
 export function getAncientPersonality(voiceId) {
@@ -194,7 +305,7 @@ export function getAvailableProfiles() {
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════
 
-export { BASE_SKILL_PERSONALITIES, BASE_ANCIENT_PERSONALITIES };
+export { BASE_SKILL_PERSONALITIES, BASE_ANCIENT_PERSONALITIES, BASE_CATEGORY_NAMES, BASE_SKILL_DESCRIPTIONS };
 
 export default {
     SETTING_PROFILES,
@@ -202,6 +313,9 @@ export default {
     getActiveProfileId,
     getSkillPersonality,
     getSkillName,
+    getCategoryName,
+    getSkillDescription,
+    getAncientName,
     getAncientPersonality,
     getProfileValue,
     getAvailableProfiles,
