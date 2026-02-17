@@ -15,6 +15,7 @@
 let watchMode = 'rp';  // Default to RP mode (chat-detected)
 let watchInterval = null;
 let rpTime = { hours: 14, minutes: 30 };
+let rpDay = null;  // Day of month from state, shown in watch date window
 let rpWeather = 'clear-day';
 let realWeatherCache = null;
 let realWeatherLastFetch = 0;
@@ -70,6 +71,31 @@ function adjustForTimeOfDay(weather) {
         return isNight ? 'clear-night' : 'clear-day';
     }
     return weather;
+}
+
+/**
+ * Normalize any weather string to a watch-compatible key.
+ * Handles both normalized keys ('rainy') and raw WORLD tag 
+ * values ('Heavy Rain', 'Clear skies').
+ */
+function normalizeWeatherInput(weatherStr) {
+    if (!weatherStr || typeof weatherStr !== 'string') return 'cloudy';
+    
+    // Already a known watch key? Pass through.
+    if (WEATHER_ICONS[weatherStr]) return weatherStr;
+    
+    const lower = weatherStr.toLowerCase().trim();
+    
+    // Fuzzy match
+    if (lower.includes('clear') || lower.includes('sunny')) return 'clear';
+    if (lower.includes('storm') || lower.includes('thunder') || lower.includes('downpour')) return 'stormy';
+    if (lower.includes('drizzl') || lower.includes('rain')) return 'rainy';
+    if (lower.includes('snow') || lower.includes('blizzard')) return 'snowy';
+    if (lower.includes('fog') || lower.includes('mist') || lower.includes('haz')) return 'foggy';
+    if (lower.includes('wind')) return 'windy';
+    if (lower.includes('cloud') || lower.includes('overcast')) return 'cloudy';
+    
+    return 'cloudy'; // Safe fallback
 }
 
 // Map WMO codes → watch weather keys
@@ -310,7 +336,7 @@ export async function updateWatch() {
         hours = rpTime.hours % 12;
         minutes = rpTime.minutes;
         seconds = 0;
-        day = '??';
+        day = rpDay || new Date().getDate();
         weather = rpWeather;
     }
     
@@ -484,9 +510,10 @@ export function stopWatch() {
 /**
  * Set RP time manually
  */
-export function setRPTime(hours, minutes) {
+export function setRPTime(hours, minutes, day) {
     rpTime.hours = hours;
     rpTime.minutes = minutes !== undefined ? minutes : rpTime.minutes;
+    if (day !== undefined) rpDay = day;
     
     // Auto-adjust day/night weather variant when time changes
     rpWeather = adjustForTimeOfDay(rpWeather);
@@ -500,9 +527,13 @@ export function setRPTime(hours, minutes) {
 
 /**
  * Set RP weather manually
+ * Accepts both normalized keys ('clear-day', 'rainy') and 
+ * raw strings ('Clear skies', 'Heavy Rain') from WORLD tag restoration.
  */
 export function setRPWeather(weather) {
-    rpWeather = adjustForTimeOfDay(weather);
+    // Normalize raw weather strings to watch-compatible keys
+    const normalized = normalizeWeatherInput(weather);
+    rpWeather = adjustForTimeOfDay(normalized);
     console.log('[Watch] setRPWeather called with:', weather, '→', rpWeather);
     
     if (watchMode === 'rp') {
@@ -557,6 +588,7 @@ export function getWatchState() {
     return {
         mode: watchMode,
         rpTime: { ...rpTime },
+        rpDay,
         rpWeather
     };
 }
@@ -568,6 +600,7 @@ export function restoreWatchState(state) {
     if (!state) return;
     if (state.mode) watchMode = state.mode;
     if (state.rpTime) rpTime = { ...state.rpTime };
+    if (state.rpDay !== undefined) rpDay = state.rpDay;
     if (state.rpWeather) rpWeather = state.rpWeather;
     updateWatch();
     updateNewspaper();
