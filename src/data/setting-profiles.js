@@ -28,6 +28,7 @@ import { profile as postApocalyptic } from './genres/post-apocalyptic.js';
 import { profile as cyberpunk } from './genres/cyberpunk.js';
 import { profile as sliceOfLife } from './genres/slice-of-life.js';
 import { profile as grimdark } from './genres/grimdark.js';
+import { GENRE_SKILL_DESCRIPTIONS } from './genre-skill-descriptions.js';
 
 // ═══════════════════════════════════════════════════════════════
 // BASE SKILL PERSONALITIES (Setting-Agnostic Defaults)
@@ -202,11 +203,8 @@ export function getCategoryName(categoryId, defaultName) {
 
 /**
  * Get a skill's short flavor/description text for the accordion
- * Priority: Active Profile skillDescriptions → genre descriptions file → base DE description
+ * Priority: Active Profile skillDescriptions → genre descriptions → base DE description
  */
-let _genreDescCache = null;
-let _genreDescLoading = false;
-
 export function getSkillDescription(skillId) {
     const profile = getActiveProfile();
     
@@ -215,36 +213,13 @@ export function getSkillDescription(skillId) {
         return profile.skillDescriptions[skillId];
     }
     
-    // 2. Centralized genre descriptions (lazy-loaded once)
-    if (!_genreDescLoading) {
-        _genreDescLoading = true;
-        import('./genre-skill-descriptions.js').then(mod => {
-            _genreDescCache = mod;
-            // Refresh flavor text in existing accordion rows without full rebuild
-            _refreshFlavorText();
-        }).catch(() => { /* silent — fallback to base */ });
-    }
-    
-    if (_genreDescCache) {
-        const genreId = getActiveProfileId();
-        const desc = _genreDescCache.getGenreSkillDescription(genreId, skillId);
-        if (desc) return desc;
-    }
-    
-    return BASE_SKILL_DESCRIPTIONS[skillId] || '';
-}
-
-/** Update flavor text in-place after genre descriptions module loads */
-function _refreshFlavorText() {
+    // 2. Centralized genre descriptions
     const genreId = getActiveProfileId();
-    document.querySelectorAll('.skill-row[data-skill]').forEach(row => {
-        const skillId = row.dataset.skill;
-        const flavorEl = row.querySelector('.skill-flavor');
-        const desc = _genreDescCache?.getGenreSkillDescription(genreId, skillId);
-        if (flavorEl && desc) {
-            flavorEl.textContent = desc;
-        }
-    });
+    const genreDesc = GENRE_SKILL_DESCRIPTIONS[genreId]?.[skillId];
+    if (genreDesc) return genreDesc;
+    
+    // 3. Base descriptions (Disco Elysium defaults)
+    return BASE_SKILL_DESCRIPTIONS[skillId] || '';
 }
 
 /**
