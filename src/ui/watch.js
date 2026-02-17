@@ -2,7 +2,7 @@
  * The Tribunal - Watch Functionality
  * Real-time / RP-time toggle with weather display
  * 
- * v2.0.2 - Added enabled checks to prevent idle scanning when extension is disabled
+ * v2.0.3 - Fixed sun icon showing at night (day/night auto-adjustment for clear weather)
  * v2.0.1 - Fixed import path for weather-integration.js
  *        - Added fallback weather detection
  *        - Added debug logging for weather connection
@@ -56,8 +56,21 @@ const EFFECTS_TO_WATCH = {
     'wind': 'windy',
     'waves': 'cloudy',
     'smoke': 'foggy',
-    'clear': 'clear-day'
+    'clear': 'clear'  // Don't hardcode day — resolved by adjustForTimeOfDay()
 };
+
+/**
+ * Adjust a weather key for current RP time-of-day.
+ * 'clear' / 'clear-day' / 'clear-night' → correct variant based on rpTime.hours
+ * Other weather types pass through unchanged.
+ */
+function adjustForTimeOfDay(weather) {
+    const isNight = rpTime.hours < 6 || rpTime.hours >= 20;
+    if (weather === 'clear' || weather === 'clear-day' || weather === 'clear-night') {
+        return isNight ? 'clear-night' : 'clear-day';
+    }
+    return weather;
+}
 
 // Map WMO codes → watch weather keys
 const WMO_TO_WATCH = {
@@ -217,23 +230,23 @@ async function connectWeatherEffects() {
 function onWeatherEffectChange(data) {
     console.log('[Watch] Processing weather change:', data);
     
-    // Update RP weather from effects
-    if (data.weather) {
-        rpWeather = EFFECTS_TO_WATCH[data.weather] || data.weather;
-        console.log('[Watch] Set rpWeather to:', rpWeather);
-    } else if (data.period) {
-        // Use period to determine day/night if no weather
-        if (data.period === 'day') rpWeather = 'clear-day';
-        else if (data.period.includes('night')) rpWeather = 'clear-night';
-    }
-    
-    // Sync time from period
+    // Sync time from period FIRST (so adjustForTimeOfDay uses correct hour)
     if (data.period === 'day') {
         rpTime.hours = 14; // Afternoon
     } else if (data.period === 'city-night') {
         rpTime.hours = 20; // Evening
     } else if (data.period === 'quiet-night') {
         rpTime.hours = 2; // Late night
+    }
+    
+    // Update RP weather from effects (with time-of-day awareness)
+    if (data.weather) {
+        rpWeather = adjustForTimeOfDay(EFFECTS_TO_WATCH[data.weather] || data.weather);
+        console.log('[Watch] Set rpWeather to:', rpWeather);
+    } else if (data.period) {
+        // Use period to determine day/night if no weather
+        if (data.period === 'day') rpWeather = 'clear-day';
+        else if (data.period.includes('night')) rpWeather = 'clear-night';
     }
     
     updateWatch();
@@ -475,6 +488,9 @@ export function setRPTime(hours, minutes) {
     rpTime.hours = hours;
     rpTime.minutes = minutes !== undefined ? minutes : rpTime.minutes;
     
+    // Auto-adjust day/night weather variant when time changes
+    rpWeather = adjustForTimeOfDay(rpWeather);
+    
     if (watchMode === 'rp') {
         updateWatch();
         updateNewspaper();
@@ -486,8 +502,8 @@ export function setRPTime(hours, minutes) {
  * Set RP weather manually
  */
 export function setRPWeather(weather) {
-    rpWeather = weather;
-    console.log('[Watch] setRPWeather called with:', weather);
+    rpWeather = adjustForTimeOfDay(weather);
+    console.log('[Watch] setRPWeather called with:', weather, '→', rpWeather);
     
     if (watchMode === 'rp') {
         updateWatch();
