@@ -759,7 +759,7 @@ async function addExtensionSettings() {
                     </label>
                     
                     <p class="hint" style="margin-top: 8px; font-size: 0.85em; color: #888;">
-                        Toggle to enable/disable the Disco Elysium voice system.<br>
+                        Toggle to enable/disable the internal voice system.<br>
                         Configure additional settings within the panel itself.
                     </p>
                     
