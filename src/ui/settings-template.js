@@ -462,6 +462,14 @@ export const SETTINGS_TAB_HTML = `
                 <em>Prevent accidental dragging of FAB and panel</em>
             </div>
             
+            <label class="rcm-checkbox-row">
+                <input type="checkbox" id="cfg-show-main-fab" checked>
+                <span>Show Panel FAB</span>
+            </label>
+            <div class="rcm-field-note">
+                <em>Floating button to open/close the main Tribunal panel</em>
+            </div>
+            
             <button id="cfg-save-settings" class="rcm-btn rcm-btn-primary">
                 💾 SAVE SETTINGS
             </button>

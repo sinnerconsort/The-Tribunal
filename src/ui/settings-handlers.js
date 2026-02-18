@@ -41,6 +41,7 @@ const SETTINGS_IDS = {
     
     // Investigation (Section III.5)
     showInvestigationFab: 'cfg-show-fab',
+    showMainFab: 'cfg-show-main-fab',
     
     // Vitals Detection (Section IV)
     autoVitals: 'cfg-auto-vitals',
@@ -270,11 +271,16 @@ function applyInitialStates() {
     const showFab = settings?.investigation?.showFab ?? true;
     updateInvestigationFabVisibility(showFab);
     
+    // Apply Main FAB visibility
+    const showMainFab = settings?.ui?.showFab ?? true;
+    const mainFab = document.getElementById('inland-empire-fab');
+    if (mainFab) mainFab.style.display = showMainFab ? 'flex' : 'none';
+    
     // Apply position lock state
     const lockPositions = settings?.ui?.lockPositions ?? false;
     updatePositionLockState(lockPositions);
     
-    console.log('[Tribunal] Applied initial states - FAB:', showFab, 'Lock:', lockPositions);
+    console.log('[Tribunal] Applied initial states - MainFAB:', showMainFab, 'InvFAB:', showFab, 'Lock:', lockPositions);
 }
 
 /**
@@ -349,6 +355,9 @@ export function refreshSettingsFromState() {
     
     // Investigation FAB
     setCheckbox(SETTINGS_IDS.showInvestigationFab, settings.investigation?.showFab ?? true);
+    
+    // Main Panel FAB
+    setCheckbox(SETTINGS_IDS.showMainFab, settings.ui?.showFab ?? true);
     
     // Vitals Detection
     setCheckbox(SETTINGS_IDS.autoVitals, settings.vitals?.autoDetect ?? true);
@@ -637,7 +646,17 @@ function bindResetPositions() {
     if (!btn) return;
     
     btn.addEventListener('click', () => {
-        // Reset FAB positions to defaults
+        // Reset main FAB position
+        const mainFab = document.getElementById('inland-empire-fab');
+        if (mainFab) {
+            mainFab.style.top = '100px';
+            mainFab.style.left = '10px';
+            mainFab.style.right = '';
+            mainFab.style.bottom = '';
+            mainFab.style.display = 'flex';
+        }
+        
+        // Reset investigation FAB position
         const investigationFab = document.getElementById('tribunal-investigation-fab');
         if (investigationFab) {
             investigationFab.style.right = '20px';
@@ -646,7 +665,7 @@ function bindResetPositions() {
             investigationFab.style.top = '';
         }
         
-        // Reset panel position if needed
+        // Reset panel position
         const panel = document.getElementById('ie-psyche-panel');
         if (panel) {
             panel.style.right = '10px';
@@ -654,6 +673,20 @@ function bindResetPositions() {
             panel.style.left = '';
             panel.style.bottom = '';
         }
+        
+        // Re-enable both FABs in settings
+        const settings = getSettings();
+        if (settings) {
+            if (!settings.ui) settings.ui = {};
+            settings.ui.showFab = true;
+            if (!settings.investigation) settings.investigation = {};
+            settings.investigation.showFab = true;
+            saveSettings();
+        }
+        
+        // Update checkboxes to match
+        setCheckbox(SETTINGS_IDS.showMainFab, true);
+        setCheckbox(SETTINGS_IDS.showInvestigationFab, true);
         
         // Clear saved positions from localStorage
         localStorage.removeItem('tribunal-fab-position');
@@ -884,6 +917,28 @@ function bindInputHandlersWithRetry(retryCount = 0) {
         console.log('[Tribunal] FAB toggle handler bound');
     } else {
         console.warn('[Tribunal] FAB toggle element not found after retries');
+    }
+    
+    // Bind Main Panel FAB toggle - immediate effect
+    const mainFabToggle = document.getElementById(SETTINGS_IDS.showMainFab);
+    if (mainFabToggle) {
+        const newMainFabToggle = mainFabToggle.cloneNode(true);
+        mainFabToggle.parentNode.replaceChild(newMainFabToggle, mainFabToggle);
+        
+        newMainFabToggle.addEventListener('change', (e) => {
+            const show = e.target.checked;
+            console.log(`[Tribunal] Main FAB toggle changed: show=${show}`);
+            const mainFab = document.getElementById('inland-empire-fab');
+            if (mainFab) mainFab.style.display = show ? 'flex' : 'none';
+            
+            const settings = getSettings();
+            if (settings) {
+                if (!settings.ui) settings.ui = {};
+                settings.ui.showFab = show;
+                saveSettings();
+            }
+        });
+        console.log('[Tribunal] Main FAB toggle handler bound');
     }
     
     // Bind Lock positions toggle - immediate effect
