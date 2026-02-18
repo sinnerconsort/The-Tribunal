@@ -380,9 +380,11 @@ function onNewAIMessage(messageIndex) {
     const message = chat[messageIndex];
     if (!message || message.is_user) return;
     
-    console.log('[Tribunal] New AI message detected, index:', messageIndex);
-    
+    // Skip ALL processing if extension is disabled
     const settings = getSettings();
+    if (settings?.enabled === false) return;
+    
+    console.log('[Tribunal] New AI message detected, index:', messageIndex);
     
     // ═══════════════════════════════════════════════════════════════
     // WORLD TAG PARSING - Fast, no API call, runs first
@@ -767,6 +769,9 @@ async function addExtensionSettings() {
                         <a href="#" id="tribunal-debug-export" class="menu_button" style="flex: 1; text-align: center;">
                             <i class="fa-solid fa-bug"></i> Debug
                         </a>
+                        <a href="#" id="tribunal-reset-fabs" class="menu_button" style="flex: 1; text-align: center;">
+                            <i class="fa-solid fa-arrows-to-dot"></i> Reset FABs
+                        </a>
                     </div>
                 </div>
             </div>
@@ -820,6 +825,48 @@ async function addExtensionSettings() {
                 console.log('Debug data:\n', text);
                 toastr.info('Debug data logged to console', 'The Tribunal');
             });
+        });
+        
+        // Wire up Reset FABs button
+        $('#tribunal-reset-fabs').on('click', (e) => {
+            e.preventDefault();
+            
+            // Reset main FAB
+            const mainFab = document.getElementById('inland-empire-fab');
+            if (mainFab) {
+                mainFab.style.top = '100px';
+                mainFab.style.left = '10px';
+                mainFab.style.right = '';
+                mainFab.style.bottom = '';
+                mainFab.style.display = 'flex';
+            }
+            
+            // Reset investigation FAB
+            const invFab = document.getElementById('tribunal-investigation-fab');
+            if (invFab) {
+                invFab.style.right = '20px';
+                invFab.style.bottom = '80px';
+                invFab.style.left = '';
+                invFab.style.top = '';
+                invFab.style.display = 'flex';
+            }
+            
+            // Re-enable both in settings
+            const settings = getSettings();
+            if (settings) {
+                if (!settings.ui) settings.ui = {};
+                settings.ui.showFab = true;
+                if (!settings.investigation) settings.investigation = {};
+                settings.investigation.showFab = true;
+                saveSettings();
+            }
+            
+            // Clear saved positions
+            localStorage.removeItem('tribunal-fab-position');
+            localStorage.removeItem('tribunal-panel-position');
+            
+            toastr.success('FAB positions reset & re-enabled', 'The Tribunal');
+            console.log('[Tribunal] FABs reset from extension tab');
         });
         
         console.log('[Tribunal] Extension settings panel added');
