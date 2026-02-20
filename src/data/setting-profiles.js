@@ -434,10 +434,10 @@ export const SETTING_PROFILES = {
 export function getActiveProfile() {
     try {
         const settings = getSettings();
-        const profileId = settings?.activeProfile || settings?.genreProfile || 'disco_elysium';
-        return SETTING_PROFILES[profileId] || SETTING_PROFILES.disco_elysium;
+        const profileId = settings?.activeProfile || settings?.genreProfile || 'generic';
+        return SETTING_PROFILES[profileId] || SETTING_PROFILES.generic;
     } catch {
-        return SETTING_PROFILES.disco_elysium;
+        return SETTING_PROFILES.generic;
     }
 }
 
@@ -447,9 +447,9 @@ export function getActiveProfile() {
 export function getActiveProfileId() {
     try {
         const settings = getSettings();
-        return settings?.activeProfile || settings?.genreProfile || 'disco_elysium';
+        return settings?.activeProfile || settings?.genreProfile || 'generic';
     } catch {
-        return 'disco_elysium';
+        return 'generic';
     }
 }
 
@@ -537,16 +537,16 @@ export function getAncientPersonality(voiceId) {
 
 /**
  * Get a specific profile property with fallback chain:
- * Active Profile → Disco Elysium default → provided fallback
+ * Active Profile → Generic default → provided fallback
  */
 export function getProfileValue(key, fallback = '') {
     const profile = getActiveProfile();
     if (profile[key] !== undefined && profile[key] !== null) {
         return profile[key];
     }
-    const de = SETTING_PROFILES.disco_elysium;
-    if (de[key] !== undefined && de[key] !== null) {
-        return de[key];
+    const generic = SETTING_PROFILES.generic;
+    if (generic[key] !== undefined && generic[key] !== null) {
+        return generic[key];
     }
     return fallback;
 }
