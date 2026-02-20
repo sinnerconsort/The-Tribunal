@@ -47,6 +47,18 @@ export const SETTINGS_TAB_HTML = `
                     </select>
                 </div>
                 
+                <div class="rcm-field-row">
+                    <label class="rcm-field-label">API BUDGET:</label>
+                    <select id="cfg-api-budget" class="rcm-select">
+                        <option value="voices_only">Voices Only (1 call/msg)</option>
+                        <option value="voices_tracking">Voices + Tracking (2 calls/msg)</option>
+                        <option value="full" selected>Full Suite (3-4 calls/msg)</option>
+                    </select>
+                </div>
+                <div class="rcm-field-note">
+                    <em>Controls API requests per message. Free-tier users: pick Voices Only to conserve daily limits.</em>
+                </div>
+                
                 <div class="rcm-field-grid">
                     <div class="rcm-field-item">
                         <label class="rcm-field-label">TEMPERATURE:</label>

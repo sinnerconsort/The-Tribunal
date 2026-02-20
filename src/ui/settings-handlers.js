@@ -27,6 +27,7 @@ const SETTINGS_IDS = {
     // Connection (Section II)
     connectionProfile: 'cfg-connection-profile',
     temperature: 'cfg-temperature',
+    apiBudget: 'cfg-api-budget',
     maxTokens: 'cfg-max-tokens',
     testConnection: 'cfg-test-connection',
     
@@ -341,6 +342,7 @@ export function refreshSettingsFromState() {
     // API / Connection settings
     const apiSettings = settings.api || {};
     setSelectValue(SETTINGS_IDS.connectionProfile, apiSettings.connectionProfile || 'current');
+    setSelectValue(SETTINGS_IDS.apiBudget, settings.apiBudget || 'full');
     setInputValue(SETTINGS_IDS.temperature, apiSettings.temperature ?? 0.8);
     setInputValue(SETTINGS_IDS.maxTokens, apiSettings.maxTokens ?? 600);
     
@@ -486,6 +488,7 @@ export function saveAllSettings() {
     
     // Connection settings
     settings.api.connectionProfile = getInputValue(SETTINGS_IDS.connectionProfile, 'current');
+    settings.apiBudget = getInputValue(SETTINGS_IDS.apiBudget, 'full');
     settings.api.temperature = getInputFloat(SETTINGS_IDS.temperature, 0.8);
     settings.api.maxTokens = getInputNumber(SETTINGS_IDS.maxTokens, 600);
     
