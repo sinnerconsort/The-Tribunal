@@ -383,6 +383,22 @@ async function scanForInventory() {
     const overlay = document.getElementById('ie-scan-overlay');
     const statusEl = document.getElementById('ie-scan-status');
     
+    // Try to get handlers if not yet linked
+    if (!inventoryHandlers) {
+        try {
+            inventoryHandlers = await import('./inventory-handlers.js');
+        } catch (e) {
+            console.warn('[Inventory] Could not load handlers:', e.message);
+        }
+    }
+    if (!inventoryGeneration) {
+        try {
+            inventoryGeneration = await import('../voice/inventory-generation.js');
+        } catch (e) {
+            console.warn('[Inventory] Could not load generation:', e.message);
+        }
+    }
+    
     // Show scanning state
     badge?.classList.add('scanning');
     if (overlay) overlay.style.display = 'flex';
@@ -465,15 +481,27 @@ async function scanForInventory() {
                     quantity: item.quantity || 1
                 });
                 if (result) added++;
-            } else {
-                // Generate new item
-                const itemData = await inventoryGeneration?.generateSingleItem?.(name);
+            } else if (inventoryGeneration?.generateSingleItem) {
+                // Generate full item details via AI
+                const itemData = await inventoryGeneration.generateSingleItem(name);
                 if (itemData) {
                     itemData.quantity = item.quantity || 1;
                     inventoryHandlers?.saveToStash?.(itemData);
                     const result = inventoryHandlers?.addInventoryItem?.(itemData);
                     if (result) added++;
                 }
+            } else {
+                // Fallback: create basic item without generation module
+                const basicItem = {
+                    id: `inv_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+                    name: name,
+                    type: item.type || 'misc',
+                    quantity: item.quantity || 1,
+                    description: '',
+                    source: 'ai-scan'
+                };
+                const result = inventoryHandlers?.addInventoryItem?.(basicItem);
+                if (result) added++;
             }
         }
         
