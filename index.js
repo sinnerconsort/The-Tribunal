@@ -418,11 +418,19 @@ function onNewAIMessage(messageIndex) {
     }
     
     // ═══════════════════════════════════════════════════════════════
-    // AI WORLD STATE - Ask the model for weather, time, location
-    // Fills gaps the WORLD tag didn't provide. Same pipeline.
+    // API BUDGET - Controls which systems make API calls
+    // voices_only = 1 call, voices_tracking = 2, full = 3-4
     // ═══════════════════════════════════════════════════════════════
     
-    if (worldParserLoaded && settings?.worldState?.useAIWorldState !== false) {
+    const apiBudget = settings?.apiBudget || 'full';
+    
+    // ═══════════════════════════════════════════════════════════════
+    // AI WORLD STATE - Ask the model for weather, time, location
+    // Fills gaps the WORLD tag didn't provide. Same pipeline.
+    // Budget: full only
+    // ═══════════════════════════════════════════════════════════════
+    
+    if (apiBudget === 'full' && worldParserLoaded && settings?.worldState?.useAIWorldState !== false) {
         setTimeout(async () => {
             try {
                 await extractAndApplyAIWorldState(message.mes, worldTagResult);
@@ -432,6 +440,11 @@ function onNewAIMessage(messageIndex) {
         }, 800);
     }
     
+    // ═══════════════════════════════════════════════════════════════
+    // VOICE GENERATION - Always fires (core feature)
+    // Budget: all tiers
+    // ═══════════════════════════════════════════════════════════════
+    
     // Small delay to ensure message is fully rendered
     setTimeout(() => {
         triggerVoiceGeneration(message.mes, false);
@@ -439,42 +452,47 @@ function onNewAIMessage(messageIndex) {
 
     // ═══════════════════════════════════════════════════════════════
     // EQUIPMENT EXTRACTION - Extract clothing/accessories from message
+    // Budget: full only
     // ═══════════════════════════════════════════════════════════════
     
-    setTimeout(async () => {
-        try {
-            const equipResults = await generateEquipmentFromMessage(message.mes, {
-                existingEquipment: getEquipmentItems()
-            });
-            
-            if (equipResults.equipment?.length > 0) {
-                for (const item of equipResults.equipment) {
-                    addEquipment({
-                        ...item,
-                        equipped: true
-                    });
-                }
-                console.log(`[Tribunal] Extracted ${equipResults.equipment.length} equipment items`);
+    if (apiBudget === 'full') {
+        setTimeout(async () => {
+            try {
+                const equipResults = await generateEquipmentFromMessage(message.mes, {
+                    existingEquipment: getEquipmentItems()
+                });
                 
-                // Show toastr for each item
-                if (typeof toastr !== 'undefined') {
+                if (equipResults.equipment?.length > 0) {
                     for (const item of equipResults.equipment) {
-                        toastr.success(`Found: ${item.name}`, 'Equipment', { timeOut: 3000 });
+                        addEquipment({
+                            ...item,
+                            equipped: true
+                        });
+                    }
+                    console.log(`[Tribunal] Extracted ${equipResults.equipment.length} equipment items`);
+                    
+                    // Show toastr for each item
+                    if (typeof toastr !== 'undefined') {
+                        for (const item of equipResults.equipment) {
+                            toastr.success(`Found: ${item.name}`, 'Equipment', { timeOut: 3000 });
+                        }
                     }
                 }
+            } catch (e) {
+                console.warn('[Tribunal] Equipment extraction failed:', e.message);
             }
-        } catch (e) {
-            console.warn('[Tribunal] Equipment extraction failed:', e.message);
-        }
-    }, 1000);
+        }, 1000);
+    }
     
     // ═══════════════════════════════════════════════════════════════
     // AI EXTRACTION - Extract quests, contacts, locations from message
-    // Only runs if enabled AND world tag didn't provide location
+    // Budget: voices_tracking or full
     // ═══════════════════════════════════════════════════════════════
     
-    if (settings?.extraction?.enabled !== false || settings?.worldState?.useAIExtractor) {
-        runExtraction(message.mes);
+    if (apiBudget !== 'voices_only') {
+        if (settings?.extraction?.enabled !== false || settings?.worldState?.useAIExtractor) {
+            runExtraction(message.mes);
+        }
     }
 }
 
