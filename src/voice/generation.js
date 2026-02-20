@@ -32,6 +32,7 @@ import { analyzeContext, buildChorusPrompt } from './prompt-builder.js';
 
 // Error surfacing — shared with thought generation
 import { notifyUser, surfaceError } from '../utils/notification-helpers.js';
+import { getSkillPersonality, getAncientPersonality } from '../data/setting-profiles.js';
 
 // Re-export for external use
 export { callAPI, getAvailableProfiles, analyzeContext };
@@ -423,14 +424,39 @@ export function parseChorusResponse(response, voiceData) {
     voiceData.forEach(v => {
         skillMap[v.skill.signature.toUpperCase()] = v;
         skillMap[v.skill.name.toUpperCase()] = v;
+        // Models often prepend "THE" from personality descriptions
+        if (!v.skill.signature.toUpperCase().startsWith('THE ')) {
+            skillMap['THE ' + v.skill.signature.toUpperCase()] = v;
+        }
+        // Extract genre persona names like "You are THE RATIONER" / "You are THE DETECTIVE"
+        const personality = v.isAncient 
+            ? getAncientPersonality?.(v.skillId) || v.skill.personality
+            : getSkillPersonality?.(v.skillId) || v.skill.personality;
+        if (personality) {
+            const personaMatch = personality.match(/^You are (?:the )?([A-Z][A-Z\s'-]+)/i);
+            if (personaMatch) {
+                const genreName = personaMatch[1].trim().toUpperCase();
+                if (genreName !== v.skill.signature.toUpperCase()) {
+                    skillMap[genreName] = v;
+                }
+            }
+        }
     });
     
     // NOTE: We intentionally do NOT add all skills to the map anymore.
     // If the AI hallucinates a skill that wasn't selected, it gets ignored.
     // This enforces the maxVoices cap on actual output.
 
-    for (const line of lines) {
-        const match = line.match(/^([A-Z][A-Z\s\/]+)\s*[-:–—]\s*(.+)$/i);
+    for (const rawLine of lines) {
+        // Strip common AI formatting: markdown bold/italic, numbered lists, bullets, quotes
+        const line = rawLine
+            .replace(/^\s*[\d]+[.)]\s*/, '')     // "1. " or "1) "
+            .replace(/^\s*[-•●]\s*/, '')          // "- " or "• "
+            .replace(/\*+/g, '')                   // all asterisks (bold/italic)
+            .replace(/^["'`]+|["'`]+$/g, '')       // surrounding quotes
+            .trim();
+        
+        const match = line.match(/^([A-Z][A-Z\s\/']+)\s*[-:–—]\s*(.+)$/i);
         if (match) {
             const voiceInfo = skillMap[match[1].trim().toUpperCase()];
             if (voiceInfo) {
@@ -448,6 +474,29 @@ export function parseChorusResponse(response, voiceData) {
             } else {
                 // Log when we reject a hallucinated voice
                 console.log('[Tribunal] Ignored non-selected voice:', match[1].trim());
+            }
+        } else {
+            // Fallback: check if line starts with any known signature
+            const upperLine = line.toUpperCase();
+            for (const [key, voiceInfo] of Object.entries(skillMap)) {
+                if (upperLine.startsWith(key)) {
+                    // Extract content after the signature
+                    const afterSig = line.substring(key.length).replace(/^\s*[-:–—.]\s*/, '').trim();
+                    if (afterSig) {
+                        results.push({
+                            skillId: voiceInfo.skillId,
+                            skillName: voiceInfo.skill.name,
+                            signature: voiceInfo.skill.signature,
+                            color: voiceInfo.skill.color,
+                            content: afterSig,
+                            checkResult: voiceInfo.checkResult,
+                            isAncient: voiceInfo.isAncient,
+                            isCascade: voiceInfo.isCascade,
+                            success: true
+                        });
+                        break;
+                    }
+                }
             }
         }
     }
