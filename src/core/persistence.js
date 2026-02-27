@@ -134,6 +134,7 @@ export function initSettings() {
     // Actual HP is in chat_metadata.tribunal.vitals
     if (!s.vitals) s.vitals = { ...defaults.vitals };
     if (!s.dice) s.dice = { ...defaults.dice };
+    if (!s.brains) s.brains = { ...defaults.brains };
     if (!s.progression) s.progression = { ...defaults.progression };
     
     // Ensure progression sub-objects
@@ -397,6 +398,25 @@ function sanitizeChatState(state) {
         state.meta = { ...defaults.meta };
     } else {
         state.meta = { ...defaults.meta, ...state.meta };
+    }
+    
+    // Attribute brains — sanitize with dedicated function
+    if (!state.attributeBrains) {
+        state.attributeBrains = { ...defaults.attributeBrains };
+    } else {
+        // Ensure _config exists
+        state.attributeBrains._config = {
+            ...defaults.attributeBrains._config,
+            ...(state.attributeBrains._config || {})
+        };
+        // Ensure each attribute brain exists
+        for (const attr of ['intellect', 'psyche', 'physique', 'motorics']) {
+            if (!state.attributeBrains[attr]) {
+                state.attributeBrains[attr] = { thoughts: {}, lastUpdated: null };
+            } else {
+                if (!state.attributeBrains[attr].thoughts) state.attributeBrains[attr].thoughts = {};
+            }
+        }
     }
     
     // Ensure arrays exist (but preserve existing arrays!)

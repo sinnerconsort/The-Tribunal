@@ -694,6 +694,23 @@ async function onMessageReceived(messageId) {
     }
     
     // ═══════════════════════════════════════════════════════════════
+    // ATTRIBUTE BRAINS - Increment counter, trigger batch update if due
+    // ═══════════════════════════════════════════════════════════════
+    try {
+        const { incrementBrainCounter } = await import('../systems/attribute-brains.js');
+        const shouldUpdate = incrementBrainCounter();
+        if (shouldUpdate && messageText) {
+            // Fire-and-forget — batch update runs in background
+            import('../systems/brain-batch-updater.js')
+                .then(updater => updater.runBatchUpdate())
+                .catch(err => console.log('[Tribunal] Brain batch update skipped:', err.message));
+        }
+    } catch (error) {
+        // Brain system is optional — never breaks message flow
+        console.log('[Tribunal] Brain counter skipped:', error.message);
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
     // CHAT SWITCH CHECK: Abort if chat changed during sync operations
     // ═══════════════════════════════════════════════════════════════
     if (!isSameChat(startChatId)) {
