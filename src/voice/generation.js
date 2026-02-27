@@ -34,6 +34,9 @@ import { analyzeContext, buildChorusPrompt } from './prompt-builder.js';
 import { notifyUser, surfaceError } from '../utils/notification-helpers.js';
 import { getSkillPersonality, getAncientPersonality } from '../data/setting-profiles.js';
 
+// Import brain observation processing
+import { processVoiceBrainWrites } from './brain-aware-voice.js';
+
 // Re-export for external use
 export { callAPI, getAvailableProfiles, analyzeContext };
 
@@ -613,6 +616,9 @@ export async function generateVoices(selectedSkills, context) {
     try {
         const response = await callAPI(chorusPrompt.system, chorusPrompt.user);
         const parsed = parseChorusResponse(response, voiceData);
+        
+        // Process brain observations — strips [OBSERVE:] tags, writes to brains
+        processVoiceBrainWrites(parsed);
         
         // Save generated voices to state
         setLastGeneratedVoices(parsed);

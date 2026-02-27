@@ -19,6 +19,9 @@ import { getSkillPersonality, getAncientPersonality, getProfileValue } from '../
 // Import from rebuild's state management
 import { getPersona, getVitals, getSettings } from '../core/state.js';
 
+// Import brain-aware voice enhancement
+import { buildBrainEnhancementBlock } from './brain-aware-voice.js';
+
 // ═══════════════════════════════════════════════════════════════
 // COPOTYPE DETECTION
 // ═══════════════════════════════════════════════════════════════
@@ -771,6 +774,11 @@ All skills should lean into this vibe while keeping their individual personaliti
     // ═══════════════════════════════════════════════════════
     const criticalOverride = buildCriticalStateOverride();
 
+    // ═══════════════════════════════════════════════════════
+    // COGNITIVE MEMORY: Attribute brain observations
+    // ═══════════════════════════════════════════════════════
+    const brainContext = buildBrainEnhancementBlock(voiceData);
+
     // Build system prompt — uses active genre profile for intro
     const systemIntro = getProfileValue('systemIntro', 
         'You generate internal mental voices for a roleplayer.');
@@ -799,7 +807,7 @@ THE VOICES SPEAKING THIS ROUND
 ═══════════════════════════════════════════════════════════════
 ${voiceDescriptions}
 ${relationshipSection}${reactionExamples}
-${enrichmentContext}
+${enrichmentContext}${brainContext}
 ${(() => {
     const tg = getProfileValue('toneGuide', '');
     return tg ? `═══════════════════════════════════════════════════════════════
