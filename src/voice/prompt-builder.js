@@ -20,7 +20,7 @@ import { getSkillPersonality, getAncientPersonality, getProfileValue } from '../
 import { getPersona, getVitals, getSettings } from '../core/state.js';
 
 // Import brain-aware voice enhancement
-import { buildBrainEnhancementBlock } from './brain-aware-voice.js';
+import { buildBrainEnhancementBlock, buildCascadeBrainContext } from './brain-aware-voice.js';
 
 // ═══════════════════════════════════════════════════════════════
 // COPOTYPE DETECTION
@@ -173,9 +173,15 @@ function buildRelationshipContext(voiceData) {
     for (const cascade of cascadeVoices) {
         const respondingToSkill = SKILLS[cascade.respondingTo];
         if (respondingToSkill) {
-            relationships.push(
-                `${cascade.skill.signature} is responding to ${respondingToSkill.signature} (${cascade.cascadeReason})`
-            );
+            let cascadeLine = `${cascade.skill.signature} is responding to ${respondingToSkill.signature} (${cascade.cascadeReason})`;
+            
+            // Add brain context for grounded disagreements
+            const brainNote = buildCascadeBrainContext(cascade.skillId, cascade.respondingTo);
+            if (brainNote) {
+                cascadeLine += ` ${brainNote}`;
+            }
+            
+            relationships.push(cascadeLine);
         }
     }
     
