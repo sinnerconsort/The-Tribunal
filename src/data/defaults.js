@@ -146,6 +146,20 @@ export const DEFAULT_CHAT_STATE = {
     },
     
     // ───────────────────────────────────────────────────────────
+    // ATTRIBUTE BRAINS (Shared cognitive memory for voice groups)
+    // ───────────────────────────────────────────────────────────
+    attributeBrains: {
+        _config: {
+            messagesSinceUpdate: 0,
+            lastUpdateAt: null
+        },
+        intellect: { thoughts: {}, lastUpdated: null },
+        psyche: { thoughts: {}, lastUpdated: null },
+        physique: { thoughts: {}, lastUpdated: null },
+        motorics: { thoughts: {}, lastUpdated: null }
+    },
+    
+    // ───────────────────────────────────────────────────────────
     // META
     // ───────────────────────────────────────────────────────────
     meta: {
@@ -264,6 +278,16 @@ export const DEFAULT_GLOBAL_SETTINGS = {
         criticalFailThreshold: 2,
         showModifiers: true,
         animateDice: true
+    },
+    
+    // ───────────────────────────────────────────────────────────
+    // ATTRIBUTE BRAINS SETTINGS
+    // ───────────────────────────────────────────────────────────
+    brains: {
+        enabled: true,              // Master toggle
+        updateInterval: 4,          // Messages between batch updates (2-10)
+        maxThoughts: 10,            // Per domain cap (5-15)
+        connectionProfile: '',      // Dedicated profile name (empty = use main)
     },
     
     // ───────────────────────────────────────────────────────────
