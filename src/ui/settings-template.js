@@ -428,6 +428,86 @@ export const SETTINGS_TAB_HTML = `
             </div>
         </div>
         
+        <!-- Section VIII: Cognitive Memory (Attribute Brains) -->
+        <div class="rcm-section">
+            <div class="rcm-section-header">VIII. COGNITIVE MEMORY</div>
+            <div class="rcm-section-content">
+                <div class="rcm-field-note" style="margin-bottom: 10px;">
+                    <em>🧠 Persistent observations shared across voice groups. Voices remember what they've noticed.</em>
+                </div>
+                
+                <label class="rcm-checkbox-row">
+                    <input type="checkbox" id="cfg-brains-enabled" checked>
+                    <span>Enable cognitive memory</span>
+                </label>
+                <div class="rcm-field-note">
+                    <em>1 background API call every N messages (~800 tokens). Disable to save budget.</em>
+                </div>
+                
+                <div class="rcm-field-grid">
+                    <div class="rcm-field-item">
+                        <label class="rcm-field-label">UPDATE EVERY:</label>
+                        <input type="number" id="cfg-brains-interval" class="rcm-input" 
+                               value="4" min="2" max="10" step="1">
+                        <div class="rcm-field-note"><em>messages</em></div>
+                    </div>
+                    <div class="rcm-field-item">
+                        <label class="rcm-field-label">MAX OBSERVATIONS:</label>
+                        <input type="number" id="cfg-brains-max-thoughts" class="rcm-input" 
+                               value="10" min="5" max="15" step="1">
+                        <div class="rcm-field-note"><em>per domain</em></div>
+                    </div>
+                </div>
+                
+                <!-- Brain Viewer -->
+                <div id="brain-viewer" style="margin-top: 12px;">
+                    <div style="font-size: 11px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px;">
+                        Domain Observations
+                        <span id="brain-counter-display" style="float: right; font-size: 10px; color: #666;"></span>
+                    </div>
+                    
+                    <div id="brain-viewer-intellect" class="brain-domain-viewer" style="margin-bottom: 8px;">
+                        <div class="brain-domain-header" style="cursor: pointer; padding: 6px 8px; background: rgba(100, 149, 237, 0.15); border-radius: 4px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+                            <span>🔵 INTELLECT</span>
+                            <span class="brain-count" style="font-size: 10px; color: #888;">0</span>
+                        </div>
+                        <div class="brain-domain-thoughts" style="display: none; padding: 6px 8px; font-size: 11px; color: #aaa; background: rgba(0,0,0,0.15); border-radius: 0 0 4px 4px;"></div>
+                    </div>
+                    
+                    <div id="brain-viewer-psyche" class="brain-domain-viewer" style="margin-bottom: 8px;">
+                        <div class="brain-domain-header" style="cursor: pointer; padding: 6px 8px; background: rgba(186, 85, 211, 0.15); border-radius: 4px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+                            <span>🟣 PSYCHE</span>
+                            <span class="brain-count" style="font-size: 10px; color: #888;">0</span>
+                        </div>
+                        <div class="brain-domain-thoughts" style="display: none; padding: 6px 8px; font-size: 11px; color: #aaa; background: rgba(0,0,0,0.15); border-radius: 0 0 4px 4px;"></div>
+                    </div>
+                    
+                    <div id="brain-viewer-physique" class="brain-domain-viewer" style="margin-bottom: 8px;">
+                        <div class="brain-domain-header" style="cursor: pointer; padding: 6px 8px; background: rgba(220, 80, 80, 0.15); border-radius: 4px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+                            <span>🔴 PHYSIQUE</span>
+                            <span class="brain-count" style="font-size: 10px; color: #888;">0</span>
+                        </div>
+                        <div class="brain-domain-thoughts" style="display: none; padding: 6px 8px; font-size: 11px; color: #aaa; background: rgba(0,0,0,0.15); border-radius: 0 0 4px 4px;"></div>
+                    </div>
+                    
+                    <div id="brain-viewer-motorics" class="brain-domain-viewer" style="margin-bottom: 8px;">
+                        <div class="brain-domain-header" style="cursor: pointer; padding: 6px 8px; background: rgba(255, 165, 0, 0.15); border-radius: 4px; font-size: 12px; display: flex; justify-content: space-between; align-items: center;">
+                            <span>🟠 MOTORICS</span>
+                            <span class="brain-count" style="font-size: 10px; color: #888;">0</span>
+                        </div>
+                        <div class="brain-domain-thoughts" style="display: none; padding: 6px 8px; font-size: 11px; color: #aaa; background: rgba(0,0,0,0.15); border-radius: 0 0 4px 4px;"></div>
+                    </div>
+                </div>
+                
+                <button id="cfg-brains-clear" class="rcm-btn rcm-btn-dashed" style="width: 100%; margin-top: 8px;">
+                    🗑️ Clear All Observations
+                </button>
+                <div class="rcm-field-note">
+                    <em>Wipe all domain memories for this chat</em>
+                </div>
+            </div>
+        </div>
+        
         <!-- Secret Compartment Settings (hidden until unlocked) -->
         <div class="rcm-section rcm-compartment-settings" id="compartment-settings-section" style="display: none;">
             <div class="rcm-section-header" style="color: #d4a574;">

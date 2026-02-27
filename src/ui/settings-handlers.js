@@ -116,6 +116,12 @@ const SETTINGS_IDS = {
     compartmentStatus: 'compartment-unlock-status',
     compartmentDates: 'compartment-unlock-dates',
     resetCompartment: 'cfg-reset-compartment',
+    
+    // Cognitive Memory / Attribute Brains (Section VIII)
+    brainsEnabled: 'cfg-brains-enabled',
+    brainsInterval: 'cfg-brains-interval',
+    brainsMaxThoughts: 'cfg-brains-max-thoughts',
+    brainsClear: 'cfg-brains-clear',
 };
 
 // Track if handlers are bound to prevent duplicates
@@ -171,6 +177,9 @@ export function initSettingsTab() {
     
     // Bind compartment settings handlers (secret section)
     bindCompartmentSettingsHandlers();
+    
+    // Bind cognitive memory (brain) handlers
+    bindBrainHandlers();
     
     console.log('[Tribunal] Settings handlers initialized');
 }
@@ -398,6 +407,14 @@ export function refreshSettingsFromState() {
     setCheckbox(SETTINGS_IDS.globalNotify, settings.ui?.showNotifications ?? true);
     setCheckbox(SETTINGS_IDS.lockPositions, settings.ui?.lockPositions ?? false);
     
+    // Cognitive Memory (Brains)
+    setCheckbox(SETTINGS_IDS.brainsEnabled, settings.brains?.enabled ?? true);
+    setInputValue(SETTINGS_IDS.brainsInterval, settings.brains?.updateInterval ?? 4);
+    setInputValue(SETTINGS_IDS.brainsMaxThoughts, settings.brains?.maxThoughts ?? 10);
+    
+    // Refresh brain viewer display
+    refreshBrainViewer();
+    
     console.log('[Tribunal] Settings UI refreshed from state');
 }
 
@@ -540,6 +557,12 @@ export function saveAllSettings() {
     // UI settings
     settings.ui.showNotifications = getCheckbox(SETTINGS_IDS.globalNotify, true);
     settings.ui.lockPositions = getCheckbox(SETTINGS_IDS.lockPositions, false);
+    
+    // Cognitive Memory (Brains)
+    if (!settings.brains) settings.brains = {};
+    settings.brains.enabled = getCheckbox(SETTINGS_IDS.brainsEnabled, true);
+    settings.brains.updateInterval = getInputNumber(SETTINGS_IDS.brainsInterval, 4);
+    settings.brains.maxThoughts = getInputNumber(SETTINGS_IDS.brainsMaxThoughts, 10);
     
     // NOW save - this triggers the debounced save to localStorage/server
     saveSettings();
@@ -1317,6 +1340,96 @@ function setCrackStage(stage) {
  * Bind compartment settings section handlers
  * This section only appears when the compartment has been unlocked
  */
+// ═══════════════════════════════════════════════════════════════
+// COGNITIVE MEMORY (BRAIN) HANDLERS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Bind brain settings event handlers
+ */
+function bindBrainHandlers() {
+    // Toggle domain viewers open/closed
+    const viewers = document.querySelectorAll('.brain-domain-viewer');
+    for (const viewer of viewers) {
+        const header = viewer.querySelector('.brain-domain-header');
+        const thoughts = viewer.querySelector('.brain-domain-thoughts');
+        if (header && thoughts) {
+            header.addEventListener('click', () => {
+                const isOpen = thoughts.style.display !== 'none';
+                thoughts.style.display = isOpen ? 'none' : 'block';
+                header.style.borderRadius = isOpen ? '4px' : '4px 4px 0 0';
+            });
+        }
+    }
+    
+    // Clear brains button
+    const clearBtn = document.getElementById(SETTINGS_IDS.brainsClear);
+    if (clearBtn) {
+        clearBtn.addEventListener('click', async () => {
+            try {
+                const { clearAllBrains } = await import('../systems/attribute-brains.js');
+                clearAllBrains();
+                refreshBrainViewer();
+                if (typeof toastr !== 'undefined') {
+                    toastr.info('All domain observations cleared', 'Cognitive Memory', { timeOut: 2000 });
+                }
+            } catch (e) {
+                console.warn('[Tribunal] Failed to clear brains:', e);
+            }
+        });
+    }
+    
+    console.log('[Tribunal] Brain handlers bound');
+}
+
+/**
+ * Refresh the brain viewer display with current brain state.
+ * Called on settings refresh, chat switch, and after brain updates.
+ */
+export async function refreshBrainViewer() {
+    try {
+        const { getBrainSummary, getBrainCounterStatus } = await import('../systems/attribute-brains.js');
+        const summary = getBrainSummary();
+        const counter = getBrainCounterStatus();
+        
+        // Update counter display
+        const counterEl = document.getElementById('brain-counter-display');
+        if (counterEl) {
+            counterEl.textContent = `Next update: ${counter.current}/${counter.interval} messages`;
+        }
+        
+        // Update each domain
+        for (const [attrId, data] of Object.entries(summary)) {
+            const viewer = document.getElementById(`brain-viewer-${attrId}`);
+            if (!viewer) continue;
+            
+            const countEl = viewer.querySelector('.brain-count');
+            const thoughtsEl = viewer.querySelector('.brain-domain-thoughts');
+            
+            if (countEl) {
+                countEl.textContent = `${data.count}/${data.max}`;
+            }
+            
+            if (thoughtsEl) {
+                if (data.count === 0) {
+                    thoughtsEl.innerHTML = '<div style="color: #666; font-style: italic;">No observations yet.</div>';
+                } else {
+                    const entries = Object.entries(data.thoughts)
+                        .map(([key, val]) => {
+                            const cleanKey = key.replace(/_/g, ' ');
+                            return `<div style="margin-bottom: 4px; line-height: 1.4;"><span style="color: #ccc; font-weight: 500;">${cleanKey}:</span> ${val}</div>`;
+                        })
+                        .join('');
+                    thoughtsEl.innerHTML = entries;
+                }
+            }
+        }
+    } catch (e) {
+        // Brain system not available — leave viewer empty
+        console.log('[Tribunal] Brain viewer refresh skipped:', e.message);
+    }
+}
+
 function bindCompartmentSettingsHandlers() {
     const section = document.getElementById(SETTINGS_IDS.compartmentSection);
     const resetBtn = document.getElementById(SETTINGS_IDS.resetCompartment);
